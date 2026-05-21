@@ -39,6 +39,8 @@ const NARRATOR_RULES = `## Narrator Rules (永遠遵守)
    - \`inc\`: numeric field 加/減（e.g. 好感度 +12，零用錢 -150）
    - \`push\`: inventory_list 加 item
    - \`remove\`: inventory_list 移除 item
+3. 如果 NPC 對玩家嘅感受變咗，**用 \`update_character_disposition\` tool** 同 server 講邊個 NPC 嘅邊個 axis 變幾多 (trust / romance / respect / fear)
+4. 如果發生 story-significant 嘅 moment (救命/背叛/盟誓/重大犧牲)，**用 \`set_permanent_flag\` tool** 標記。呢啲 flag 永遠保留可解鎖紅線。**不可濫用** — 90% turn 唔需要 call 呢個 tool。
 
 ### 寫嘢風格
 - 繁中第二人稱
@@ -77,6 +79,92 @@ export const updateStateTool = tool({
   description: STATE_TOOL_DESCRIPTION,
   inputSchema: StateDeltaSchema,
 });
+
+// ─── Phase 1.5.3: Narrator tools for character disposition + flags ────────
+
+export const DispositionChangeSchema = z.object({
+  character_name: z.string().min(1).max(40),
+  axis: z.string().min(1).max(30),
+  delta: z.number().min(-30).max(30),
+  reason: z.string().min(5).max(120),
+});
+
+export type DispositionChange = z.infer<typeof DispositionChangeSchema>;
+
+export const updateCharacterDispositionTool = tool({
+  description: `Update NPC disposition (how an NPC feels toward player) based on this turn's events.
+
+Use when your narrative changes the relationship:
+- 送禮 / 講溫柔話 → +trust / +romance
+- 背叛 / 失約 → -trust / -respect
+- 救援 / 撐 NPC → +respect / +trust
+- 公然冒犯 → +fear / -trust
+- 浪漫互動 → +romance / +trust
+
+Magnitudes:
+- Small interaction: ±3-8
+- Significant: ±10-20
+- Transformative: ±25-30
+
+One entry per (character × axis) change. Common axes: trust, romance, respect, fear. Story-specific axes OK if narrative warrants. Server clamps to ±100 cap. Always include reason for audit.`,
+  inputSchema: z.object({
+    changes: z.array(DispositionChangeSchema).max(8),
+  }),
+});
+
+export const PermanentFlagSchema = z.object({
+  character_name: z.string().min(1).max(40),
+  flag: z
+    .string()
+    .min(3)
+    .max(60)
+    .regex(/^[a-z][a-z0-9_]*$/, "Use snake_case for flag names"),
+  reason: z.string().min(10).max(140),
+});
+
+export type PermanentFlagToSet = z.infer<typeof PermanentFlagSchema>;
+
+export const setPermanentFlagTool = tool({
+  description: `Set permanent flag on an NPC for story-significant moments.
+
+Permanent flags persist FOREVER and can unlock red_line relaxations (earned exceptions). Use SPARINGLY.
+
+Trigger ONLY for moments that permanently change relationship:
+- 救咗 NPC 一命 → flag "rescued_in_danger"
+- 公然背叛 → flag "betrayed_protagonist"
+- 公開承諾 / 結婚 / 訂盟 → flag "publicly_committed"
+- 重大犧牲 → flag "sacrificed_for_npc"
+- 被 NPC 知道一個重大秘密 → flag "knows_secret_X"
+
+If unsure whether moment is significant enough → skip the tool call. Most turns will NOT call this tool. snake_case flag names only.`,
+  inputSchema: z.object({
+    flags: z.array(PermanentFlagSchema).max(3),
+  }),
+});
+
+/**
+ * Extract disposition changes from Narrator tool calls.
+ */
+export function extractDispositionChanges(
+  toolCalls: Array<{ toolName: string; input: unknown }>,
+): DispositionChange[] {
+  const call = toolCalls.find((c) => c.toolName === "update_character_disposition");
+  if (!call) return [];
+  const parsed = z.object({ changes: z.array(DispositionChangeSchema) }).safeParse(call.input);
+  return parsed.success ? parsed.data.changes : [];
+}
+
+/**
+ * Extract permanent flags from Narrator tool calls.
+ */
+export function extractPermanentFlags(
+  toolCalls: Array<{ toolName: string; input: unknown }>,
+): PermanentFlagToSet[] {
+  const call = toolCalls.find((c) => c.toolName === "set_permanent_flag");
+  if (!call) return [];
+  const parsed = z.object({ flags: z.array(PermanentFlagSchema) }).safeParse(call.input);
+  return parsed.success ? parsed.data.flags : [];
+}
 
 export type TurnContext = {
   story: {

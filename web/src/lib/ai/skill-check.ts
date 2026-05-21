@@ -37,23 +37,40 @@ export type SkillCheckResult = {
 };
 
 /**
+ * Return list of numeric skill key names from the state schema.
+ * Director should pick skill_key from this list — surfacing it in the
+ * Director system prompt prevents hallucinated keys (D-01 fix).
+ */
+export function numericSkillKeys(schema: StateSchema): string[] {
+  return schema.fields
+    .filter(
+      (f) =>
+        f.render_hint === "bar" ||
+        f.render_hint === "progress_ring" ||
+        f.render_hint === "number" ||
+        f.render_hint === "meter_with_label",
+    )
+    .map((f) => f.key);
+}
+
+/**
  * Extract numeric skill value from current state for the given key.
- * Falls back to 0 if key not found / not numeric.
+ * Fallback (when Director picks a non-existent key): use median of all
+ * numeric fields in state — keeps Skill Check fair instead of guaranteed
+ * failure on `skill_value = 0`. Logs warning so we can monitor.
  */
 function extractSkillValue(
   state: Record<string, unknown>,
   schema: StateSchema,
   skill_key: string,
 ): number {
-  // First check if key exists as a top-level state field
+  // Happy path: key exists + value is numeric
   const value = state[skill_key];
   if (typeof value === "number") return value;
 
-  // Check schema — is the field numeric?
+  // Field exists in schema but state value isn't numeric — use field default
   const field = schema.fields.find((f) => f.key === skill_key);
   if (field) {
-    // If we get here, the state value isn't a number even though the
-    // schema says it should be. Use field default as fallback.
     if (
       field.render_hint === "bar" ||
       field.render_hint === "progress_ring" ||
@@ -64,7 +81,28 @@ function extractSkillValue(
     }
   }
 
-  return 0;
+  // Director hallucinated a key — fall back to median of all numeric state
+  // values. Better than 0 (which guarantees failure).
+  const numericValues = numericSkillKeys(schema)
+    .map((k) => {
+      const v = state[k];
+      return typeof v === "number" ? v : null;
+    })
+    .filter((n): n is number => n !== null)
+    .sort((a, b) => a - b);
+
+  if (numericValues.length > 0) {
+    const median = numericValues[Math.floor(numericValues.length / 2)];
+    console.warn(
+      `[skill-check] Director picked unknown skill_key "${skill_key}". Falling back to median of numeric fields = ${median}.`,
+    );
+    return median;
+  }
+
+  console.warn(
+    `[skill-check] Unknown skill_key "${skill_key}" and no numeric fields to median over. Using 10.`,
+  );
+  return 10; // neutral default — better than 0
 }
 
 /**

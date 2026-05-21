@@ -7,7 +7,11 @@ import {
   buildDynamicSystemPrompt,
   buildMessages,
   extractStateDelta,
+  extractDispositionChanges,
+  extractPermanentFlags,
   updateStateTool,
+  updateCharacterDispositionTool,
+  setPermanentFlagTool,
   isLLMRefusal,
   refusalFallbackNarrative,
   type TurnContext,
@@ -19,6 +23,7 @@ import {
   skillCheckToNarratorInstruction,
   type SkillCheckResult,
 } from "@/lib/ai/skill-check";
+import { deriveCurrentAct, type ArcContext } from "@/lib/ai/arc-dsl";
 import { applyDelta } from "@/schemas/state-delta";
 import { initialStateFromSchema, type StateSchema } from "@/schemas/state-schema";
 import type { StoryBible } from "@/schemas/bible";
@@ -240,7 +245,11 @@ export async function POST(
       },
       ...messages,
     ],
-    tools: { update_state: updateStateTool },
+    tools: {
+      update_state: updateStateTool,
+      update_character_disposition: updateCharacterDispositionTool,
+      set_permanent_flag: setPermanentFlagTool,
+    },
     temperature: 0.85,
     maxOutputTokens: 1500,
     onFinish: async ({ text, toolCalls, usage }) => {
@@ -263,6 +272,139 @@ export async function POST(
               applied.skipped.map((s) => `${s.op.op} ${s.op.key}: ${s.reason}`),
             );
           }
+        }
+
+        // ─── Phase 1.5.3: extract Narrator's disposition + flag tool calls ───
+        const dispositionChanges = isRefusal
+          ? []
+          : extractDispositionChanges(toolCalls);
+        const permanentFlags = isRefusal ? [] : extractPermanentFlags(toolCalls);
+
+        // Build lookup of NPCs by name to map character_name → character_id.
+        const charByName = new Map(
+          (characters ?? []).map((c) => [c.name, c]),
+        );
+
+        // Apply disposition changes — clamp ±100 + upsert per (playthrough, character)
+        for (const change of dispositionChanges) {
+          const dbChar = charByName.get(change.character_name);
+          if (!dbChar) {
+            console.warn(
+              `[turn] Narrator referenced unknown NPC "${change.character_name}" in disposition update — skipped`,
+            );
+            continue;
+          }
+          const existingState = charStates?.find(
+            (s) => s.character_id === dbChar.id,
+          );
+          const currentDisposition =
+            (existingState?.disposition as Record<string, number>) ?? {};
+          const currentValue = currentDisposition[change.axis] ?? 0;
+          const newValue = Math.max(
+            -100,
+            Math.min(100, currentValue + change.delta),
+          );
+          const newDisposition = {
+            ...currentDisposition,
+            [change.axis]: newValue,
+          };
+
+          await supabase
+            .from("playthrough_character_states")
+            .upsert(
+              {
+                playthrough_id: playthroughId,
+                character_id: dbChar.id,
+                disposition: newDisposition,
+                permanent_flags: existingState?.permanent_flags ?? [],
+                last_interaction_turn: aiTurnIndex,
+              },
+              { onConflict: "playthrough_id,character_id" },
+            );
+        }
+
+        // Apply permanent flags — append to character's flag array
+        for (const flagOp of permanentFlags) {
+          const dbChar = charByName.get(flagOp.character_name);
+          if (!dbChar) {
+            console.warn(
+              `[turn] Narrator tried to set flag on unknown NPC "${flagOp.character_name}" — skipped`,
+            );
+            continue;
+          }
+          const existingState = charStates?.find(
+            (s) => s.character_id === dbChar.id,
+          );
+          const existingFlags = (existingState?.permanent_flags as string[]) ?? [];
+          if (existingFlags.includes(flagOp.flag)) {
+            continue; // already set
+          }
+          await supabase
+            .from("playthrough_character_states")
+            .upsert(
+              {
+                playthrough_id: playthroughId,
+                character_id: dbChar.id,
+                disposition: existingState?.disposition ?? {},
+                permanent_flags: [...existingFlags, flagOp.flag],
+                last_interaction_turn: aiTurnIndex,
+              },
+              { onConflict: "playthrough_id,character_id" },
+            );
+          console.log(
+            `[turn] Set permanent flag on ${flagOp.character_name}: ${flagOp.flag} — ${flagOp.reason}`,
+          );
+        }
+
+        // ─── Arc transition check (Phase 1.5.3) ────────────────────────────
+        // Build ArcContext from new state + updated character dispositions
+        const updatedCharStates = new Map<
+          string,
+          { disposition: Record<string, number>; permanent_flags: string[] }
+        >();
+        for (const c of characters ?? []) {
+          const cs = charStates?.find((s) => s.character_id === c.id);
+          updatedCharStates.set(c.name, {
+            disposition: (cs?.disposition as Record<string, number>) ?? {},
+            permanent_flags: (cs?.permanent_flags as string[]) ?? [],
+          });
+        }
+        // Apply this turn's disposition changes to the in-memory map (DB is async)
+        for (const change of dispositionChanges) {
+          const cur = updatedCharStates.get(change.character_name);
+          if (!cur) continue;
+          const newValue = Math.max(
+            -100,
+            Math.min(100, (cur.disposition[change.axis] ?? 0) + change.delta),
+          );
+          cur.disposition = { ...cur.disposition, [change.axis]: newValue };
+        }
+        // Add this turn's flags
+        for (const flagOp of permanentFlags) {
+          const cur = updatedCharStates.get(flagOp.character_name);
+          if (!cur) continue;
+          if (!cur.permanent_flags.includes(flagOp.flag)) {
+            cur.permanent_flags = [...cur.permanent_flags, flagOp.flag];
+          }
+        }
+        const arcCtx: ArcContext = {
+          state: newState,
+          characters: updatedCharStates,
+        };
+        const persistedAct =
+          typeof (newState as Record<string, unknown>).__act === "number"
+            ? ((newState as Record<string, unknown>).__act as number)
+            : 1;
+        const arcResult = deriveCurrentAct({
+          story_arc: ctx.story.story_bible.soft_guided.story_arc,
+          ctx: arcCtx,
+          persisted_act: persistedAct,
+        });
+        if (arcResult.act > persistedAct) {
+          (newState as Record<string, unknown>).__act = arcResult.act;
+          console.log(
+            `[turn] Story advanced to Act ${arcResult.act}: ${arcResult.just_advanced_to?.name ?? ""}`,
+          );
         }
 
         await supabase.from("turns").insert([

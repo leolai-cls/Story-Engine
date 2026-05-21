@@ -4,6 +4,7 @@ import { DEFAULT_DIRECTOR } from "./models";
 import { VerdictSchema, type Verdict } from "@/schemas/director";
 import { bibleToSystemPrompt } from "@/schemas/bible";
 import { allCharactersToSystemPrompt } from "@/schemas/character";
+import { numericSkillKeys } from "./skill-check";
 import type { TurnContext } from "./turn-runner";
 
 /**
@@ -49,11 +50,21 @@ Action 合理但有 cost：e.g. 玩家行動會 hurt HP / damage 好感度 / cos
 
 ### 4. \`require_skill_check\` (action 結果未定，需要擲骰)
 玩家試嘅嘢有 risk + 結果由 skill 決定：e.g. 戰鬥（戰鬥力 vs 對手）、口才說服 (口才 vs 拒絕度)。
-指定 skill_key (對應 state field), difficulty (5=easy 25=超難), 成功/失敗 consequence hints。
+指定 skill_key (**必須完全 match Available Skill Keys 入面其中一個** — 唔可以 invent 新 key), difficulty (5=easy 25=超難), 成功/失敗 consequence hints。
+
+### Earned Exceptions（紅線 relaxation）
+每個 NPC 有 \`permanent_flags\` array（喺 character cards 入面顯示）。呢啲 flag 係由玩家過去嘅 in-game 行動「earned」嘅。Flag 可以 partially relax 對應嘅 red line：
+
+例子：
+- 林思雅 red_line: 「唔接受快速進展嘅關係」
+- 若玩家有 flag \`rescued_linsiya_in_danger\` → Director 可以判定一個 bold action 由 reject 變 allow_with_constraint（NPC 仲係 wary 但唔再完全 refuse）
+- 若玩家有 flag \`betrayed_linsiya\` → reject 應該更 strict
+
+判斷 earned exception 嗰陣，用 reasoning 解釋邊個 flag 影響你嘅決定。
 
 ⚠️ Bias 應該 lean \`allow\` — 玩家 agency 重要。只有清楚 rule 違反先 reject。Skill check 用喺真係 uncertain outcome 嗰種 risky action，唔係日常對白。`;
 
-export async function callDirector(
+async function callDirectorOnce(
   ctx: TurnContext,
   userAction: string,
 ): Promise<Verdict> {
@@ -62,6 +73,10 @@ export async function callDirector(
   const protagonist = ctx.playthrough_character_name
     ? `Protagonist: ${ctx.playthrough_character_name}`
     : "";
+
+  const skillKeys = numericSkillKeys(ctx.story.state_schema);
+  const skillKeysList = `## Available Skill Keys (skill_key 必須 EXACTLY 揀其中一個)
+${skillKeys.length > 0 ? skillKeys.map((k) => `- \`${k}\``).join("\n") : "(冇 numeric skill field — try to allow / reject 而唔好 require_skill_check)"}`;
 
   const recentContextLines = ctx.recent_turns
     .slice(-6) // last 6 turns of context (3 user + 3 AI)
@@ -75,6 +90,7 @@ export async function callDirector(
     bible,
     chars,
     protagonist,
+    skillKeysList,
   ]
     .filter(Boolean)
     .join("\n\n");
@@ -114,4 +130,23 @@ ${recentContextLines || "(none yet — this is the first user action)"}
   });
 
   return result.object;
+}
+
+/**
+ * Director call with 1 retry on failure (L-07 fix). If both fail, throws —
+ * caller (turn route) treats as fallback to allow.
+ */
+export async function callDirector(
+  ctx: TurnContext,
+  userAction: string,
+): Promise<Verdict> {
+  try {
+    return await callDirectorOnce(ctx, userAction);
+  } catch (e1) {
+    console.warn(
+      "[director] attempt 1 failed, retrying:",
+      e1 instanceof Error ? e1.message : e1,
+    );
+    return await callDirectorOnce(ctx, userAction);
+  }
 }

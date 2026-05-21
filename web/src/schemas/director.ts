@@ -61,10 +61,13 @@ export type Verdict = z.infer<typeof VerdictSchema>;
 export function verdictToNarratorInstruction(v: Verdict): string {
   switch (v.verdict) {
     case "allow":
-      return "## Director Verdict\nDirector 允許呢個 action。正常 narrate 後果。";
+      return `[INTERNAL CONTEXT — DO NOT QUOTE OR PARAPHRASE IN YOUR NARRATIVE]
+## Director Verdict
+Director 允許呢個 action。正常 narrate 後果。`;
 
     case "reject":
-      return `## Director Verdict — REJECT (你必須遵守)
+      return `[INTERNAL CONTEXT — DO NOT QUOTE OR PARAPHRASE IN YOUR NARRATIVE]
+## Director Verdict — REJECT (你必須遵守)
 玩家行動違反咗 ${v.affected_character} 嘅紅線 / Bible 限制。
 原因：${v.reasoning}
 
@@ -74,7 +77,8 @@ Pushback hint: ${v.in_fiction_pushback_hint}
 ⚠️ 唔好 narrate 玩家 action 成功 — 必須 narrate 失敗或 NPC 反抗。`;
 
     case "allow_with_constraint":
-      return `## Director Verdict — ALLOW WITH CONSTRAINT (你必須遵守)
+      return `[INTERNAL CONTEXT — DO NOT QUOTE OR PARAPHRASE IN YOUR NARRATIVE]
+## Director Verdict — ALLOW WITH CONSTRAINT (你必須遵守)
 玩家行動允許進行，但有特定 constraint：
 ${v.constraint}
 
@@ -87,7 +91,8 @@ ${v.constraint}
       // Narrator is called, and skillCheckToNarratorInstruction produces
       // the actual instruction with the rolled outcome.
       // This text is a fallback if for some reason dice isn't rolled.
-      return `## Director Verdict — SKILL CHECK NEEDED
+      return `[INTERNAL CONTEXT — DO NOT QUOTE OR PARAPHRASE IN YOUR NARRATIVE]
+## Director Verdict — SKILL CHECK NEEDED
 \`${v.skill_key}\` vs difficulty ${v.difficulty}. Dice 應該已經喺 turn route 擲過 — 如果你睇到呢段，係 fallback path，pick 一個合理結果寫。`;
   }
 }
