@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { streamText } from "ai";
-import { anthropicProvider } from "@/lib/ai/providers";
+import { getProviderModel } from "@/lib/ai/providers";
 import { createClient } from "@/lib/supabase/server";
 import {
   buildStableSystemPrompt,
@@ -228,7 +228,10 @@ export async function POST(
   const aiTurnIndex = pt.turn_count + 1;
 
   const result = streamText({
-    model: anthropicProvider(pt.llm_model ?? "claude-sonnet-4-6"),
+    // AUDIT FIX (AI-H-09): use provider dispatcher so non-Anthropic models
+    // (OpenRouter for adult mode, etc.) route to the right SDK rather than
+    // 404'ing against Anthropic.
+    model: getProviderModel(pt.llm_model ?? "claude-sonnet-4-6"),
     messages: [
       {
         role: "system",
@@ -254,9 +257,14 @@ export async function POST(
     maxOutputTokens: 1500,
     onFinish: async ({ text, toolCalls, usage }) => {
       try {
-        // L-08 fix: detect LLM refusal + substitute in-fiction fallback
+        // L-08 fix: detect LLM refusal + substitute in-fiction fallback.
+        // AUDIT FIX (AI-M-07): pass story language so fallback matches locale
+        // instead of forcing 繁中 on 簡中 / EN stories.
         const isRefusal = isLLMRefusal(text);
-        const finalText = isRefusal ? refusalFallbackNarrative() : text;
+        const storyLanguage = ctx.story.story_bible.hard_locked.language;
+        const finalText = isRefusal
+          ? refusalFallbackNarrative(storyLanguage)
+          : text;
         if (isRefusal) {
           console.warn("[turn] LLM refused — replaced with in-fiction fallback. Original:", text.slice(0, 200));
         }
@@ -439,12 +447,13 @@ export async function POST(
           .eq("id", playthroughId);
       } catch (e) {
         console.error("[turn] onFinish persistence failed", e);
-      } finally {
-        // Release rate-limit slot a bit earlier than cooldown so user
-        // can submit next turn smoothly after stream finishes.
-        const newLastAt = Date.now() - TURN_COOLDOWN_MS / 2;
-        lastTurnAt.set(playthroughId, newLastAt);
       }
+      // AUDIT FIX (AI-H-05): NO finally-block timestamp clobber. The previous
+      // implementation set `lastTurnAt = Date.now() - COOLDOWN/2` which could
+      // move the cooldown BACKWARD if onFinish completed after a concurrent
+      // turn had already updated the slot, letting subsequent requests bypass
+      // the cooldown. The entry-side `lastTurnAt.set(...)` is sufficient —
+      // streams take 10-30s so the 1.5s cooldown has long expired by then.
     },
   });
 

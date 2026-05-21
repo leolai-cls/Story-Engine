@@ -1,5 +1,15 @@
-"use server";
-
+// Intentionally NOT a Server Action ("use server" removed in audit fix SEC-C-02).
+//
+// Previously this file was marked "use server", which made every exported
+// function publicly invokable as a Next.js Server Action — meaning any
+// visitor (no auth required) could POST to call `generateStory` and burn
+// ~$0.20 per call (4 parallel Sonnet 4.6 calls). It's only ever called
+// internally from `stories/new/actions.ts` (which IS a Server Action and
+// does check auth), so the "use server" directive here was both unnecessary
+// and dangerous.
+//
+// This file is now a regular server-side library. Direct invocation is no
+// longer possible from the client.
 import { z } from "zod";
 import { generateObject } from "ai";
 import { anthropicProvider } from "./providers";
@@ -175,12 +185,25 @@ const CHARACTERS_SYSTEM = `你係 Story Engine 嘅 character designer。設計 1
 
 NPC 數量 = 故事需要嘅最少 (3-5 通常啱)。質量 > 數量。`;
 
-// ─── Retry wrapper: 1 retry on failure for each sub-call (L-07 fix) ─────
+// ─── Retry wrapper: 1 retry with exponential backoff (AI-M-08 fix) ──────
 
 type SubCallConfig<T> = {
   label: string;
   call: () => Promise<{ object: T }>;
 };
+
+/**
+ * Decide whether an error is worth retrying. 4xx auth/validation errors
+ * won't get better by retrying — fail fast. 429 (rate limit) and 5xx
+ * (server) are good retry candidates.
+ */
+function isRetryable(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  // Anthropic SDK errors include the status code in the message
+  if (/\b(400|401|403|404)\b/.test(msg)) return false;
+  if (/invalid[_-]api[_-]key|authentication/i.test(msg)) return false;
+  return true;
+}
 
 async function runWithRetry<T>(cfg: SubCallConfig<T>): Promise<T> {
   try {
@@ -188,7 +211,14 @@ async function runWithRetry<T>(cfg: SubCallConfig<T>): Promise<T> {
     return r.object;
   } catch (e) {
     const errMsg = e instanceof Error ? e.message : String(e);
-    console.warn(`[schema-gen] ${cfg.label} attempt 1 failed, retrying:`, errMsg);
+    if (!isRetryable(e)) {
+      console.error(`[schema-gen] ${cfg.label} non-retryable error:`, errMsg);
+      throw new Error(`${cfg.label} 生成失敗: ${errMsg}`);
+    }
+    console.warn(`[schema-gen] ${cfg.label} attempt 1 failed, retrying in 1s:`, errMsg);
+    // Exponential backoff: 1s before retry. Burst retries against a
+    // rate-limited Anthropic just make it worse.
+    await new Promise((resolve) => setTimeout(resolve, 1000));
     try {
       const r2 = await cfg.call();
       return r2.object;

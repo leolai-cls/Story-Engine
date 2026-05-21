@@ -141,8 +141,8 @@ ${recentContextLines || "(none yet — this is the first user action)"}`;
 }
 
 /**
- * Director call with 1 retry on failure (L-07 fix). If both fail, throws —
- * caller (turn route) treats as fallback to allow.
+ * Director call with 1 retry + exponential backoff (AI-M-08 fix). If both
+ * fail, throws — caller (turn route) treats as fallback to allow.
  */
 export async function callDirector(
   ctx: TurnContext,
@@ -151,10 +151,14 @@ export async function callDirector(
   try {
     return await callDirectorOnce(ctx, userAction);
   } catch (e1) {
-    console.warn(
-      "[director] attempt 1 failed, retrying:",
-      e1 instanceof Error ? e1.message : e1,
-    );
+    const msg = e1 instanceof Error ? e1.message : String(e1);
+    // Don't retry on auth / validation errors — they won't get better.
+    if (/\b(400|401|403|404)\b/.test(msg) || /invalid[_-]api[_-]key/i.test(msg)) {
+      console.error("[director] non-retryable error:", msg);
+      throw e1;
+    }
+    console.warn("[director] attempt 1 failed, retrying in 1s:", msg);
+    await new Promise((resolve) => setTimeout(resolve, 1000));
     return await callDirectorOnce(ctx, userAction);
   }
 }

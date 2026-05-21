@@ -7,7 +7,7 @@ import {
   type Disposition,
 } from "@/schemas/character";
 import { StateDeltaSchema, type StateDelta } from "@/schemas/state-delta";
-import type { StateSchema } from "@/schemas/state-schema";
+import { INTERNAL_STATE_KEY_PREFIX, type StateSchema } from "@/schemas/state-schema";
 
 /**
  * Turn-runner — orchestrates the play loop per ADR-015 (Orchestrator Pattern).
@@ -144,26 +144,41 @@ If unsure whether moment is significant enough → skip the tool call. Most turn
 
 /**
  * Extract disposition changes from Narrator tool calls.
+ *
+ * AUDIT FIX (AI-M-02): Was `.find` which dropped subsequent calls. LLM
+ * legitimately emits one call per (character × axis) sometimes; merge all.
  */
 export function extractDispositionChanges(
   toolCalls: Array<{ toolName: string; input: unknown }>,
 ): DispositionChange[] {
-  const call = toolCalls.find((c) => c.toolName === "update_character_disposition");
-  if (!call) return [];
-  const parsed = z.object({ changes: z.array(DispositionChangeSchema) }).safeParse(call.input);
-  return parsed.success ? parsed.data.changes : [];
+  const calls = toolCalls.filter((c) => c.toolName === "update_character_disposition");
+  if (calls.length === 0) return [];
+  const schema = z.object({ changes: z.array(DispositionChangeSchema) });
+  const merged: DispositionChange[] = [];
+  for (const call of calls) {
+    const parsed = schema.safeParse(call.input);
+    if (parsed.success) merged.push(...parsed.data.changes);
+  }
+  return merged;
 }
 
 /**
  * Extract permanent flags from Narrator tool calls.
+ *
+ * AUDIT FIX (AI-M-02): Same as above — was `.find`, now merges across calls.
  */
 export function extractPermanentFlags(
   toolCalls: Array<{ toolName: string; input: unknown }>,
 ): PermanentFlagToSet[] {
-  const call = toolCalls.find((c) => c.toolName === "set_permanent_flag");
-  if (!call) return [];
-  const parsed = z.object({ flags: z.array(PermanentFlagSchema) }).safeParse(call.input);
-  return parsed.success ? parsed.data.flags : [];
+  const calls = toolCalls.filter((c) => c.toolName === "set_permanent_flag");
+  if (calls.length === 0) return [];
+  const schema = z.object({ flags: z.array(PermanentFlagSchema) });
+  const merged: PermanentFlagToSet[] = [];
+  for (const call of calls) {
+    const parsed = schema.safeParse(call.input);
+    if (parsed.success) merged.push(...parsed.data.flags);
+  }
+  return merged;
 }
 
 export type TurnContext = {
@@ -208,13 +223,31 @@ ${ctx.story.state_schema.fields
 }
 
 /**
+ * Strip engine-internal `__*` keys from the state shown to the LLM.
+ * AUDIT FIX (AI-M-06): Previously `__act: 2` was JSON-stringified into the
+ * Narrator prompt, which (a) leaked internal Act number causing meta-narration
+ * ("you're now in Act 2..."), (b) opened the door for Narrator to try writing
+ * to it via update_state (rejected by applyDelta but noisy).
+ */
+function stripInternalKeys(
+  state: Record<string, unknown>,
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(state)) {
+    if (!k.startsWith(INTERNAL_STATE_KEY_PREFIX)) out[k] = v;
+  }
+  return out;
+}
+
+/**
  * Dynamic suffix — changes every turn. NOT cached.
  * Just the current state snapshot.
  */
 export function buildDynamicSystemPrompt(ctx: TurnContext): string {
+  const visibleState = stripInternalKeys(ctx.current_state);
   return `## Current Game State (this turn only)
 \`\`\`json
-${JSON.stringify(ctx.current_state, null, 2)}
+${JSON.stringify(visibleState, null, 2)}
 \`\`\``;
 }
 
@@ -230,27 +263,51 @@ export function buildSystemPrompt(ctx: TurnContext): string {
 /**
  * Detect LLM refusals to write narrative (safety filter trips, etc.).
  * If detected, caller should replace with in-fiction fallback.
+ *
+ * AUDIT FIX (AI-M-07): Tightened to require explicit AI-self-reference
+ * tokens (我 + AI/政策/無法 cluster, or English "as an AI" / "I'm not able").
+ * Was producing false positives on NPC dialogue starting with 「對不起」,
+ * 「抱歉」 (e.g. an apologetic NPC line in dialogue).
  */
 const REFUSAL_PATTERNS = [
-  /^(i can'?t|i cannot|i'm not able|i won'?t|i am unable)/i,
-  /^(對不起|抱歉|不好意思)[\s，,]*(?:我|本AI)/,
-  /^(sorry,? but i)/i,
-  /violates? (my|the) (content|safety|usage) (policy|guideline)/i,
+  // English — explicit first-person refusal
+  /^\s*(i\s+(can'?t|cannot|am\s+(?:not\s+able|unable)|won'?t)\s+(?:help|assist|provide|write|generate|continue|engage))/i,
+  /^\s*(i'?m\s+(?:not\s+able|unable|sorry,?\s*but))\b/i,
+  /^\s*(as\s+an\s+ai\b)/i,
+  /^\s*(sorry,?\s+but\s+i\s+(can'?t|cannot|am\s+not))/i,
+  // Chinese — require explicit "AI / 系統 / 政策 / 無法" cluster after 抱歉/對不起
+  /^[\s（(]*(?:對不起|抱歉|不好意思)[\s，,。…]*(?:我|本AI|我作為|作為一個AI|系統|根據(?:我|本)).{0,80}?(?:政策|指引|條款|無法|不可以|拒絕|guidelines?|policy)/,
+  // Generic content-policy phrasing
+  /violates?\s+(?:my|the|our)\s+(?:content|safety|usage)\s+(?:policy|guideline)/i,
+  /不能(?:協助|提供|生成|繼續|參與).{0,30}?(?:政策|指引|內容)/,
 ];
 
 export function isLLMRefusal(text: string): boolean {
   const trimmed = text.trim();
   if (trimmed.length < 30) return false; // very short replies aren't refusals
-  // Check first ~200 chars only — refusals appear at start
-  const head = trimmed.slice(0, 200);
+  // Check first ~250 chars only — refusals appear at start
+  const head = trimmed.slice(0, 250);
   return REFUSAL_PATTERNS.some((p) => p.test(head));
 }
 
 /**
- * In-fiction fallback when refusal detected. Generic enough to not break
- * the story but signals to user that AI didn't engage with their action.
+ * In-fiction fallback when refusal detected. AUDIT FIX (AI-M-07): now
+ * locale-aware — returns matching language so 簡中 / EN stories don't get
+ * jarring 繁中 fallback.
  */
-export function refusalFallbackNarrative(): string {
+export function refusalFallbackNarrative(
+  language: "zh-Hant" | "zh-Hans" | "en" = "zh-Hant",
+): string {
+  if (language === "en") {
+    return `Your suggestion makes the scene pause. The figure across from you watches with a slight frown — as if not quite understanding, or unsure how to react.
+
+"You... are you serious?" They study you, half-believing, waiting for you to restate your intent.`;
+  }
+  if (language === "zh-Hans") {
+    return `你提出的事让场面突然停顿。对面的角色望着你，眉头微皱 — 似乎听不懂、或者不知道该如何反应。
+
+「你...你是认真的吗？」对方半信半疑地看着你，等你重新表达意图。`;
+  }
   return `你提出嘅嘢令場面突然停頓。對面嘅角色望住你，眉頭微皺 — 似乎聽唔明、或者唔知點 react。
 
 「你...你係咪認真？」對方半信半疑咁睇住你，等你重新表達意圖。`;
