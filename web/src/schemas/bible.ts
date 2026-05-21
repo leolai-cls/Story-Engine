@@ -21,7 +21,7 @@ import { z } from "zod";
 export const HardLockedSchema = z.object({
   central_conflict: z.string().min(20).max(400),
   world_invariants: z.array(z.string().min(5).max(180)).min(1).max(6),
-  themes_required: z.array(z.string().min(2).max(40)).max(5).default([]),
+  themes_required: z.array(z.string().min(2).max(40)).max(5),
   tone: z.enum([
     "realistic",
     "romantic",
@@ -32,8 +32,9 @@ export const HardLockedSchema = z.object({
     "thriller",
     "comedy",
   ]),
-  language: z.enum(["zh-Hant", "zh-Hans", "en"]).default("zh-Hant"),
-  cultural_setting: z.string().max(120).optional(), // e.g., "HK 1980s 古惑仔" / "TW 大學校園"
+  language: z.enum(["zh-Hant", "zh-Hans", "en"]),
+  // Always provided — empty string if not applicable to the genre
+  cultural_setting: z.string().max(120),
 });
 
 export type HardLocked = z.infer<typeof HardLockedSchema>;
@@ -59,7 +60,8 @@ export const StoryArcActSchema = z.object({
 
 export const SoftGuidedSchema = z.object({
   story_arc: z.array(StoryArcActSchema).min(2).max(5),
-  pacing_hint: z.string().min(10).max(280).optional(), // e.g., "Slow burn, allow many small moments"
+  // Always provided — empty string if no specific pacing hint
+  pacing_hint: z.string().max(280),
 });
 
 export type SoftGuided = z.infer<typeof SoftGuidedSchema>;
@@ -68,7 +70,6 @@ export type SoftGuided = z.infer<typeof SoftGuidedSchema>;
  * Top-level Bible. Stored as `stories.story_bible jsonb`.
  */
 export const StoryBibleSchema = z.object({
-  version: z.literal("story-engine/bible/v1").default("story-engine/bible/v1"),
   hard_locked: HardLockedSchema,
   soft_guided: SoftGuidedSchema,
 });

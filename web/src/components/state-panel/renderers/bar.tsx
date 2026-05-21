@@ -1,11 +1,17 @@
 "use client";
 
 import { z } from "zod";
-import type { BarFieldSchema } from "@/schemas/state-schema";
+import {
+  type BarFieldSchema,
+  pickBarColor,
+} from "@/schemas/state-schema";
 
 type BarField = z.infer<typeof BarFieldSchema>;
 
-const COLOR_CLASSES: Record<NonNullable<BarField["color"]>, string> = {
+const COLOR_CLASSES: Record<
+  "red" | "blue" | "green" | "amber" | "purple",
+  string
+> = {
   red: "from-rose-500 to-rose-600",
   blue: "from-sky-500 to-sky-600",
   green: "from-emerald-500 to-emerald-600",
@@ -20,11 +26,12 @@ export function BarRenderer({
   field: BarField;
   value: number;
 }) {
+  const min = 0;
   const pct = Math.max(
     0,
-    Math.min(100, ((value - field.min) / (field.max - field.min)) * 100),
+    Math.min(100, ((value - min) / (field.max - min)) * 100),
   );
-  const colorClass = COLOR_CLASSES[field.color ?? "red"];
+  const colorClass = COLOR_CLASSES[pickBarColor(field.key)];
 
   return (
     <div className="space-y-1.5">

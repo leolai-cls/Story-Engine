@@ -8,8 +8,8 @@ type Field = z.infer<typeof EnumChipFieldSchema>;
 
 const DEFAULT_COLORS = ["sky", "emerald", "amber", "rose", "violet", "fuchsia"];
 
-function pickColorClass(option: string, idx: number, colorMap?: Record<string, string>): string {
-  const named = colorMap?.[option] ?? DEFAULT_COLORS[idx % DEFAULT_COLORS.length];
+function pickColorClass(idx: number): string {
+  const named = DEFAULT_COLORS[idx % DEFAULT_COLORS.length];
   return `bg-${named}-100 dark:bg-${named}-950/40 text-${named}-700 dark:text-${named}-300 border-${named}-200/60 dark:border-${named}-900/60`;
 }
 
@@ -23,7 +23,7 @@ export function EnumChipRenderer({
   const currentIdx = field.options.indexOf(value);
   const colorClass =
     currentIdx >= 0
-      ? pickColorClass(value, currentIdx, field.color_map)
+      ? pickColorClass(currentIdx)
       : "bg-muted text-muted-foreground border-border";
 
   return (

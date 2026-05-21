@@ -13,7 +13,7 @@ export function PortraitRenderer({
   field: Field;
   value: string;
 }) {
-  const hasImage = value && value.length > 0;
+  const hasImage = value && value.length > 0 && /^https?:\/\//.test(value);
 
   return (
     <div className="flex items-center gap-2.5">
@@ -29,17 +29,12 @@ export function PortraitRenderer({
           />
         ) : (
           <span className="absolute inset-0 flex items-center justify-center text-2xl">
-            {field.fallback_emoji}
+            👤
           </span>
         )}
       </div>
       <div className="min-w-0 flex-1">
         <div className="text-xs font-semibold truncate">{field.label}</div>
-        {field.description && (
-          <div className="text-[10px] text-muted-foreground truncate">
-            {field.description}
-          </div>
-        )}
       </div>
     </div>
   );

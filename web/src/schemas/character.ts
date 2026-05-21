@@ -11,11 +11,9 @@ import { z } from "zod";
  */
 
 export const CharacterCardSchema = z.object({
-  version: z
-    .literal("story-engine/character/v1")
-    .default("story-engine/character/v1"),
   name: z.string().min(1).max(40),
-  role: z.string().max(40).optional(), // e.g., "女主角候選" / "宿敵" / "導師"
+  // Always provided — empty string if no specific role
+  role: z.string().max(40),
   personality_traits: z.array(z.string().min(2).max(20)).min(2).max(6),
   backstory: z.string().min(20).max(600),
   core_motivation: z.string().min(10).max(280),
@@ -79,7 +77,7 @@ export function characterCardToSystemPrompt(
       ? `  Permanent flags: ${permanentFlags.join(", ")}\n`
       : "";
 
-  return `### ${card.name}${card.role ? ` (${card.role})` : ""}
+  return `### ${card.name}${card.role && card.role.length ? ` (${card.role})` : ""}
   Traits: ${traits}
   Backstory: ${card.backstory}
   Motivation: ${card.core_motivation}

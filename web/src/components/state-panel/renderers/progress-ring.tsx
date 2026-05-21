@@ -1,11 +1,17 @@
 "use client";
 
 import { z } from "zod";
-import type { ProgressRingFieldSchema } from "@/schemas/state-schema";
+import {
+  type ProgressRingFieldSchema,
+  pickRingColor,
+} from "@/schemas/state-schema";
 
 type Field = z.infer<typeof ProgressRingFieldSchema>;
 
-const COLORS: Record<NonNullable<Field["color"]>, string> = {
+const COLORS: Record<
+  "red" | "blue" | "green" | "amber" | "purple" | "rose",
+  string
+> = {
   red: "stroke-rose-500",
   blue: "stroke-sky-500",
   green: "stroke-emerald-500",
@@ -21,14 +27,12 @@ export function ProgressRingRenderer({
   field: Field;
   value: number;
 }) {
-  const pct = Math.max(
-    0,
-    Math.min(100, ((value - field.min) / (field.max - field.min)) * 100),
-  );
+  // Progress rings always 0-100 (hardcoded — LLM only outputs default value)
+  const pct = Math.max(0, Math.min(100, value));
   const R = 18;
   const C = 2 * Math.PI * R;
   const dash = (pct / 100) * C;
-  const colorClass = COLORS[field.color ?? "rose"];
+  const colorClass = COLORS[pickRingColor(field.key)];
 
   return (
     <div className="flex items-center gap-2.5">
@@ -60,11 +64,6 @@ export function ProgressRingRenderer({
       </div>
       <div className="min-w-0 flex-1">
         <div className="text-xs font-semibold truncate">{field.label}</div>
-        {field.description && (
-          <div className="text-[10px] text-muted-foreground truncate">
-            {field.description}
-          </div>
-        )}
       </div>
     </div>
   );

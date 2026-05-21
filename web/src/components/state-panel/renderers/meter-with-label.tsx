@@ -1,7 +1,10 @@
 "use client";
 
 import { z } from "zod";
-import type { MeterWithLabelFieldSchema } from "@/schemas/state-schema";
+import {
+  type MeterWithLabelFieldSchema,
+  numberFormatHints,
+} from "@/schemas/state-schema";
 
 type Field = z.infer<typeof MeterWithLabelFieldSchema>;
 
@@ -12,10 +15,12 @@ export function MeterWithLabelRenderer({
   field: Field;
   value: number;
 }) {
+  const min = 0;
   const pct = Math.max(
     0,
-    Math.min(100, ((value - field.min) / (field.max - field.min)) * 100),
+    Math.min(100, ((value - min) / (field.max - min)) * 100),
   );
+  const { suffix } = numberFormatHints(field.key);
 
   return (
     <div className="space-y-1.5">
@@ -27,7 +32,7 @@ export function MeterWithLabelRenderer({
           <span className="text-base font-bold tabular-nums">{value}</span>
           <span className="text-xs text-muted-foreground">
             / {field.max}
-            {field.unit ? ` ${field.unit}` : ""}
+            {suffix ? ` ${suffix.trim()}` : ""}
           </span>
         </div>
         <div className="h-1.5 rounded-full bg-secondary overflow-hidden">

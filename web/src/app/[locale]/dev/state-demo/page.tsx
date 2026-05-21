@@ -7,37 +7,22 @@ import {
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
-// =============================================================================
-// Demo schemas — hardcoded examples of 3 different story genres to show
-// that the SAME DynamicStatePanel component renders completely different
-// UIs based purely on the schema's render_hints. This is the "故事自適應介面"
-// feature in action.
-// =============================================================================
+// Hardcoded sample schemas to show how DynamicStatePanel renders different
+// genres. Same component, different schema → completely different UI.
 
 const ROMANCE_SCHEMA: StateSchema = {
-  version: "story-engine/state/v1",
   fields: [
     {
       key: "linsiya_affinity",
       label: "林思雅 好感度",
       render_hint: "progress_ring",
-      min: 0,
-      max: 100,
       default: 30,
-      color: "rose",
-      description: "你嘅初戀候選",
     },
     {
       key: "chenjiaming_affinity",
       label: "陳家明 好感度",
       render_hint: "progress_ring",
-      min: 0,
-      max: 100,
       default: 15,
-      color: "purple",
-      description: "好朋友定…？",
     },
     {
       key: "mood",
@@ -51,54 +36,44 @@ const ROMANCE_SCHEMA: StateSchema = {
       label: "零用錢",
       render_hint: "number",
       default: 320,
-      prefix: "HK$",
     },
     {
       key: "gifts_given",
       label: "送過嘅禮物",
       render_hint: "inventory_list",
       default: [{ name: "鮮花", icon: "💐", count: 1 }],
-      max_items: 10,
     },
     {
       key: "diary",
       label: "今日日記",
       render_hint: "note",
       default: "今日係轉校第三日，我企喺校門口望住嗰兩個女仔…",
-      max_length: 500,
     },
   ],
 };
 
 const DND_SCHEMA: StateSchema = {
-  version: "story-engine/state/v1",
   fields: [
     {
       key: "hp",
       label: "HP",
       render_hint: "bar",
-      min: 0,
       max: 60,
       default: 42,
-      color: "red",
     },
     {
       key: "mp",
       label: "MP",
       render_hint: "bar",
-      min: 0,
       max: 30,
       default: 18,
-      color: "blue",
     },
     {
       key: "stamina",
       label: "體力",
       render_hint: "meter_with_label",
-      min: 0,
       max: 100,
       default: 78,
-      unit: "%",
     },
     {
       key: "strength",
@@ -123,7 +98,6 @@ const DND_SCHEMA: StateSchema = {
       label: "經驗值",
       render_hint: "number",
       default: 2340,
-      suffix: " XP",
     },
     {
       key: "inventory",
@@ -134,41 +108,36 @@ const DND_SCHEMA: StateSchema = {
         { name: "治療藥水", icon: "🧪", count: 3 },
         { name: "黃金", icon: "💰", count: 250 },
       ],
-      max_items: 20,
-    } as any,
+    },
   ],
 };
 
 const NBA_SCHEMA: StateSchema = {
-  version: "story-engine/state/v1",
   fields: [
     {
       key: "energy",
       label: "體力",
       render_hint: "meter_with_label",
-      min: 0,
       max: 100,
       default: 82,
-      unit: "%",
     },
     {
       key: "ppg",
       label: "場均得分",
       render_hint: "number",
-      default: 18.2,
-      suffix: " 分",
+      default: 18,
     },
     {
       key: "rpg",
       label: "場均籃板",
       render_hint: "number",
-      default: 5.1,
+      default: 5,
     },
     {
       key: "apg",
       label: "場均助攻",
       render_hint: "number",
-      default: 6.4,
+      default: 6,
     },
     {
       key: "coach_trust",
@@ -193,7 +162,6 @@ const NBA_SCHEMA: StateSchema = {
       label: "賽季筆記",
       render_hint: "note",
       default: "首節打得唔錯，但第三節體力下跌，教練換我落場。",
-      max_length: 500,
     },
   ],
 };
@@ -220,9 +188,7 @@ export default async function StateDemoPage({
           </h1>
           <p className="text-muted-foreground text-sm max-w-2xl">
             同一個 DynamicStatePanel component 渲染 3 個完全唔同 genre
-            嘅故事狀態。將來每個用戶創作嘅故事 AI 會自動 generate
-            適合嗰個故事嘅 state_schema —— 戀愛有好感度環、D&D 有
-            HP/MP 條、NBA 有球員數據。Phase 1 之後呢個 schema 由 LLM 生成，唔再 hardcode。
+            嘅故事狀態。每個故事 AI 為你自動 generate state_schema。
           </p>
         </div>
 
@@ -265,7 +231,7 @@ export default async function StateDemoPage({
             (AI Dungeon, Character.AI)
             嘅介面係硬寫死嘅。我哋將狀態結構同渲染解耦 —— state_schema 描述
             「呢個故事有咩 field、用咩 render_hint」，DynamicStatePanel
-            按 hint 派 9 個 atomic component 去畫。將來 AI 為新故事 generate
+            按 hint 派 9 個 atomic component 去畫。AI 為新故事 generate
             schema 嗰陣，介面自然就跟住變。
           </p>
         </div>

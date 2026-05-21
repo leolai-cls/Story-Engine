@@ -26,7 +26,6 @@ export function InventoryListRenderer({
         </span>
         <span className="text-[10px] text-muted-foreground tabular-nums">
           {items.length}
-          {field.max_items ? `/${field.max_items}` : ""}
         </span>
       </div>
       {items.length === 0 ? (
@@ -38,11 +37,11 @@ export function InventoryListRenderer({
               key={`${item.name}-${i}`}
               className="flex items-center gap-2 rounded-md bg-card border border-border/40 px-2 py-1"
             >
-              <span className="text-base shrink-0">{item.icon ?? "🎒"}</span>
+              <span className="text-base shrink-0">{item.icon || "🎒"}</span>
               <span className="text-xs font-medium truncate flex-1">
                 {item.name}
               </span>
-              {item.count !== undefined && item.count !== 1 && (
+              {item.count > 1 && (
                 <span className="text-[10px] text-muted-foreground tabular-nums">
                   ×{item.count}
                 </span>

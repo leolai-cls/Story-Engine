@@ -103,9 +103,6 @@ export function applyDelta(
             throw new Error(`push only valid for inventory_list`);
           }
           const arr = Array.isArray(next[op.key]) ? [...(next[op.key] as unknown[])] : [];
-          if (field.max_items && arr.length >= field.max_items) {
-            throw new Error(`inventory at max_items (${field.max_items})`);
-          }
           arr.push(op.value);
           next[op.key] = arr;
           break;
@@ -168,14 +165,11 @@ function isNumericField(field: Field): field is Extract<
 }
 
 function clampNumeric(field: Field, value: number): number {
-  if (
-    field.render_hint === "bar" ||
-    field.render_hint === "progress_ring" ||
-    field.render_hint === "meter_with_label"
-  ) {
-    const min = "min" in field ? field.min : 0;
-    const max = "max" in field ? field.max : Number.POSITIVE_INFINITY;
-    return Math.max(min, Math.min(max, value));
+  if (field.render_hint === "bar" || field.render_hint === "meter_with_label") {
+    return Math.max(0, Math.min(field.max, value));
+  }
+  if (field.render_hint === "progress_ring") {
+    return Math.max(0, Math.min(100, value));
   }
   return value; // raw number — no bounds
 }
