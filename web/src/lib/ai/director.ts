@@ -123,9 +123,13 @@ ${skillKeys.length > 0 ? skillKeys.map((k) => `- \`${k}\``).join("\n") : "(冇 n
     .replace(/<\/?player_action>/gi, "")
     .slice(0, 2000); // cap length
 
-  // Dynamic — per-turn context (NPC state + game state + recent turns). NEVER
-  // enters the cached prefix.
-  const dynamicContext = `${charsDynamic ? charsDynamic + "\n\n" : ""}## Current State
+  // Dynamic — per-turn context (memory retrieval + NPC state + game state +
+  // recent turns). NEVER enters the cached prefix.
+  // Phase 2: memoryContextString comes from retriever — long-term memory
+  // (always-on lorebook + matched entities + rolling summaries + RAG turns).
+  const memory = ctx.memoryContextString?.trim();
+  const memoryBlock = memory ? memory + "\n\n" : "";
+  const dynamicContext = `${memoryBlock}${charsDynamic ? charsDynamic + "\n\n" : ""}## Current State
 \`\`\`json
 ${stateSnapshot}
 \`\`\`

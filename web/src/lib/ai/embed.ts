@@ -1,0 +1,125 @@
+import { embed, embedMany } from "ai";
+import { createOpenAI } from "@ai-sdk/openai";
+
+/**
+ * Embedding wrapper — Phase 2 memory layer foundation.
+ *
+ * Model: OpenAI text-embedding-3-small (1536 dim, 中文-friendly, $0.02/1M tokens).
+ * Per ADR-005 + CLAUDE.md. Chosen for:
+ *   - Multi-lingual quality on 繁中 / 簡中 / EN
+ *   - Cheap enough to embed every turn (~$0.00002 per turn at 500 tokens)
+ *   - Unit-normalized output → cosine similarity ≈ dot product (fast)
+ *
+ * NOT using Vercel AI Gateway here — direct OpenAI for embeddings keeps
+ * latency low and avoids extra hop. The base provider `anthropic` stays
+ * for the Narrator / Director / schema-gen path.
+ */
+
+const openaiEmbedClient = createOpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+const EMBED_MODEL = "text-embedding-3-small";
+const EMBED_DIMS = 1536;
+
+/**
+ * Result type — flat shape so callers can persist directly to pgvector
+ * (Supabase stores `vector(1536)` as JSON array of numbers).
+ */
+export type EmbeddingResult = {
+  vector: number[];
+  /** Tokens consumed by the embedding call (for cost ledger). */
+  tokens: number;
+};
+
+/**
+ * Embed a single text string. Truncates to ~8000 chars before sending to
+ * keep us well under the 8192-token limit (~32K char ceiling) of
+ * text-embedding-3-small. Trailing portion is what gets kept — we
+ * generally want the most recent narrative when summarizing.
+ */
+export async function embedText(text: string): Promise<EmbeddingResult> {
+  if (!text || !text.trim()) {
+    throw new Error("embedText: empty input");
+  }
+  // Hard cap to ~8000 chars (rough = ~2000 tokens for 繁中). Well below
+  // the 8192 token model limit. Take the trailing portion so recent
+  // content survives in case the caller passed a long blob.
+  const trimmed = text.length > 8000 ? text.slice(-8000) : text;
+
+  const result = await embed({
+    model: openaiEmbedClient.embedding(EMBED_MODEL),
+    value: trimmed,
+  });
+
+  if (result.embedding.length !== EMBED_DIMS) {
+    throw new Error(
+      `embedText: unexpected dimension ${result.embedding.length}, expected ${EMBED_DIMS}`,
+    );
+  }
+
+  return {
+    vector: result.embedding,
+    tokens: result.usage?.tokens ?? 0,
+  };
+}
+
+/**
+ * Embed multiple texts in a single API call (cheaper + fewer round trips).
+ * Use for batched lorebook extraction / bulk backfill.
+ */
+export async function embedTexts(texts: string[]): Promise<EmbeddingResult[]> {
+  if (texts.length === 0) return [];
+  const trimmed = texts.map((t) => (t.length > 8000 ? t.slice(-8000) : t));
+
+  const result = await embedMany({
+    model: openaiEmbedClient.embedding(EMBED_MODEL),
+    values: trimmed,
+  });
+
+  return result.embeddings.map((vec) => {
+    if (vec.length !== EMBED_DIMS) {
+      throw new Error(
+        `embedTexts: unexpected dimension ${vec.length}, expected ${EMBED_DIMS}`,
+      );
+    }
+    // Vercel AI SDK returns total usage; we approximate per-item by even split.
+    const tokensPerItem = result.usage?.tokens
+      ? Math.ceil(result.usage.tokens / texts.length)
+      : 0;
+    return { vector: vec, tokens: tokensPerItem };
+  });
+}
+
+/**
+ * Safely embed — returns null on failure instead of throwing. Use this in
+ * fire-and-forget background paths where a single failed embed shouldn't
+ * break the turn pipeline (e.g., embedding an AI turn after it's already
+ * been saved to the DB).
+ */
+export async function embedTextSafe(
+  text: string,
+  context: string = "unknown",
+): Promise<EmbeddingResult | null> {
+  try {
+    return await embedText(text);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.warn(`[embed] ${context} failed (continuing): ${msg}`);
+    return null;
+  }
+}
+
+/**
+ * Convert a number array to Postgres array literal syntax for vector(1536).
+ * Supabase's JS client serializes it correctly when passed as a JS array,
+ * but if you need to manually craft a SQL string for the RPC call, use this.
+ *
+ * Example: vectorToPgLiteral([1, 2, 3]) === "[1,2,3]"
+ */
+export function vectorToPgLiteral(vec: number[]): string {
+  return `[${vec.join(",")}]`;
+}
+
+export const EMBEDDING_DIMENSIONS = EMBED_DIMS;
+export const EMBEDDING_MODEL = EMBED_MODEL;

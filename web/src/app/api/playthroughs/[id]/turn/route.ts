@@ -27,6 +27,11 @@ import { deriveCurrentAct, type ArcContext } from "@/lib/ai/arc-dsl";
 import { applyDelta } from "@/schemas/state-delta";
 import { initialStateFromSchema, StateSchemaShape } from "@/schemas/state-schema";
 import { StoryBibleSchema } from "@/schemas/bible";
+// ─── Phase 2 memory layer ────────────────────────────────────────────────
+import { retrieveMemory } from "@/lib/ai/memory/retriever";
+import { maybeRunSummarization } from "@/lib/ai/memory/summarizer";
+import { runLorebookExtraction } from "@/lib/ai/memory/lorebook";
+import { embedTextSafe } from "@/lib/ai/embed";
 
 /**
  * POST /api/playthroughs/[id]/turn
@@ -202,6 +207,29 @@ export async function POST(
     playthrough_character_name: pt.character_name,
   };
 
+  // 3.5 MEMORY RETRIEVAL — Phase 2 / ADR-005
+  // Embeds user action + queries 3 RPCs (summaries / RAG turns / matched
+  // lorebook) + 1 SELECT (always-on lorebook) in parallel. Adds ~200-300ms
+  // before Director call but enables long-term memory for both Director +
+  // Narrator. Graceful fallback if pgvector tables missing (returns empty
+  // context string — pipeline continues without memory).
+  const memory = await retrieveMemory({
+    supabase,
+    playthroughId,
+    userAction: action,
+    recentTurns: turnsChronological.map((t) => ({
+      role: t.role as "user" | "ai",
+      text: t.text,
+      turn_index: t.turn_index,
+    })),
+  });
+  ctx.memoryContextString = memory.contextString;
+  if (memory.contextString) {
+    console.log(
+      `[turn] memory retrieved: ${memory.summaries.length} summaries · ${memory.ragTurns.length} RAG · ${memory.alwaysOnLorebook.length} always-on + ${memory.matchedLorebook.length} matched lorebook (pgvector=${memory.pgvectorAvailable})`,
+    );
+  }
+
   // 4. DIRECTOR — pre-Narrator审 player action (Phase 1.5.1 / ADR-015)
   // Cheap Haiku call, outputs structured verdict that shapes Narrator behavior.
   // AUDIT FIX (AI-H-02): callDirector returns {verdict, usage} so we can
@@ -286,14 +314,19 @@ export async function POST(
   // drop, etc). Only when RPC path succeeded — fallback path persists both
   // turns at the end to avoid double-insert collisions.
   let userTurnPersisted = false;
+  let userTurnId: string | null = null;
   if (acquiredViaRpc) {
-    const { error: userInsertErr } = await supabase.from("turns").insert({
-      playthrough_id: playthroughId,
-      turn_index: userTurnIndex,
-      role: "user",
-      text: action,
-    });
-    if (userInsertErr) {
+    const { data: userTurnRow, error: userInsertErr } = await supabase
+      .from("turns")
+      .insert({
+        playthrough_id: playthroughId,
+        turn_index: userTurnIndex,
+        role: "user",
+        text: action,
+      })
+      .select("id")
+      .single();
+    if (userInsertErr || !userTurnRow) {
       console.error(
         "[turn] pre-stream user turn insert failed:",
         userInsertErr,
@@ -301,6 +334,34 @@ export async function POST(
       // Continue anyway — onFinish will retry. Don't block the user.
     } else {
       userTurnPersisted = true;
+      userTurnId = userTurnRow.id;
+
+      // Phase 2: fire-and-forget embed insert for user turn. Reuse the
+      // queryEmbedding computed by retriever (avoids a duplicate API call).
+      if (memory.queryEmbedding && userTurnId) {
+        const turnId = userTurnId;
+        const queryVec = memory.queryEmbedding;
+        // Don't await — stream starts immediately.
+        void (async () => {
+          try {
+            const { error: embedErr } = await supabase
+              .from("turn_embeddings")
+              .insert({ turn_id: turnId, embedding: queryVec });
+            if (embedErr) {
+              const msg = String(embedErr.message ?? "");
+              if (!/relation .* does not exist/i.test(msg)) {
+                console.warn("[turn] user-turn embed insert failed:", msg);
+              }
+              // table missing = migration 0004 not applied → silent
+            }
+          } catch (e) {
+            console.warn(
+              "[turn] user-turn embed insert exception:",
+              e instanceof Error ? e.message : e,
+            );
+          }
+        })();
+      }
     }
   }
 
@@ -545,33 +606,41 @@ export async function POST(
         // Build turn rows. AUDIT FIX (AI-H-04): user turn was pre-persisted
         // before the stream when RPC path was used; only insert it here as a
         // fallback if pre-insert failed or we're on the legacy non-atomic path.
-        const turnRows: Array<Record<string, unknown>> = [];
+        const userRowsToInsert: Array<Record<string, unknown>> = [];
         if (!userTurnPersisted) {
-          turnRows.push({
+          userRowsToInsert.push({
             playthrough_id: playthroughId,
             turn_index: userTurnIndex,
             role: "user",
             text: action,
           });
         }
-        turnRows.push({
-          playthrough_id: playthroughId,
-          turn_index: aiTurnIndex,
-          role: "ai",
-          text: finalText,
-          state_delta: isRefusal ? null : delta,
-          director_verdict: verdict,
-          skill_check: skillCheckResult,
-          llm_provider: "anthropic",
-          model: pt.llm_model ?? "claude-sonnet-4-6",
-          input_tokens: usage?.inputTokens,
-          output_tokens: usage?.outputTokens,
-          // AUDIT FIX (AI-H-02): capture Director token usage too. Without
-          // this, Phase 4 billing would undercount by ~30% per turn.
-          director_input_tokens: directorUsage.inputTokens,
-          director_output_tokens: directorUsage.outputTokens,
-        });
-        await supabase.from("turns").insert(turnRows);
+        if (userRowsToInsert.length > 0) {
+          await supabase.from("turns").insert(userRowsToInsert);
+        }
+
+        // Insert AI turn — capture row id so we can attach an embedding (Phase 2)
+        const { data: aiTurnRow } = await supabase
+          .from("turns")
+          .insert({
+            playthrough_id: playthroughId,
+            turn_index: aiTurnIndex,
+            role: "ai",
+            text: finalText,
+            state_delta: isRefusal ? null : delta,
+            director_verdict: verdict,
+            skill_check: skillCheckResult,
+            llm_provider: "anthropic",
+            model: pt.llm_model ?? "claude-sonnet-4-6",
+            input_tokens: usage?.inputTokens,
+            output_tokens: usage?.outputTokens,
+            // AUDIT FIX (AI-H-02): capture Director token usage too. Without
+            // this, Phase 4 billing would undercount by ~30% per turn.
+            director_input_tokens: directorUsage.inputTokens,
+            director_output_tokens: directorUsage.outputTokens,
+          })
+          .select("id")
+          .single();
 
         // AUDIT FIX (AI-C-03): RPC `acquire_next_turn_pair` already bumped
         // `turn_count` + `last_played_at` atomically at request start. Only
@@ -588,6 +657,55 @@ export async function POST(
           .from("playthroughs")
           .update(playthroughUpdate)
           .eq("id", playthroughId);
+
+        // ─── Phase 2 background: embed AI turn + summarize + lorebook ──────
+        // All fire-and-forget. Errors logged but don't break the user-facing
+        // pipeline (stream already returned, turns already persisted). Each
+        // helper gracefully no-ops if pgvector tables aren't yet provisioned.
+        const aiTurnId = aiTurnRow?.id ?? null;
+        if (!isRefusal && aiTurnId) {
+          void (async () => {
+            try {
+              const embed = await embedTextSafe(finalText, "turn:ai");
+              if (embed) {
+                const { error: embedErr } = await supabase
+                  .from("turn_embeddings")
+                  .insert({ turn_id: aiTurnId, embedding: embed.vector });
+                if (embedErr && !/relation .* does not exist/i.test(String(embedErr.message ?? ""))) {
+                  console.warn("[turn] ai-turn embed insert failed:", embedErr.message);
+                }
+              }
+            } catch (e) {
+              console.warn("[turn] ai-turn embed exception:", e instanceof Error ? e.message : e);
+            }
+          })();
+
+          // Rolling summary (every 20 turns)
+          void maybeRunSummarization({
+            supabase,
+            playthroughId,
+            currentMaxTurnIndex: aiTurnIndex,
+          }).catch((e) =>
+            console.warn(
+              "[turn] summarizer exception:",
+              e instanceof Error ? e.message : e,
+            ),
+          );
+
+          // Lorebook entity extraction
+          void runLorebookExtraction({
+            supabase,
+            playthroughId,
+            userAction: action,
+            aiNarrative: finalText,
+            protagonistName: pt.character_name,
+          }).catch((e) =>
+            console.warn(
+              "[turn] lorebook exception:",
+              e instanceof Error ? e.message : e,
+            ),
+          );
+        }
       } catch (e) {
         console.error("[turn] onFinish persistence failed", e);
       }

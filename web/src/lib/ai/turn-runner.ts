@@ -200,6 +200,13 @@ export type TurnContext = {
     text: string;
   }>;
   playthrough_character_name: string | null;
+  /**
+   * Phase 2 memory retrieval output (pre-formatted markdown block of
+   * always-on lorebook + matched lorebook + rolling summaries + RAG turns).
+   * Empty string when pgvector tables not yet available or no matches.
+   * Injected into Director + Narrator dynamic system blocks.
+   */
+  memoryContextString?: string;
 };
 
 /**
@@ -252,11 +259,18 @@ function stripInternalKeys(
  *
  * AUDIT FIX (AI-C-02): now also includes per-turn NPC disposition + flags
  * (moved out of the cached prefix). Plus current state snapshot.
+ *
+ * Phase 2: prepends memory retrieval block (always-on lorebook + matched
+ * lorebook + rolling summaries + RAG turns). When pgvector unavailable,
+ * memoryContextString is empty so we degrade gracefully to pre-memory behavior.
  */
 export function buildDynamicSystemPrompt(ctx: TurnContext): string {
   const visibleState = stripInternalKeys(ctx.current_state);
   const charsDynamic = allCharactersDynamicState(ctx.characters);
-  return `## Current Game State (this turn only)
+  const memory = ctx.memoryContextString?.trim();
+  const memoryBlock = memory ? memory + "\n\n" : "";
+
+  return `${memoryBlock}## Current Game State (this turn only)
 \`\`\`json
 ${JSON.stringify(visibleState, null, 2)}
 \`\`\`
