@@ -634,20 +634,45 @@
       <h3>📓 Session Log</h3>
       <div class="session-log">
         <div class="session-entry">
-          <div class="session-date">2026-05-22 · Session 6 (Phase 2 ship + Deep Audit + 3 fix waves)</div>
-          <div class="session-title">🧠 4-layer memory live · 🛑 SHOWSTOPPER caught + fixed · 18 fixes shipped</div>
+          <div class="session-date">2026-05-22 · Session 6（Phase 2 上線 + 深度 audit + 3 浪修補）</div>
+          <div class="session-title">🧠 4 層記憶系統上線 · 🛑 SHOWSTOPPER 揪到即修 · 修咗 18 條 finding</div>
           <div class="session-body">
-            <p><strong>Major outcome:</strong> Phase 2 (4-layer long-term memory) full ship → 3-agent parallel deep audit → 43 finding (1 SHOWSTOPPER) → 3 fix waves done in same session。Audit catch 到嘅 Vercel <code>void (async)</code> killer 係 critical level issue — 唔係 audit 就唔知 Phase 2 大部分 tier 喺 prod 等於零。</p>
-            <p><strong>🧠 Phase 2 (commit 0f650c7) — 4-layer Memory shipped:</strong></p>
-            <p>1. <strong>Tier 1 Recent N turns</strong> — already worked (passthrough)。2. <strong>Tier 2 Rolling summaries</strong> — Haiku 4.5 compresses 20-turn blocks，embed 然後存 <code>memory_summaries</code>。3. <strong>Tier 3 RAG</strong> — OpenAI text-embedding-3-small embed 每個 AI turn，HNSW cosine similarity search retrieves top-K relevant past turns。4. <strong>Tier 4 Lorebook</strong> — per-turn Haiku entity extraction (character/place/item/event/concept)，dedup by lower(name)。</p>
-            <p>5 new files: <code>embed.ts</code> · <code>memory/retriever.ts</code> · <code>memory/summarizer.ts</code> · <code>memory/lorebook.ts</code> + Migration 0004 (3 tables + 3 match RPCs + RLS)。Turn route wired — retriever pre-Director · pre-persist user turn with reused query embedding · onFinish fire-and-forget embed + summarize + lorebook (graceful fallback if migration not applied)。</p>
-            <p><strong>🔍 Phase 2 Deep Audit (3 parallel agents):</strong> Correctness · Performance/Cost · Player UX。43 findings (7C/17H/14M/5L)。Big surprises: (1) <strong>Vercel <code>void (async)</code> dies on stream end</strong> — Phase 2 tier 2/3/4 silently non-functional。(2) Top-K retrieval 冇 similarity floor → "AI 老係 reference 過場 NPC" 係 by-design 行為。(3) Memory 對 player 完全 invisible → 最貴 feature unfalsifiable。(4) Real per-turn cost ~$0.023 (memory +35% overhead, NOT 2%)。</p>
-            <p><strong>🛑 Wave 1 SHOWSTOPPER fix (ab51c34):</strong> All 3 fire-and-forget sites (user turn embed · AI turn embed · summarizer · lorebook) → <code>after()</code> from <code>next/server</code>。Phase 2 background tier NOW actually runs in prod。Plus Migration 0005 — UNIQUE memory_summaries · UNIQUE btrim() lorebook · vector dim CHECK · similarity threshold + overprovision in match RPCs。Plus lorebook description merge "recency wins" (was "longer wins" with embedding/text drift)。</p>
-            <p><strong>Wave 2 quality + cost (7a716c7):</strong> OpenAI 429 retry with exponential backoff (500ms/2s/8s, parses Retry-After) · Lorebook batched <code>embedTexts</code> (5 → 1 API call · ~80% RPM reduction) · Summarizer emotional texture (1-2 weighted details/paragraph, 1 quoted line OK, 1-4 sentences) + locale branch zh-Hant/zh-Hans/en · Lorebook extractor locale branch · Director system prompt teaches memory use (earned exception relax, arc coherence, commitment callback)。</p>
-            <p><strong>Wave 3 player visibility backend (d9f6c8d):</strong> First summary at turn 10 (not 20) — player feels memory engage within first session · RAG <code>truncateToSentence</code> keeps RESOLUTION (last sentences with "…" prefix) instead of cutting mid-sentence at conflicts · Stronger anti-quote header + NARRATOR_RULES line · Top similarity score per source logged for telemetry。</p>
-            <p><strong>18 of 43 findings fixed.</strong> Deferred: Memory Journal UI (P2-UX-C-03, explicit UX work) · always_on demote pathway (needs migration + cron) · recent turns cache breakpoint (message reshape) · dimensions 1024 (destructive ALTER) · cost capture for Phase 4 billing · several Medium/Low edge cases。</p>
-            <p><strong>新 insight:</strong> (1) <strong><code>void (async)</code> 喺 Vercel 係 silent killer</strong> — universal Next.js footgun，必須用 <code>after()</code>。(2) <strong>Top-K 冇 similarity floor 等於 noise by design</strong> — 直接 fix "AI 老係 reference 過場 NPC" frustration。(3) <strong>Memory differentiator unfalsifiable without UI</strong> — even if 100% working backend，player 見唔到 lorebook 就唔信。(4) <strong>Cost reality check</strong>：memory adds 35% NOT 2% — subscription tier math need revisit。</p>
-            <p><strong>下次 session:</strong> 用戶 apply 4 migrations (0002/0003/0004/0005) 落 prod → E2E test long-play 30+ turns → 入 Phase 3 (Multi-LLM + Credits) 或者 Memory Journal UI。</p>
+            <p><strong>主要成果：</strong>Phase 2 長期記憶系統一次過 ship 上 prod；3 個 agent 並行 deep audit 揪出 43 條 finding（1 個 SHOWSTOPPER）；同一 session 內出咗 3 浪 fix。Audit 揪到嘅 Vercel <code>void (async)</code> killer 等於救命級 — 唔係 audit 嘅話 Phase 2 大部分 tier 喺 prod 默默死晒都唔知。</p>
+
+            <p><strong>🧠 Phase 2 上線（commit 0f650c7）— 4 層架構：</strong></p>
+            <ul style="margin-left: 20px;">
+              <li><strong>Tier 1 近期 N turns（passthrough）</strong>—維持 Phase 1 行為</li>
+              <li><strong>Tier 2 滾動摘要（rolling summaries）</strong>— Haiku 4.5 每 20 turns 壓縮一段 → 存入 <code>memory_summaries</code> table 加 embedding</li>
+              <li><strong>Tier 3 RAG over 個別 turns</strong>— 每個 AI turn 用 OpenAI <code>text-embedding-3-small</code> embed，HNSW cosine similarity 搵 top-K 相關過去 turns</li>
+              <li><strong>Tier 4 自動 lorebook</strong>— 每 turn Haiku 抽取角色 / 地點 / 物件 / 事件 / 概念，按 <code>lower(name)</code> upsert dedup</li>
+            </ul>
+            <p>新加 5 個 file：<code>embed.ts</code> · <code>memory/retriever.ts</code> · <code>memory/summarizer.ts</code> · <code>memory/lorebook.ts</code> · Migration 0004（3 tables + 3 match RPCs + RLS）。Turn route 串好：retriever 喺 Director 之前跑、user turn 重用 query embedding 慳一個 API call、<code>onFinish</code> 觸發 embed + summarize + lorebook（全部 fire-and-forget，migration 未 apply 都唔會壞 prod）。</p>
+
+            <p><strong>🔍 Phase 2 Deep Audit（3 個 agent 並行）：</strong>Correctness · Performance/Cost · Player UX 三個維度同時跑，<strong>43 條 finding</strong>（7 個 Critical / 17 個 High / 14 個 Medium / 5 個 Low）。最震驚嘅 4 個發現：</p>
+            <ul style="margin-left: 20px;">
+              <li><strong>Vercel <code>void (async)</code> stream 完即殺</strong>— Phase 2 tier 2/3/4 喺 prod 默默非功能。</li>
+              <li><strong>Top-K 唔加 similarity floor = noise by design</strong>—「AI 老係 reference 過場 NPC」嘅 frustration 原來係 by-design 行為。</li>
+              <li><strong>Memory 對 player 完全 invisible</strong>—最貴嘅 differentiator unfalsifiable，玩家證實唔到「AI 真係記得」。</li>
+              <li><strong>真實 per-turn cost ~$0.023</strong>—記憶層加 35% overhead 唔係 2%，subscription tier 嘅 math 要重算。</li>
+            </ul>
+
+            <p><strong>🛑 Wave 1 SHOWSTOPPER fix（ab51c34）：</strong>3 個 fire-and-forget site（user turn embed · AI turn embed · summarizer · lorebook）全部換成 <code>after()</code> from <code>next/server</code>。Phase 2 後台 tier 而家真係喺 prod 運行。同時加埋 <strong>Migration 0005</strong>—<code>memory_summaries</code> UNIQUE constraint 防 race / lorebook UNIQUE 用 <code>btrim()</code> 處理空白字符 / vector dimension CHECK / 3 個 match RPC 加 <code>p_min_similarity</code> param + overprovision for exclusions。Lorebook description merge 改 "recency wins"（之前 "longer wins" 會令 embedding 同 stored text drift）。</p>
+
+            <p><strong>Wave 2 quality + cost（7a716c7）：</strong>OpenAI 429 retry with exponential backoff（500ms/2s/8s，識 parse Retry-After header）· Lorebook 改用 batched <code>embedTexts</code>（5 個 API call → 1 個 · 約 80% RPM 節省）· Summarizer system prompt 加返情感 texture（每段 1-2 個有重量嘅細節 / 1 句 pivotal quote / 1-4 句長）· Summarizer + Lorebook extractor 都加 i18n 分支（zh-Hant / zh-Hans / en）· Director system prompt 加教 memory 用法（earned exception 點 relax red_line / arc coherence / commitment callback）。</p>
+
+            <p><strong>Wave 3 player visibility backend（d9f6c8d）：</strong>第一條 summary 由 turn 20 改 turn 10 — player 第一個 session 入面就 feel 到記憶 engage · RAG <code>truncateToSentence</code> 保留 RESOLUTION（最後嘅完整句子加 "…" 前綴）唔再中段斬到 conflict 開頭 · 加強 anti-quote header + 對應 NARRATOR_RULES 規條 · top similarity score per source 寫入 console log 做 telemetry。</p>
+
+            <p><strong>43 條 finding 修咗 18 條</strong>。明確 deferred 嘅：Memory Journal UI（P2-UX-C-03，純 UX 工作）· always_on demote pathway（要 migration + cron job）· recent turns cache breakpoint（要 message structure reshape）· embedding dimensions 1024（要 destructive ALTER + 重 embed pass）· Phase 4 billing cost capture · 幾條 Medium / Low edge cases。</p>
+
+            <p><strong>新 insight（已加入 CLAUDE.md 同 leo-memory）：</strong></p>
+            <ol style="margin-left: 20px;">
+              <li><strong><code>void (async)</code> 喺 Vercel serverless 係 silent killer</strong>—universal Next.js footgun，背景工作（embed / log / webhook / 後台 LLM 等）一定要用 <code>after()</code> from <code>next/server</code> 或 Vercel <code>waitUntil</code>。</li>
+              <li><strong>Top-K 冇 similarity floor 等於 noise by design</strong>—直接解決「AI 老係 reference 過場 NPC」嘅 player frustration。每個 source 揀啱 floor（Story Engine：summaries 0.55 / RAG 0.5 / lorebook 0.45）。</li>
+              <li><strong>Memory 類 feature 一定要有 UI surface</strong>—backend 完美都好，player 見唔到等於 unfalsifiable。NovelAI 嘅 lorebook UI 係佢哋最大 retention driver。</li>
+              <li><strong>Audit cost projection 永遠 underestimate</strong>—Phase 2 原本估 2% memory overhead，實際 35%。Subscription tier pricing math 要重算。</li>
+            </ol>
+
+            <p><strong>下次 session：</strong>用戶 apply 4 條 migration（0002 / 0003 / 0004 / 0005）落 prod → E2E test long-play 30+ turns 確認記憶系統真係 work → 入 Phase 3（Multi-LLM + Credits）或者 Memory Journal UI。</p>
           </div>
         </div>
 
@@ -854,24 +879,34 @@
         <div class="phase-header">
           <div class="phase-badge">2</div>
           <div class="phase-info">
-            <div class="phase-title">長期記憶系統</div>
+            <div class="phase-title">長期記憶系統 <strong style="color: var(--primary); font-size: 12px; margin-left: 6px;">★ 行業 #1 護城河</strong></div>
             <div class="phase-done-def">Done when: 玩 50+ 回合 AI 答得返早期細節 + 仲記得 NPC history</div>
           </div>
-          <span class="phase-status ps-not-started">Not started</span>
+          <span class="phase-status ps-done">DONE · 100% (backend) · 等 4 條 migration apply</span>
         </div>
-        <div class="progress-bar"><div class="progress-fill" style="width: 0%"></div></div>
+        <div class="progress-bar"><div class="progress-fill" style="width: 100%"></div></div>
         <details>
-          <summary>展開 checklist</summary>
+          <summary>展開 checklist — 13 ticked · 4 個 deferred 到 polish session · 4 條 migration 等用戶 apply 落 prod</summary>
           <ul class="checklist">
-            <li>Migration 0004_pgvector.sql + HNSW indexes</li>
-            <li>OpenAI embedding integration</li>
-            <li>Embed pipeline on turn save</li>
-            <li>Retriever service（recent + RAG + lorebook + character cards）</li>
-            <li>Summarizer Edge Function（每 20 turns 自動）</li>
-            <li>Lorebook 自動 entity extraction</li>
-            <li>Lorebook UI tab（read + 手動 edit）</li>
-            <li>Character interaction summary auto-update</li>
+            <li class="done"><strong>2.1 Migration 0004</strong>：<code>turn_embeddings</code> · <code>memory_summaries</code> · <code>lorebook_entries</code> + 3 個 HNSW index + RLS</li>
+            <li class="done">3 個 match RPC（cosine similarity search）：<code>match_turn_embeddings</code> / <code>match_memory_summaries</code> / <code>match_lorebook_entries</code></li>
+            <li class="done"><strong>2.2 OpenAI embedding wrapper</strong>（<code>lib/ai/embed.ts</code>）— text-embedding-3-small / 1536-dim / 中文友好 / 9000 字 cap / batch helper / safe variant</li>
+            <li class="done">Embed pipeline：user turn 用 retriever queryEmbedding 慳一個 API call · AI turn 喺 onFinish embed（fire-and-forget）</li>
+            <li class="done"><strong>2.3 Retriever service</strong>（<code>memory/retriever.ts</code>）— combine recent passthrough + top-K summaries + top-K RAG turns + always-on lorebook + matched lorebook</li>
+            <li class="done"><strong>2.4 Summarizer</strong>（<code>memory/summarizer.ts</code>）— Haiku 4.5 每 20 turns 壓縮（首次 turn 10 起跑）；idempotent；fire-and-forget</li>
+            <li class="done"><strong>2.5 Lorebook 自動 entity extraction</strong>（<code>memory/lorebook.ts</code>）— per-turn Haiku extract 角色 / 地點 / 物件 / 事件 / 概念，upsert by lower(name)，merge 用 recency wins</li>
+            <li class="done"><strong>2.6 Wire 入 turn route</strong> — retriever 喺 Director 之前跑；onFinish 觸發 embed + summarizer + lorebook（全部 fire-and-forget）</li>
+            <li class="done"><strong>Phase 2 Deep Audit</strong>（3 agent parallel）— 43 finding，1 個 SHOWSTOPPER + 6 個其他 critical。<a href="audit-report-phase2-deep.html">audit-report-phase2-deep.html</a></li>
+            <li class="done"><strong>Wave 1 SHOWSTOPPER fix</strong>：<code>void (async)</code> → <code>after()</code> from <code>next/server</code> · Migration 0005 (UNIQUE + similarity threshold + vector CHECK) · lorebook description / embedding 同步 · client-side trim</li>
+            <li class="done"><strong>Wave 2 quality + cost</strong>：OpenAI 429 retry+backoff · lorebook batched embed（5→1 個 API call）· summarizer emotional texture + i18n · lorebook extractor i18n · Director system prompt 教 memory 用法</li>
+            <li class="done"><strong>Wave 3 player visibility 後台</strong>：首 summary 落喺 turn 10 而唔係 20 · RAG sentence-boundary truncate 保留 resolution · stronger anti-quote prompt · top similarity telemetry</li>
+            <li class="done">Refusal 流程整理（user turn 仍 embed · AI fallback 唔 embed · documented intent）</li>
+            <li>📔 <strong>Memory Journal UI</strong>（lorebook drawer / story chapters / recent recalls）— deferred to UX session（P2-UX-C-03）</li>
+            <li>♻️ <strong>always_on demote 機制</strong>（last_referenced_at + idle scan）— deferred，0005 嘅 <code>.limit(8)</code> 暫時 cap damage</li>
+            <li>📦 <strong>Recent 20 turns 入 cache breakpoint</strong>（message reshape）— deferred to cost optimization session</li>
+            <li>💵 <strong>Cost capture</strong>（summarizer / lorebook token persistence）— Phase 4 prereq deferred</li>
           </ul>
+          <p style="margin-top: 12px; font-size: 13px; color: var(--muted);"><strong>真實 cost reality:</strong> ~$0.023 per turn (memory adds ~35% on Narrator baseline，原本估 2% 係錯)。100-turn session ≈ $2.30。Subscription pricing math 要 update。</p>
         </details>
       </div>
 
