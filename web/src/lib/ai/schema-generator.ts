@@ -8,30 +8,53 @@ import { StoryBibleSchema } from "@/schemas/bible";
 import { CharacterCardSchema } from "@/schemas/character";
 
 /**
- * Schema generator — the LLM service that takes a user's story prompt
- * and produces:
- *   - state_schema (drives the side panel UI per ADR-014/orchestrator)
- *   - story_bible (3-tier hard/soft per ADR-008)
- *   - characters[] (NPCs with red_lines per ADR-006)
- *   - opening_narrative (first AI message)
+ * Schema generator — the LLM service that designs a complete story package.
  *
- * Phase 1.5 wiring: Anthropic Claude Sonnet 4.6 with structured output.
+ * Architecture: 4 PARALLEL LLM calls instead of 1 combined call.
  *
- * CRITICAL: All sub-schemas are kept tight (no optional / default fields)
- * to stay under Anthropic's 24-optional-param grammar compilation limit.
- * Display polish (colors, prefixes, etc.) is derived in renderers from
- * field.key heuristics rather than emitted by LLM.
+ * Why: Anthropic's tool-mode structured output compiles a grammar from the
+ * schema and has a hard ceiling on grammar size. Our full StoryGenerationResult
+ * (9-way discriminated union × nested arrays × 4 sub-schemas) blew the ceiling.
+ *
+ * Splitting into 4 focused calls keeps each schema simple enough for the
+ * compiler. Running them in parallel keeps total latency around the slowest
+ * call (~30s) instead of the sum (~95s sequential).
+ *
+ * Trade-off: Each call gets the same user prompt but doesn't see other calls'
+ * output. Cross-call consistency (e.g., character names in opening_narrative
+ * matching characters[]) is approximate — relies on same prompt context.
+ * Phase 1.5+ can add a consistency-pass to align references.
  */
 
-const StoryGenerationResultSchema = z.object({
+const MODEL = "claude-sonnet-4-6";
+
+// ─── Per-call schemas (each individually fits the grammar ceiling) ──────
+
+const MetaAndOpeningSchema = z.object({
   title: z.string().min(2).max(80),
   description: z.string().min(10).max(280),
   genre: z.string().min(2).max(40),
   tags: z.array(z.string().min(2).max(20)).max(6),
+  opening_narrative: z.string().min(100).max(1500),
+});
+
+const StateSchemaWrap = z.object({ state_schema: StateSchemaShape });
+const BibleWrap = z.object({ story_bible: StoryBibleSchema });
+const CharactersWrap = z.object({
+  characters: z.array(CharacterCardSchema).min(1).max(6),
+});
+
+// ─── Combined result type returned to callers ───────────────────────────
+
+const StoryGenerationResultSchema = z.object({
+  title: z.string(),
+  description: z.string(),
+  genre: z.string(),
+  tags: z.array(z.string()),
   state_schema: StateSchemaShape,
   story_bible: StoryBibleSchema,
-  characters: z.array(CharacterCardSchema).min(1).max(6),
-  opening_narrative: z.string().min(100).max(1500),
+  characters: z.array(CharacterCardSchema),
+  opening_narrative: z.string(),
 });
 
 export type StoryGenerationResult = z.infer<
@@ -45,77 +68,80 @@ export type GenerateStoryInput = {
   protagonist_hint?: string;
 };
 
-const SYSTEM_PROMPT_ZH_HANT = `你係 Story Engine 嘅 story designer。用戶會俾你一個故事概念，你要設計：
+// ─── Focused system prompts per sub-call ────────────────────────────────
 
-## 1. state_schema（故事自適應介面）
+function userContext(input: GenerateStoryInput): string {
+  return `用戶故事概念：
 
-每個 field 必須包含：\`key\` (snake_case), \`label\` (繁中), \`render_hint\`。
+${input.prompt}
 
-\`render_hint\` 揀以下 9 個之一 + 每個額外必須 field：
+${input.protagonist_hint ? `主角設定提示：${input.protagonist_hint}` : ""}
 
-- \`bar\`: + \`max\` (number > 0) + \`default\` (number) — HP, MP, 體力 with explicit cap
-- \`progress_ring\`: + \`default\` (0-100) — 好感度 / 完成度等百分比
-- \`number\`: + \`default\` (number) — 金錢、得分、經驗值
+Content rating: ${input.content_rating}
+Locale: ${input.locale}`;
+}
+
+const META_SYSTEM = `你係 Story Engine 嘅 story designer。設計故事嘅基本資料 + 開場敘事。
+
+輸出：
+- title (2-80 字)：故事標題，繁中
+- description (10-280 字)：簡短介紹
+- genre (2-40 字)：類型 (e.g. "戀愛校園", "古惑仔", "玄幻冒險")
+- tags (0-6 個, 每個 2-20 字)：類別標籤
+- opening_narrative (100-1500 字)：開場敘事，繁中第二人稱（"你..."），設定場景 + 介紹至少一個 NPC，留 emergence 空間俾玩家做第一個行動`;
+
+const STATE_SCHEMA_SYSTEM = `你係 Story Engine 嘅 UI designer。為呢個故事設計專屬狀態介面 (state_schema)。
+
+每個 field 需要：\`key\` (snake_case), \`label\` (繁中), \`render_hint\` + variant-specific 欄位：
+
+- \`bar\`: + \`max\` (number > 0) + \`default\` (number) — HP, MP, 體力
+- \`progress_ring\`: + \`default\` (0-100) — 好感度、完成度
+- \`number\`: + \`default\` (number) — 金錢、得分、經驗
 - \`enum_chip\`: + \`options\` (string[], 2-12) + \`default\` (string in options) — 心情、狀態
-- \`inventory_list\`: + \`default\` (array of {name, count, icon}) — 背包
+- \`inventory_list\`: + \`default\` (array of {name, count, icon}) — 背包；icon 用 emoji
 - \`relationship_graph\`: + \`default\` (object name→number) — NPC 多人關係
-- \`meter_with_label\`: + \`max\` (number > 0) + \`default\` (number) — 體力百分比 with cap
-- \`portrait\`: + \`default\` (string URL or empty "") — 主角頭像
-- \`note\`: + \`default\` (string text) — 日記、線索、自由文字
+- \`meter_with_label\`: + \`max\` (number > 0) + \`default\` (number) — 體力百分比
+- \`portrait\`: + \`default\` (string URL 或 "") — 頭像
+- \`note\`: + \`default\` (string text) — 日記、線索
 
-**規則**：
-- 5-12 個 fields。
-- key 用 snake_case (e.g. \`linsiya_affinity\`, \`hp\`)，唔可以重複
-- label 用繁中
-- **每 field 一定要有 \`default\` value**（即使係 0 / "" / [] / {}）
-- inventory_list 嘅 default 每個 item 一定要有 name + count + icon (icon 用 emoji 例如 🎒 ⚔️ 💐)
-- 戀愛 → 用 progress_ring (好感度) + enum_chip (心情) + number (零用錢) + inventory_list (禮物) + note (日記)
+規則：
+- 5-12 個 fields，每個 key 唯一 (snake_case)
+- label 繁中
+- 每 field 必須有 \`default\` value
+- 戀愛 → progress_ring (好感度) + enum_chip (心情) + number (零用錢) + inventory_list (禮物) + note (日記)
 - D&D → bar (HP/MP) + number (力量/敏捷/智力) + inventory_list (背包)
-- 體育 → meter_with_label (體力) + number (得分/籃板/助攻) + enum_chip (教練信任度) + relationship_graph (隊友)
+- 體育 → meter_with_label (體力) + number (得分/籃板/助攻) + enum_chip (信任度) + relationship_graph (隊友)`;
 
-## 2. story_bible（3 層 calibration，per ADR-008）
+const BIBLE_SYSTEM = `你係 Story Engine 嘅 story bible writer。設計呢個故事嘅 hard rules + flexible arc per ADR-008 3-tier calibration。
 
-### hard_locked — AI 永遠唔可以推翻
-- \`central_conflict\`: 一句話描述故事核心衝突
-- \`world_invariants\`: 3-6 條世界硬規則
-- \`themes_required\`: 0-5 個 short labels (empty array OK)
-- \`tone\`: 揀一個 [realistic, romantic, dark_humor, epic_fantasy, noir, slice_of_life, thriller, comedy]
+\`hard_locked\` (AI 永遠唔可以推翻):
+- \`central_conflict\` (一句話)
+- \`world_invariants\` (3-6 條世界硬規則)
+- \`themes_required\` (0-5 個 short labels, empty array OK)
+- \`tone\`: 揀 [realistic, romantic, dark_humor, epic_fantasy, noir, slice_of_life, thriller, comedy]
 - \`language\`: "zh-Hant" / "zh-Hans" / "en"
-- \`cultural_setting\`: 文化背景（e.g. "HK 1980s 古惑仔"; 若 generic 可以填 ""）
+- \`cultural_setting\` (文化背景，e.g. "HK 1980s 古惑仔"；generic 可填 "")
 
-### soft_guided — Director 有彈性
-- \`story_arc\`: 2-5 個 Act
-  - 每 Act: \`act\` (1-5), \`name\`, \`narrative_intent\`, \`transition_condition\`
-  - **transition_condition 必須用 boolean DSL referencing state fields**
-    e.g. "characters.linsiya.disposition.trust >= 60 AND interactions.linsiya >= 3"
-  - **唔可以用 turn count**
-- \`pacing_hint\`: 一句話描述 pacing (可填 "")
+\`soft_guided\` (Director 有彈性):
+- \`story_arc\`: 2-5 個 Act，每個有 act (1-5), name, narrative_intent, transition_condition
+- transition_condition 必須用 boolean DSL referencing state fields (e.g. "characters.linsiya.trust >= 60 AND interactions.linsiya >= 3") — **唔可以用 turn count**
+- \`pacing_hint\` (一句 pacing 描述，可填 "")`;
 
-## 3. characters（1-6 個 NPCs）
+const CHARACTERS_SYSTEM = `你係 Story Engine 嘅 character designer。設計 1-6 個 NPC，每個有完整人格。
 
-每個 NPC：
-- \`name\`, \`role\` (e.g. "女主角候選" / "" if no specific role)
-- \`personality_traits\`: 2-6 個 short traits
-- \`backstory\`: 1-3 句 (20-600 字)
-- \`core_motivation\`: NPC 想要乜（一句, 10-280 字）
-- \`red_lines\`: 1-5 條 hard limits — specific, NOT vague
-- \`voice_sample\`: 2-3 句 demonstrating 講嘢風格 (20-400 字)
-- \`arc_description\`: NPC 點 evolve（10-280 字）
-- \`default_disposition_toward_protagonist\`: [hostile, wary, neutral, friendly, warm, devoted]
+每個 NPC:
+- \`name\`, \`role\` (e.g. "女主角候選"，無特定 role 填 "")
+- \`personality_traits\`: 2-6 個 short traits (e.g. "內向", "有原則")
+- \`backstory\` (20-600 字)：1-3 句過去
+- \`core_motivation\` (10-280 字)：NPC 想要乜
+- \`red_lines\` (1-5 條, 每條 5-140 字): hard behavioral limits — specific, NOT vague (e.g. "唔接受快速進展嘅關係" NOT "唔信任陌生人")
+- \`voice_sample\` (20-400 字): 2-3 句 demonstrating 講嘢風格
+- \`arc_description\` (10-280 字)：NPC 點 evolve
+- \`default_disposition_toward_protagonist\`: 揀 [hostile, wary, neutral, friendly, warm, devoted]
 
-## 4. opening_narrative（100-1500 字）
-- 繁中第二人稱（"你..."）
-- 設定場景 + 介紹至少一個主要 NPC
-- 留 emergence 空間俾玩家做第一個行動
+NPC 數量 = 故事需要嘅最少 (3-5 通常啱)。質量 > 數量。`;
 
-## 5. title / description / genre / tags
-- \`title\`: 故事標題 (2-80 字)
-- \`description\`: 簡短介紹 (10-280 字)
-- \`genre\`: 類型 (2-40 字)
-- \`tags\`: 0-6 個 tag (each 2-20 字)
-
----
-**永遠輸出 valid JSON 符合 schema。中文字符自由用。**`;
+// ─── Main function: 4 parallel calls + assemble ──────────────────────────
 
 export async function generateStory(
   input: GenerateStoryInput,
@@ -126,27 +152,52 @@ export async function generateStory(
     );
   }
 
-  const systemPrompt = SYSTEM_PROMPT_ZH_HANT; // TODO: locale-aware variants
+  const userPrompt = userContext(input);
 
-  const userPrompt = `用戶故事概念：
+  const [metaResult, stateResult, bibleResult, charactersResult] =
+    await Promise.all([
+      generateObject({
+        model: anthropicProvider(MODEL),
+        schema: MetaAndOpeningSchema,
+        system: META_SYSTEM,
+        prompt: userPrompt,
+        temperature: 0.8,
+        maxOutputTokens: 3000,
+      }),
+      generateObject({
+        model: anthropicProvider(MODEL),
+        schema: StateSchemaWrap,
+        system: STATE_SCHEMA_SYSTEM,
+        prompt: userPrompt,
+        temperature: 0.7,
+        maxOutputTokens: 2500,
+      }),
+      generateObject({
+        model: anthropicProvider(MODEL),
+        schema: BibleWrap,
+        system: BIBLE_SYSTEM,
+        prompt: userPrompt,
+        temperature: 0.7,
+        maxOutputTokens: 3000,
+      }),
+      generateObject({
+        model: anthropicProvider(MODEL),
+        schema: CharactersWrap,
+        system: CHARACTERS_SYSTEM,
+        prompt: userPrompt,
+        temperature: 0.85,
+        maxOutputTokens: 4000,
+      }),
+    ]);
 
-${input.prompt}
-
-${input.protagonist_hint ? `主角設定提示：${input.protagonist_hint}` : ""}
-
-Content rating: ${input.content_rating}
-Locale: ${input.locale}
-
-請設計完整 story package（state_schema + story_bible + 1-6 characters + opening_narrative）。`;
-
-  const result = await generateObject({
-    model: anthropicProvider("claude-sonnet-4-6"),
-    schema: StoryGenerationResultSchema,
-    system: systemPrompt,
-    prompt: userPrompt,
-    temperature: 0.8,
-    maxOutputTokens: 8000,
-  });
-
-  return result.object;
+  return {
+    title: metaResult.object.title,
+    description: metaResult.object.description,
+    genre: metaResult.object.genre,
+    tags: metaResult.object.tags,
+    opening_narrative: metaResult.object.opening_narrative,
+    state_schema: stateResult.object.state_schema,
+    story_bible: bibleResult.object.story_bible,
+    characters: charactersResult.object.characters,
+  };
 }

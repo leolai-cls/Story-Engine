@@ -1,31 +1,23 @@
-import { anthropic, createAnthropic } from "@ai-sdk/anthropic";
+import { createAnthropic } from "@ai-sdk/anthropic";
 
 /**
  * Provider registry — ADR-003 (multi-LLM) + ADR-015 (Orchestrator Pattern).
  *
- * Vercel AI SDK gives us a unified `LanguageModel` interface across all
- * providers. Story Engine swaps providers per-playthrough based on user
- * choice, but the turn-runner code stays identical.
- *
- * Phase 1: Anthropic only (Narrator default = Claude Sonnet).
- * Phase 3: Add OpenAI, Google, xAI direct providers.
- * Phase 6: OpenRouter route for adult-mode-only (non-banning) providers.
+ * IMPORTANT: We use `createAnthropic({ baseURL })` instead of the default
+ * `anthropic` import because @ai-sdk/anthropic v3.0.78 ships with a baseURL
+ * that hits https://api.anthropic.com/messages (missing /v1 prefix → 404).
+ * Diagnostic 2026-05-21 confirmed: direct curl /v1/messages works fine; SDK
+ * default URL is broken. Explicit baseURL avoids this.
  */
 
-// Anthropic — uses ANTHROPIC_API_KEY env var
-export const anthropicProvider = anthropic;
-
-// Custom Anthropic instance with explicit baseURL if needed (e.g., proxy)
-export function createAnthropicClient(apiKey?: string) {
-  return createAnthropic({
-    apiKey: apiKey ?? process.env.ANTHROPIC_API_KEY,
-  });
-}
+export const anthropicProvider = createAnthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+  baseURL: "https://api.anthropic.com/v1",
+});
 
 /**
- * OpenRouter — OpenAI-compatible endpoint, used for adult-mode-friendly
- * open-source models per ADR-004. Phase 6 wires this up properly.
- * For now exposed as factory only.
+ * OpenRouter — OpenAI-compatible endpoint for adult-mode-friendly open-source
+ * models per ADR-004. Phase 6 wires this up properly.
  */
 export function createOpenRouterClient(apiKey?: string) {
   return createAnthropic({
