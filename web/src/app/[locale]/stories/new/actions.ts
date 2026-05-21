@@ -69,11 +69,18 @@ export async function createStoryFromPrompt(
       protagonist_hint: parsed.data.protagonist_hint,
     });
   } catch (e) {
+    // AUDIT FIX (SEC-M-04): don't leak raw Anthropic / model error text to
+    // the client (rate-limit hints, model ids, request_id headers, schema
+    // info). Log details server-side, return categorized 繁中 message.
+    const msg = e instanceof Error ? e.message : String(e);
     console.error("[createStory] schema-generator failed", e);
-    return {
-      ok: false,
-      error: `Story generation failed: ${e instanceof Error ? e.message : String(e)}`,
-    };
+    let friendly = "AI 而家好忙，請 30 秒後再試一次";
+    if (/\b(401|403)\b|invalid[_-]api[_-]key|authentication/i.test(msg)) {
+      friendly = "AI 服務暫時無法使用，請稍後再試";
+    } else if (/\b400\b|invalid|schema/i.test(msg)) {
+      friendly = "你嘅故事概念有少少問題 — 試下講多啲背景或者換個角度";
+    }
+    return { ok: false, error: friendly };
   }
 
   // Helper: best-effort cleanup if a later step fails. Supabase JS client
@@ -108,8 +115,9 @@ export async function createStoryFromPrompt(
     .single();
 
   if (storyErr || !story) {
+    // AUDIT FIX (SEC-M-04): generic 繁中 client message; detailed server log.
     console.error("[createStory] story insert failed", storyErr);
-    return { ok: false, error: storyErr?.message ?? "Story insert failed" };
+    return { ok: false, error: "建立故事失敗，請稍後再試" };
   }
 
   // Insert characters
@@ -135,7 +143,7 @@ export async function createStoryFromPrompt(
   if (charsErr || !insertedChars) {
     console.error("[createStory] character insert failed", charsErr);
     await cleanup(story.id);
-    return { ok: false, error: charsErr?.message ?? "Character insert failed" };
+    return { ok: false, error: "建立角色失敗，請稍後再試" };
   }
 
   // Create playthrough (immediately starts playing — no separate "save then play" step)
@@ -158,7 +166,7 @@ export async function createStoryFromPrompt(
   if (ptErr || !playthrough) {
     console.error("[createStory] playthrough insert failed", ptErr);
     await cleanup(story.id);
-    return { ok: false, error: ptErr?.message ?? "Playthrough insert failed" };
+    return { ok: false, error: "建立遊玩進度失敗，請稍後再試" };
   }
 
   // Initialize per-character disposition states

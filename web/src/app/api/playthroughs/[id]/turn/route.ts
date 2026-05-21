@@ -25,8 +25,8 @@ import {
 } from "@/lib/ai/skill-check";
 import { deriveCurrentAct, type ArcContext } from "@/lib/ai/arc-dsl";
 import { applyDelta } from "@/schemas/state-delta";
-import { initialStateFromSchema, type StateSchema } from "@/schemas/state-schema";
-import type { StoryBible } from "@/schemas/bible";
+import { initialStateFromSchema, StateSchemaShape } from "@/schemas/state-schema";
+import { StoryBibleSchema } from "@/schemas/bible";
 
 /**
  * POST /api/playthroughs/[id]/turn
@@ -136,7 +136,27 @@ export async function POST(
   // Reverse to chronological
   const turnsChronological = (recentTurns ?? []).reverse();
 
-  const stateSchema = story.state_schema as StateSchema;
+  // AUDIT FIX (DB-M-03 / DB-H-06): Zod parse at boundary instead of bare cast.
+  // A malformed story row (admin edit, schema drift, half-saved creation) used
+  // to crash deep inside the AI pipeline with an unhelpful stack. Now: return
+  // a 500 with a generic message; details logged server-side.
+  const schemaParse = StateSchemaShape.safeParse(story.state_schema);
+  const bibleParse = StoryBibleSchema.safeParse(story.story_bible);
+  if (!schemaParse.success || !bibleParse.success) {
+    console.error(
+      "[turn] story validation failed",
+      pt.story_id,
+      schemaParse.success ? null : schemaParse.error.issues.slice(0, 3),
+      bibleParse.success ? null : bibleParse.error.issues.slice(0, 3),
+    );
+    return NextResponse.json(
+      { error: "story_corrupted" },
+      { status: 500 },
+    );
+  }
+  const stateSchema = schemaParse.data;
+  const storyBible = bibleParse.data;
+
   const currentState =
     (pt.current_state as Record<string, unknown>) ??
     initialStateFromSchema(stateSchema);
@@ -146,7 +166,7 @@ export async function POST(
       title: story.title,
       description: story.description,
       state_schema: stateSchema,
-      story_bible: story.story_bible as StoryBible,
+      story_bible: storyBible,
     },
     characters: (characters ?? []).map((c) => {
       const cs = charStates?.find((s) => s.character_id === c.id);
