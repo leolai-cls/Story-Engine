@@ -14,6 +14,88 @@ export type Database = {
   }
   public: {
     Tables: {
+      lorebook_entries: {
+        Row: {
+          always_on: boolean
+          created_at: string
+          description: string
+          embedding: string
+          entity_type: string
+          id: string
+          keywords: string[]
+          name: string
+          playthrough_id: string
+          updated_at: string
+        }
+        Insert: {
+          always_on?: boolean
+          created_at?: string
+          description: string
+          embedding: string
+          entity_type: string
+          id?: string
+          keywords?: string[]
+          name: string
+          playthrough_id: string
+          updated_at?: string
+        }
+        Update: {
+          always_on?: boolean
+          created_at?: string
+          description?: string
+          embedding?: string
+          entity_type?: string
+          id?: string
+          keywords?: string[]
+          name?: string
+          playthrough_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lorebook_entries_playthrough_id_fkey"
+            columns: ["playthrough_id"]
+            isOneToOne: false
+            referencedRelation: "playthroughs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      memory_summaries: {
+        Row: {
+          created_at: string
+          embedding: string
+          id: string
+          playthrough_id: string
+          summary_text: string
+          turn_range: unknown
+        }
+        Insert: {
+          created_at?: string
+          embedding: string
+          id?: string
+          playthrough_id: string
+          summary_text: string
+          turn_range: unknown
+        }
+        Update: {
+          created_at?: string
+          embedding?: string
+          id?: string
+          playthrough_id?: string
+          summary_text?: string
+          turn_range?: unknown
+        }
+        Relationships: [
+          {
+            foreignKeyName: "memory_summaries_playthrough_id_fkey"
+            columns: ["playthrough_id"]
+            isOneToOne: false
+            referencedRelation: "playthroughs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       playthrough_character_states: {
         Row: {
           character_id: string
@@ -300,6 +382,32 @@ export type Database = {
           },
         ]
       }
+      turn_embeddings: {
+        Row: {
+          created_at: string
+          embedding: string
+          turn_id: string
+        }
+        Insert: {
+          created_at?: string
+          embedding: string
+          turn_id: string
+        }
+        Update: {
+          created_at?: string
+          embedding?: string
+          turn_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "turn_embeddings_turn_id_fkey"
+            columns: ["turn_id"]
+            isOneToOne: true
+            referencedRelation: "turns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       turns: {
         Row: {
           created_at: string
@@ -370,7 +478,113 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      acquire_next_turn_pair: {
+        Args: { p_playthrough_id: string }
+        Returns: {
+          ai_idx: number
+          user_idx: number
+        }[]
+      }
+      apply_turn_npc_changes: {
+        Args: {
+          p_character_id: string
+          p_disposition_delta: Json
+          p_new_flags: string[]
+          p_playthrough_id: string
+          p_turn_index: number
+        }
+        Returns: undefined
+      }
+      match_lorebook_entries:
+        | {
+            Args: {
+              p_match_count: number
+              p_playthrough_id: string
+              p_query_embedding: string
+            }
+            Returns: {
+              description: string
+              entity_type: string
+              id: string
+              name: string
+              similarity: number
+            }[]
+          }
+        | {
+            Args: {
+              p_match_count: number
+              p_min_similarity?: number
+              p_playthrough_id: string
+              p_query_embedding: string
+            }
+            Returns: {
+              description: string
+              entity_type: string
+              id: string
+              name: string
+              similarity: number
+            }[]
+          }
+      match_memory_summaries:
+        | {
+            Args: {
+              p_match_count: number
+              p_playthrough_id: string
+              p_query_embedding: string
+            }
+            Returns: {
+              id: string
+              similarity: number
+              summary_text: string
+              turn_range: unknown
+            }[]
+          }
+        | {
+            Args: {
+              p_match_count: number
+              p_min_similarity?: number
+              p_playthrough_id: string
+              p_query_embedding: string
+            }
+            Returns: {
+              id: string
+              similarity: number
+              summary_text: string
+              turn_range: unknown
+            }[]
+          }
+      match_turn_embeddings:
+        | {
+            Args: {
+              p_exclude_turn_indexes?: number[]
+              p_match_count: number
+              p_playthrough_id: string
+              p_query_embedding: string
+            }
+            Returns: {
+              role: string
+              similarity: number
+              text: string
+              turn_id: string
+              turn_index: number
+            }[]
+          }
+        | {
+            Args: {
+              p_exclude_turn_indexes?: number[]
+              p_match_count: number
+              p_min_similarity?: number
+              p_playthrough_id: string
+              p_query_embedding: string
+            }
+            Returns: {
+              role: string
+              similarity: number
+              text: string
+              turn_id: string
+              turn_index: number
+            }[]
+          }
     }
     Enums: {
       [_ in never]: never
