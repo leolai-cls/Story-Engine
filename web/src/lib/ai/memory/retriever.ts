@@ -85,6 +85,26 @@ export type RetrieverConfig = {
   lorebookK: number;
   /** Skip summaries with turn_range overlapping recentTurns. Default true. */
   excludeOverlappingSummaries: boolean;
+  /**
+   * AUDIT FIX (P2-UX-C-02 / P2-LOGIC-M-10): per-source minimum cosine
+   * similarity. Below these floors, results are dropped at the RPC level
+   * (Returning EMPTY beats returning noise — better to inject nothing than
+   * to surface irrelevant 5-turn-ago walk-on NPCs).
+   *
+   * Tuning notes: cosine similarity in [-1, 1] for normalized vectors.
+   * For text-embedding-3-small on 中文 narrative:
+   *   - 0.5+ tends to be topically related
+   *   - 0.7+ is "clearly about the same event/entity"
+   *   - <0.4 is essentially noise
+   *
+   * Thresholds are differentiated by source — RAG turns and lorebook can
+   * accept slightly lower floors (broad recall), while summaries should be
+   * tighter (each is ~300-1000 tokens injected, so low-relevance summaries
+   * are very expensive).
+   */
+  summariesMinSimilarity: number;
+  ragTurnsMinSimilarity: number;
+  lorebookMinSimilarity: number;
 };
 
 const DEFAULT_CONFIG: RetrieverConfig = {
@@ -92,6 +112,9 @@ const DEFAULT_CONFIG: RetrieverConfig = {
   ragTurnsK: 5,
   lorebookK: 3,
   excludeOverlappingSummaries: true,
+  summariesMinSimilarity: 0.55,
+  ragTurnsMinSimilarity: 0.5,
+  lorebookMinSimilarity: 0.45,
 };
 
 // ─── Main retriever ─────────────────────────────────────────────────────────
@@ -127,6 +150,9 @@ export async function retrieveMemory(params: {
   const recentIndexes = recentTurns.map((t) => t.turn_index);
 
   // ── 2. Parallel queries: 3 RPCs + 1 SELECT ──────────────────────────────
+  // AUDIT FIX (P2-UX-C-02): pass per-source similarity floor so low-quality
+  // matches don't bloat the prompt with irrelevant noise.
+  // AUDIT FIX (P2-PERF-H-07): cap always_on count + sort by recent-update.
   const [
     summariesResult,
     ragTurnsResult,
@@ -137,23 +163,28 @@ export async function retrieveMemory(params: {
       p_playthrough_id: playthroughId,
       p_query_embedding: queryEmbedding,
       p_match_count: cfg.summariesK,
+      p_min_similarity: cfg.summariesMinSimilarity,
     }),
     supabase.rpc("match_turn_embeddings", {
       p_playthrough_id: playthroughId,
       p_query_embedding: queryEmbedding,
       p_match_count: cfg.ragTurnsK,
       p_exclude_turn_indexes: recentIndexes,
+      p_min_similarity: cfg.ragTurnsMinSimilarity,
     }),
     supabase.rpc("match_lorebook_entries", {
       p_playthrough_id: playthroughId,
       p_query_embedding: queryEmbedding,
       p_match_count: cfg.lorebookK,
+      p_min_similarity: cfg.lorebookMinSimilarity,
     }),
     supabase
       .from("lorebook_entries")
       .select("id, entity_type, name, description")
       .eq("playthrough_id", playthroughId)
-      .eq("always_on", true),
+      .eq("always_on", true)
+      .order("updated_at", { ascending: false })
+      .limit(8),
   ]);
 
   // Helper: check if any of these results indicate "tables/RPCs don't exist"

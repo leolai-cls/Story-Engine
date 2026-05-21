@@ -104,16 +104,22 @@ export async function runLorebookExtraction(params: {
     const entities = llmResult.object.entities;
     if (!entities || entities.length === 0) return 0;
 
-    // Dedup within this call — same name appearing twice (case-insensitive)
+    // AUDIT FIX (P2-LOGIC-H-07): trim entity.name BEFORE dedup. UNIQUE index
+    // in 0005 uses lower(btrim(name)) so DB-side dedup is robust, but doing
+    // it client-side too avoids the wasted INSERT-then-conflict round-trip.
+    // Also trims for protagonist filter comparison.
     const seen = new Set<string>();
-    const dedupedEntities = entities.filter((e) => {
-      const key = e.name.toLowerCase();
-      if (seen.has(key)) return false;
-      seen.add(key);
-      // Filter out protagonist mentions defensively
-      if (protagonistName && key === protagonistName.toLowerCase()) return false;
-      return true;
-    });
+    const dedupedEntities = entities
+      .map((e) => ({ ...e, name: e.name.trim() }))
+      .filter((e) => {
+        if (e.name.length === 0) return false;
+        const key = e.name.toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        // Filter out protagonist mentions defensively
+        if (protagonistName && key === protagonistName.trim().toLowerCase()) return false;
+        return true;
+      });
 
     if (dedupedEntities.length === 0) return 0;
 
@@ -192,23 +198,27 @@ async function upsertLorebookEntry(params: {
   }
 
   if (existing) {
-    // Merge: keep existing always_on flag (don't let LLM downgrade story-
-    // critical entries); merge keywords (dedupe); replace description if
-    // new one is longer / more detailed.
+    // AUDIT FIX (P2-LOGIC-C-01 / P2-UX-M-11): RECENCY WINS for description.
+    // Previously "longer wins" — but a late-game shorter+more-accurate
+    // description ("林思雅 — 主角伴侶") would lose to an earlier verbose stale
+    // one ("林思雅 — 一個內向嘅港大學生"). Worse: the embedding was always
+    // updated to the NEW vector while keeping the OLD description text → the
+    // index pointed at a vector computed from text that wasn't stored
+    // anywhere. Stored text and vector permanently drifted.
+    //
+    // New behavior: description ALWAYS becomes the latest extraction, and the
+    // embedding (already computed from the new description) stays in sync.
     const mergedKeywords = Array.from(
       new Set([...(existing.keywords ?? []), ...entity.keywords]),
     ).slice(0, 8);
-    const newDescription =
-      entity.description.length > existing.description.length
-        ? entity.description
-        : existing.description;
 
     const { error: updErr } = await supabase
       .from("lorebook_entries")
       .update({
-        description: newDescription,
+        description: entity.description,
         keywords: mergedKeywords,
-        // Only PROMOTE always_on (false → true allowed); never demote
+        // Only PROMOTE always_on (false → true allowed); never demote.
+        // Demotion path is the periodic idle-decay job (Wave 3).
         always_on: existing.always_on || entity.always_on,
         embedding,
       })

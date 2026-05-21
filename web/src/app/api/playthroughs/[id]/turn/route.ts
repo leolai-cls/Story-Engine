@@ -1,4 +1,4 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse, type NextRequest, after } from "next/server";
 import { streamText } from "ai";
 import { getProviderModel } from "@/lib/ai/providers";
 import { createClient } from "@/lib/supabase/server";
@@ -336,13 +336,18 @@ export async function POST(
       userTurnPersisted = true;
       userTurnId = userTurnRow.id;
 
-      // Phase 2: fire-and-forget embed insert for user turn. Reuse the
-      // queryEmbedding computed by retriever (avoids a duplicate API call).
+      // AUDIT FIX (P2-PERF-C-02 / P2-LOGIC-H-08): use Next.js `after()` so
+      // the runtime keeps the lambda alive past response completion until
+      // this background work finishes. Previously `void (async () => ...)`
+      // got killed when Vercel terminated the lambda → user turn embeddings
+      // were silently never persisted. Same fix applied to AI turn embed +
+      // summarizer + lorebook in onFinish below.
+      //
+      // Reuse the queryEmbedding computed by retriever (avoids dup API call).
       if (memory.queryEmbedding && userTurnId) {
         const turnId = userTurnId;
         const queryVec = memory.queryEmbedding;
-        // Don't await — stream starts immediately.
-        void (async () => {
+        after(async () => {
           try {
             const { error: embedErr } = await supabase
               .from("turn_embeddings")
@@ -360,7 +365,7 @@ export async function POST(
               e instanceof Error ? e.message : e,
             );
           }
-        })();
+        });
       }
     }
   }
@@ -659,12 +664,20 @@ export async function POST(
           .eq("id", playthroughId);
 
         // ─── Phase 2 background: embed AI turn + summarize + lorebook ──────
-        // All fire-and-forget. Errors logged but don't break the user-facing
-        // pipeline (stream already returned, turns already persisted). Each
-        // helper gracefully no-ops if pgvector tables aren't yet provisioned.
+        // AUDIT FIX (P2-PERF-C-02): use `after()` from next/server so Vercel
+        // keeps the lambda alive past response completion. Previously the
+        // `void (async () => ...)` pattern got killed when stream finished →
+        // summarizer's 30s Haiku call, AI-turn embed, and lorebook extraction
+        // all silently failed in production. Phase 2 tiers 2/3/4 were
+        // effectively non-functional. `after()` is the documented Next.js 15+
+        // primitive for "run after response, keep lambda alive".
+        //
+        // Each helper still wraps its own error handling so one failing
+        // doesn't cascade-kill the others.
         const aiTurnId = aiTurnRow?.id ?? null;
         if (!isRefusal && aiTurnId) {
-          void (async () => {
+          // Embed AI turn → turn_embeddings (RAG tier 3)
+          after(async () => {
             try {
               const embed = await embedTextSafe(finalText, "turn:ai");
               if (embed) {
@@ -678,32 +691,54 @@ export async function POST(
             } catch (e) {
               console.warn("[turn] ai-turn embed exception:", e instanceof Error ? e.message : e);
             }
-          })();
+          });
 
           // Rolling summary (every 20 turns)
-          void maybeRunSummarization({
-            supabase,
-            playthroughId,
-            currentMaxTurnIndex: aiTurnIndex,
-          }).catch((e) =>
-            console.warn(
-              "[turn] summarizer exception:",
-              e instanceof Error ? e.message : e,
-            ),
-          );
+          after(async () => {
+            try {
+              await maybeRunSummarization({
+                supabase,
+                playthroughId,
+                currentMaxTurnIndex: aiTurnIndex,
+              });
+            } catch (e) {
+              console.warn(
+                "[turn] summarizer exception:",
+                e instanceof Error ? e.message : e,
+              );
+            }
+          });
 
           // Lorebook entity extraction
-          void runLorebookExtraction({
-            supabase,
-            playthroughId,
-            userAction: action,
-            aiNarrative: finalText,
-            protagonistName: pt.character_name,
-          }).catch((e) =>
-            console.warn(
-              "[turn] lorebook exception:",
-              e instanceof Error ? e.message : e,
-            ),
+          after(async () => {
+            try {
+              await runLorebookExtraction({
+                supabase,
+                playthroughId,
+                userAction: action,
+                aiNarrative: finalText,
+                protagonistName: pt.character_name,
+              });
+            } catch (e) {
+              console.warn(
+                "[turn] lorebook exception:",
+                e instanceof Error ? e.message : e,
+              );
+            }
+          });
+        } else if (isRefusal && userTurnId && memory.queryEmbedding) {
+          // AUDIT FIX (P2-UX-H-07): on refusal, the AI fallback narrative
+          // shouldn't enter RAG (canned text has no signal). But the user
+          // action turn SHOULD still be retrievable — that way Director on
+          // future turns can see "player has tried this kind of action
+          // before" and either explain in-fiction or unlock a softened path,
+          // instead of mechanically refusing the same thing again.
+          //
+          // User turn was already embedded above. Nothing extra needed.
+          // Documenting the intent here so future maintainers don't add
+          // "skip user embed on refusal" by mistake.
+          console.log(
+            `[turn] refusal — AI fallback not embedded (intent); user turn ${userTurnId} embedding retained`,
           );
         }
       } catch (e) {
