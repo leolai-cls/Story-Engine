@@ -45,3 +45,27 @@ export async function signOut() {
   const locale = await getLocale();
   redirect({ href: "/", locale });
 }
+
+/**
+ * Anonymous sign-in — creates a guest session without email.
+ * Useful for visitors trying the product without committing to a real account.
+ * Profile row still auto-created by on_auth_user_created trigger (display_name
+ * will be NULL since no email/metadata).
+ *
+ * Anonymous users can later "upgrade" by linking an email — Phase 6 feature.
+ */
+export async function signInAsGuest() {
+  const supabase = await createClient();
+  const locale = await getLocale();
+
+  const { error } = await supabase.auth.signInAnonymously();
+  if (error) {
+    redirect({
+      href: `/login?error=${encodeURIComponent("Guest 登入失敗: " + error.message)}`,
+      locale,
+    });
+  }
+
+  // Send guest straight to story creation — they're here to try the product
+  redirect({ href: "/stories/new" as never, locale });
+}

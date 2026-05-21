@@ -11,8 +11,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Sparkles, CheckCircle2, AlertCircle } from "lucide-react";
-import { signInWithEmail } from "./actions";
+import { Sparkles, CheckCircle2, AlertCircle, Zap } from "lucide-react";
+import { signInWithEmail, signInAsGuest } from "./actions";
 
 export default async function LoginPage({
   params,
@@ -88,6 +88,22 @@ export default async function LoginPage({
               (Phase 6)
             </span>
           </Button>
+
+          <div className="pt-2">
+            <form action={signInAsGuest}>
+              <Button
+                type="submit"
+                variant="secondary"
+                className="w-full bg-amber-100 hover:bg-amber-200 dark:bg-amber-950/40 dark:hover:bg-amber-950/60 border-amber-300/60 dark:border-amber-800/60"
+              >
+                <Zap className="h-4 w-4 text-amber-600" />
+                🎮 Guest 試玩 — 即刻入去
+              </Button>
+            </form>
+            <p className="text-[11px] text-center text-muted-foreground mt-2">
+              無需 email · 直接體驗創作 + play loop · 數據儲存喺 guest account
+            </p>
+          </div>
         </CardContent>
       </Card>
     </main>
