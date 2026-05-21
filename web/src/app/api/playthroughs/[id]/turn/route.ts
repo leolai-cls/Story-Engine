@@ -12,6 +12,8 @@ import {
   refusalFallbackNarrative,
   type TurnContext,
 } from "@/lib/ai/turn-runner";
+import { callDirector } from "@/lib/ai/director";
+import { verdictToNarratorInstruction } from "@/schemas/director";
 import { applyDelta } from "@/schemas/state-delta";
 import { initialStateFromSchema, type StateSchema } from "@/schemas/state-schema";
 import type { StoryBible } from "@/schemas/bible";
@@ -170,11 +172,25 @@ export async function POST(
     playthrough_character_name: pt.character_name,
   };
 
-  // 4. Stream Narrator response with prompt caching (L-15 fix)
-  // Stable system prompt (bible + characters + rules) cached;
-  // dynamic state appears in a separate non-cached system message.
+  // 4. DIRECTOR — pre-Narrator审 player action (Phase 1.5.1 / ADR-015)
+  // Cheap Haiku call, outputs structured verdict that shapes Narrator behavior.
+  let verdict;
+  try {
+    verdict = await callDirector(ctx, action);
+    console.log(`[turn] Director verdict: ${verdict.verdict} — ${verdict.reasoning.slice(0, 80)}`);
+  } catch (e) {
+    console.warn("[turn] Director failed, falling back to allow:", e instanceof Error ? e.message : e);
+    verdict = {
+      verdict: "allow" as const,
+      reasoning: "Director call failed; defaulting to allow.",
+    };
+  }
+  const directorInstruction = verdictToNarratorInstruction(verdict);
+
+  // 5. Stream Narrator response with prompt caching + Director instruction
   const stableSystem = buildStableSystemPrompt(ctx);
-  const dynamicSystem = buildDynamicSystemPrompt(ctx);
+  const dynamicSystem =
+    buildDynamicSystemPrompt(ctx) + "\n\n" + directorInstruction;
   const messages = buildMessages(ctx.recent_turns, action);
 
   const userTurnIndex = pt.turn_count;
@@ -236,6 +252,7 @@ export async function POST(
             role: "ai",
             text: finalText,
             state_delta: isRefusal ? null : delta,
+            director_verdict: verdict,
             llm_provider: "anthropic",
             model: pt.llm_model ?? "claude-sonnet-4-6",
             input_tokens: usage?.inputTokens,
