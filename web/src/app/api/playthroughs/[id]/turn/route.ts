@@ -252,8 +252,57 @@ export async function POST(
     buildDynamicSystemPrompt(ctx) + "\n\n" + directorInstruction;
   const messages = buildMessages(ctx.recent_turns, action);
 
-  const userTurnIndex = pt.turn_count;
-  const aiTurnIndex = pt.turn_count + 1;
+  // AUDIT FIX (AI-C-03 / DB-H-03): atomic turn pair acquisition via RPC.
+  // Falls back to legacy non-atomic read if migration 0003 not yet applied.
+  let userTurnIndex: number;
+  let aiTurnIndex: number;
+  let acquiredViaRpc = false;
+  try {
+    const { data: pairData, error: pairErr } = await supabase.rpc(
+      "acquire_next_turn_pair",
+      { p_playthrough_id: playthroughId },
+    );
+    if (pairErr) throw pairErr;
+    if (!pairData || (Array.isArray(pairData) && pairData.length === 0)) {
+      throw new Error("acquire_next_turn_pair returned empty");
+    }
+    const row = Array.isArray(pairData) ? pairData[0] : pairData;
+    userTurnIndex = row.user_idx;
+    aiTurnIndex = row.ai_idx;
+    acquiredViaRpc = true;
+  } catch (e) {
+    // Legacy path — migration 0003 not yet applied, OR transient failure.
+    // Race still possible (UNIQUE constraint on turn_index will catch it).
+    const msg = e instanceof Error ? e.message : String(e);
+    console.warn(
+      `[turn] acquire_next_turn_pair RPC failed (apply migration 0003?): ${msg} — falling back to non-atomic`,
+    );
+    userTurnIndex = pt.turn_count;
+    aiTurnIndex = pt.turn_count + 1;
+  }
+
+  // AUDIT FIX (AI-H-04): pre-persist user turn BEFORE the LLM stream so the
+  // player's input is durable even if the stream aborts (tab close, network
+  // drop, etc). Only when RPC path succeeded — fallback path persists both
+  // turns at the end to avoid double-insert collisions.
+  let userTurnPersisted = false;
+  if (acquiredViaRpc) {
+    const { error: userInsertErr } = await supabase.from("turns").insert({
+      playthrough_id: playthroughId,
+      turn_index: userTurnIndex,
+      role: "user",
+      text: action,
+    });
+    if (userInsertErr) {
+      console.error(
+        "[turn] pre-stream user turn insert failed:",
+        userInsertErr,
+      );
+      // Continue anyway — onFinish will retry. Don't block the user.
+    } else {
+      userTurnPersisted = true;
+    }
+  }
 
   const result = streamText({
     // AUDIT FIX (AI-H-09): use provider dispatcher so non-Anthropic models
@@ -321,45 +370,41 @@ export async function POST(
           (characters ?? []).map((c) => [c.name, c]),
         );
 
-        // Apply disposition changes — clamp ±100 + upsert per (playthrough, character)
+        // AUDIT FIX (AI-C-01 / DB-H-04): group all disposition + flag changes
+        // by character_id BEFORE writing — the loop previously rebuilt each
+        // upsert from a stale `existingState` snapshot and clobbered other
+        // axis updates for the same NPC. Now we accumulate per-character
+        // (axis_delta map + new_flags) and do ONE atomic merge per NPC.
+        type NpcMerge = {
+          characterId: string;
+          characterName: string;
+          dispositionDelta: Record<string, number>;
+          newFlags: string[];
+        };
+        const mergesByChar = new Map<string, NpcMerge>();
+
         for (const change of dispositionChanges) {
           const dbChar = charByName.get(change.character_name);
           if (!dbChar) {
             console.warn(
-              `[turn] Narrator referenced unknown NPC "${change.character_name}" in disposition update — skipped`,
+              `[turn] Narrator referenced unknown NPC "${change.character_name}" — skipped`,
             );
             continue;
           }
-          const existingState = charStates?.find(
-            (s) => s.character_id === dbChar.id,
-          );
-          const currentDisposition =
-            (existingState?.disposition as Record<string, number>) ?? {};
-          const currentValue = currentDisposition[change.axis] ?? 0;
-          const newValue = Math.max(
-            -100,
-            Math.min(100, currentValue + change.delta),
-          );
-          const newDisposition = {
-            ...currentDisposition,
-            [change.axis]: newValue,
-          };
-
-          await supabase
-            .from("playthrough_character_states")
-            .upsert(
-              {
-                playthrough_id: playthroughId,
-                character_id: dbChar.id,
-                disposition: newDisposition,
-                permanent_flags: existingState?.permanent_flags ?? [],
-                last_interaction_turn: aiTurnIndex,
-              },
-              { onConflict: "playthrough_id,character_id" },
-            );
+          let entry = mergesByChar.get(dbChar.id);
+          if (!entry) {
+            entry = {
+              characterId: dbChar.id,
+              characterName: dbChar.name,
+              dispositionDelta: {},
+              newFlags: [],
+            };
+            mergesByChar.set(dbChar.id, entry);
+          }
+          // Sum deltas if Narrator emitted multiple changes for same axis.
+          entry.dispositionDelta[change.axis] =
+            (entry.dispositionDelta[change.axis] ?? 0) + change.delta;
         }
-
-        // Apply permanent flags — append to character's flag array
         for (const flagOp of permanentFlags) {
           const dbChar = charByName.get(flagOp.character_name);
           if (!dbChar) {
@@ -368,28 +413,82 @@ export async function POST(
             );
             continue;
           }
-          const existingState = charStates?.find(
-            (s) => s.character_id === dbChar.id,
-          );
-          const existingFlags = (existingState?.permanent_flags as string[]) ?? [];
-          if (existingFlags.includes(flagOp.flag)) {
-            continue; // already set
+          let entry = mergesByChar.get(dbChar.id);
+          if (!entry) {
+            entry = {
+              characterId: dbChar.id,
+              characterName: dbChar.name,
+              dispositionDelta: {},
+              newFlags: [],
+            };
+            mergesByChar.set(dbChar.id, entry);
           }
-          await supabase
-            .from("playthrough_character_states")
-            .upsert(
-              {
-                playthrough_id: playthroughId,
-                character_id: dbChar.id,
-                disposition: existingState?.disposition ?? {},
-                permanent_flags: [...existingFlags, flagOp.flag],
-                last_interaction_turn: aiTurnIndex,
-              },
-              { onConflict: "playthrough_id,character_id" },
-            );
+          if (!entry.newFlags.includes(flagOp.flag)) {
+            entry.newFlags.push(flagOp.flag);
+          }
           console.log(
             `[turn] Set permanent flag on ${flagOp.character_name}: ${flagOp.flag} — ${flagOp.reason}`,
           );
+        }
+
+        // Apply each character's merged changes — try atomic RPC first
+        // (migration 0003), fallback to non-atomic upsert if RPC unavailable.
+        for (const entry of mergesByChar.values()) {
+          let mergedViaRpc = false;
+          try {
+            const { error: rpcErr } = await supabase.rpc(
+              "apply_turn_npc_changes",
+              {
+                p_playthrough_id: playthroughId,
+                p_character_id: entry.characterId,
+                p_disposition_delta: entry.dispositionDelta,
+                p_new_flags: entry.newFlags,
+                p_turn_index: aiTurnIndex,
+              },
+            );
+            if (rpcErr) throw rpcErr;
+            mergedViaRpc = true;
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            console.warn(
+              `[turn] apply_turn_npc_changes RPC failed (apply migration 0003?): ${msg} — falling back`,
+            );
+          }
+
+          if (!mergedViaRpc) {
+            // Legacy fallback — single upsert that merges from the in-request
+            // snapshot. Still loses if two concurrent requests both fall back,
+            // but at least each character is one upsert (not two).
+            const existingState = charStates?.find(
+              (s) => s.character_id === entry.characterId,
+            );
+            const baselineDisp =
+              (existingState?.disposition as Record<string, number>) ?? {};
+            const baselineFlags =
+              (existingState?.permanent_flags as string[]) ?? [];
+
+            const mergedDisp = { ...baselineDisp };
+            for (const [axis, delta] of Object.entries(entry.dispositionDelta)) {
+              const cur = mergedDisp[axis] ?? 0;
+              mergedDisp[axis] = Math.max(-100, Math.min(100, cur + delta));
+            }
+            const mergedFlags = [...baselineFlags];
+            for (const flag of entry.newFlags) {
+              if (!mergedFlags.includes(flag)) mergedFlags.push(flag);
+            }
+            await supabase
+              .from("playthrough_character_states")
+              .upsert(
+                {
+                  playthrough_id: playthroughId,
+                  character_id: entry.characterId,
+                  disposition: mergedDisp,
+                  permanent_flags: mergedFlags,
+                  last_interaction_turn: aiTurnIndex,
+                },
+                { onConflict: "playthrough_id,character_id" },
+              );
+          }
         }
 
         // ─── Arc transition check (Phase 1.5.3) ────────────────────────────
@@ -443,39 +542,51 @@ export async function POST(
           );
         }
 
-        await supabase.from("turns").insert([
-          {
+        // Build turn rows. AUDIT FIX (AI-H-04): user turn was pre-persisted
+        // before the stream when RPC path was used; only insert it here as a
+        // fallback if pre-insert failed or we're on the legacy non-atomic path.
+        const turnRows: Array<Record<string, unknown>> = [];
+        if (!userTurnPersisted) {
+          turnRows.push({
             playthrough_id: playthroughId,
             turn_index: userTurnIndex,
             role: "user",
             text: action,
-          },
-          {
-            playthrough_id: playthroughId,
-            turn_index: aiTurnIndex,
-            role: "ai",
-            text: finalText,
-            state_delta: isRefusal ? null : delta,
-            director_verdict: verdict,
-            skill_check: skillCheckResult,
-            llm_provider: "anthropic",
-            model: pt.llm_model ?? "claude-sonnet-4-6",
-            input_tokens: usage?.inputTokens,
-            output_tokens: usage?.outputTokens,
-            // AUDIT FIX (AI-H-02): capture Director token usage too. Without
-            // this, Phase 4 billing would undercount by ~30% per turn.
-            director_input_tokens: directorUsage.inputTokens,
-            director_output_tokens: directorUsage.outputTokens,
-          },
-        ]);
+          });
+        }
+        turnRows.push({
+          playthrough_id: playthroughId,
+          turn_index: aiTurnIndex,
+          role: "ai",
+          text: finalText,
+          state_delta: isRefusal ? null : delta,
+          director_verdict: verdict,
+          skill_check: skillCheckResult,
+          llm_provider: "anthropic",
+          model: pt.llm_model ?? "claude-sonnet-4-6",
+          input_tokens: usage?.inputTokens,
+          output_tokens: usage?.outputTokens,
+          // AUDIT FIX (AI-H-02): capture Director token usage too. Without
+          // this, Phase 4 billing would undercount by ~30% per turn.
+          director_input_tokens: directorUsage.inputTokens,
+          director_output_tokens: directorUsage.outputTokens,
+        });
+        await supabase.from("turns").insert(turnRows);
 
+        // AUDIT FIX (AI-C-03): RPC `acquire_next_turn_pair` already bumped
+        // `turn_count` + `last_played_at` atomically at request start. Only
+        // need to update `current_state` here. Legacy fallback path still
+        // bumps turn_count + last_played_at non-atomically.
+        const playthroughUpdate: Record<string, unknown> = {
+          current_state: newState,
+        };
+        if (!acquiredViaRpc) {
+          playthroughUpdate.turn_count = pt.turn_count + 2;
+          playthroughUpdate.last_played_at = new Date().toISOString();
+        }
         await supabase
           .from("playthroughs")
-          .update({
-            current_state: newState,
-            turn_count: pt.turn_count + 2,
-            last_played_at: new Date().toISOString(),
-          })
+          .update(playthroughUpdate)
           .eq("id", playthroughId);
       } catch (e) {
         console.error("[turn] onFinish persistence failed", e);
