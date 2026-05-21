@@ -51,10 +51,18 @@ function evaluateLeaf(s: string, ctx: ArcContext): boolean {
     // Maybe a bare boolean variable: "state.act1_complete"
     // Treat as truthiness check
     const v = resolvePath(s.trim(), ctx);
+    if (v === undefined) {
+      console.warn(`[arc-dsl] path "${s.trim()}" resolved to undefined`);
+    }
     return Boolean(v);
   }
   const [, path, op, valueStr] = m;
   const lhs = resolvePath(path, ctx);
+  if (lhs === undefined) {
+    console.warn(
+      `[arc-dsl] path "${path}" resolved to undefined (in condition: "${s}")`,
+    );
+  }
   const rhs = parseLiteral(valueStr.trim());
   return compare(lhs, op, rhs);
 }
@@ -78,10 +86,29 @@ function resolvePath(path: string, ctx: ArcContext): unknown {
     const char = ctx.characters.get(charName);
     if (!char) return undefined;
     if (parts.length === 2) return char;
-    const axis = parts[2];
+
+    // Accept BOTH path formats:
+    //   characters.NAME.AXIS                  (3 parts — preferred, terse)
+    //   characters.NAME.disposition.AXIS      (4 parts — verbose; schema-generator
+    //                                         examples previously used this form)
+    // If parts[2] is the literal word "disposition", skip it and use parts[3] as axis.
+    const axisIdx = parts[2] === "disposition" && parts.length >= 4 ? 3 : 2;
+    const axis = parts[axisIdx];
+
     // axis can be "trust", "romance", etc. or "permanent_flags" (array)
     if (axis === "permanent_flags") return char.permanent_flags;
     return char.disposition[axis];
+  }
+
+  // `interactions.X` namespace not tracked in Phase 1.5.3 — return 0 so
+  // conditions like `interactions.linsiya >= 3` evaluate sensibly (false for
+  // ">= positive number" but doesn't break parsing). Log so we know
+  // schema-generator is still emitting these refs.
+  if (parts[0] === "interactions") {
+    console.warn(
+      `[arc-dsl] interactions.X namespace not tracked yet — returning 0 for "${path}"`,
+    );
+    return 0;
   }
 
   return undefined;

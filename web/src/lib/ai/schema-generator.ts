@@ -149,7 +149,16 @@ const BIBLE_SYSTEM = `你係 Story Engine 嘅 story bible writer。設計呢個�
 
 \`soft_guided\` (Director 有彈性):
 - \`story_arc\`: 2-5 個 Act，每個有 act (1-5), name, narrative_intent, transition_condition
-- transition_condition 必須用 boolean DSL referencing state fields (e.g. "characters.linsiya.trust >= 60 AND interactions.linsiya >= 3") — **唔可以用 turn count**
+- transition_condition 必須用 boolean DSL — 只支援以下 path 格式:
+    1. \`state.<field_key>\` (state schema 入面任何 field key — e.g. \`state.money\`, \`state.linsiya_affinity\`)
+    2. \`characters.<npc_name>.<axis>\` — axis 揀 trust / romance / respect / fear
+  支援 operators: \`>= <= > < == !=\` + \`AND\` / \`OR\` (case-insensitive)
+  **唔可以用**: turn count、\`interactions.X\`、parentheses
+  **正確 examples**:
+    - \`characters.linsiya.trust >= 60\` (簡單)
+    - \`characters.linsiya.trust >= 60 AND characters.linsiya.romance >= 30\` (多條件)
+    - \`state.money >= 1000 OR state.influence >= 50\` (state-based)
+  Act 1 condition 可以填一個容易滿足嘅嘢 (e.g. \`state.<某 field> >= 0\`)，反正開始就喺 Act 1
 - \`pacing_hint\` (一句 pacing 描述，可填 "")`;
 
 const CHARACTERS_SYSTEM = `你係 Story Engine 嘅 character designer。設計 1-6 個 NPC，每個有完整人格。
