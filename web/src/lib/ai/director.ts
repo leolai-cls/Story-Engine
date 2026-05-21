@@ -3,7 +3,10 @@ import { anthropicProvider } from "./providers";
 import { DEFAULT_DIRECTOR } from "./models";
 import { VerdictSchema, type Verdict } from "@/schemas/director";
 import { bibleToSystemPrompt } from "@/schemas/bible";
-import { allCharactersToSystemPrompt } from "@/schemas/character";
+import {
+  allCharactersStaticTemplate,
+  allCharactersDynamicState,
+} from "@/schemas/character";
 import { numericSkillKeys } from "./skill-check";
 import type { TurnContext } from "./turn-runner";
 
@@ -64,12 +67,29 @@ Action 合理但有 cost：e.g. 玩家行動會 hurt HP / damage 好感度 / cos
 
 ⚠️ Bias 應該 lean \`allow\` — 玩家 agency 重要。只有清楚 rule 違反先 reject。Skill check 用喺真係 uncertain outcome 嗰種 risky action，唔係日常對白。`;
 
+/**
+ * Director call result — verdict + token usage for ledger accounting.
+ * AUDIT FIX (AI-H-02): usage now returned to caller (turn route persists it
+ * into turns.director_input_tokens / director_output_tokens).
+ */
+export type DirectorResult = {
+  verdict: Verdict;
+  usage: {
+    inputTokens?: number;
+    outputTokens?: number;
+    cachedInputTokens?: number;
+  };
+};
+
 async function callDirectorOnce(
   ctx: TurnContext,
   userAction: string,
-): Promise<Verdict> {
+): Promise<DirectorResult> {
   const bible = bibleToSystemPrompt(ctx.story.story_bible);
-  const chars = allCharactersToSystemPrompt(ctx.characters);
+  // AUDIT FIX (AI-C-02): static template only in cached prefix; dynamic
+  // disposition + flags moved to the user message so cache hits per turn.
+  const charsStatic = allCharactersStaticTemplate(ctx.characters);
+  const charsDynamic = allCharactersDynamicState(ctx.characters);
   const protagonist = ctx.playthrough_character_name
     ? `Protagonist: ${ctx.playthrough_character_name}`
     : "";
@@ -85,10 +105,10 @@ ${skillKeys.length > 0 ? skillKeys.map((k) => `- \`${k}\``).join("\n") : "(冇 n
 
   const stateSnapshot = JSON.stringify(ctx.current_state, null, 2);
 
-  // Stable prefix — cacheable across turns
+  // Stable prefix — cacheable across turns (no disposition / state / turns).
   const stableContext = [
     bible,
-    chars,
+    charsStatic,
     protagonist,
     skillKeysList,
   ]
@@ -103,9 +123,9 @@ ${skillKeys.length > 0 ? skillKeys.map((k) => `- \`${k}\``).join("\n") : "(冇 n
     .replace(/<\/?player_action>/gi, "")
     .slice(0, 2000); // cap length
 
-  // Dynamic — per-turn context (state + recent turns). Player's action is sent
-  // as a SEPARATE user message below so it's clearly demarcated from context.
-  const dynamicContext = `## Current State
+  // Dynamic — per-turn context (NPC state + game state + recent turns). NEVER
+  // enters the cached prefix.
+  const dynamicContext = `${charsDynamic ? charsDynamic + "\n\n" : ""}## Current State
 \`\`\`json
 ${stateSnapshot}
 \`\`\`
@@ -137,17 +157,28 @@ ${recentContextLines || "(none yet — this is the first user action)"}`;
     maxOutputTokens: 800,
   });
 
-  return result.object;
+  return {
+    verdict: result.object,
+    usage: {
+      inputTokens: result.usage?.inputTokens,
+      outputTokens: result.usage?.outputTokens,
+      cachedInputTokens: result.usage?.cachedInputTokens,
+    },
+  };
 }
 
 /**
  * Director call with 1 retry + exponential backoff (AI-M-08 fix). If both
  * fail, throws — caller (turn route) treats as fallback to allow.
+ *
+ * AUDIT FIX (AI-H-02): returns DirectorResult (verdict + usage) so caller
+ * can persist Director token usage to turns.director_input_tokens /
+ * director_output_tokens for billing accuracy.
  */
 export async function callDirector(
   ctx: TurnContext,
   userAction: string,
-): Promise<Verdict> {
+): Promise<DirectorResult> {
   try {
     return await callDirectorOnce(ctx, userAction);
   } catch (e1) {

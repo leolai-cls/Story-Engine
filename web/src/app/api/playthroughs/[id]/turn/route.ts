@@ -204,10 +204,18 @@ export async function POST(
 
   // 4. DIRECTOR — pre-Narrator审 player action (Phase 1.5.1 / ADR-015)
   // Cheap Haiku call, outputs structured verdict that shapes Narrator behavior.
+  // AUDIT FIX (AI-H-02): callDirector returns {verdict, usage} so we can
+  // persist Director token spend in the turn ledger.
   let verdict;
+  let directorUsage: { inputTokens?: number; outputTokens?: number; cachedInputTokens?: number } = {};
   try {
-    verdict = await callDirector(ctx, action);
-    console.log(`[turn] Director verdict: ${verdict.verdict} — ${verdict.reasoning.slice(0, 80)}`);
+    const directorResult = await callDirector(ctx, action);
+    verdict = directorResult.verdict;
+    directorUsage = directorResult.usage;
+    console.log(
+      `[turn] Director verdict: ${verdict.verdict} — ${verdict.reasoning.slice(0, 80)} ` +
+      `(in=${directorUsage.inputTokens ?? "?"} cached=${directorUsage.cachedInputTokens ?? "?"} out=${directorUsage.outputTokens ?? "?"})`,
+    );
   } catch (e) {
     console.warn("[turn] Director failed, falling back to allow:", e instanceof Error ? e.message : e);
     verdict = {
@@ -454,6 +462,10 @@ export async function POST(
             model: pt.llm_model ?? "claude-sonnet-4-6",
             input_tokens: usage?.inputTokens,
             output_tokens: usage?.outputTokens,
+            // AUDIT FIX (AI-H-02): capture Director token usage too. Without
+            // this, Phase 4 billing would undercount by ~30% per turn.
+            director_input_tokens: directorUsage.inputTokens,
+            director_output_tokens: directorUsage.outputTokens,
           },
         ]);
 

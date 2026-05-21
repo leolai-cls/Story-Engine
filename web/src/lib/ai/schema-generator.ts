@@ -243,56 +243,85 @@ export async function generateStory(
 
   const userPrompt = userContext(input);
 
+  // AUDIT FIX (AI-H-02): track total token spend across the 4 parallel calls
+  // for cost observability. Phase 4 billing will read this from telemetry.
+  const usageTotals = { input: 0, output: 0, cached: 0 };
+
   const [meta, state, bible, characters] = await Promise.all([
     runWithRetry({
       label: "meta + opening_narrative",
-      call: () =>
-        generateObject({
+      call: async () => {
+        const r = await generateObject({
           model: anthropicProvider(MODEL),
           schema: MetaAndOpeningSchema,
           system: META_SYSTEM,
           prompt: userPrompt,
           temperature: 0.8,
           maxOutputTokens: 3000,
-        }),
+        });
+        usageTotals.input += r.usage?.inputTokens ?? 0;
+        usageTotals.output += r.usage?.outputTokens ?? 0;
+        usageTotals.cached += r.usage?.cachedInputTokens ?? 0;
+        return r;
+      },
     }),
     runWithRetry({
       label: "state_schema",
-      call: () =>
-        generateObject({
+      call: async () => {
+        const r = await generateObject({
           model: anthropicProvider(MODEL),
           schema: StateSchemaWrap,
           system: STATE_SCHEMA_SYSTEM,
           prompt: userPrompt,
           temperature: 0.7,
           maxOutputTokens: 2500,
-        }),
+        });
+        usageTotals.input += r.usage?.inputTokens ?? 0;
+        usageTotals.output += r.usage?.outputTokens ?? 0;
+        usageTotals.cached += r.usage?.cachedInputTokens ?? 0;
+        return r;
+      },
     }),
     runWithRetry({
       label: "story_bible",
-      call: () =>
-        generateObject({
+      call: async () => {
+        const r = await generateObject({
           model: anthropicProvider(MODEL),
           schema: BibleWrap,
           system: BIBLE_SYSTEM,
           prompt: userPrompt,
           temperature: 0.7,
           maxOutputTokens: 3000,
-        }),
+        });
+        usageTotals.input += r.usage?.inputTokens ?? 0;
+        usageTotals.output += r.usage?.outputTokens ?? 0;
+        usageTotals.cached += r.usage?.cachedInputTokens ?? 0;
+        return r;
+      },
     }),
     runWithRetry({
       label: "characters",
-      call: () =>
-        generateObject({
+      call: async () => {
+        const r = await generateObject({
           model: anthropicProvider(MODEL),
           schema: CharactersWrap,
           system: CHARACTERS_SYSTEM,
           prompt: userPrompt,
           temperature: 0.85,
           maxOutputTokens: 4000,
-        }),
+        });
+        usageTotals.input += r.usage?.inputTokens ?? 0;
+        usageTotals.output += r.usage?.outputTokens ?? 0;
+        usageTotals.cached += r.usage?.cachedInputTokens ?? 0;
+        return r;
+      },
     }),
   ]);
+
+  console.log(
+    `[schema-gen] story created — input=${usageTotals.input} cached=${usageTotals.cached} output=${usageTotals.output} ` +
+    `(approx $${((usageTotals.input * 3 + usageTotals.output * 15) / 1_000_000).toFixed(3)} Sonnet 4.6 pricing)`,
+  );
 
   return {
     title: meta.title,

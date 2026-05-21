@@ -2,7 +2,8 @@ import { z } from "zod";
 import { tool } from "ai";
 import { bibleToSystemPrompt, type StoryBible } from "@/schemas/bible";
 import {
-  allCharactersToSystemPrompt,
+  allCharactersStaticTemplate,
+  allCharactersDynamicState,
   type CharacterCard,
   type Disposition,
 } from "@/schemas/character";
@@ -203,12 +204,19 @@ export type TurnContext = {
 
 /**
  * Stable prefix — same across all turns of a playthrough.
- * Anthropic prompt-cacheable (per ADR follow-up, L-15 fix).
- * Includes: NARRATOR_RULES + story bible + character cards + protagonist + schema field list.
+ * Anthropic prompt-cacheable.
+ *
+ * AUDIT FIX (AI-C-02): now uses `allCharactersStaticTemplate` which excludes
+ * disposition + permanent_flags (those change per turn → would bust cache).
+ * Dynamic NPC state moves to `buildDynamicSystemPrompt`.
+ *
+ * Includes: NARRATOR_RULES + story bible + STATIC character templates +
+ * protagonist + schema field list. All of these are stable per playthrough
+ * (modulo story owner edits, which are rare and acceptable cache invalidations).
  */
 export function buildStableSystemPrompt(ctx: TurnContext): string {
   const bible = bibleToSystemPrompt(ctx.story.story_bible);
-  const chars = allCharactersToSystemPrompt(ctx.characters);
+  const chars = allCharactersStaticTemplate(ctx.characters);
   const schemaFields = `## State Schema Fields (这些 fields 可以喺 update_state 入面 reference)
 ${ctx.story.state_schema.fields
   .map((f) => `- \`${f.key}\` (${f.render_hint}): ${f.label}`)
@@ -241,14 +249,19 @@ function stripInternalKeys(
 
 /**
  * Dynamic suffix — changes every turn. NOT cached.
- * Just the current state snapshot.
+ *
+ * AUDIT FIX (AI-C-02): now also includes per-turn NPC disposition + flags
+ * (moved out of the cached prefix). Plus current state snapshot.
  */
 export function buildDynamicSystemPrompt(ctx: TurnContext): string {
   const visibleState = stripInternalKeys(ctx.current_state);
+  const charsDynamic = allCharactersDynamicState(ctx.characters);
   return `## Current Game State (this turn only)
 \`\`\`json
 ${JSON.stringify(visibleState, null, 2)}
-\`\`\``;
+\`\`\`
+
+${charsDynamic}`;
 }
 
 /**

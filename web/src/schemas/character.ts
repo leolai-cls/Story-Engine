@@ -57,26 +57,28 @@ export const PermanentFlagSchema = z
 export type PermanentFlag = z.infer<typeof PermanentFlagSchema>;
 
 /**
- * Compact serialization of all character cards for the LLM system prompt.
- * Disposition is filled in per-playthrough.
+ * AUDIT FIX (AI-C-02) — split character serialization into STATIC template
+ * (never changes per playthrough → cacheable as prompt prefix) and DYNAMIC
+ * state (disposition + flags → changes every turn, must NOT enter cached
+ * prefix or the entire cache busts).
+ *
+ * Previously `characterCardToSystemPrompt(card, disposition, flags)` mashed
+ * everything together and that whole block got `cacheControl: ephemeral`.
+ * Disposition values shifted every turn → cache miss every turn → ~10x
+ * higher input cost. Now: static template stays in cached prefix; dynamic
+ * state goes into a per-turn (uncached) message block.
  */
-export function characterCardToSystemPrompt(
-  card: CharacterCard,
-  disposition?: Disposition,
-  permanentFlags?: string[],
-): string {
+
+// ─── STATIC: cacheable, never changes per playthrough ────────────────────
+
+/**
+ * Static character template — name, role, traits, backstory, motivation,
+ * voice, arc, red lines, default disposition (the personality blueprint,
+ * not the running per-playthrough numbers). Safe to put in cached prefix.
+ */
+export function characterCardStaticTemplate(card: CharacterCard): string {
   const traits = card.personality_traits.join(", ");
   const redLines = card.red_lines.map((r) => `    - ${r}`).join("\n");
-  const dispositionStr = disposition
-    ? `  Current disposition: ${Object.entries(disposition)
-        .map(([k, v]) => `${k}=${v}`)
-        .join(", ")}\n`
-    : "";
-  const flagsStr =
-    permanentFlags && permanentFlags.length
-      ? `  Permanent flags: ${permanentFlags.join(", ")}\n`
-      : "";
-
   return `### ${card.name}${card.role && card.role.length ? ` (${card.role})` : ""}
   Traits: ${traits}
   Backstory: ${card.backstory}
@@ -85,10 +87,77 @@ export function characterCardToSystemPrompt(
   Arc: ${card.arc_description}
   Default disposition toward player: ${card.default_disposition_toward_protagonist}
   RED LINES (Director must enforce unless earned exception):
-${redLines}
-${dispositionStr}${flagsStr}`;
+${redLines}`;
 }
 
+export function allCharactersStaticTemplate(
+  cards: Array<{ card: CharacterCard }>,
+): string {
+  if (cards.length === 0) return "";
+  return `## Characters (each has a soul — respect red lines)\n\n${cards
+    .map((c) => characterCardStaticTemplate(c.card))
+    .join("\n\n")}`;
+}
+
+// ─── DYNAMIC: changes per turn, MUST NOT enter cached prefix ─────────────
+
+/**
+ * Per-turn character state — running disposition values + earned permanent
+ * flags. Lives outside the cached prefix.
+ */
+export function characterDynamicState(
+  name: string,
+  disposition?: Disposition,
+  permanentFlags?: string[],
+): string {
+  const lines: string[] = [];
+  if (disposition && Object.keys(disposition).length > 0) {
+    lines.push(
+      `Current disposition: ${Object.entries(disposition)
+        .map(([k, v]) => `${k}=${v}`)
+        .join(", ")}`,
+    );
+  }
+  if (permanentFlags && permanentFlags.length > 0) {
+    lines.push(`Permanent flags: ${permanentFlags.join(", ")}`);
+  }
+  if (lines.length === 0) {
+    return `**${name}**: (neutral baseline — no relationship history yet)`;
+  }
+  return `**${name}**: ${lines.join(" · ")}`;
+}
+
+export function allCharactersDynamicState(
+  cards: Array<{
+    card: CharacterCard;
+    disposition?: Disposition;
+    permanent_flags?: string[];
+  }>,
+): string {
+  if (cards.length === 0) return "";
+  return `## NPC State (this turn — relationship + earned flags)\n\n${cards
+    .map((c) =>
+      characterDynamicState(c.card.name, c.disposition, c.permanent_flags),
+    )
+    .join("\n")}`;
+}
+
+// ─── LEGACY: combined call — kept for backward compat callers, but avoid
+//     using in cached prompt prefix or you'll bust cache.
+// ─────────────────────────────────────────────────────────────────────────
+
+/** @deprecated Use `allCharactersStaticTemplate` + `allCharactersDynamicState` separately to preserve prompt-cache hits. */
+export function characterCardToSystemPrompt(
+  card: CharacterCard,
+  disposition?: Disposition,
+  permanentFlags?: string[],
+): string {
+  const staticPart = characterCardStaticTemplate(card);
+  const dynamicPart = characterDynamicState(card.name, disposition, permanentFlags);
+  return `${staticPart}\n  ${dynamicPart}`;
+}
+
+/** @deprecated Use the split static / dynamic helpers. */
 export function allCharactersToSystemPrompt(
   cards: Array<{
     card: CharacterCard;
