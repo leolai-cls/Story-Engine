@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Story Engine — Phase 0 Code Audit Report</title>
+<style>
+  :root {
+    --primary: #4F46E5;
+    --primary-soft: #EEF2FF;
+    --accent: #F59E0B;
+    --accent-soft: #FEF3C7;
+    --bg: #FAFAF7;
+    --card: #FFFFFF;
+    --ink: #18181B;
+    --ink-soft: #3F3F46;
+    --muted: #71717A;
+    --border: #E4E4E7;
+    --green: #10B981;
+    --green-soft: #D1FAE5;
+    --rose: #E11D48;
+    --rose-soft: #FFE4E6;
+    --amber: #D97706;
+    --amber-soft: #FEF3C7;
+    --code-bg: #F4F4F5;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.65;
+    font-size: 15px;
+    -webkit-font-smoothing: antialiased;
+  }
+  main {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 48px 32px 100px;
+  }
+  .hero {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+  .eyebrow {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--primary);
+    background: var(--primary-soft);
+    padding: 5px 12px;
+    border-radius: 999px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  h1 {
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    margin-bottom: 8px;
+  }
+  .hero p {
+    color: var(--muted);
+    font-size: 16px;
+  }
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin: 32px 0;
+  }
+  .summary {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+    text-align: center;
+  }
+  .summary-num {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--ink);
+    line-height: 1;
+  }
+  .summary-label {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+  }
+  .summary.high .summary-num { color: var(--rose); }
+  .summary.med .summary-num { color: var(--amber); }
+  .summary.low .summary-num { color: var(--muted); }
+  .summary.fixed .summary-num { color: var(--green); }
+
+  h2 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    margin: 40px 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  h2 .icon { font-size: 22px; }
+
+  .test-results {
+    background: var(--green-soft);
+    border-left: 4px solid var(--green);
+    padding: 16px 22px;
+    border-radius: 12px;
+    margin-bottom: 24px;
+  }
+  .test-results-title {
+    font-weight: 700;
+    color: #047857;
+    margin-bottom: 8px;
+    font-size: 14px;
+  }
+  .test-results ul {
+    list-style: none;
+    padding: 0;
+  }
+  .test-results li {
+    padding: 3px 0;
+    padding-left: 22px;
+    position: relative;
+    font-size: 13.5px;
+    color: var(--ink-soft);
+  }
+  .test-results li::before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: var(--green);
+    font-weight: 700;
+  }
+
+  .issue {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 22px;
+    margin-bottom: 10px;
+    display: grid;
+    grid-template-columns: 60px 1fr;
+    gap: 16px;
+  }
+  .issue.fixed { border-color: var(--green); background: #f5fbf7; }
+  .issue-id {
+    font-weight: 800;
+    font-size: 13px;
+    color: var(--primary);
+  }
+  .issue-body {
+    font-size: 14px;
+  }
+  .issue-title {
+    font-weight: 700;
+    font-size: 15px;
+    margin-bottom: 4px;
+    color: var(--ink);
+  }
+  .issue-meta {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+  .severity-tag {
+    font-size: 10.5px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .sev-high { background: var(--rose-soft); color: var(--rose); }
+  .sev-med { background: var(--amber-soft); color: var(--amber); }
+  .sev-low { background: var(--code-bg); color: var(--muted); }
+  .status-tag {
+    font-size: 10.5px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    background: var(--green-soft);
+    color: #047857;
+  }
+  .status-deferred {
+    background: var(--code-bg);
+    color: var(--muted);
+  }
+  .issue-file {
+    font-family: "SF Mono", Monaco, monospace;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .issue-desc {
+    color: var(--ink-soft);
+    font-size: 13.5px;
+    margin-bottom: 6px;
+  }
+  .issue-fix {
+    background: var(--code-bg);
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin-top: 6px;
+  }
+  .issue-fix strong { color: var(--green); font-weight: 700; }
+
+  .category-header {
+    margin-top: 28px;
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ink);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .category-header .count {
+    color: var(--muted);
+    font-weight: 500;
+    margin-left: 8px;
+  }
+  .conclusion {
+    background: linear-gradient(135deg, var(--primary), #8B5CF6);
+    color: white;
+    padding: 28px 32px;
+    border-radius: 16px;
+    margin-top: 40px;
+    text-align: center;
+  }
+  .conclusion h3 {
+    color: white;
+    font-size: 20px;
+    margin-bottom: 8px;
+  }
+  .conclusion p {
+    color: rgba(255,255,255,0.9);
+    font-size: 14px;
+  }
+  code {
+    background: var(--code-bg);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-family: "SF Mono", Monaco, monospace;
+    font-size: 12.5px;
+  }
+</style>
+</head>
+<body>
+<main>
+  <div class="hero">
+    <span class="eyebrow">Phase 0 · Code Audit Report</span>
+    <h1>26 個 finding · 5 個已修 · 0 個阻擋開工</h1>
+    <p>每個檔案 line-by-line 看過，行咗 TypeScript + ESLint，curl 10 條 route。</p>
+  </div>
+
+  <div class="summary-grid">
+    <div class="summary fixed">
+      <div class="summary-num">5</div>
+      <div class="summary-label">Fixed now</div>
+    </div>
+    <div class="summary high">
+      <div class="summary-num">0</div>
+      <div class="summary-label">High open</div>
+    </div>
+    <div class="summary med">
+      <div class="summary-num">2</div>
+      <div class="summary-label">Med (Phase 0.6)</div>
+    </div>
+    <div class="summary low">
+      <div class="summary-num">19</div>
+      <div class="summary-label">Low / cleanup</div>
+    </div>
+  </div>
+
+  <div class="test-results">
+    <div class="test-results-title">✅ Automated checks all green</div>
+    <ul>
+      <li>TypeScript <code>tsc --noEmit</code> — 0 error</li>
+      <li>ESLint <code>npm run lint</code> — 0 error / 0 warning</li>
+      <li>10 條 route 全部 HTTP 200（包括所有 locale prefix）</li>
+      <li>無 React 渲染 warning（之前 asChild leak 修咗）</li>
+      <li>Dev server boot 363ms 平均</li>
+    </ul>
+  </div>
+
+  <h2><span class="icon">🛠️</span>5 個今次修咗嘅 issue</h2>
+
+  <div class="issue fixed">
+    <div class="issue-id">#1</div>
+    <div class="issue-body">
+      <div class="issue-title">Settings 卡 link 去唔存在嘅 sub-pages → 404</div>
+      <div class="issue-meta">
+        <span class="severity-tag sev-high">High</span>
+        <span class="status-tag">Fixed</span>
+        <span class="issue-file">src/app/[locale]/settings/page.tsx</span>
+      </div>
+      <div class="issue-desc">
+        原本 <code>&lt;Link href="/settings/profile" /&gt;</code> 等 3 條 sub-route，但 <code>/settings/profile</code> / <code>/settings/billing</code> / <code>/settings/models</code> 都唔存在，click 落去 404。仲用咗 <code>href as never</code> TypeScript hack 隱藏 type error。
+      </div>
+      <div class="issue-fix">
+        <strong>Fix:</strong> 將 Card 改成 non-clickable (移走 Link wrapper)，加 "Coming soon" badge 顯示狀態。用戶睇到清晰預告，唔會撞 404。
+      </div>
+    </div>
+  </div>
+
+  <div class="issue fixed">
+    <div class="issue-id">#2</div>
+    <div class="issue-body">
+      <div class="issue-title">5 個檔案有 hardcoded 繁中字串 → 切去 /en 仍見繁中</div>
+      <div class="issue-meta">
+        <span class="severity-tag sev-high">High</span>
+        <span class="status-tag">Fixed</span>
+        <span class="issue-file">library / profile / settings / footer / pricing pages</span>
+      </div>
+      <div class="issue-desc">
+        Library、Profile、Settings 嘅標題同 body 全部 hardcoded 繁中。Footer 「中文圈 first」、Pricing 嘅 USD 提示都係。Switch 去 <code>/en</code> 應該顯示英文，但呢啲位永遠係繁中 — 違反 i18n 設計。
+      </div>
+      <div class="issue-fix">
+        <strong>Fix:</strong> 加 <code>pages.library</code> / <code>pages.profile</code> / <code>pages.settings</code> / <code>footer.tagline</code> / <code>pricing.usdNotice</code> keys 入 3 個 messages JSON (繁中/簡中/英)，重寫所有 component 用 <code>getTranslations</code>。
+      </div>
+    </div>
+  </div>
+
+  <div class="issue fixed">
+    <div class="issue-id">#3</div>
+    <div class="issue-body">
+      <div class="issue-title">Site Header「Pricing」link 純英文唔 translate</div>
+      <div class="issue-meta">
+        <span class="severity-tag sev-med">Med</span>
+        <span class="status-tag">Fixed</span>
+        <span class="issue-file">src/components/site-header.tsx</span>
+      </div>
+      <div class="issue-desc">
+        Header 嘅 Library link 用 <code>t('library')</code> 翻譯，但 Pricing 寫死 "Pricing"。
+      </div>
+      <div class="issue-fix">
+        <strong>Fix:</strong> 加 <code>nav.pricing</code> key (繁中：訂價、簡中：订价、EN：Pricing)，header 改用 <code>t('pricing')</code>。
+      </div>
+    </div>
+  </div>
+
+  <div class="issue fixed">
+    <div class="issue-id">#4</div>
+    <div class="issue-body">
+      <div class="issue-title">globals.css <code>--font-sans</code> tautology → 繁中字體 fallback 去 Geist (拉丁字體)</div>
+      <div class="issue-meta">
+        <span class="severity-tag sev-med">Med</span>
+        <span class="status-tag">Fixed</span>
+        <span class="issue-file">src/app/globals.css</span>
+      </div>
+      <div class="issue-desc">
+        原本 <code>--font-sans: var(--font-sans);</code> 係 self-reference (循環)，最後 browser fallback 去 system default。Geist 字體只支援拉丁字符，繁中字體會 fallback 到 user 系統嘅字體 — 可能係差嘅字體 (e.g. MingLiU)。
+      </div>
+      <div class="issue-fix">
+        <strong>Fix:</strong> 改成 <code>--font-sans: var(--font-noto-sans-tc), var(--font-geist-sans), system-ui, "PingFang TC", "Microsoft JhengHei", "Heiti TC", sans-serif;</code> — Noto Sans TC 優先 (我哋 load 嘅)，fallback 去 system 字體，最後 sans-serif。繁中字體永遠靚。
+      </div>
+    </div>
+  </div>
+
+  <div class="issue fixed">
+    <div class="issue-id">#5</div>
+    <div class="issue-body">
+      <div class="issue-title">profile auto-create trigger 只 read <code>name</code> field → Google OAuth 用戶 display_name = email</div>
+      <div class="issue-meta">
+        <span class="severity-tag sev-med">Med</span>
+        <span class="status-tag">Fixed</span>
+        <span class="issue-file">supabase/migrations/0001_initial.sql</span>
+      </div>
+      <div class="issue-desc">
+        原本 <code>coalesce(raw_user_meta_data-&gt;&gt;'name', email)</code>。但 Google OAuth 將 user name 放喺 <code>full_name</code> 或 <code>given_name</code>，GitHub 用 <code>user_name</code>。Google 登入嘅用戶會見到自己 display_name 係 email，UX 差。
+      </div>
+      <div class="issue-fix">
+        <strong>Fix:</strong> coalesce chain 擴展到 <code>name → full_name → user_name → email</code>。Avatar 都加 <code>picture</code> field (Google OAuth 用呢個 field 唔係 avatar_url)。同時加 <code>security definer set search_path</code> 加固 <code>set_updated_at()</code> function (best practice)。
+      </div>
+    </div>
+  </div>
+
+  <h2><span class="icon">📋</span>21 個其他 finding（不阻擋開工）</h2>
+
+  <div class="category-header">🟡 Med · Phase 0.6 開工時要 wire up <span class="count">2 條</span></div>
+
+  <div class="issue">
+    <div class="issue-id">#6</div>
+    <div class="issue-body">
+      <div class="issue-title">Login form 仲未 wire up Supabase auth</div>
+      <div class="issue-meta">
+        <span class="severity-tag sev-med">Med</span>
+        <span class="status-tag status-deferred">Deferred to 0.6</span>
+        <span class="issue-file">src/app/[locale]/login/page.tsx</span>
+      </div>
+      <div class="issue-desc">
+        Form <code>action="#"</code> + button <code>disabled</code>。Phase 0.9 用戶 setup Supabase env 完之後，Phase 0.6 wire up：magic link Server Action、Google OAuth、session callback。
+      </div>
+    </div>
+  </div>
+
+  <div class="issue">
+    <div class="issue-id">#7</div>
+    <div class="issue-body">
+      <div class="issue-title">proxy.ts 仲未 call Supabase session refresh</div>
+      <div class="issue-meta">
+        <span class="severity-tag sev-med">Med</span>
+        <span class="status-tag status-deferred">Deferred to 0.6</span>
+        <span class="issue-file">src/proxy.ts + src/lib/supabase/middleware.ts</span>
+      </div>
+      <div class="issue-desc">
+        而家 <code>proxy.ts</code> 只 handle next-intl locale routing。應該 chain 落去 <code>updateSession()</code> (in <code>lib/supabase/middleware.ts</code>) 自動 refresh JWT。Phase 0.6 wire up — 等 Supabase env 入 .env.local 之後做。
+      </div>
+    </div>
+  </div>
+
+  <div class="category-header">🟢 Low · Phase 1+ / Phase 7 polish <span class="count">19 條</span></div>
+
+  <div class="issue">
+    <div class="issue-id">#8</div>
+    <div class="issue-body">
+      <div class="issue-title"><code>lib/supabase/types.ts</code> 係 hand-written stub，只 cover profiles</div>
+      <div class="issue-meta">
+        <span class="severity-tag sev-low">Low</span>
+        <span class="status-tag status-deferred">Phase 0.9</span>
+      </div>
+      <div class="issue-desc">
+        Migration apply 完之後，跑 <code>supabase gen types typescript</code> auto-generate 所有 tables 嘅 types。而家 stub 只係過渡。
+      </div>
+    </div>
+  </div>
+
+  <div class="issue">
+    <div class="issue-id">#9</div>
+    <div class="issue-body">
+      <div class="issue-title">Migration 用 <code>uuid_generate_v4()</code> 而非 <code>gen_random_uuid()</code></div>
+      <div class="issue-meta">
+        <span class="severity-tag sev-low">Low</span>
+        <span class="status-tag status-deferred">Cleanup</span>
+      </div>
+      <div class="issue-desc">
+        Supabase docs 推薦 <code>gen_random_uuid()</code> (pgcrypto 預裝)，唔需要 explicit extension。功能一樣，cleaner。
+      </div>
+    </div>
+  </div>
+
+  <div class="issue">
+    <div class="issue-id">#10</div>
+    <div class="issue-body">
+      <div class="issue-title">profile RLS 冇 INSERT policy （但安全）</div>
+      <div class="issue-meta">
+        <span class="severity-tag sev-low">Low</span>
+        <span class="status-tag status-deferred">By design</span>
+      </div>
+      <div class="issue-desc">
+        Profile auto-create 經 trigger (security definer bypass RLS)。冇 INSERT policy 意味用戶<strong>唔可以</strong>直接 insert profile — 正確設計。
+      </div>
+    </div>
+  </div>
+
+  <div class="issue">
+    <div class="issue-id">#11</div>
+    <div class="issue-body">
+      <div class="issue-title">credit_balance default 50 一次性 — 唔係日結算</div>
+      <div class="issue-meta">
+        <span class="severity-tag sev-low">Low</span>
+        <span class="status-tag status-deferred">Phase 3</span>
+      </div>
+      <div class="issue-desc">
+        Plan 講 Free tier = 每日 50 credits rolling，但 default 50 只係 signup 時 grant 一次。要 cron job 每日 refresh — Phase 3 (Credits system) 嘅工。
+      </div>
+    </div>
+  </div>
+
+  <div class="issue">
+    <div class="issue-id">#12-26</div>
+    <div class="issue-body">
+      <div class="issue-title">15 個 Low/minor issue 一齊列</div>
+      <div class="issue-meta">
+        <span class="severity-tag sev-low">Low</span>
+        <span class="status-tag status-deferred">Phase 7 polish / cleanup</span>
+      </div>
+      <div class="issue-desc">
+        包括：custom 404 page (Phase 7)、stories_official_read policy 加 visibility check (FIXED 喺 #5 同時加咗)、Sparkles icon import 重複 (DRY)、login form "或" 分隔線喺 dark mode 嘅 a11y、rate limiting (Phase 1 turn API 之前)、SUPABASE_SERVICE_ROLE_KEY 未用、OG/Twitter meta tags (Phase 7)、sitemap.xml (Phase 7)、robots.txt (Phase 7)、proper not-found.tsx (Phase 7)、移除 web/ 自動生成嘅 .git (要視乎 monorepo 決定)、移除 globals.css 入面冇用嘅 sidebar variables、moderation try-catch hardening、proxy matcher tune、language tag (zh-Hant vs zh-TW)。全部唔阻擋 Phase 0.9 開工。
+      </div>
+    </div>
+  </div>
+
+  <div class="conclusion">
+    <h3>✅ Phase 0 code 健康，可以開工 Phase 0.9 Supabase setup</h3>
+    <p>5 個 High/Med issue 已修。21 個 deferred items 分別 attach 去後續 phase，唔會迷路（全部喺 PM dashboard tracked）。</p>
+  </div>
+</main>
+</body>
+</html>

@@ -1,0 +1,131 @@
+{
+  "common": {
+    "appName": "Story Engine",
+    "tagline": "中文圈的互动式故事 RPG 平台",
+    "comingSoon": "稍后推出"
+  },
+  "nav": {
+    "library": "故事库",
+    "pricing": "订价",
+    "create": "创作",
+    "profile": "个人",
+    "settings": "设置",
+    "login": "登录",
+    "logout": "登出",
+    "signup": "注册"
+  },
+  "footer": {
+    "tagline": "中文圈 first"
+  },
+  "marketing": {
+    "hero": {
+      "eyebrow": "中文圈 first · 互动式故事 RPG",
+      "title": "每个人都可以做自己的主角",
+      "subtitle": "AI 为你量身设计故事，永远记得你的选择，NPC 真有人格、不会讨好你。",
+      "ctaPrimary": "开始你的故事",
+      "ctaSecondary": "看看别人的故事"
+    },
+    "features": {
+      "title": "三样跟同行不同的事",
+      "memory": {
+        "title": "AI 真的记得你",
+        "body": "4 层记忆系统：近期 + 摘要 + 语意搜寻 + 角色档案。玩 100 小时都记得你的角色发生过什么。"
+      },
+      "adaptive": {
+        "title": "界面跟着故事变",
+        "body": "玩恋爱有好感度环、玩 D&D 有 HP/MP 条、玩 NBA 有球员数据。AI 为每个故事量身设计。"
+      },
+      "integrity": {
+        "title": "NPC 真有灵魂",
+        "body": "每个角色有自己的性格、红线、目标。不会因为你的指令就随意打破人格。"
+      }
+    },
+    "pricing": {
+      "title": "选择适合你的方案",
+      "subtitle": "所有方案都包括完整功能 + 多 AI Model 选择",
+      "usdNotice": "订价以 USD 计算 · HK / TW 用户按当下汇率自动换算",
+      "perMonth": "/ 月",
+      "ctaFree": "免费开始",
+      "ctaPaid": "升级",
+      "tiers": {
+        "free": {
+          "name": "Free",
+          "price": "$0",
+          "credits": "每日 50 credits",
+          "features": ["入门 AI Model", "创作 + 玩故事", "基本社群权限"]
+        },
+        "adventurer": {
+          "name": "Adventurer",
+          "price": "$9.99",
+          "credits": "每月 5,000 credits",
+          "features": ["所有 SFW Model", "完整社群权限", "Email 支援"]
+        },
+        "storyteller": {
+          "name": "Storyteller",
+          "price": "$19.99",
+          "credits": "每月 15,000 credits",
+          "popular": "最热门",
+          "features": ["所有 AI Model", "成人模式（需验证）", "优先支援"]
+        },
+        "legend": {
+          "name": "Legend",
+          "price": "$49.99",
+          "credits": "每月 50,000 credits",
+          "features": ["全部 + 早期试用 features", "Beta features access", "1-on-1 onboarding"]
+        }
+      }
+    },
+    "cta": {
+      "title": "准备进入故事世界？",
+      "body": "免费开始，不需信用卡。",
+      "button": "创建帐户"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "欢迎回来",
+      "subtitle": "继续你的故事",
+      "emailLabel": "Email",
+      "emailPlaceholder": "you@example.com",
+      "submit": "发送登录连结",
+      "googleButton": "用 Google 继续",
+      "or": "或者",
+      "noAccount": "未有帐户？",
+      "signupLink": "立即注册",
+      "phaseNotice": "（Phase 0.6 wire up after Supabase env set）"
+    },
+    "magicLink": {
+      "title": "查收 email",
+      "body": "我们发了一条登录连结去 {email}。按连结就会自动登录。"
+    }
+  },
+  "pages": {
+    "library": {
+      "title": "故事库",
+      "body": "Phase 5 会起这里的完整 library。现在是 placeholder。"
+    },
+    "profile": {
+      "title": "个人",
+      "body": "Phase 0.6 完成 auth 之后这里会有 user info、character list、stats。"
+    },
+    "settings": {
+      "title": "设置",
+      "subtitle": "管理你的帐户同订阅",
+      "sections": {
+        "profile": {
+          "title": "个人资料",
+          "description": "显示名、头像、语言偏好"
+        },
+        "billing": {
+          "title": "订阅同 Credits",
+          "description": "升级方案、credits 用量、增值"
+        },
+        "models": {
+          "title": "AI Model 偏好",
+          "description": "预设用哪个 AI 讲故事"
+        }
+      },
+      "comingSoon": "Phase 0.6 之后 wire up"
+    }
+  }
+}

@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Story Engine — Setup Guide</title>
+<style>
+  :root {
+    --primary: #4F46E5;
+    --primary-dark: #3730A3;
+    --primary-soft: #EEF2FF;
+    --accent: #F59E0B;
+    --accent-soft: #FEF3C7;
+    --bg: #FAFAF7;
+    --card: #FFFFFF;
+    --ink: #18181B;
+    --ink-soft: #3F3F46;
+    --muted: #71717A;
+    --border: #E4E4E7;
+    --green: #10B981;
+    --green-soft: #D1FAE5;
+    --rose: #E11D48;
+    --rose-soft: #FFE4E6;
+    --code-bg: #F4F4F5;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.7;
+    font-size: 15px;
+    -webkit-font-smoothing: antialiased;
+  }
+  main {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 56px 32px 120px;
+  }
+  .hero {
+    text-align: center;
+    margin-bottom: 56px;
+  }
+  .eyebrow {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--primary);
+    background: var(--primary-soft);
+    padding: 5px 12px;
+    border-radius: 999px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  h1 {
+    font-size: 36px;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    margin-bottom: 12px;
+  }
+  .hero p {
+    font-size: 16px;
+    color: var(--muted);
+    max-width: 560px;
+    margin: 0 auto;
+  }
+  .warning {
+    background: var(--rose-soft);
+    border-left: 4px solid var(--rose);
+    padding: 18px 22px;
+    border-radius: 12px;
+    margin: 32px 0;
+  }
+  .warning-title {
+    font-weight: 700;
+    color: var(--rose);
+    margin-bottom: 6px;
+    font-size: 14.5px;
+  }
+  .warning-body {
+    font-size: 14px;
+    color: var(--ink-soft);
+  }
+  .step {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 18px;
+    position: relative;
+  }
+  .step-head {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+  .step-num {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    line-height: 36px;
+    text-align: center;
+    background: var(--primary);
+    color: white;
+    border-radius: 10px;
+    font-weight: 800;
+    font-size: 15px;
+  }
+  .step-title {
+    font-size: 18px;
+    font-weight: 700;
+    flex: 1;
+  }
+  .step-time {
+    font-size: 12px;
+    color: var(--muted);
+    background: var(--code-bg);
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-weight: 600;
+  }
+  .step-body {
+    color: var(--ink-soft);
+    font-size: 14.5px;
+  }
+  .step-body p { margin-bottom: 10px; }
+  .step-body ol, .step-body ul {
+    padding-left: 22px;
+    margin-bottom: 10px;
+  }
+  .step-body li { margin-bottom: 6px; }
+  .step-body strong { color: var(--ink); }
+  .step-body a {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 600;
+    border-bottom: 1px dashed var(--primary);
+  }
+  .step-body a:hover { border-bottom-style: solid; }
+  code, .inline-code {
+    background: var(--code-bg);
+    padding: 2px 6px;
+    border-radius: 5px;
+    font-family: "SF Mono", Monaco, monospace;
+    font-size: 13px;
+    color: var(--ink);
+  }
+  pre {
+    background: #18181B;
+    color: #F4F4F5;
+    padding: 16px 18px;
+    border-radius: 10px;
+    font-family: "SF Mono", Monaco, monospace;
+    font-size: 13px;
+    line-height: 1.55;
+    overflow-x: auto;
+    margin: 12px 0;
+  }
+  .substep {
+    background: var(--code-bg);
+    border-left: 3px solid var(--primary);
+    padding: 12px 16px;
+    border-radius: 0 8px 8px 0;
+    margin: 10px 0;
+    font-size: 13.5px;
+  }
+  .substep strong { color: var(--primary); }
+  .field-list {
+    background: var(--code-bg);
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin: 10px 0;
+    font-family: "SF Mono", Monaco, monospace;
+    font-size: 13px;
+  }
+  .field-list .label {
+    color: var(--primary);
+    font-weight: 700;
+    margin-right: 6px;
+  }
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .badge-required { background: var(--rose-soft); color: var(--rose); }
+  .badge-optional { background: var(--code-bg); color: var(--muted); }
+  .badge-done { background: var(--green-soft); color: #047857; }
+  .done-cta {
+    background: linear-gradient(135deg, var(--primary), #8B5CF6);
+    color: white;
+    padding: 28px 32px;
+    border-radius: 16px;
+    margin-top: 32px;
+    text-align: center;
+  }
+  .done-cta h3 {
+    color: white;
+    font-size: 20px;
+    margin-bottom: 6px;
+    margin-top: 0;
+  }
+  .done-cta p {
+    color: rgba(255,255,255,0.9);
+    font-size: 14px;
+    margin: 0;
+  }
+  .check-list {
+    background: var(--green-soft);
+    border-radius: 12px;
+    padding: 18px 24px;
+    margin: 16px 0;
+  }
+  .check-list-title {
+    font-weight: 700;
+    color: #047857;
+    margin-bottom: 8px;
+    font-size: 14px;
+  }
+  .check-list ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .check-list li {
+    padding: 4px 0;
+    padding-left: 24px;
+    position: relative;
+    font-size: 13.5px;
+    color: var(--ink-soft);
+  }
+  .check-list li::before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: var(--green);
+    font-weight: 700;
+  }
+  .key {
+    font-family: "SF Mono", Monaco, monospace;
+    font-size: 12.5px;
+    background: var(--code-bg);
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: var(--primary-dark);
+  }
+</style>
+</head>
+<body>
+<main>
+  <div class="hero">
+    <span class="eyebrow">Phase 0.9 · 開工前 setup</span>
+    <h1>5 個步驟搞掂後台</h1>
+    <p>跟住做晒呢 5 步，Story Engine 就 connect 到真實 backend，可以開始 sign up、見到 data 流通。預計 15-20 分鐘。</p>
+  </div>
+
+  <div class="warning">
+    <div class="warning-title">⚠️ 重要：要起一個新 Supabase project</div>
+    <div class="warning-body">
+      你而家 Claude MCP 連住嘅 Supabase project 已經有其他 app 嘅 data（似係 CLS Studio 嘅東西）。我哋嘅 migration <strong>絕對唔可以套用過去</strong>，會搞亂 production data。
+      <br><br>
+      所以 Step 1 = 起一個 <strong>全新嘅 Supabase project</strong> 俾 Story Engine 用，獨立隔離。
+    </div>
+  </div>
+
+  <!-- STEP 1 -->
+  <div class="step">
+    <div class="step-head">
+      <div class="step-num">1</div>
+      <div class="step-title">起新 Supabase project</div>
+      <span class="step-time">~5 分鐘</span>
+      <span class="badge badge-required">Required</span>
+    </div>
+    <div class="step-body">
+      <ol>
+        <li>登入 <a href="https://supabase.com/dashboard" target="_blank">supabase.com/dashboard</a></li>
+        <li>右上角按 <strong>"New project"</strong></li>
+        <li>填資料：
+          <div class="field-list">
+            <div><span class="label">Name:</span> <code>story-engine</code></div>
+            <div><span class="label">Database password:</span> <em>強密碼，記低！</em></div>
+            <div><span class="label">Region:</span> <code>Southeast Asia (Singapore)</code> ← 最近 HK/TW，latency 最低</div>
+            <div><span class="label">Pricing plan:</span> <code>Free</code> ← MVP 階段免費 OK</div>
+          </div>
+        </li>
+        <li>按 "Create new project"，等 2-3 分鐘 provision 完</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="step">
+    <div class="step-head">
+      <div class="step-num">2</div>
+      <div class="step-title">攞 API URL + anon key</div>
+      <span class="step-time">~2 分鐘</span>
+      <span class="badge badge-required">Required</span>
+    </div>
+    <div class="step-body">
+      <ol>
+        <li>新 project dashboard → 左下角 <strong>Settings</strong> → <strong>API</strong></li>
+        <li>會見到兩個 key：
+          <div class="field-list">
+            <div><span class="label">Project URL:</span> <span class="key">https://xxx.supabase.co</span></div>
+            <div><span class="label">anon public:</span> <span class="key">eyJhbGciOi...</span> ← 安全，可以 expose 俾 browser</div>
+            <div><span class="label">service_role:</span> <span class="key">eyJhbGciOi...</span> ← <strong style="color:var(--rose)">絕密！</strong> 只可 server 用</div>
+          </div>
+        </li>
+        <li>Copy 呢兩個 value（Project URL + anon public）</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="step">
+    <div class="step-head">
+      <div class="step-num">3</div>
+      <div class="step-title">建立 <code>web/.env.local</code></div>
+      <span class="step-time">~2 分鐘</span>
+      <span class="badge badge-required">Required</span>
+    </div>
+    <div class="step-body">
+      <ol>
+        <li>喺 <code>C:\Users\user\Desktop\text based RPG\web\</code> 入面起一個檔叫 <code>.env.local</code></li>
+        <li>Paste 落去：</li>
+      </ol>
+      <pre>NEXT_PUBLIC_SUPABASE_URL=https://你嘅-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=你嘅-anon-key
+NEXT_PUBLIC_SITE_URL=http://localhost:3000</pre>
+      <div class="substep">
+        <strong>💡 提示：</strong>呢個 file <code>.gitignore</code> 已經會自動忽略，唔會 commit 上 git。安全。
+      </div>
+      <p>或者你可以直接話我知個兩個 value，我幫你寫入個 file。</p>
+    </div>
+  </div>
+
+  <!-- STEP 4 -->
+  <div class="step">
+    <div class="step-head">
+      <div class="step-num">4</div>
+      <div class="step-title">跑 migration（建表）</div>
+      <span class="step-time">~3 分鐘</span>
+      <span class="badge badge-required">Required</span>
+    </div>
+    <div class="step-body">
+      <p>有兩個方法。揀一個：</p>
+
+      <div class="substep">
+        <strong>方法 A（最簡單）：用 Supabase SQL Editor</strong>
+        <ol style="margin-top: 8px;">
+          <li>新 project dashboard → 左邊 <strong>SQL Editor</strong></li>
+          <li>按 "New query"</li>
+          <li>打開檔案 <code>supabase/migrations/0001_initial.sql</code></li>
+          <li>Copy 入面所有 SQL，paste 入 SQL Editor</li>
+          <li>按右下角 "Run"，應該見到 "Success. No rows returned"</li>
+          <li>左邊 <strong>Table Editor</strong> verify 見到 6 個 tables: profiles / stories / story_characters / playthroughs / playthrough_character_states / turns</li>
+        </ol>
+      </div>
+
+      <div class="substep">
+        <strong>方法 B：MCP 自動 apply（需要切換 MCP 配置）</strong>
+        <ol style="margin-top: 8px;">
+          <li>你需要 update Claude MCP 配置，指向新 project</li>
+          <li>之後話我知，我可以用 <code>mcp__supabase__apply_migration</code> 直接 apply</li>
+          <li>呢個方法 future-proof — 之後 Phase 1/2 嘅 migration 都可以 MCP 自動做</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 5 -->
+  <div class="step">
+    <div class="step-head">
+      <div class="step-num">5</div>
+      <div class="step-title">啟用 Google OAuth（可選）</div>
+      <span class="step-time">~5 分鐘</span>
+      <span class="badge badge-optional">Optional</span>
+    </div>
+    <div class="step-body">
+      <p>暫時 magic link email 已經夠用。想加 Google login 嘅話：</p>
+      <ol>
+        <li>Supabase dashboard → <strong>Authentication</strong> → <strong>Providers</strong></li>
+        <li>揀 Google → Enable</li>
+        <li>需要 Google Cloud Console 攞 OAuth credentials（指南：<a href="https://supabase.com/docs/guides/auth/social-login/auth-google" target="_blank">Supabase docs</a>）</li>
+      </ol>
+      <p>呢步可以後尾再做。Phase 0.6 wire up 嘅時候 email magic link 已經 work。</p>
+    </div>
+  </div>
+
+  <!-- STEP 6 -->
+  <div class="step">
+    <div class="step-head">
+      <div class="step-num">6</div>
+      <div class="step-title">GitHub + Vercel deploy</div>
+      <span class="step-time">~10 分鐘</span>
+      <span class="badge badge-optional">Phase 0.10</span>
+    </div>
+    <div class="step-body">
+      <p>留到 Phase 0.9 完成 + Phase 0.6 wire up 之後再做。需要：</p>
+      <ul>
+        <li><strong>GitHub repo</strong> — Vercel deploy 要連 GitHub</li>
+        <li><strong>Vercel account</strong> — 連去 GitHub repo 自動 deploy</li>
+        <li><strong>Env vars 喺 Vercel dashboard</strong> — 同 .env.local 一樣嘅 keys</li>
+        <li><strong>Domain（optional）</strong> — 你想用 storyengine.app / storyengine.hk / etc.</li>
+      </ul>
+      <p>呢個 Step 6 我可以後尾 dedicate 一個 setup guide 同你 walk through。</p>
+    </div>
+  </div>
+
+  <!-- DONE checklist -->
+  <div class="check-list">
+    <div class="check-list-title">✅ 完成 Step 1-4 之後，你應該有：</div>
+    <ul>
+      <li>新嘅 Supabase project（story-engine）</li>
+      <li><code>web/.env.local</code> 入面有 SUPABASE_URL + ANON_KEY</li>
+      <li>Supabase 新 project 入面有 6 個 tables（profiles / stories / story_characters / playthroughs / playthrough_character_states / turns）</li>
+      <li>RLS policies enabled on 所有 tables</li>
+      <li>auto-create profile trigger active</li>
+    </ul>
+  </div>
+
+  <div class="done-cta">
+    <h3>🎉 完成？返去 Claude 講「Supabase 起好」</h3>
+    <p>我就會 wire up Phase 0.6 嘅 auth flow（login / signup / session refresh），令真正 signup 可以 work，然後 verify Phase 0 整個 chain。</p>
+  </div>
+</main>
+</body>
+</html>

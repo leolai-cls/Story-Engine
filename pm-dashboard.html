@@ -1,0 +1,1316 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Story Engine — Project Dashboard</title>
+<style>
+  :root {
+    --primary: #4F46E5;
+    --primary-dark: #3730A3;
+    --primary-soft: #EEF2FF;
+    --accent: #F59E0B;
+    --accent-soft: #FEF3C7;
+    --bg: #FAFAF7;
+    --card: #FFFFFF;
+    --ink: #18181B;
+    --ink-soft: #3F3F46;
+    --muted: #71717A;
+    --border: #E4E4E7;
+    --green: #10B981;
+    --green-soft: #D1FAE5;
+    --rose: #E11D48;
+    --rose-soft: #FFE4E6;
+    --amber: #D97706;
+    --amber-soft: #FEF3C7;
+    --gray-soft: #F4F4F5;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.65;
+    font-size: 15px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .layout {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    max-width: 1500px;
+    margin: 0 auto;
+  }
+  aside {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    padding: 28px 22px;
+    border-right: 1px solid var(--border);
+    background: var(--card);
+    overflow-y: auto;
+  }
+  .brand {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 2px;
+    letter-spacing: -0.01em;
+  }
+  .brand-sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 24px;
+  }
+  aside nav { display: flex; flex-direction: column; gap: 2px; }
+  aside nav a {
+    color: var(--ink-soft);
+    text-decoration: none;
+    padding: 9px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: all .15s;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  aside nav a:hover { background: var(--primary-soft); color: var(--primary); }
+  .nav-icon { font-size: 15px; width: 20px; text-align: center; }
+  .nav-section {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    padding: 14px 12px 6px;
+    font-weight: 600;
+  }
+  main {
+    padding: 48px 56px 120px;
+    max-width: 1040px;
+  }
+  section { margin-bottom: 80px; scroll-margin-top: 24px; }
+  .eyebrow {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--primary);
+    background: var(--primary-soft);
+    padding: 5px 10px;
+    border-radius: 999px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  h1 {
+    font-size: 36px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin: 12px 0 8px;
+  }
+  h2 {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    margin-bottom: 8px;
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  h2 .icon { font-size: 28px; }
+  h3 {
+    font-size: 17px;
+    font-weight: 700;
+    margin-top: 28px;
+    margin-bottom: 10px;
+  }
+  .section-sub {
+    font-size: 14.5px;
+    color: var(--muted);
+    margin-bottom: 24px;
+    max-width: 640px;
+  }
+  .meta { font-size: 13px; color: var(--muted); }
+  p { color: var(--ink-soft); margin-bottom: 12px; }
+
+  /* Status section */
+  .status-hero {
+    background: linear-gradient(135deg, var(--primary) 0%, #7C3AED 100%);
+    color: white;
+    padding: 32px;
+    border-radius: 18px;
+    margin-top: 16px;
+  }
+  .status-hero .label {
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    opacity: 0.75;
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+  .status-hero .phase {
+    font-size: 28px;
+    font-weight: 800;
+    margin-bottom: 6px;
+    letter-spacing: -0.01em;
+  }
+  .status-hero .focus {
+    font-size: 16px;
+    opacity: 0.9;
+  }
+  .status-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 16px;
+  }
+  .status-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 22px;
+  }
+  .status-card-title {
+    font-size: 12.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+  .status-card ul { list-style: none; }
+  .status-card li {
+    padding: 8px 0;
+    font-size: 14px;
+    color: var(--ink-soft);
+    border-bottom: 1px dashed var(--border);
+  }
+  .status-card li:last-child { border-bottom: none; }
+  .status-card li::before { content: "•"; color: var(--primary); margin-right: 10px; font-weight: 700; }
+  .status-card.warn li::before { color: var(--amber); }
+  .status-card.good li::before { color: var(--green); }
+
+  .session-log {
+    margin-top: 24px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+  }
+  .session-entry {
+    border-left: 3px solid var(--primary);
+    padding-left: 16px;
+    margin-bottom: 16px;
+  }
+  .session-entry:last-child { margin-bottom: 0; }
+  .session-date {
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--primary);
+    margin-bottom: 4px;
+  }
+  .session-title {
+    font-weight: 600;
+    margin-bottom: 8px;
+    font-size: 15px;
+  }
+  .session-body {
+    font-size: 13.5px;
+    color: var(--ink-soft);
+  }
+  .session-body strong { color: var(--ink); }
+
+  /* Roadmap section */
+  .phase-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+    margin-bottom: 14px;
+  }
+  .phase-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 12px;
+  }
+  .phase-badge {
+    width: 42px;
+    height: 42px;
+    line-height: 42px;
+    text-align: center;
+    background: var(--primary);
+    color: white;
+    border-radius: 12px;
+    font-weight: 800;
+    font-size: 15px;
+    flex-shrink: 0;
+  }
+  .phase-info { flex: 1; }
+  .phase-title { font-size: 17px; font-weight: 700; }
+  .phase-done-def { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .phase-status {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 999px;
+  }
+  .ps-not-started { background: var(--gray-soft); color: var(--muted); }
+  .ps-in-progress { background: var(--amber-soft); color: var(--amber); }
+  .ps-done { background: var(--green-soft); color: #047857; }
+  .progress-bar {
+    height: 6px;
+    background: var(--gray-soft);
+    border-radius: 999px;
+    overflow: hidden;
+    margin: 12px 0 14px;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), #7C3AED);
+    border-radius: 999px;
+  }
+  .checklist { list-style: none; }
+  .checklist li {
+    padding: 6px 0;
+    font-size: 13.5px;
+    color: var(--ink-soft);
+    padding-left: 28px;
+    position: relative;
+  }
+  .checklist li::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 9px;
+    width: 16px; height: 16px;
+    border: 1.5px solid var(--border);
+    border-radius: 4px;
+    background: white;
+  }
+  .checklist li.done::before {
+    content: "✓";
+    background: var(--green);
+    border-color: var(--green);
+    color: white;
+    text-align: center;
+    line-height: 13px;
+    font-weight: 700;
+    font-size: 11px;
+  }
+  details {
+    margin-top: 8px;
+  }
+  details summary {
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--primary);
+    font-weight: 600;
+    padding: 4px 0;
+    user-select: none;
+  }
+  details[open] summary { margin-bottom: 8px; }
+  details summary::marker { content: ""; }
+  details summary::-webkit-details-marker { display: none; }
+  details summary::before {
+    content: "▸ ";
+    display: inline-block;
+    transition: transform .2s;
+  }
+  details[open] summary::before { transform: rotate(90deg); }
+
+  /* Decision cards */
+  .adr {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 22px 26px;
+    margin-bottom: 12px;
+  }
+  .adr-head {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 4px;
+    flex-wrap: wrap;
+  }
+  .adr-num {
+    font-weight: 800;
+    color: var(--primary);
+    font-size: 15px;
+  }
+  .adr-title {
+    font-size: 16px;
+    font-weight: 700;
+    flex: 1;
+  }
+  .adr-meta {
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .adr-status {
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-weight: 700;
+    background: var(--green-soft);
+    color: #047857;
+  }
+  .adr-section {
+    margin-top: 12px;
+    font-size: 14px;
+  }
+  .adr-section strong {
+    color: var(--ink);
+    font-weight: 700;
+    display: inline-block;
+    margin-right: 6px;
+  }
+
+  /* Backlog */
+  .backlog-group {
+    margin-bottom: 24px;
+  }
+  .backlog-group-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .backlog-item {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 6px;
+    font-size: 14px;
+    color: var(--ink-soft);
+    display: flex;
+    gap: 10px;
+    align-items: start;
+  }
+  .backlog-emoji {
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .backlog-item strong {
+    color: var(--ink);
+    margin-right: 4px;
+  }
+
+  /* Open questions */
+  .question {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 22px;
+    margin-bottom: 14px;
+  }
+  .question-num {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--primary);
+    letter-spacing: 0.06em;
+  }
+  .question-title {
+    font-size: 17px;
+    font-weight: 700;
+    margin: 4px 0 12px;
+  }
+  .question-context {
+    font-size: 14px;
+    color: var(--ink-soft);
+    background: var(--gray-soft);
+    padding: 12px 14px;
+    border-radius: 8px;
+    margin-bottom: 14px;
+  }
+  .question-options {
+    margin-bottom: 12px;
+  }
+  .question-option {
+    padding: 10px 14px;
+    border-left: 3px solid var(--border);
+    margin-bottom: 6px;
+    font-size: 13.5px;
+    color: var(--ink-soft);
+  }
+  .question-option.recommended {
+    border-left-color: var(--green);
+    background: var(--green-soft);
+  }
+  .question-option strong {
+    color: var(--ink);
+    margin-right: 6px;
+  }
+  .question-meta {
+    display: flex;
+    gap: 16px;
+    font-size: 12.5px;
+    color: var(--muted);
+    margin-top: 12px;
+  }
+  .question-meta strong { color: var(--ink); }
+  .urgency-tag {
+    display: inline-block;
+    font-size: 11px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-left: 6px;
+  }
+  .urgency-high { background: var(--rose-soft); color: var(--rose); }
+  .urgency-mid { background: var(--amber-soft); color: var(--amber); }
+  .urgency-low { background: var(--green-soft); color: #047857; }
+
+  /* Glossary */
+  .glossary-group {
+    margin-bottom: 24px;
+  }
+  .glossary-item {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .glossary-item:last-child { border-bottom: none; }
+  .glossary-term {
+    font-weight: 700;
+    font-size: 14.5px;
+    color: var(--ink);
+    margin-bottom: 4px;
+  }
+  .glossary-def {
+    font-size: 13.5px;
+    color: var(--ink-soft);
+  }
+
+  /* Misc */
+  .top-meta {
+    display: flex;
+    gap: 24px;
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 24px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .top-meta strong { color: var(--ink); }
+  .quick-links {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 24px;
+  }
+  .quick-link {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+    text-decoration: none;
+    color: var(--ink);
+    transition: all .15s;
+  }
+  .quick-link:hover {
+    border-color: var(--primary);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.08);
+  }
+  .quick-link-title {
+    font-weight: 700;
+    font-size: 14.5px;
+    margin-bottom: 4px;
+    color: var(--primary);
+  }
+  .quick-link-desc {
+    font-size: 12.5px;
+    color: var(--muted);
+  }
+
+  @media (max-width: 1024px) {
+    .layout { grid-template-columns: 1fr; }
+    aside { position: relative; height: auto; border-right: none; border-bottom: 1px solid var(--border); }
+    aside nav { flex-direction: row; flex-wrap: wrap; gap: 4px; }
+    main { padding: 24px 20px 80px; }
+    h1 { font-size: 28px; }
+    .status-grid, .quick-links { grid-template-columns: 1fr; }
+    .top-meta { flex-direction: column; gap: 6px; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside>
+    <div class="brand">Story Engine</div>
+    <div class="brand-sub">Project Dashboard</div>
+    <nav>
+      <a href="#status"><span class="nav-icon">📊</span>Status</a>
+      <a href="#roadmap"><span class="nav-icon">🗺️</span>Roadmap</a>
+      <a href="#decisions"><span class="nav-icon">📜</span>Decisions</a>
+      <a href="#questions"><span class="nav-icon">❓</span>Open Questions</a>
+      <a href="#backlog"><span class="nav-icon">💡</span>Backlog</a>
+      <a href="#glossary"><span class="nav-icon">📖</span>Glossary</a>
+      <div class="nav-section">Other views</div>
+      <a href="plan.html"><span class="nav-icon">📘</span>Business plan</a>
+    </nav>
+  </aside>
+
+  <main>
+    <section id="status">
+      <span class="eyebrow">📊 Status</span>
+      <h1>而家喺邊度</h1>
+      <p class="section-sub">每次新 session 開始，由呢度睇起。</p>
+
+      <div class="top-meta">
+        <div><strong>Last updated</strong> 2026-05-21 · Session 2 PM</div>
+        <div><strong>Phase</strong> 0 functionally complete · 12/14 ✅</div>
+        <div><strong>Owner</strong> 你</div>
+      </div>
+
+      <div class="status-hero">
+        <div class="label">Current focus</div>
+        <div class="phase">✅ Auth pipeline E2E verified</div>
+        <div class="focus">Migration applied · auth URLs configured · magic link wired · profile auto-create trigger 通過 E2E test。<br>剩 Phase 0.10 (Vercel deploy + Sentry/PostHog) — 等你 GitHub / Vercel 帳戶。</div>
+      </div>
+
+      <div class="status-grid">
+        <div class="status-card good">
+          <div class="status-card-title">✅ Session 2 全部完成</div>
+          <ul>
+            <li>Next.js 16.2.6 + Tailwind v4 + shadcn/ui + App Router</li>
+            <li>next-intl 繁中 default + 簡中/英 messages</li>
+            <li>Supabase client / server / middleware helpers</li>
+            <li><strong>Migration 0001 applied</strong>（Management API, safety-verified）</li>
+            <li><strong>Auth URLs configured</strong>（site_url + uri_allow_list）</li>
+            <li><strong>Magic link auth wired up</strong>（Server Action + /auth/callback + session refresh）</li>
+            <li><strong>E2E test 通過</strong> — admin create user → trigger fires → profile auto-created</li>
+            <li>Marketing landing / pricing / login / 4 placeholder pages（繁中/簡中/英 變 locale 都 work）</li>
+            <li>Code audit — 5 個 High/Med issue 即場修咗</li>
+          </ul>
+        </div>
+        <div class="status-card good">
+          <div class="status-card-title">🚀 你可以做嘅 next step</div>
+          <ul>
+            <li><strong>Manual signup test</strong>：localhost:3001/login → 入你 email → check magic link 收到 → click → 入到 /profile</li>
+            <li><strong>Phase 0.10 deploy</strong>：GitHub repo + Vercel + Sentry + PostHog（要你嘅 accounts）</li>
+            <li><strong>Phase 1 開工</strong>：Story Engine MVP（schema generator + state panel + play loop）</li>
+            <li><strong>休息</strong>：一切 stable，下次 session 由 STATUS.md 撿起</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3>What's next（按優先排）</h3>
+      <div class="quick-links">
+        <a href="setup-guide.html" class="quick-link">
+          <div class="quick-link-title">🚀 Setup Guide — 你動手 (15 分鐘)</div>
+          <div class="quick-link-desc">5 個 step 起新 Supabase project + env vars</div>
+        </a>
+        <a href="audit-report.html" class="quick-link">
+          <div class="quick-link-title">🔍 Code Audit Report</div>
+          <div class="quick-link-desc">26 個 finding · 5 個已修 · 0 阻擋</div>
+        </a>
+        <a href="http://localhost:3001/" class="quick-link" target="_blank">
+          <div class="quick-link-title">🌐 Dev Preview (localhost:3001)</div>
+          <div class="quick-link-desc">睇下 landing / pricing / login UI</div>
+        </a>
+        <a href="plan.html" class="quick-link">
+          <div class="quick-link-title">📘 Business plan</div>
+          <div class="quick-link-desc">Re-scan 完整 product vision</div>
+        </a>
+      </div>
+
+      <h3>📓 Session Log</h3>
+      <div class="session-log">
+        <div class="session-entry">
+          <div class="session-date">2026-05-21 · Session 2 PM</div>
+          <div class="session-title">Migration apply + Auth wire-up + E2E verified</div>
+          <div class="session-body">
+            <p><strong>做咗：</strong>用戶 setup 新 Supabase project (story-engine, ap-southeast-1) → 我用 Management API safety-verify (read-only GET → confirm name + empty) → 用戶 explicit approve → apply Migration 0001 (6 tables + 10 RLS + 4 triggers)。Configure auth URLs (site_url + uri_allow_list)。Wire up Phase 0.6：refactor lib/supabase/middleware.ts → 接受 response param；proxy.ts chain next-intl + Supabase session refresh；[locale]/login/actions.ts Server Action (signInWithEmail + signOut)；login page form 接駁 + sent/error UI state；/auth/callback route handler 做 code exchange。<strong>E2E test 通過</strong>：admin API create user → on_auth_user_created 自動 fire → profile created with correct defaults (locale=zh-Hant, credit_balance=50, free tier, OAuth name field 對得返) → cascade delete 正確。</p>
+            <p><strong>新 insight：</strong>Auto-mode classifier 識穿 cross-project disaster risk → 攔住直接 PAT API write → 要先 read-only verify ref 喺 transcript 先 user explicit approve。Supabase PAT 喺 ~/.claude.json，account-scoped，要小心 verify 每個 ref。MCP 仲連舊 project + read-only — 暫時 bypass 用 Management API 直接 do ops，將來要 dual-MCP setup。</p>
+            <p><strong>Status：</strong>Phase 0 functionally complete (12/14 checklist items)。剩 Phase 0.10 (Vercel deploy + Sentry + PostHog) — 全部 external account setup。</p>
+          </div>
+        </div>
+
+        <div class="session-entry">
+          <div class="session-date">2026-05-21 · Session 2 AM</div>
+          <div class="session-title">Phase 0 開工 — 地基 + Code Audit</div>
+          <div class="session-body">
+            <p>Next.js 16 + Tailwind v4 + shadcn/ui + next-intl + Supabase client helpers + Migration 0001 寫好 + 7 個 pages。Code audit (26 finding, 5 High/Med 即場修)。發現 Supabase MCP 連住 CLS Studio (read-only) — 必須新起 project。寫 setup-guide.html 同 audit-report.html。</p>
+          </div>
+        </div>
+
+        <div class="session-entry">
+          <div class="session-date">2026-05-21 · Session 1</div>
+          <div class="session-title">Vision + Plan + Architecture + PM Setup + 15 Decisions</div>
+          <div class="session-body">
+            <p><strong>做咗：</strong>探討產品願景 → confirm 中文圈 first + 三入口統一引擎 → lock tech stack（Next.js + Supabase + Vercel AI SDK）→ 設計故事自適應介面 → 4 層記憶系統 → Narrative Integrity Engine → Bible 3-tier calibration → 3-layer API defense → 建立 plan.html / CLAUDE.md / 技術 plan / auto-memory / PM artifact system → HTML-for-review 規則 → 處理 8 條 open questions。</p>
+            <p><strong>Decisions locked (15 ADR)：</strong>Tech stack · 1 engine 3 mode · 多 LLM · Adult mode 隔離 · 4-layer memory · Narrative Integrity · 3-layer defense · Bible 3-tier · USD pricing · HK+TW 同步 · Founder+Claude 寫官方故事 · Lorebook naive dedup · OpenAI Moderation · OpenAI Embeddings · Orchestrator Pattern.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="roadmap">
+      <span class="eyebrow">🗺️ Roadmap</span>
+      <h2><span class="icon">🗺️</span>開發路線圖</h2>
+      <p class="section-sub">8 個 phase。每個 phase 完成 verify 之後先 move on。</p>
+
+      <div class="phase-card">
+        <div class="phase-header">
+          <div class="phase-badge">0</div>
+          <div class="phase-info">
+            <div class="phase-title">地基</div>
+            <div class="phase-done-def">Done when: 陌生人可以 signup、入到 dashboard、見到 marketing landing</div>
+          </div>
+          <span class="phase-status ps-in-progress">12/14 ✅ · 86%</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width: 86%"></div></div>
+        <details open>
+          <summary>展開 checklist (14 條) — 12 done · 2 pending（Phase 0.10 deploy）</summary>
+          <ul class="checklist">
+            <li class="done">Next.js 16.2.6 project init</li>
+            <li class="done">Tailwind v4 + shadcn/ui + 10 base components</li>
+            <li class="done">next-intl 繁中 default + 簡中/英</li>
+            <li class="done">Supabase project (story-engine, ap-southeast-1)</li>
+            <li class="done">Migration 0001 applied + verified</li>
+            <li class="done">Supabase magic link auth wired up + E2E tested</li>
+            <li class="done">Auto-create profile trigger (E2E verified)</li>
+            <li class="done">App layout + header/footer + i18n nav</li>
+            <li class="done">Marketing landing</li>
+            <li class="done">Pricing page (USD, 4 tiers)</li>
+            <li class="done">Settings skeleton</li>
+            <li class="done">Supabase Auth URLs configured (dev localhost)</li>
+            <li>Sentry + PostHog setup（Phase 0.10）</li>
+            <li>Deploy to Vercel + GitHub repo（Phase 0.10）</li>
+          </ul>
+        </details>
+      </div>
+
+      <div class="phase-card">
+        <div class="phase-header">
+          <div class="phase-badge">1</div>
+          <div class="phase-info">
+            <div class="phase-title">故事引擎 MVP <strong style="color: var(--rose); font-size: 12px; margin-left: 6px;">★ MVP CORE</strong></div>
+            <div class="phase-done-def">Done when: 用戶可由零創作故事，玩 3+ 回合，介面 reflect 狀態變化，NPC 真有人格</div>
+          </div>
+          <span class="phase-status ps-not-started">Not started</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width: 0%"></div></div>
+        <details>
+          <summary>展開 checklist (20+ 條)</summary>
+          <ul class="checklist">
+            <li>Migration 0002_state_schema.sql（schema + bible）</li>
+            <li>Migration 0003_characters.sql（NPC + states）</li>
+            <li>State schema Zod validator + render_hint enum</li>
+            <li>9 個 render hint component (bar / progress_ring / number / enum_chip / inventory_list / relationship_graph / meter_with_label / portrait / note)</li>
+            <li>&lt;DynamicStatePanel&gt; generic renderer</li>
+            <li>Schema generator service (state + bible 3-tier + characters + opening)</li>
+            <li>Story creation wizard UI（multi-step + preview + edit）</li>
+            <li>Inline schema/bible/character editor</li>
+            <li>Playthrough creation flow</li>
+            <li>Turn endpoint with streaming（Claude Sonnet first）</li>
+            <li>Turn-runner orchestration（prompt + tool calling + state delta apply）</li>
+            <li>JSON Patch (RFC6902) applier</li>
+            <li>Play screen UI</li>
+            <li>Turn history scroll-back</li>
+            <li>Resume playthrough（refresh 都 work）</li>
+          </ul>
+        </details>
+      </div>
+
+      <div class="phase-card">
+        <div class="phase-header">
+          <div class="phase-badge">1.5</div>
+          <div class="phase-info">
+            <div class="phase-title">故事完整性 <strong style="color: var(--rose); font-size: 12px; margin-left: 6px;">★ MVP HARD REQUIREMENT</strong></div>
+            <div class="phase-done-def">Done when: 玩家嘗試突破劇情/角色，AI 真正 in-fiction pushback，唔取悅</div>
+          </div>
+          <span class="phase-status ps-not-started">Not started</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width: 0%"></div></div>
+        <details>
+          <summary>展開 checklist</summary>
+          <ul class="checklist">
+            <li>Director Model service（lib/ai/director.ts）</li>
+            <li>Director system prompt（review against Bible + Cards + State）</li>
+            <li>Director tool schemas（reject / require_skill_check / allow_with_constraint / allow / flag_arc_drift）</li>
+            <li>Skill Check engine（pure functions）</li>
+            <li>Skill Check UI（擲骰動畫）</li>
+            <li>Permanent flags system</li>
+            <li>Earned exceptions registry</li>
+            <li>Director verdict → Narrator 整合</li>
+            <li>2-LLM-call credit calculation</li>
+            <li>turns 表加 director_verdict + skill_check 欄位</li>
+          </ul>
+        </details>
+      </div>
+
+      <div class="phase-card">
+        <div class="phase-header">
+          <div class="phase-badge">2</div>
+          <div class="phase-info">
+            <div class="phase-title">長期記憶系統</div>
+            <div class="phase-done-def">Done when: 玩 50+ 回合 AI 答得返早期細節 + 仲記得 NPC history</div>
+          </div>
+          <span class="phase-status ps-not-started">Not started</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width: 0%"></div></div>
+        <details>
+          <summary>展開 checklist</summary>
+          <ul class="checklist">
+            <li>Migration 0004_pgvector.sql + HNSW indexes</li>
+            <li>OpenAI embedding integration</li>
+            <li>Embed pipeline on turn save</li>
+            <li>Retriever service（recent + RAG + lorebook + character cards）</li>
+            <li>Summarizer Edge Function（每 20 turns 自動）</li>
+            <li>Lorebook 自動 entity extraction</li>
+            <li>Lorebook UI tab（read + 手動 edit）</li>
+            <li>Character interaction summary auto-update</li>
+          </ul>
+        </details>
+      </div>
+
+      <div class="phase-card">
+        <div class="phase-header">
+          <div class="phase-badge">3</div>
+          <div class="phase-info">
+            <div class="phase-title">多 Model + Credits</div>
+            <div class="phase-done-def">Done when: 用戶可揀 model，每 model 按比例扣 credits</div>
+          </div>
+          <span class="phase-status ps-not-started">Not started</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width: 0%"></div></div>
+        <details>
+          <summary>展開 checklist</summary>
+          <ul class="checklist">
+            <li>Migration 0005_credits.sql（ledger + model registry）</li>
+            <li>LLM model registry（seed initial models）</li>
+            <li>Vercel AI SDK 接所有 provider</li>
+            <li>Credit-meter service（token → credit）</li>
+            <li>Credit ledger writes（append-only）</li>
+            <li>Model picker UI（with credit estimate）</li>
+            <li>Per-tier model gating</li>
+            <li>Free-tier daily credit refresh cron</li>
+          </ul>
+        </details>
+      </div>
+
+      <div class="phase-card">
+        <div class="phase-header">
+          <div class="phase-badge">4</div>
+          <div class="phase-info">
+            <div class="phase-title">訂閱付費</div>
+            <div class="phase-done-def">Done when: 用戶可訂閱、credits 入賬、自動續訂</div>
+          </div>
+          <span class="phase-status ps-not-started">Not started</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width: 0%"></div></div>
+        <details>
+          <summary>展開 checklist</summary>
+          <ul class="checklist">
+            <li>Migration 0006_subscriptions.sql</li>
+            <li>Stripe Customer + Product + Price setup</li>
+            <li>Stripe Checkout（訂閱 + top-up）</li>
+            <li>Customer Portal</li>
+            <li>Webhook handler + idempotency</li>
+            <li>Credit grant on subscription event</li>
+            <li>Billing settings page</li>
+          </ul>
+        </details>
+      </div>
+
+      <div class="phase-card">
+        <div class="phase-header">
+          <div class="phase-badge">5</div>
+          <div class="phase-info">
+            <div class="phase-title">社群</div>
+            <div class="phase-done-def">Done when: 用戶可分享故事，其他人玩到，獨立進度</div>
+          </div>
+          <span class="phase-status ps-not-started">Not started</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width: 0%"></div></div>
+        <details>
+          <summary>展開 checklist</summary>
+          <ul class="checklist">
+            <li>Migration 0007_community.sql</li>
+            <li>Story visibility（private / unlisted / public）</li>
+            <li>Library page + filter + search</li>
+            <li>Postgres FTS index</li>
+            <li>"Play this story" 流程</li>
+            <li>Rating UI</li>
+            <li>Comment thread</li>
+            <li>Report → moderation queue</li>
+            <li>"Trending" 排序算法</li>
+          </ul>
+        </details>
+      </div>
+
+      <div class="phase-card">
+        <div class="phase-header">
+          <div class="phase-badge">6</div>
+          <div class="phase-info">
+            <div class="phase-title">成人模式</div>
+            <div class="phase-done-def">Done when: Storyteller+ 用戶通過 KYC 可開，model picker 限 OpenRouter</div>
+          </div>
+          <span class="phase-status ps-not-started">Not started</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width: 0%"></div></div>
+        <details>
+          <summary>展開 checklist</summary>
+          <ul class="checklist">
+            <li>Stripe Identity 整合</li>
+            <li>Age verification 頁面</li>
+            <li>Adult mode toggle 喺 profile</li>
+            <li>OpenRouter API 接入</li>
+            <li>LLM picker filtering by allows_nsfw</li>
+            <li>Content rating filter 喺 library</li>
+            <li>CSAM / 違法 pre-filter（永遠 on）</li>
+            <li>Adult mode UI watermark</li>
+          </ul>
+        </details>
+      </div>
+
+      <div class="phase-card">
+        <div class="phase-header">
+          <div class="phase-badge">7</div>
+          <div class="phase-info">
+            <div class="phase-title">上線打磨</div>
+            <div class="phase-done-def">Done when: 5 條官方故事 + onboarding 流暢 + performance 達標 + 準備 public launch</div>
+          </div>
+          <span class="phase-status ps-not-started">Not started</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width: 0%"></div></div>
+        <details>
+          <summary>展開 checklist</summary>
+          <ul class="checklist">
+            <li>Craft 5 條官方精品故事</li>
+            <li>Onboarding flow（first-run tour）</li>
+            <li>Mobile responsive 全 audit</li>
+            <li>Anthropic prompt caching enabled</li>
+            <li>Performance：p95 turn latency &lt; 8s</li>
+            <li>Load test 50 並發</li>
+            <li>Credit ledger consistency check</li>
+            <li>PostHog event tracking</li>
+            <li>Sentry error monitoring</li>
+            <li>TOS / Privacy / Cookie policy</li>
+            <li>Public marketing pages refresh</li>
+            <li>Launch waitlist</li>
+            <li>Press kit / launch posts</li>
+          </ul>
+        </details>
+      </div>
+    </section>
+
+    <section id="decisions">
+      <span class="eyebrow">📜 Decisions</span>
+      <h2><span class="icon">📜</span>架構決定紀錄 (ADR)</h2>
+      <p class="section-sub">每個重要決定一條，知道而家咁做嘅原因。</p>
+
+      <div class="adr" style="border-left: 4px solid var(--accent);">
+        <div class="adr-head">
+          <span class="adr-num">ADR-015</span>
+          <span class="adr-title">🌟 Orchestrator Pattern 正式 lock（用戶 architectural intuition）</span>
+          <span class="adr-status">✓ Accepted</span>
+          <span class="adr-meta">2026-05-21</span>
+        </div>
+        <div class="adr-section"><strong>Decision:</strong> Turn pipeline 永遠採用 orchestrator pattern — 玩家輸入永遠先經過我哋後台（Next.js Route Handler）做框架 enforcement + 記憶 prep + Director 仲裁 + Skill Check，先至 call 外部 LLM API。玩家 prompt 冇辦法直接觸碰外部 LLM。</div>
+        <div class="adr-section"><strong>Context:</strong> 用戶獨立 intuition — 「call 正式嘅 api 之前我哋先 call 一個內部用嘅 api 去過濾同埋去做嗰個幾層框架嘅東西」。呢個係 industry-standard pattern（ChatGPT plugins / Perplexity RAG / Cursor agent 都係咁）。Formally lock 防止 architecture drift。</div>
+        <div class="adr-section"><strong>Consequences:</strong> Marginal cost ~5-15%/turn（Director cheap model + Moderation 免費）。Prompt caching 抵消大部分。<strong>記憶系統反而更強</strong>（智能 retrieval 而非 dump raw history）。玩家 prompt jailbreak 95%+ 攔截。可並行 moderation + memory + cache load。Latency target 5-7s/turn。</div>
+      </div>
+
+      <div class="adr">
+        <div class="adr-head">
+          <span class="adr-num">ADR-014</span>
+          <span class="adr-title">AI 記性引擎用 OpenAI Embeddings（at launch）</span>
+          <span class="adr-status">✓ Accepted</span>
+          <span class="adr-meta">2026-05-21</span>
+        </div>
+        <div class="adr-section"><strong>Decision:</strong> 用 OpenAI text-embedding-3-small（$0.02/1M tokens）。Phase 2 開工前用 100 段中文 turn 做 A/B benchmark 比較 Cohere，差距明顯先 switch。</div>
+        <div class="adr-section"><strong>Context:</strong> 用戶揀 A。OpenAI 中文 OK，cost 幾乎 free at 我哋 scale。</div>
+        <div class="adr-section"><strong>Consequences:</strong> Embedding pipeline 簡單。如 Phase 2 benchmark 差，可 swap provider（重新 embed 歷史 turn）。Cost negligible。</div>
+      </div>
+
+      <div class="adr">
+        <div class="adr-head">
+          <span class="adr-num">ADR-013</span>
+          <span class="adr-title">違規過濾用 OpenAI Moderation API（at launch）</span>
+          <span class="adr-status">✓ Accepted</span>
+          <span class="adr-meta">2026-05-21</span>
+        </div>
+        <div class="adr-section"><strong>Decision:</strong> Phase 1 trial 起用 OpenAI Moderation API（免費）做 CSAM + 違法內容 pre-filter。Phase 5 社群上線前 review 漏網率，決定升唔升 Hive（USD$50-200/月）。</div>
+        <div class="adr-section"><strong>Context:</strong> 用戶話「you decide」。揀 A 因為 free + cover 大部分 case。</div>
+        <div class="adr-section"><strong>Consequences:</strong> Moderation 成本 = $0。Edge case 漏網 risk 存在但可接受 at small scale。Phase 5 前必 review。CSAM 永遠用第三方 API。</div>
+      </div>
+
+      <div class="adr">
+        <div class="adr-head">
+          <span class="adr-num">ADR-012</span>
+          <span class="adr-title">Lorebook 同名 entity dedup 用 naive exact match</span>
+          <span class="adr-status">✓ Accepted</span>
+          <span class="adr-meta">2026-05-21</span>
+        </div>
+        <div class="adr-section"><strong>Decision:</strong> Phase 2 用 naive exact-name match。「阿明」「陳家明」當兩個。Phase 5 後 upgrade embedding-based。</div>
+        <div class="adr-section"><strong>Context:</strong> 純技術（Claude auto-decided）。Business 影響有限。</div>
+        <div class="adr-section"><strong>Consequences:</strong> 快；early users 可能見重複 entity；upgrade 路徑清晰。</div>
+      </div>
+
+      <div class="adr">
+        <div class="adr-head">
+          <span class="adr-num">ADR-011</span>
+          <span class="adr-title">官方故事由 founder + Claude 自己創作（at launch）</span>
+          <span class="adr-status">✓ Accepted</span>
+          <span class="adr-meta">2026-05-21</span>
+        </div>
+        <div class="adr-section"><strong>Decision:</strong> Phase 7 launch 嘅 5 條官方故事由 founder + Claude collaboration 創作，唔請外面 writer at launch。</div>
+        <div class="adr-section"><strong>Context:</strong> 用戶揀「me + you, can do it later」。Solo 方式更 lean，align founder vision。</div>
+        <div class="adr-section"><strong>Consequences:</strong> 唔需要 Phase 7 前準備 writer 合約 template。Author monetization defer 去 v1.5+。將來 author program 嘅版權安排（Q7）仲未 decide，但 launch 之前唔影響。</div>
+      </div>
+
+      <div class="adr">
+        <div class="adr-head">
+          <span class="adr-num">ADR-010</span>
+          <span class="adr-title">Launch HK + TW 同步</span>
+          <span class="adr-status">✓ Accepted</span>
+          <span class="adr-meta">2026-05-21</span>
+        </div>
+        <div class="adr-section"><strong>Decision:</strong> Public launch 同步 target HK + TW 兩個市場，唔做 sequential。</div>
+        <div class="adr-section"><strong>Context:</strong> 用戶揀 B。TW 市場大 4x，文字遊戲社群更活躍，同步加速 PMF。</div>
+        <div class="adr-section"><strong>Consequences:</strong> 官方故事要 HK + TW cultural diversity（唔可以全 HK setting）。Marketing budget day 1 split。Beta tester dual channel（HK 巴 + TW Dcard/PTT）。繁中 locale awareness（HK繁 vs TW繁 用字唔同）。PR 兩邊都要 plan。</div>
+      </div>
+
+      <div class="adr">
+        <div class="adr-head">
+          <span class="adr-num">ADR-009</span>
+          <span class="adr-title">預設訂價用 USD</span>
+          <span class="adr-status">✓ Accepted</span>
+          <span class="adr-meta">2026-05-21</span>
+        </div>
+        <div class="adr-section"><strong>Decision:</strong> 所有 tier 用 USD ($9.99/$19.99/$49.99)。HK + TW 用戶都睇 USD。Stripe 自動 currency conversion at checkout。</div>
+        <div class="adr-section"><strong>Context:</strong> HK + TW 用戶 subscription 習慣睇 USD（Netflix, Notion, ChatGPT）。Multi-currency setup 複雜。</div>
+        <div class="adr-section"><strong>Consequences:</strong> Stripe 設置最簡單。Marketing 文案統一。Pricing page 加 "約 NT$X / HK$X" 幫助理解（display only，actual charge USD）。Multi-currency 推遲到 v2。</div>
+      </div>
+
+      <div class="adr">
+        <div class="adr-head">
+          <span class="adr-num">ADR-008</span>
+          <span class="adr-title">Bible 3-tier calibration（hard / soft / open）</span>
+          <span class="adr-status">✓ Accepted</span>
+          <span class="adr-meta">2026-05-21</span>
+        </div>
+        <div class="adr-section"><strong>Decision:</strong> Story Bible 分 3 層 — Hard Locked (150-300字) / Soft Guided (300-500字) / Open (0字)。</div>
+        <div class="adr-section"><strong>Context:</strong> 用戶 raise — 太強框架會寫死故事，太鬆 = yes-man。要 calibrate。</div>
+        <div class="adr-section"><strong>Consequences:</strong> 故事弧 transition 用 condition 而非 turn count；NPC 紅線可被 in-game earned exception unlock；對白/場景/反應 100% Open layer。</div>
+      </div>
+
+      <div class="adr">
+        <div class="adr-head">
+          <span class="adr-num">ADR-007</span>
+          <span class="adr-title">3-layer API defense</span>
+          <span class="adr-status">✓ Accepted</span>
+          <span class="adr-meta">2026-05-21</span>
+        </div>
+        <div class="adr-section"><strong>Decision:</strong> Bible enforcement 用 3 層 — system prompt priority + Director Model + tool calling structured output。</div>
+        <div class="adr-section"><strong>Context:</strong> 單靠 system prompt 95% 攔到但老練玩家可 jailbreak。</div>
+        <div class="adr-section"><strong>Consequences:</strong> 每 turn 兩個 LLM call（Director cheap + Narrator premium）。Prompt caching 抵消 Bible/Cards 大 system prompt 成本。</div>
+      </div>
+
+      <div class="adr">
+        <div class="adr-head">
+          <span class="adr-num">ADR-006</span>
+          <span class="adr-title">Narrative Integrity Engine</span>
+          <span class="adr-status">✓ Accepted</span>
+          <span class="adr-meta">2026-05-21</span>
+        </div>
+        <div class="adr-section"><strong>Decision:</strong> 加 4 層 narrative integrity system 解決 "Yes-Man AI" 問題。MVP day 1 hard requirement。</div>
+        <div class="adr-section"><strong>Context:</strong> 業界 #2 churn 痛點 — AI 取悅玩家、NPC 冇靈魂、玩家暴走。</div>
+        <div class="adr-section"><strong>Consequences:</strong> DB 加 story_bible, story_characters, playthrough_character_states 同 turns 表 director/skill_check 欄位。Phase 1.5 加入。</div>
+      </div>
+
+      <div class="adr">
+        <div class="adr-head">
+          <span class="adr-num">ADR-005</span>
+          <span class="adr-title">4-layer memory system</span>
+          <span class="adr-status">✓ Accepted</span>
+          <span class="adr-meta">2026-05-21</span>
+        </div>
+        <div class="adr-section"><strong>Decision:</strong> 4 層記憶 — Recent 20 turns + rolling summary + pgvector RAG + 自動 lorebook。</div>
+        <div class="adr-section"><strong>Context:</strong> 業界 #1 churn = AI 唔記得。Lorebook only（NovelAI 做法）唔夠。</div>
+        <div class="adr-section"><strong>Consequences:</strong> pgvector + OpenAI embedding。Background Edge Functions 做 summary + entity extraction。</div>
+      </div>
+
+      <div class="adr">
+        <div class="adr-head">
+          <span class="adr-num">ADR-004</span>
+          <span class="adr-title">Adult mode 用 LLM 隔離設計</span>
+          <span class="adr-status">✓ Accepted</span>
+          <span class="adr-meta">2026-05-21</span>
+        </div>
+        <div class="adr-section"><strong>Decision:</strong> 成人模式 opt-in + Stripe Identity + 開啟後 model picker 限 OpenRouter。Anthropic/OpenAI 永遠唔跑 NSFW。</div>
+        <div class="adr-section"><strong>Context:</strong> 大 model 公司 TOS 違規會 ban 整個 platform。</div>
+        <div class="adr-section"><strong>Consequences:</strong> OpenRouter 接入係 Phase 6 必須。Adult tier 限 Storyteller+。CSAM pre-filter 永遠 on。</div>
+      </div>
+
+      <div class="adr">
+        <div class="adr-head">
+          <span class="adr-num">ADR-003</span>
+          <span class="adr-title">多 LLM 用戶可揀</span>
+          <span class="adr-status">✓ Accepted</span>
+          <span class="adr-meta">2026-05-21</span>
+        </div>
+        <div class="adr-section"><strong>Decision:</strong> 用 Vercel AI SDK 統一接 Anthropic + OpenAI + Google + xAI + OpenRouter。Per-playthrough 揀 model。</div>
+        <div class="adr-section"><strong>Context:</strong> 用戶 explicitly want。唔同 model 有唔同 strength。</div>
+        <div class="adr-section"><strong>Consequences:</strong> Model registry 喺 DB（唔 hardcode）。每 model 有 credit_multiplier。Phase 3 implementation。</div>
+      </div>
+
+      <div class="adr">
+        <div class="adr-head">
+          <span class="adr-num">ADR-002</span>
+          <span class="adr-title">一個 engine handle 三個 mode</span>
+          <span class="adr-status">✓ Accepted</span>
+          <span class="adr-meta">2026-05-21</span>
+        </div>
+        <div class="adr-section"><strong>Decision:</strong> 用戶創作 / 社群 / 官方 用同一個 engine。分別只係 origin field + owner_id。</div>
+        <div class="adr-section"><strong>Context:</strong> 三個 mode 本質都係 prompt-seeded continuation。</div>
+        <div class="adr-section"><strong>Consequences:</strong> MVP scope simpler。Library 模型統一。社群分享 = 改 visibility flag。</div>
+      </div>
+
+      <div class="adr">
+        <div class="adr-head">
+          <span class="adr-num">ADR-001</span>
+          <span class="adr-title">Tech stack lock</span>
+          <span class="adr-status">✓ Accepted</span>
+          <span class="adr-meta">2026-05-21</span>
+        </div>
+        <div class="adr-section"><strong>Decision:</strong> Next.js 15 + Supabase + Vercel AI SDK + Stripe + Vercel hosting。</div>
+        <div class="adr-section"><strong>Context:</strong> Solo dev 要 minimize moving parts。Supabase 一個 vendor 解 auth + DB + vector + storage + edge + cron。</div>
+        <div class="adr-section"><strong>Consequences:</strong> Vendor lock-in 到 Supabase（acceptable）。所有 phase build on 呢個 foundation。</div>
+      </div>
+    </section>
+
+    <section id="questions">
+      <span class="eyebrow">❓ Open Questions</span>
+      <h2><span class="icon">❓</span>未決定嘅事</h2>
+      <p class="section-sub">傾過但未 lock。Decide 咗 → 轉去 Decisions。</p>
+
+      <div style="background: var(--green-soft); padding: 20px 24px; border-radius: 14px; margin-bottom: 24px; border-left: 4px solid var(--green);">
+        <strong style="color: #047857; font-size: 15px;">🎉 7 條 Open Questions 全部 cleared!</strong>
+        <div style="font-size: 13.5px; color: var(--ink-soft); margin-top: 10px; line-height: 1.7;">
+          <strong>Decided（已轉去 Decisions）:</strong><br>
+          Q1 訂價 USD (ADR-009) · Q2 Launch HK+TW 同步 (ADR-010) · Q3 違規過濾 OpenAI free (ADR-013) · Q4 記性引擎 OpenAI (ADR-014) · Q5 官方故事 Founder+Claude (ADR-011) · Q8 Lorebook Naive dedup (ADR-012)
+          <br><br>
+          <strong>Deferred to BACKLOG.md:</strong><br>
+          Q7 外面作者版權安排 → v1.5+ revisit
+          <br><br>
+          <strong>仲有 1 條 low urgency open:</strong> Q6 Free tier 鬆度（Phase 4 數據驅動，唔影響任何 phase）
+        </div>
+      </div>
+
+      <h3>🟢 Low urgency — 上線後再諗</h3>
+
+      <div class="question">
+        <div class="question-num">Q6 <span class="urgency-tag urgency-low">Low</span></div>
+        <div class="question-title">Free tier 應該幾鬆？</div>
+        <div class="question-context">太鬆冧 server，太緊嚇走用戶。50 credits/日係 placeholder。Phase 4 closed beta 數據出嚟先 finalize。用戶 confirm「can work on it later」。</div>
+      </div>
+
+      <div style="background: linear-gradient(135deg, var(--primary) 0%, #7C3AED 100%); color: white; padding: 32px; border-radius: 18px; margin-top: 32px; text-align: center;">
+        <h3 style="color: white; margin-top: 0; font-size: 22px;">🚀 Phase 0 開工 zero blocker</h3>
+        <p style="color: rgba(255,255,255,0.9); margin-bottom: 0; font-size: 15px;">15 條 architectural decision 全部 locked。等你確認 ready 就 kickoff。</p>
+      </div>
+    </section>
+
+    <section id="backlog">
+      <span class="eyebrow">💡 Backlog</span>
+      <h2><span class="icon">💡</span>未來嘅 idea pool</h2>
+      <p class="section-sub">v1.5+ 嘅 feature、靈感、defer 嘅嘢。要做先 promote 入 Roadmap。</p>
+
+      <div class="backlog-group">
+        <div class="backlog-group-title">v1.5 — 短期 post-launch（3 個月內）</div>
+        <div class="backlog-item"><span class="backlog-emoji">🎨</span><div><strong>故事封面 AI 生圖</strong> — Fal.ai 或 Replicate，提高 library 觀感</div></div>
+        <div class="backlog-item"><span class="backlog-emoji">🔀</span><div><strong>故事 remix / fork</strong> — 用戶可 fork 別人故事去改，建立衍生作品</div></div>
+        <div class="backlog-item"><span class="backlog-emoji">📥</span><div><strong>Story import</strong> — markdown / Twine / 純文字</div></div>
+        <div class="backlog-item"><span class="backlog-emoji">⭐</span><div><strong>保存重要場景 (Highlight Moments)</strong> — Mark + 後尾 export 圖文</div></div>
+        <div class="backlog-item"><span class="backlog-emoji">🎭</span><div><strong>多 character 控制</strong> — 同時扮演 2 個角色（男女主視角輪流）</div></div>
+        <div class="backlog-item"><span class="backlog-emoji">⏪</span><div><strong>時光倒流</strong> — Rewind to turn X，付費 feature 扣 credits</div></div>
+        <div class="backlog-item"><span class="backlog-emoji">📚</span><div><strong>Lorebook 共享</strong> — 一個 lorebook 多個 story（HK 1980s 世界觀重用）</div></div>
+        <div class="backlog-item"><span class="backlog-emoji">🃏</span><div><strong>Character template library</strong> — 發佈 NPC cards 俾人 import</div></div>
+      </div>
+
+      <div class="backlog-group">
+        <div class="backlog-group-title">v2 — 中期（6-12 個月）</div>
+        <div class="backlog-item"><span class="backlog-emoji">👥</span><div><strong>Co-op 雙人遊玩</strong> — 兩個玩家輪流出招</div></div>
+        <div class="backlog-item"><span class="backlog-emoji">🎬</span><div><strong>GM 模式</strong> — 一個玩家做 narrator，AI 扮 NPC</div></div>
+        <div class="backlog-item"><span class="backlog-emoji">📺</span><div><strong>Spectator mode</strong> — 公開直播 playthrough</div></div>
+        <div class="backlog-item"><span class="backlog-emoji">🎙️</span><div><strong>TTS 敘事 + 語音輸入</strong> — ElevenLabs 中文 voice + Whisper 廣東話</div></div>
+        <div class="backlog-item"><span class="backlog-emoji">🖼️</span><div><strong>Scene image gen</strong> — 重要 scene auto 生圖</div></div>
+        <div class="backlog-item"><span class="backlog-emoji">🌳</span><div><strong>Branching narrative designer</strong> — 專業作者用嘅 tree editor</div></div>
+        <div class="backlog-item"><span class="backlog-emoji">💰</span><div><strong>Author monetization</strong> — 用戶收費故事，平台抽成</div></div>
+        <div class="backlog-item"><span class="backlog-emoji">🌏</span><div><strong>Translation feature</strong> — 一鍵繁→簡/英</div></div>
+      </div>
+
+      <div class="backlog-group">
+        <div class="backlog-group-title">v3 — 長期</div>
+        <div class="backlog-item"><span class="backlog-emoji">📱</span><div><strong>Mobile native app</strong> — iOS + Android（先 PWA 驗證）</div></div>
+        <div class="backlog-item"><span class="backlog-emoji">🌐</span><div><strong>多語言擴展</strong> — 簡中 → 英 → 日 → 韓</div></div>
+        <div class="backlog-item"><span class="backlog-emoji">🎓</span><div><strong>企業 / 教育 license</strong> — 學校用嚟做 interactive learning</div></div>
+        <div class="backlog-item"><span class="backlog-emoji">🥽</span><div><strong>AR/VR 整合</strong> — 戴 headset 玩文字 RPG</div></div>
+      </div>
+
+      <div class="backlog-group">
+        <div class="backlog-group-title">💡 Ideas（未評估）</div>
+        <div class="backlog-item"><span class="backlog-emoji">🎁</span><div><strong>DLC 機制</strong> — 官方為 hit 故事出續集 / 番外篇</div></div>
+        <div class="backlog-item"><span class="backlog-emoji">🌟</span><div><strong>Creator program</strong> — 邀請 HK/TW influencer 做官方故事</div></div>
+        <div class="backlog-item"><span class="backlog-emoji">💬</span><div><strong>Emotional tag 評論</strong> — 唔只 5 星，加 emotional tag</div></div>
+        <div class="backlog-item"><span class="backlog-emoji">🎬</span><div><strong>AI 自動 generate trailer</strong> — 用故事內容 auto 生 30s trailer</div></div>
+        <div class="backlog-item"><span class="backlog-emoji">🔀</span><div><strong>多 model ensemble</strong> — 同一 turn 兩個 model 各寫，玩家揀</div></div>
+        <div class="backlog-item"><span class="backlog-emoji">🎭</span><div><strong>跨故事 character cameo</strong> — 舊角色 guest 喺新故事</div></div>
+      </div>
+
+      <div class="backlog-group">
+        <div class="backlog-group-title">⏸️ 暫時 defer</div>
+        <div class="backlog-item"><span class="backlog-emoji">🚫</span><div><strong>自建 LLM hosting</strong>（vLLM / Ollama）— 成本同維護唔抵</div></div>
+        <div class="backlog-item"><span class="backlog-emoji">🚫</span><div><strong>Blockchain / NFT</strong> 故事所有權 — 中文圈用戶冇 demand</div></div>
+        <div class="backlog-item"><span class="backlog-emoji">🚫</span><div><strong>英文 market</strong> — 等中文圈 PMF 先</div></div>
+      </div>
+    </section>
+
+    <section id="glossary">
+      <span class="eyebrow">📖 Glossary</span>
+      <h2><span class="icon">📖</span>術語表</h2>
+      <p class="section-sub">我哋發明同使用嘅術語。新 session 可以 quick reference。</p>
+
+      <div class="glossary-group">
+        <h3>中文 / 業務術語</h3>
+        <div class="glossary-item">
+          <div class="glossary-term">故事聖經 (Story Bible)</div>
+          <div class="glossary-def">創作時 AI 生成嘅不變骨架，包含核心衝突、世界規則、故事弧、語調。分 Hard Locked / Soft Guided 兩層。每 turn 注入 context（prompt-cached）。</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">角色卡 (Character Card)</div>
+          <div class="glossary-def">每個 NPC 嘅模板，包含性格、過去、目標、紅線、講嘢風格、發展弧。Story-level template，唔同 playthrough 共享但 state 獨立。</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">紅線 (Red Lines)</div>
+          <div class="glossary-def">NPC 嘅 hard behavioral limits。觸發即 in-fiction 拒絕。可被 in-game earned exception unlock。</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">Earned Exception</div>
+          <div class="glossary-def">玩家透過 in-game 行動（唔係 prompt）觸發 permanent_flag，解鎖某條紅線變鬆。</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">故事自適應介面</div>
+          <div class="glossary-def">AI 為每個故事生成專屬 JSON Schema + render hints，前端 generic renderer 自動呈現相應 UI（戀愛 → 好感度環，D&D → HP/MP 條）。</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">Director (仲裁 AI)</div>
+          <div class="glossary-def">每 turn 第一次 LLM call，用 cheap model 預先審核玩家行動，輸出 verdict 俾 Narrator。</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">Narrator (敘事 AI)</div>
+          <div class="glossary-def">每 turn 第二次 LLM call，用玩家揀嘅 premium model 根據 Director verdict 寫敘事 + state delta。</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">Skill Check</div>
+          <div class="glossary-def">Director 觸發嘅擲骰仲裁。(skill + d20) vs 難度。失敗有真實 state 後果。</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">狀態介面 (State Panel)</div>
+          <div class="glossary-def">玩家 play 時側邊 panel，render current_state 跟 state_schema。</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">Lorebook</div>
+          <div class="glossary-def">自動 / 手動建立嘅 entity 檔案（角色、地點、物品），相關 mentioned 時 always-on injection。</div>
+        </div>
+      </div>
+
+      <div class="glossary-group">
+        <h3>技術 / 架構術語</h3>
+        <div class="glossary-item">
+          <div class="glossary-term">Playthrough</div>
+          <div class="glossary-def">一個用戶玩一個 story 嘅獨立 instance。包含 current_state、turn history、character states。</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">Story</div>
+          <div class="glossary-def">故事 template，包含 prompt seed、state schema、bible、characters、opening。Immutable to non-owners。</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">Turn</div>
+          <div class="glossary-def">一個 user action + 一個 AI response 嘅 pair。儲存 text + state_delta + LLM metadata。</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">state_schema</div>
+          <div class="glossary-def">JSON Schema 定義 playthrough state 結構。每個 field 有 render_hint。</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">state_delta</div>
+          <div class="glossary-def">JSON Patch (RFC6902) 描述一個 turn 改變咗 state 邊啲 field。</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">render_hint</div>
+          <div class="glossary-def">schema field metadata，告訴前端點 render（bar / progress_ring / inventory_list 等）。9 種 hint enum。</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">Credit</div>
+          <div class="glossary-def">Internal pricing unit。1 credit ≈ $0.001 USD cost。Per-model multiplier 決定 LLM call 扣幾多。</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">Credit Ledger</div>
+          <div class="glossary-def">Append-only 表，記錄每筆 credit 流入流出。Sum(deltas) == current balance（hard invariant）。</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">Permanent Flag</div>
+          <div class="glossary-def">Playthrough 內永久 state marker。Director 用嚟 track earned exceptions / 重大事件。</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">Tier</div>
+          <div class="glossary-def">訂閱級別（Free / Adventurer / Storyteller / Legend）。決定月度 credits + 可用 model + adult mode access。</div>
+        </div>
+      </div>
+
+      <div class="glossary-group">
+        <h3>業界 reference</h3>
+        <div class="glossary-item">
+          <div class="glossary-term">RAG (Retrieval-Augmented Generation)</div>
+          <div class="glossary-def">由 vector DB 搵相關過去內容塞入 prompt。我哋 memory layer 3 用。</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">pgvector</div>
+          <div class="glossary-def">Postgres extension 提供 vector column + similarity search。Supabase 原生支援。</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">Prompt Caching</div>
+          <div class="glossary-def">Claude / OpenAI / Gemini 支援，cache system prompt 前綴，重用時 input cost -90%。</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">Tool Calling / Function Calling</div>
+          <div class="glossary-def">LLM API feature，AI 可輸出符合 JSON schema 嘅 structured data。</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">RLHF</div>
+          <div class="glossary-def">Reinforcement Learning from Human Feedback — LLM 訓練階段，令 AI 跟 system 多過 user。</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">Jailbreak</div>
+          <div class="glossary-def">用 prompt 技巧令 AI 忽略 system constraints。我哋 3-layer defense Layer 2/3 對付。</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">SFW / NSFW</div>
+          <div class="glossary-def">Safe / Not Safe For Work。決定 content rating + 可用 model。</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">KYC</div>
+          <div class="glossary-def">Know Your Customer — 年齡 / 身份驗證。Stripe Identity 做。</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">ADR</div>
+          <div class="glossary-def">Architectural Decision Record — 一條 decision 嘅紀錄（context + decision + consequences）。</div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+</body>
+</html>

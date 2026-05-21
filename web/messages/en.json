@@ -1,0 +1,131 @@
+{
+  "common": {
+    "appName": "Story Engine",
+    "tagline": "Interactive fiction RPG for Chinese-language readers",
+    "comingSoon": "Coming soon"
+  },
+  "nav": {
+    "library": "Library",
+    "pricing": "Pricing",
+    "create": "Create",
+    "profile": "Profile",
+    "settings": "Settings",
+    "login": "Log in",
+    "logout": "Log out",
+    "signup": "Sign up"
+  },
+  "footer": {
+    "tagline": "Chinese-first"
+  },
+  "marketing": {
+    "hero": {
+      "eyebrow": "Chinese-first · Interactive Fiction RPG",
+      "title": "Be the protagonist of your own story",
+      "subtitle": "AI designs each story for you, remembers every choice, and gives every NPC a real personality that won't bend to you.",
+      "ctaPrimary": "Start your story",
+      "ctaSecondary": "Browse community stories"
+    },
+    "features": {
+      "title": "Three things competitors don't have",
+      "memory": {
+        "title": "The AI actually remembers",
+        "body": "4-layer memory system: recent + summary + semantic search + character files. Even after 100 hours, the AI remembers everything."
+      },
+      "adaptive": {
+        "title": "UI adapts to every story",
+        "body": "Romance gets affection rings, D&D gets HP/MP bars, NBA gets player stats. AI designs UI per story."
+      },
+      "integrity": {
+        "title": "NPCs have real souls",
+        "body": "Every character has personality, red lines, motivations. They won't break character to please you."
+      }
+    },
+    "pricing": {
+      "title": "Choose a plan",
+      "subtitle": "All plans include full features + multi-LLM choice",
+      "usdNotice": "Pricing in USD · HK / TW currency auto-converted at checkout",
+      "perMonth": "/ mo",
+      "ctaFree": "Get started free",
+      "ctaPaid": "Upgrade",
+      "tiers": {
+        "free": {
+          "name": "Free",
+          "price": "$0",
+          "credits": "50 credits / day",
+          "features": ["Entry-level AI models", "Create + play stories", "Basic community access"]
+        },
+        "adventurer": {
+          "name": "Adventurer",
+          "price": "$9.99",
+          "credits": "5,000 credits / month",
+          "features": ["All SFW models", "Full community", "Email support"]
+        },
+        "storyteller": {
+          "name": "Storyteller",
+          "price": "$19.99",
+          "credits": "15,000 credits / month",
+          "popular": "Most popular",
+          "features": ["All AI models", "Adult mode (KYC required)", "Priority support"]
+        },
+        "legend": {
+          "name": "Legend",
+          "price": "$49.99",
+          "credits": "50,000 credits / month",
+          "features": ["Everything + early access", "Beta features", "1-on-1 onboarding"]
+        }
+      }
+    },
+    "cta": {
+      "title": "Ready to step into the story?",
+      "body": "Start free, no credit card required.",
+      "button": "Create account"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Welcome back",
+      "subtitle": "Continue your story",
+      "emailLabel": "Email",
+      "emailPlaceholder": "you@example.com",
+      "submit": "Send login link",
+      "googleButton": "Continue with Google",
+      "or": "or",
+      "noAccount": "No account yet?",
+      "signupLink": "Sign up",
+      "phaseNotice": "(Phase 0.6 — wires up after Supabase env)"
+    },
+    "magicLink": {
+      "title": "Check your email",
+      "body": "We sent a login link to {email}. Click it to sign in."
+    }
+  },
+  "pages": {
+    "library": {
+      "title": "Library",
+      "body": "Phase 5 will build the full library here. This is a placeholder for now."
+    },
+    "profile": {
+      "title": "Profile",
+      "body": "User info, character list and stats will live here after Phase 0.6 auth wiring."
+    },
+    "settings": {
+      "title": "Settings",
+      "subtitle": "Manage your account and subscription",
+      "sections": {
+        "profile": {
+          "title": "Profile",
+          "description": "Display name, avatar, language preference"
+        },
+        "billing": {
+          "title": "Subscription & Credits",
+          "description": "Plan upgrade, credits usage, top-ups"
+        },
+        "models": {
+          "title": "AI Model preferences",
+          "description": "Default AI for storytelling"
+        }
+      },
+      "comingSoon": "Wires up after Phase 0.6"
+    }
+  }
+}

@@ -1,0 +1,147 @@
+{
+  "common": {
+    "appName": "Story Engine",
+    "tagline": "中文圈嘅互動式故事 RPG 平台",
+    "comingSoon": "稍後推出"
+  },
+  "nav": {
+    "library": "故事庫",
+    "pricing": "訂價",
+    "create": "創作",
+    "profile": "個人",
+    "settings": "設定",
+    "login": "登入",
+    "logout": "登出",
+    "signup": "註冊"
+  },
+  "footer": {
+    "tagline": "中文圈 first"
+  },
+  "marketing": {
+    "hero": {
+      "eyebrow": "中文圈 first · 互動式故事 RPG",
+      "title": "每個人都可以做自己嘅主角",
+      "subtitle": "AI 為你度身設計故事，永遠記得你嘅選擇，NPC 真有人格、唔會討好你。",
+      "ctaPrimary": "開始你嘅故事",
+      "ctaSecondary": "睇下別人嘅故事"
+    },
+    "features": {
+      "title": "三樣同行家唔同嘅嘢",
+      "memory": {
+        "title": "AI 真係記得你",
+        "body": "4 層記憶系統：近期 + 摘要 + 語意搜尋 + 角色檔案。玩 100 小時都記得你個角色發生過咩。"
+      },
+      "adaptive": {
+        "title": "介面跟住故事變",
+        "body": "玩戀愛有好感度環、玩 D&D 有 HP/MP 條、玩 NBA 有球員數據。AI 為每個故事度身設計。"
+      },
+      "integrity": {
+        "title": "NPC 真有靈魂",
+        "body": "每個角色有自己嘅性格、紅線、目標。唔會因為你嘅指令就隨意打破人格。"
+      }
+    },
+    "pricing": {
+      "title": "揀適合你嘅方案",
+      "subtitle": "所有方案都包括完整功能 + 多 AI Model 選擇",
+      "usdNotice": "訂價以 USD 計算 · HK / TW 用戶按當下匯率自動換算",
+      "perMonth": "/ 月",
+      "ctaFree": "免費開始",
+      "ctaPaid": "升級",
+      "tiers": {
+        "free": {
+          "name": "Free",
+          "price": "$0",
+          "credits": "每日 50 credits",
+          "features": [
+            "入門 AI Model",
+            "創作 + 玩故事",
+            "基本社群權限"
+          ]
+        },
+        "adventurer": {
+          "name": "Adventurer",
+          "price": "$9.99",
+          "credits": "每月 5,000 credits",
+          "features": [
+            "所有 SFW Model",
+            "完整社群權限",
+            "Email 支援"
+          ]
+        },
+        "storyteller": {
+          "name": "Storyteller",
+          "price": "$19.99",
+          "credits": "每月 15,000 credits",
+          "popular": "最熱門",
+          "features": [
+            "所有 AI Model",
+            "成人模式（需驗證）",
+            "優先支援"
+          ]
+        },
+        "legend": {
+          "name": "Legend",
+          "price": "$49.99",
+          "credits": "每月 50,000 credits",
+          "features": [
+            "全部 + 早期試用 features",
+            "Beta features access",
+            "1-on-1 onboarding"
+          ]
+        }
+      }
+    },
+    "cta": {
+      "title": "Ready 入去故事世界？",
+      "body": "免費開始，唔需信用卡。",
+      "button": "創建帳戶"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "歡迎返嚟",
+      "subtitle": "繼續你嘅故事",
+      "emailLabel": "Email",
+      "emailPlaceholder": "you@example.com",
+      "submit": "發送登入連結",
+      "googleButton": "用 Google 繼續",
+      "or": "或者",
+      "noAccount": "未有帳戶？",
+      "signupLink": "立即註冊",
+      "phaseNotice": "（Phase 0.6 wire up after Supabase env set）"
+    },
+    "magicLink": {
+      "title": "查收 email",
+      "body": "我哋發咗一條登入連結去 {email}。按連結就會自動登入。"
+    }
+  },
+  "pages": {
+    "library": {
+      "title": "故事庫",
+      "body": "Phase 5 會起呢度嘅完整 library。依家係 placeholder。"
+    },
+    "profile": {
+      "title": "個人",
+      "body": "Phase 0.6 完成 auth 之後呢度會有 user info、character list、stats。"
+    },
+    "settings": {
+      "title": "設定",
+      "subtitle": "管理你嘅帳戶同訂閱",
+      "sections": {
+        "profile": {
+          "title": "個人資料",
+          "description": "顯示名、頭像、語言偏好"
+        },
+        "billing": {
+          "title": "訂閱同 Credits",
+          "description": "升級方案、credits 用量、增值"
+        },
+        "models": {
+          "title": "AI Model 偏好",
+          "description": "預設用邊個 AI 講故事"
+        }
+      },
+      "comingSoon": "Phase 0.6 之後 wire up"
+    }
+  }
+}

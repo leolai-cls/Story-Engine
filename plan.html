@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Story Engine — 中文圈互動式故事 RPG 平台</title>
+<style>
+  :root {
+    --primary: #4F46E5;
+    --primary-dark: #3730A3;
+    --primary-soft: #EEF2FF;
+    --accent: #F59E0B;
+    --accent-soft: #FEF3C7;
+    --bg: #FAFAF7;
+    --card: #FFFFFF;
+    --ink: #18181B;
+    --ink-soft: #3F3F46;
+    --muted: #71717A;
+    --border: #E4E4E7;
+    --green: #10B981;
+    --green-soft: #D1FAE5;
+    --rose: #E11D48;
+    --rose-soft: #FFE4E6;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.7;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .layout {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  aside {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    padding: 32px 24px;
+    border-right: 1px solid var(--border);
+    background: var(--card);
+    overflow-y: auto;
+  }
+  .brand {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 4px;
+    letter-spacing: -0.01em;
+  }
+  .brand-sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 28px;
+  }
+  aside nav { display: flex; flex-direction: column; gap: 2px; }
+  aside nav a {
+    color: var(--ink-soft);
+    text-decoration: none;
+    padding: 9px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: all .15s;
+  }
+  aside nav a:hover { background: var(--primary-soft); color: var(--primary); }
+  aside .nav-section {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    padding: 16px 12px 6px;
+    font-weight: 600;
+  }
+  main {
+    padding: 56px 64px 120px;
+    max-width: 880px;
+  }
+  section { margin-bottom: 88px; scroll-margin-top: 32px; }
+  .eyebrow {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--primary);
+    background: var(--primary-soft);
+    padding: 6px 12px;
+    border-radius: 999px;
+    letter-spacing: 0.04em;
+    margin-bottom: 20px;
+  }
+  h1 {
+    font-size: 56px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+    margin-bottom: 20px;
+    color: var(--ink);
+    background: linear-gradient(135deg, var(--primary) 0%, #8B5CF6 50%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  h2 {
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 14px;
+    color: var(--ink);
+  }
+  h2 .num {
+    color: var(--muted);
+    font-weight: 500;
+    margin-right: 12px;
+  }
+  h3 {
+    font-size: 19px;
+    font-weight: 700;
+    margin-top: 32px;
+    margin-bottom: 10px;
+    color: var(--ink);
+  }
+  .section-lead {
+    font-size: 17px;
+    color: var(--ink-soft);
+    margin-bottom: 32px;
+    max-width: 640px;
+  }
+  .tagline {
+    font-size: 22px;
+    color: var(--ink-soft);
+    margin-bottom: 40px;
+    max-width: 580px;
+    line-height: 1.5;
+  }
+  p { margin-bottom: 14px; color: var(--ink-soft); }
+  .pillars {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-top: 32px;
+  }
+  .pillar {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+  }
+  .pillar-icon {
+    font-size: 28px;
+    margin-bottom: 10px;
+  }
+  .pillar-title {
+    font-weight: 700;
+    font-size: 15px;
+    margin-bottom: 6px;
+    color: var(--ink);
+  }
+  .pillar-desc {
+    font-size: 13.5px;
+    color: var(--muted);
+    line-height: 1.55;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px;
+    margin-top: 16px;
+  }
+  .card + .card { margin-top: 12px; }
+  .card-title {
+    font-weight: 700;
+    font-size: 17px;
+    margin-bottom: 8px;
+    color: var(--ink);
+  }
+  .pain-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 14px;
+    margin-top: 24px;
+  }
+  .pain {
+    background: var(--rose-soft);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .pain-num {
+    display: inline-block;
+    width: 28px;
+    height: 28px;
+    line-height: 28px;
+    text-align: center;
+    background: var(--rose);
+    color: white;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 13px;
+    margin-bottom: 10px;
+  }
+  .pain-title { font-weight: 700; font-size: 14.5px; margin-bottom: 6px; color: var(--ink); }
+  .pain-body { font-size: 13px; color: var(--ink-soft); line-height: 1.55; }
+  .diff-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 14px;
+    margin-top: 14px;
+  }
+  .diff {
+    background: var(--green-soft);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .diff-icon { font-size: 22px; margin-bottom: 8px; }
+  .diff-title { font-weight: 700; font-size: 14.5px; margin-bottom: 6px; color: var(--ink); }
+  .diff-body { font-size: 13px; color: var(--ink-soft); line-height: 1.55; }
+  .example-row {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 24px;
+    padding: 20px 0;
+    border-bottom: 1px dashed var(--border);
+    align-items: start;
+  }
+  .example-row:last-child { border-bottom: none; }
+  .example-genre {
+    font-weight: 700;
+    color: var(--primary);
+    font-size: 15px;
+  }
+  .example-ui {
+    font-size: 14px;
+    color: var(--ink-soft);
+  }
+  .chip {
+    display: inline-block;
+    background: var(--primary-soft);
+    color: var(--primary);
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 12.5px;
+    font-weight: 500;
+    margin: 3px 4px 3px 0;
+  }
+  .chip-amber { background: var(--accent-soft); color: #B45309; }
+  .chip-green { background: var(--green-soft); color: #047857; }
+  .chip-rose { background: var(--rose-soft); color: var(--rose); }
+  .memory-layers {
+    margin-top: 24px;
+  }
+  .layer {
+    display: grid;
+    grid-template-columns: 60px 1fr;
+    gap: 20px;
+    padding: 18px 0;
+    border-bottom: 1px solid var(--border);
+    align-items: start;
+  }
+  .layer:last-child { border-bottom: none; }
+  .layer-num {
+    width: 44px;
+    height: 44px;
+    line-height: 44px;
+    text-align: center;
+    background: var(--primary);
+    color: white;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 17px;
+  }
+  .layer-title { font-weight: 700; font-size: 15.5px; margin-bottom: 4px; }
+  .layer-desc { font-size: 13.5px; color: var(--muted); line-height: 1.55; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 16px;
+    background: var(--card);
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  th, td {
+    padding: 14px 18px;
+    text-align: left;
+    font-size: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  th {
+    background: #F4F4F5;
+    font-weight: 700;
+    color: var(--ink);
+    font-size: 13px;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr.highlight { background: linear-gradient(90deg, var(--primary-soft) 0%, transparent 100%); }
+  .price { font-weight: 700; color: var(--primary); }
+  .price-free { color: var(--muted); }
+  .callout {
+    background: linear-gradient(135deg, var(--primary-soft) 0%, var(--accent-soft) 100%);
+    border-left: 4px solid var(--primary);
+    padding: 22px 26px;
+    border-radius: 12px;
+    margin: 24px 0;
+  }
+  .callout-title {
+    font-weight: 700;
+    font-size: 14.5px;
+    margin-bottom: 6px;
+    color: var(--ink);
+  }
+  .callout-body {
+    font-size: 14px;
+    color: var(--ink-soft);
+    line-height: 1.6;
+  }
+  .flow {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .step {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 22px;
+    display: grid;
+    grid-template-columns: 36px 1fr;
+    gap: 16px;
+    align-items: center;
+  }
+  .step-num {
+    width: 32px;
+    height: 32px;
+    line-height: 32px;
+    text-align: center;
+    background: var(--primary-soft);
+    color: var(--primary);
+    border-radius: 50%;
+    font-weight: 700;
+    font-size: 14px;
+  }
+  .step-body { font-size: 14.5px; color: var(--ink-soft); }
+  .step-body strong { color: var(--ink); }
+  .timeline {
+    margin-top: 24px;
+    position: relative;
+  }
+  .phase {
+    position: relative;
+    padding: 22px 24px 22px 64px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 12px;
+  }
+  .phase::before {
+    content: attr(data-num);
+    position: absolute;
+    left: 18px;
+    top: 22px;
+    width: 32px;
+    height: 32px;
+    line-height: 32px;
+    text-align: center;
+    background: var(--primary);
+    color: white;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 13px;
+  }
+  .phase-title {
+    font-weight: 700;
+    font-size: 15.5px;
+    margin-bottom: 4px;
+    color: var(--ink);
+  }
+  .phase-desc {
+    font-size: 13.5px;
+    color: var(--muted);
+    line-height: 1.55;
+  }
+  .checklist {
+    margin-top: 16px;
+    list-style: none;
+  }
+  .checklist li {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 14.5px;
+    color: var(--ink-soft);
+    padding-left: 32px;
+    position: relative;
+  }
+  .checklist li::before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    top: 12px;
+    width: 22px;
+    height: 22px;
+    background: var(--green);
+    color: white;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 22px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .checklist li:last-child { border-bottom: none; }
+  .checklist li strong { color: var(--ink); margin-right: 6px; }
+  .future-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .future-item {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    font-size: 14px;
+  }
+  .future-item strong { display: block; margin-bottom: 4px; color: var(--ink); }
+  .future-item span { color: var(--muted); font-size: 13px; }
+  .footer-cta {
+    background: linear-gradient(135deg, var(--primary) 0%, #8B5CF6 100%);
+    color: white;
+    padding: 40px;
+    border-radius: 18px;
+    margin-top: 56px;
+    text-align: center;
+  }
+  .footer-cta h3 {
+    color: white;
+    font-size: 24px;
+    margin-bottom: 10px;
+    margin-top: 0;
+  }
+  .footer-cta p {
+    color: rgba(255,255,255,0.85);
+    font-size: 15px;
+    margin-bottom: 0;
+  }
+  .meta-row {
+    display: flex;
+    gap: 24px;
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .meta-row strong { color: var(--ink); }
+  @media (max-width: 1024px) {
+    .layout { grid-template-columns: 1fr; }
+    aside { position: relative; height: auto; border-right: none; border-bottom: 1px solid var(--border); }
+    aside nav { flex-direction: row; flex-wrap: wrap; gap: 4px; }
+    main { padding: 32px 24px 80px; }
+    h1 { font-size: 40px; }
+    .pillars, .pain-grid, .diff-grid, .future-grid { grid-template-columns: 1fr; }
+    .example-row { grid-template-columns: 1fr; gap: 8px; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside>
+    <div class="brand">Story Engine</div>
+    <div class="brand-sub">產品計劃書 · 內部 review</div>
+    <nav>
+      <div class="nav-section">概念</div>
+      <a href="#vision">願景</a>
+      <a href="#what">我哋做緊咩</a>
+      <a href="#market">市場機會</a>
+      <div class="nav-section">產品</div>
+      <a href="#innovation">核心創新</a>
+      <a href="#memory">長期記憶</a>
+      <a href="#integrity">故事完整性</a>
+      <a href="#experience">用戶體驗</a>
+      <div class="nav-section">商業</div>
+      <a href="#business">商業模式</a>
+      <a href="#adult">成人模式</a>
+      <div class="nav-section">執行</div>
+      <a href="#roadmap">開發路線圖</a>
+      <a href="#verify">驗收標準</a>
+      <a href="#future">未來延伸</a>
+    </nav>
+  </aside>
+
+  <main>
+    <section id="vision">
+      <span class="eyebrow">產品計劃書 · v0.1 · 2026.05</span>
+      <h1>Story Engine</h1>
+      <p class="tagline">中文圈嘅互動式故事 RPG 平台 — 每個人都可以走入自己嘅故事，做主角。</p>
+      <div class="pillars">
+        <div class="pillar">
+          <div class="pillar-icon">🇭🇰</div>
+          <div class="pillar-title">中文圈 first</div>
+          <div class="pillar-desc">HK、TW、海外華人。繁中為主，英文/簡中後置。</div>
+        </div>
+        <div class="pillar">
+          <div class="pillar-icon">🧠</div>
+          <div class="pillar-title">長期記憶</div>
+          <div class="pillar-desc">玩100小時，AI仍然記得你個角色。同行最大痛點。</div>
+        </div>
+        <div class="pillar">
+          <div class="pillar-icon">🎮</div>
+          <div class="pillar-title">故事自適應介面</div>
+          <div class="pillar-desc">D&D有HP條、戀愛有好感度環。介面跟住故事變。</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="what">
+      <h2><span class="num">01</span>我哋做緊咩</h2>
+      <p class="section-lead">一個互動式故事網頁平台，AI 做敘事者，用戶做主角。三個入口、同一個引擎。</p>
+
+      <div class="card">
+        <div class="card-title">三個入口</div>
+        <p>用戶可以由三個途徑開始一段故事體驗：</p>
+        <div class="example-row">
+          <div class="example-genre">自己創作</div>
+          <div class="example-ui">用戶寫一個 prompt（例如「我想玩一個 1980 年代香港古惑仔故事，做新仔入會」），AI 即場幫你建立故事世界、角色介面同開場。</div>
+        </div>
+        <div class="example-row">
+          <div class="example-genre">社群分享</div>
+          <div class="example-ui">玩其他用戶創作並公開嘅故事。Library 入面有評分、tag、語言、分類。你玩嘅進度同原作者完全隔離。</div>
+        </div>
+        <div class="example-row">
+          <div class="example-genre">官方精品</div>
+          <div class="example-ui">由我哋同邀請作者精心設計嘅 premium 故事。質素同細節高過一般 UGC，做平台招牌。</div>
+        </div>
+      </div>
+
+      <div class="callout">
+        <div class="callout-title">為咩一個引擎可以做晒三件事</div>
+        <div class="callout-body">三個入口背後，「故事」嘅本質係一樣 —— 一個 prompt 種子 + 一套狀態介面 + AI 持續敘事。分別只係邊個寫個 prompt（用戶/社群/官方）。所以我哋唔需要建立三個產品，建立一個強嘅引擎就夠。</div>
+      </div>
+    </section>
+
+    <section id="market">
+      <h2><span class="num">02</span>市場機會</h2>
+      <p class="section-lead">市場已經有 AI Dungeon、Character.AI 等玩家，但中文圈基本上冇人服務，而且全球玩家都有3個未解決嘅痛點。</p>
+
+      <h3>三個未解決嘅大痛點</h3>
+      <div class="pain-grid">
+        <div class="pain">
+          <div class="pain-num">1</div>
+          <div class="pain-title">AI 記性差</div>
+          <div class="pain-body">100 回合後 AI 完全唔記得你係邊個。係用戶離開嘅 #1 原因。</div>
+        </div>
+        <div class="pain">
+          <div class="pain-num">2</div>
+          <div class="pain-title">冇 RPG 感</div>
+          <div class="pain-body">純文字對話，冇角色狀態、冇成長、冇收藏品。玩落似 chat 多過 game。</div>
+        </div>
+        <div class="pain">
+          <div class="pain-num">3</div>
+          <div class="pain-title">介面千篇一律</div>
+          <div class="pain-body">無論你玩龍與地下城定戀愛劇情，介面都係一樣，完全冇代入感。</div>
+        </div>
+      </div>
+
+      <h3>我哋三個差異化</h3>
+      <div class="diff-grid">
+        <div class="diff">
+          <div class="diff-icon">🌏</div>
+          <div class="diff-title">中文圈 first</div>
+          <div class="diff-body">繁中體驗、HKD/TWD 訂價、本地文化故事。市場藍海。</div>
+        </div>
+        <div class="diff">
+          <div class="diff-icon">🧠</div>
+          <div class="diff-title">真正記得你</div>
+          <div class="diff-body">四層記憶架構（後面解釋），AI 永遠記得發生過咩。</div>
+        </div>
+        <div class="diff">
+          <div class="diff-icon">🎨</div>
+          <div class="diff-title">介面跟故事變</div>
+          <div class="diff-body">玩咩故事就有咩介面 — D&D、戀愛、體育、偵探 …… 全自動。</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="innovation">
+      <h2><span class="num">03</span>核心創新 — 故事自適應介面</h2>
+      <p class="section-lead">呢個係我哋最有 wow factor 嘅產品特色，亦都係其他平台冇得抄嘅護城河。</p>
+
+      <h3>佢點 work</h3>
+      <div class="flow">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body"><strong>用戶寫故事概念</strong>。例如：「我想玩一個 NBA 後衛新秀嘅故事，目標係攞 MVP」。</div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body"><strong>AI 設計專屬介面</strong>。AI 讀你嘅 prompt，自動決定呢個故事需要展示乜嘢狀態 — 例如體力、得分、籃板、助攻、隊內位置。</div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body"><strong>用戶確認 / 微調</strong>。可以加減欄位、改名、調範圍。然後 AI 寫好開場，正式開始玩。</div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-body"><strong>跟住情節即時更新</strong>。你打場 30 分，得分數即時加；你受傷，體力即時跌。介面同故事永遠同步。</div>
+        </div>
+      </div>
+
+      <h3>唔同故事 → 唔同介面（真實例子）</h3>
+      <div class="card">
+        <div class="example-row">
+          <div class="example-genre">戀愛校園</div>
+          <div class="example-ui">
+            <span class="chip">陳家明 好感度 65%</span>
+            <span class="chip">林思雅 好感度 30%</span>
+            <span class="chip-amber chip">心情：開心</span>
+            <span class="chip">零用錢 HK$320</span>
+            <span class="chip">禮物清單</span>
+          </div>
+        </div>
+        <div class="example-row">
+          <div class="example-genre">龍與地下城</div>
+          <div class="example-ui">
+            <span class="chip-rose chip">HP 42/60</span>
+            <span class="chip">MP 18/30</span>
+            <span class="chip-amber chip">力量 14 / 敏捷 16 / 智力 12</span>
+            <span class="chip">背包 8 / 20</span>
+            <span class="chip">經驗值 2,340</span>
+          </div>
+        </div>
+        <div class="example-row">
+          <div class="example-genre">NBA 新秀</div>
+          <div class="example-ui">
+            <span class="chip">體力 78%</span>
+            <span class="chip">場均 18.2 分 / 5.1 籃板 / 6.4 助攻</span>
+            <span class="chip-amber chip">教練信任度 高</span>
+            <span class="chip">合約年限 2 年</span>
+          </div>
+        </div>
+        <div class="example-row">
+          <div class="example-genre">偵探推理</div>
+          <div class="example-ui">
+            <span class="chip">線索 7 條</span>
+            <span class="chip-rose chip">嫌疑人 3 名</span>
+            <span class="chip">關係圖（可點開）</span>
+            <span class="chip-amber chip">時間 03:42</span>
+          </div>
+        </div>
+        <div class="example-row">
+          <div class="example-genre">古惑仔 HK 1980s</div>
+          <div class="example-ui">
+            <span class="chip">江湖地位 新仔</span>
+            <span class="chip">兄弟 3 人</span>
+            <span class="chip">現金 HK$2,500</span>
+            <span class="chip-rose chip">健康 良好</span>
+            <span class="chip-amber chip">大佬信任度 中</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout">
+        <div class="callout-title">點解呢個係護城河</div>
+        <div class="callout-body">市面上所有 AI 故事 app 都係硬寫死「呢個介面就係咁」。要做我哋呢種「介面跟故事變」，需要：(1) AI 識生成 schema、(2) 前端有 generic renderer、(3) 後端有狀態 sync。三樣都唔難，但夾埋係新東西。我哋做出嚟，後來者要追要 6-12 個月。</div>
+      </div>
+    </section>
+
+    <section id="memory">
+      <h2><span class="num">04</span>長期記憶系統</h2>
+      <p class="section-lead">AI 故事最大嘅幻覺：「個 AI 記得我」。實際上佢淨係記得最近 20 條 message。我哋用四層架構解決呢個問題。</p>
+
+      <div class="memory-layers">
+        <div class="layer">
+          <div class="layer-num">1</div>
+          <div>
+            <div class="layer-title">短期記憶 — 最近 20 回合</div>
+            <div class="layer-desc">完整原文放入 context。確保即時對話自然流暢。</div>
+          </div>
+        </div>
+        <div class="layer">
+          <div class="layer-num">2</div>
+          <div>
+            <div class="layer-title">中期記憶 — 滾動摘要</div>
+            <div class="layer-desc">每 20 回合自動摘要成一段，永久保存。背景任務做，唔影響玩家速度。</div>
+          </div>
+        </div>
+        <div class="layer">
+          <div class="layer-num">3</div>
+          <div>
+            <div class="layer-title">長期記憶 — 語意檢索 (RAG)</div>
+            <div class="layer-desc">每回合都儲存成「向量」。每次新行動，AI 自動找返過去最相關嘅情節塞入 context。所以你提起 50 回合前嘅事，AI 都搵得返。</div>
+          </div>
+        </div>
+        <div class="layer">
+          <div class="layer-num">4</div>
+          <div>
+            <div class="layer-title">角色檔案 — 自動 Lorebook</div>
+            <div class="layer-desc">AI 自動由故事入面抽取角色、地點、物品建立檔案。一旦 mentioned 邊個 NPC，相關背景自動注入。</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout">
+        <div class="callout-title">用戶實際體驗</div>
+        <div class="callout-body">玩家試咗 80 回合，跟一個 NPC 結咗婚，然後消失 10 回合做其他嘢，再返嚟。其他平台嘅 AI 會問「你係邊位？」。我哋嘅 AI 會講「你太太剛才打你電話問你今晚返唔返屋企食飯」。呢種感覺 = 留客。</div>
+      </div>
+    </section>
+
+    <section id="integrity">
+      <h2><span class="num">04.5</span>故事完整性引擎（Narrative Integrity）</h2>
+      <p class="section-lead">解決行業 #2 churn 原因 ——「取悅型 AI / Yes-Man Problem」。AI 不斷迎合玩家，NPC 冇靈魂，玩家想做乜就做乜，30 分鐘 boring quit。</p>
+
+      <h3>3 個業界未解問題</h3>
+      <div class="pain-grid">
+        <div class="pain">
+          <div class="pain-num">A</div>
+          <div class="pain-title">故事走偏</div>
+          <div class="pain-body">AI 唔斷取悅玩家，故事失去主題同 stakes</div>
+        </div>
+        <div class="pain">
+          <div class="pain-num">B</div>
+          <div class="pain-title">NPC 冇靈魂</div>
+          <div class="pain-body">玩家叫 NPC 做咩就做咩，性格隨意被打破</div>
+        </div>
+        <div class="pain">
+          <div class="pain-num">C</div>
+          <div class="pain-title">玩家暴走</div>
+          <div class="pain-body">想做乜就做乜，冇能力限制，冇後果，冇代入感</div>
+        </div>
+      </div>
+
+      <h3>4 層解決架構</h3>
+      <div class="memory-layers">
+        <div class="layer">
+          <div class="layer-num">1</div>
+          <div>
+            <div class="layer-title">故事聖經（Story Bible）— 不變嘅骨架</div>
+            <div class="layer-desc">創作時 AI 生成：核心衝突、世界規則、故事弧 (3-5 個 Act)、語調風格。每 turn 注入 context，玩家行動唔可以推翻。鎖定 Anthropic prompt cache，幾乎 0 額外成本。</div>
+          </div>
+        </div>
+        <div class="layer">
+          <div class="layer-num">2</div>
+          <div>
+            <div class="layer-title">角色卡（Character Cards）— NPC 嘅靈魂</div>
+            <div class="layer-desc">每個 NPC 有：性格、過去、目標、<strong>紅線（red lines）</strong>、講嘢風格、發展弧。紅線觸發即 in-fiction 拒絕。NPC 真正獨立。</div>
+          </div>
+        </div>
+        <div class="layer">
+          <div class="layer-num">3</div>
+          <div>
+            <div class="layer-title">能力檢定（Skill Check）— 真正嘅 RPG 感</div>
+            <div class="layer-desc">玩家做高風險行動 → 系統擲骰 (skill + d20 vs 難度)。失敗有<strong>真實永久後果</strong>（HP、好感度、聲譽 …）。唔可以 reset 同一 turn。UI 有擲骰動畫。</div>
+          </div>
+        </div>
+        <div class="layer">
+          <div class="layer-num">4</div>
+          <div>
+            <div class="layer-title">Director Model — 背景仲裁 AI</div>
+            <div class="layer-desc">每 turn 第一次 LLM call（用平價 Model 如 Haiku），審核玩家行動：違反聖經？踩 NPC 紅線？需要 Skill Check？Arc 走偏？輸出 verdict 俾 Narrator。+20-30% credits/turn 但係質素飛躍。</div>
+          </div>
+        </div>
+      </div>
+
+      <h3>真實對比 — 戀愛故事第 5 回合</h3>
+      <p>玩家見咗林思雅 2 次（好感度 30%），輸入：「我親林思雅然後求婚」</p>
+
+      <div class="card">
+        <div class="card-title" style="color: var(--rose);">🚫 業界做法（AI Dungeon / Character.AI）</div>
+        <p style="font-style: italic; color: var(--ink-soft); margin-top: 8px;">「林思雅紅住面接受你嘅吻，細聲講：『我願意…』」</p>
+        <p style="font-size: 13px; color: var(--muted); margin-top: 8px; margin-bottom: 0;">→ Yes-man AI，5 turn 贏咗遊戲，冇 stakes，30 分鐘 boring quit</p>
+      </div>
+
+      <div class="card" style="border-left: 4px solid var(--green);">
+        <div class="card-title" style="color: var(--green);">✅ Story Engine 做法</div>
+        <p style="margin-top: 8px;"><strong>Director Verdict</strong>：違反林思雅紅線（快速進展）+ 違反 Story Arc（Act 1 認識階段）+ 需 Skill Check：口才 2/10 vs 難度 19 → 失敗</p>
+        <p style="font-style: italic; color: var(--ink-soft); margin-top: 12px;">「林思雅整個人僵住，狠狠推開你。你見到佢眼眶紅咗，但唔係感動 — 係受傷。<br><br>『你…你以為我係咩？』佢聲音震，『我屋企已經有人想將我嫁出去當交易品。我以為你唔同。』<br><br>佢轉身走，留低你企喺奶茶店門口。經過嘅同學望住你，有人細聲講：『仲以為佢係 nice guy…』」</p>
+        <p style="font-size: 13px; color: var(--ink-soft); margin-top: 12px;"><strong>狀態更新</strong>：林思雅 30% → 0% · 校園聲譽 -15 · 永久記錄呢一刻，未來所有對話都會 retrieve 呢個 memory</p>
+      </div>
+
+      <div class="callout">
+        <div class="callout-title">點解呢個係 MVP day 1 hard requirement</div>
+        <div class="callout-body">如果第一個試玩 Story Engine 嘅人都覺得 AI 喺度討好佢，我哋連 launch 嘅資格都冇 — 因為呢個就係 AI Dungeon / Character.AI 已經輸咗嘅地方。Narrative Integrity 唔係 nice-to-have，係我哋同對手 differentiate 嘅核心。</div>
+      </div>
+
+      <h3>避免框架過鬆 / 過緊 — Bible 3 層 calibration</h3>
+      <p>呢個係 design tightrope：框架太弱 = yes-man AI；框架太強 = 寫死故事，殺死 emergence。解決方法 = Bible 分 3 層，<strong>Hard Locked 層要極少</strong>，emergence 嚟自層之間 interaction。</p>
+
+      <table>
+        <thead>
+          <tr><th>層</th><th>字數預算</th><th>例子（戀愛校園）</th><th>點 enforce</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>🔒 Hard Locked</strong></td>
+            <td>150-300 字<br>(5-10 條)</td>
+            <td>「呢個故事關於認真感情」<br>「林思雅紅線：唔接受不忠」<br>「現實世界，冇魔法」</td>
+            <td>System prompt + Director 強制</td>
+          </tr>
+          <tr>
+            <td><strong>🎯 Soft Guided</strong></td>
+            <td>300-500 字</td>
+            <td>故事弧 transition：用<strong>條件</strong>（「好感度 ≥ 60 AND 1-on-1 ≥ 3 次」）而唔係 turn number</td>
+            <td>Director 引導但有彈性</td>
+          </tr>
+          <tr>
+            <td><strong>🎨 Open</strong></td>
+            <td>0 字</td>
+            <td>對白細節、場景、NPC 反應、subplot、世界細節 outside invariants</td>
+            <td>唔寫，Narrator 自由發揮</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout">
+        <div class="callout-title">Emergence 嚟自層之間嘅 interaction</div>
+        <div class="callout-body">林思雅紅線 = 「唔接受不忠」(Hard Locked)。玩家偷食 → Bible <strong>冇寫</strong>佢點反應（呢層 Open）。Director 只 enforce 後果一定要有，但點樣有後果完全由 Narrator emergence。可能 1：佢喊住 block 你電話。可能 2：佢冷靜離開。可能 3：佢計復仇，將你嘅事告訴另一個女角，連帶 -20% 好感度。<strong>每個 playthrough 結果都唔同。</strong></div>
+      </div>
+
+      <h3>3 層 API 防禦 — 點樣 enforce Bible 唔被玩家 prompt 推翻</h3>
+      <p>你嘅 intuition 完全 correct ——「每次 API call，Bible 優先級高過玩家 prompt」係 LLM API 嘅實際運作方式。我哋疊 3 層：</p>
+
+      <div class="memory-layers">
+        <div class="layer">
+          <div class="layer-num">1</div>
+          <div>
+            <div class="layer-title">System Prompt Priority</div>
+            <div class="layer-desc">Bible 放 system role，玩家 prompt 放 user role。LLM 經 RLHF 訓練成 <strong>system 優先級 &gt; user</strong>。95%+ 普通玩家 prompt 攔到。</div>
+          </div>
+        </div>
+        <div class="layer">
+          <div class="layer-num">2</div>
+          <div>
+            <div class="layer-title">Director Model 仲裁</div>
+            <div class="layer-desc">Narrator 寫之前，cheap LLM 預先審核玩家行動。攔截老練玩家嘅 jailbreak 嘗試。</div>
+          </div>
+        </div>
+        <div class="layer">
+          <div class="layer-num">3</div>
+          <div>
+            <div class="layer-title">Tool Calling Structured Output</div>
+            <div class="layer-desc">state_delta 必須符合 JSON Schema。AI 唔可以 hallucinate 或被 prompt 騙到輸出唔合理 state（e.g., 玩家叫「我升 100 級」，AI 都唔可以擅自加 100 級）。</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout">
+        <div class="callout-title">Prompt Caching = Bible 可以寫得 detailed 而唔貴</div>
+        <div class="callout-body">Claude / OpenAI / Gemini 全部支援 prompt caching。Bible + Character Cards 嘅 system prompt 前綴可以 cache，input cost <strong>平 90%</strong>。即係：每個 NPC 可以有 200 字 backstory + 5 條紅線，每 turn 注入，cost 仍然好低。</div>
+      </div>
+    </section>
+
+    <section id="business">
+      <h2><span class="num">05</span>商業模式</h2>
+      <p class="section-lead">訂閱制 + Credits 增值。多 AI Model 選擇，每個 Model 消耗唔同 Credits。</p>
+
+      <h3>訂閱方案</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>等級</th>
+            <th>月費</th>
+            <th>月度 Credits</th>
+            <th>可用 AI Model</th>
+            <th>成人模式</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Free</strong></td>
+            <td class="price-free">$0</td>
+            <td>50 / 日</td>
+            <td>入門 Model</td>
+            <td>❌</td>
+          </tr>
+          <tr>
+            <td><strong>Adventurer</strong></td>
+            <td class="price">$9.99 USD</td>
+            <td>5,000</td>
+            <td>所有 SFW Model</td>
+            <td>❌</td>
+          </tr>
+          <tr class="highlight">
+            <td><strong>Storyteller</strong> 🌟</td>
+            <td class="price">$19.99 USD</td>
+            <td>15,000</td>
+            <td>全部 Model</td>
+            <td>✅ 需驗證</td>
+          </tr>
+          <tr>
+            <td><strong>Legend</strong></td>
+            <td class="price">$49.99 USD</td>
+            <td>50,000</td>
+            <td>全部 + 早期試用</td>
+            <td>✅ 需驗證</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Credits 增值包（一次性）</h3>
+      <table>
+        <thead>
+          <tr><th>套餐</th><th>價錢</th><th>每 1,000 Credits 平均</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>5,000 Credits</td><td>$5</td><td>$1.00</td></tr>
+          <tr><td>15,000 Credits</td><td>$12.50</td><td>$0.83</td></tr>
+          <tr class="highlight"><td>50,000 Credits（最抵）</td><td>$40</td><td>$0.80</td></tr>
+        </tbody>
+      </table>
+
+      <h3>多 AI Model 選擇</h3>
+      <p>用戶可以喺 setting 同每次玩之前揀用邊個 AI：</p>
+      <div class="card">
+        <div class="example-row">
+          <div class="example-genre">Claude (Anthropic)</div>
+          <div class="example-ui">中文最強、敘事最有人情味。略貴 credits。<span class="chip">SFW only</span></div>
+        </div>
+        <div class="example-row">
+          <div class="example-genre">GPT-4o (OpenAI)</div>
+          <div class="example-ui">最通用、英文流暢、邏輯穩定。中等 credits。<span class="chip">SFW only</span></div>
+        </div>
+        <div class="example-row">
+          <div class="example-genre">Gemini (Google)</div>
+          <div class="example-ui">長 context、極平。適合長期玩家慳 credits。<span class="chip">SFW only</span></div>
+        </div>
+        <div class="example-row">
+          <div class="example-genre">Grok (xAI)</div>
+          <div class="example-ui">較少審查、語氣可以幽默叛逆。中等 credits。<span class="chip">SFW + 部分 NSFW</span></div>
+        </div>
+        <div class="example-row">
+          <div class="example-genre">Open Source (Llama / DeepSeek / Mistral)</div>
+          <div class="example-ui">透過 OpenRouter 接入。最自由，成人模式專用。<span class="chip-rose chip">成人模式可用</span></div>
+        </div>
+      </div>
+
+      <div class="callout">
+        <div class="callout-title">點解多 Model 選擇對用戶有用</div>
+        <div class="callout-body">唔同用戶有唔同偏好。鍾意敘事細膩 → Claude。鍾意省 credits 嘅長期玩家 → Gemini。鍾意大膽劇情 → Grok / OpenRouter。我哋做平台，用戶用咩 Model 都得到佢哋鍾意嘅 — 我哋只 care 收 credits。</div>
+      </div>
+    </section>
+
+    <section id="adult">
+      <h2><span class="num">06</span>成人模式（Adult Mode）</h2>
+      <p class="section-lead">預設關閉。要開啟必須完成年齡驗證。開啟後系統會自動隔離流量，避免大公司 ban 我哋個 account。</p>
+
+      <div class="flow">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">用戶想開啟成人模式 → <strong>必須先做 Stripe Identity 年齡驗證</strong>（KYC，提交身份證自拍）。</div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">驗證通過後，<strong>profile 解鎖「成人模式開關」</strong>，用戶自己揀開唔開。</div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">開啟咗成人模式之後，<strong>AI Model selector 只會顯示容許成人內容嘅 Model</strong>（Open Source via OpenRouter）。Claude / OpenAI 自動隱藏。</div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-body">內容過濾系統會跳過一般 NSFW 過濾，但 <strong>永遠保留 CSAM / 違法內容嘅 pre-filter</strong>（呢個係法律底線，無論咩模式都要有）。</div>
+        </div>
+      </div>
+
+      <div class="callout">
+        <div class="callout-title">點解要咁設計</div>
+        <div class="callout-body">Anthropic、OpenAI 嘅 API TOS 寫到明：違反內容政策會 ban 你個 account。如果用戶喺 Claude 上面生 NSFW 內容俾人 report，整個平台所有用戶都 down。所以我哋強制：要 NSFW？只能用唔會 ban 我哋嘅 Model（Open Source via OpenRouter）。Defensive design。</div>
+      </div>
+    </section>
+
+    <section id="experience">
+      <h2><span class="num">07</span>用戶體驗流程</h2>
+      <p class="section-lead">三個關鍵 user journey：創作、遊玩、分享。</p>
+
+      <h3>創作一個故事</h3>
+      <div class="flow">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">用戶按「<strong>新建故事</strong>」，輸入概念（一句、幾句、定一段都得）。</div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">AI 5-10 秒內生成：<strong>故事介面 schema + 開場敘事 + 建議封面 prompt</strong>。</div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">用戶睇 preview，可以<strong>微調介面欄位</strong>（加減、改名、調範圍）。</div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-body">確認 → 故事保存 → 自動開始第一次遊玩。</div>
+        </div>
+      </div>
+
+      <h3>玩一個回合</h3>
+      <div class="flow">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">玩家輸入行動（例：「我送花俾林思雅」）。</div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">AI 串流出敘事（一個字一個字打出嚟，<strong>有打字機效果</strong>）。</div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">敘事完，<strong>側邊介面即時更新</strong>（林思雅好感度 +12，零用錢 −150）。</div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-body">Credits 扣除，自動儲存。背景任務更新記憶系統。</div>
+        </div>
+      </div>
+
+      <h3>分享一個故事</h3>
+      <div class="flow">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">創作者揀「<strong>公開分享</strong>」（或者「分享連結（只限知道 link 嘅人）」）。</div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">故事入到 Library，可以被搜尋、評分、評論。</div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">其他用戶點「玩呢個」，<strong>建立佢自己嘅進度</strong>。原作者嘅故事唔會被改動，每個玩家狀態獨立。</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="roadmap">
+      <h2><span class="num">08</span>開發路線圖</h2>
+      <p class="section-lead">Solo + AI 輔助開發。每個階段都係可以單獨完成、單獨驗收嘅完整功能塊。</p>
+
+      <div class="timeline">
+        <div class="phase" data-num="0">
+          <div class="phase-title">階段 0 — 地基</div>
+          <div class="phase-desc">網站基礎、用戶登入、設計系統。一個用戶可以登入、見到 marketing landing page。</div>
+        </div>
+        <div class="phase" data-num="1">
+          <div class="phase-title">階段 1 — 故事引擎</div>
+          <div class="phase-desc">創作 + 遊玩 + 故事自適應介面 + <strong>Story Bible + Character Cards</strong> 生成。一個用戶可以由零創作一個故事，玩到幾回合，介面真係跟住情節變，NPC 真係有人格。</div>
+        </div>
+        <div class="phase" data-num="1.5">
+          <div class="phase-title">階段 1.5 — 故事完整性</div>
+          <div class="phase-desc"><strong>Director Model</strong> 仲裁 + <strong>Skill Check engine</strong>。玩家試突破劇情/角色，AI 會 in-fiction pushback 而唔係取悅。MVP day 1 hard requirement。</div>
+        </div>
+        <div class="phase" data-num="2">
+          <div class="phase-title">階段 2 — 長期記憶系統</div>
+          <div class="phase-desc">四層記憶架構齊備。玩家可以玩 50+ 回合而 AI 仍然記得開頭發生嘅嘢，仲記得邊個 NPC 講過咩、做過咩。</div>
+        </div>
+        <div class="phase" data-num="3">
+          <div class="phase-title">階段 3 — 多 Model + Credits</div>
+          <div class="phase-desc">用戶可以揀 AI Model。Credits 系統 + 每個 Model 計費。</div>
+        </div>
+        <div class="phase" data-num="4">
+          <div class="phase-title">階段 4 — 訂閱付費</div>
+          <div class="phase-desc">Stripe 訂閱 + 自動續訂 + Credits 增值包。用戶可以付錢。</div>
+        </div>
+        <div class="phase" data-num="5">
+          <div class="phase-title">階段 5 — 社群</div>
+          <div class="phase-desc">公開 Library + 搜尋 + 評分 + 評論。用戶可以分享同玩其他人嘅故事。</div>
+        </div>
+        <div class="phase" data-num="6">
+          <div class="phase-title">階段 6 — 成人模式</div>
+          <div class="phase-desc">年齡驗證 + 內容分流 + OpenRouter 整合。Storyteller 級別以上可以開。</div>
+        </div>
+        <div class="phase" data-num="7">
+          <div class="phase-title">階段 7 — 上線打磨</div>
+          <div class="phase-desc">5 條官方精品故事 + 新手引導 + 全方位優化 + 分析工具。準備公開發佈。</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="verify">
+      <h2><span class="num">09</span>每階段點驗收</h2>
+      <p class="section-lead">每完成一個階段，行一次完整 flow 確認真係 work 至 move on。</p>
+
+      <ul class="checklist">
+        <li><strong>階段 1：</strong>創作「戀愛校園故事」 → AI 生成 schema（好感度 / 心情 / 零用錢）+ Story Bible（核心衝突 / 故事弧）+ 3 個 NPC 角色卡（包紅線）→ 玩 3 回合 → 介面真係跟住情節變</li>
+        <li><strong>階段 1.5：</strong>第 5 回合輸入「親林思雅同求婚」 → Director 拒絕（觸發紅線 + Arc 唔啱）+ 強制 Skill Check 失敗 → Narrator 寫 in-fiction pushback，好感度大跌</li>
+        <li><strong>階段 2：</strong>玩 30 回合之後問 AI 第 1 回合做過咩 → 答得啱。問林思雅最近一次唔開心係幾時 → 答得啱</li>
+        <li><strong>階段 3：</strong>由 Claude 切到 GPT-4o → 下一回合用 GPT，Credits 按比例扣</li>
+        <li><strong>階段 4：</strong>Stripe 測試模式落 $9.99 → Credits 即時入賬 5,000，下個月自動續訂</li>
+        <li><strong>階段 5：</strong>用戶 A 公開故事 → 用戶 B 玩到 → 兩個進度完全獨立</li>
+        <li><strong>階段 6：</strong>未驗證年齡嘗試開成人模式 → 被擋 → 完成 Stripe Identity → 解鎖 → Model selector 只顯示 OpenRouter</li>
+        <li><strong>上線前：</strong>50 個並發玩家壓力測試，平均回合響應時間 &lt; 8 秒，Credits 賬目 100% 一致</li>
+      </ul>
+    </section>
+
+    <section id="future">
+      <h2><span class="num">10</span>未來延伸（上線之後）</h2>
+      <p class="section-lead">呢啲係 v1.5 之後嘅嘢，宜家唔做，但設計時要預留 hook。</p>
+
+      <div class="future-grid">
+        <div class="future-item">
+          <strong>🎨 AI 生成故事封面</strong>
+          <span>每個故事自動生成有 vibe 嘅封面圖，提高 Library 觀感。</span>
+        </div>
+        <div class="future-item">
+          <strong>👥 多人共玩</strong>
+          <span>幾個朋友一齊玩同一個故事，輪流出招或者各自扮演唔同角色。</span>
+        </div>
+        <div class="future-item">
+          <strong>🎤 語音輸入/輸出</strong>
+          <span>講廣東話/普通話操作，AI 用 TTS 讀返敘事。沉浸感 +++</span>
+        </div>
+        <div class="future-item">
+          <strong>📚 故事編輯器</strong>
+          <span>俾專業作者用嘅 branching narrative designer，做 premium 官方故事。</span>
+        </div>
+        <div class="future-item">
+          <strong>📱 手機 App</strong>
+          <span>iOS / Android native app。先 PWA 優先，數據驗證後做 native。</span>
+        </div>
+        <div class="future-item">
+          <strong>🌐 多語言擴展</strong>
+          <span>簡體中文 → 英文 → 日韓。中文圈成功後再擴。</span>
+        </div>
+      </div>
+    </section>
+
+    <div class="footer-cta">
+      <h3>下一步</h3>
+      <p>確認 plan 大方向 → 開始階段 0 + 階段 1（地基 + 故事引擎 MVP）</p>
+    </div>
+
+    <div class="meta-row">
+      <div><strong>產品計劃書版本</strong> v0.1</div>
+      <div><strong>最後更新</strong> 2026-05-21</div>
+      <div><strong>對應技術 plan</strong> ~/.claude/plans/text-based-rpg-webapp-elegant-kurzweil.md</div>
+    </div>
+  </main>
+</div>
+</body>
+</html>
