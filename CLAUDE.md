@@ -201,6 +201,10 @@ DB：`story_characters` (模板) + `playthrough_character_states` (per-playthrou
 14. **`"use server"` 喺 library file 係 attack vector** — Next.js Server Action 暴露 directive 到客戶端。喺 lib/ 嘅 file 唔需要做 Server Action 就唔好寫 `"use server"`。Wave 2 嘅 schema-generator.ts 就係呢個 footgun — 任何 unauth visitor 可以直接 POST 燒 $0.20/call。
 15. **All write policies need `with check`** — Postgres RLS `using` 只 filter SELECT/UPDATE/DELETE 嘅可見性，`with check` 先 validate INSERT 同 post-UPDATE state。冇 `with check` 等於用戶可以 INSERT 帶其他人 owner_id。Hard rule。
 16. **Zod parse at DB boundary, never cast** — `as StateSchema` cast 唔 runtime check，corrupt jsonb 會深層 crash。永遠用 `XxxSchema.safeParse(...)` at boundary，friendly error 比 stack trace 好。
+17. **`void (async () => ...)` 喺 Vercel serverless 係 silent killer** — Lambda terminate response stream 一 close 即斬纜 in-flight promise。Background work (embed / summarizer / lorebook / log write / webhook) 必須用 <code>after()</code> from `next/server` 或 Vercel 嘅 <code>waitUntil</code> from `@vercel/functions` wrap，先 keep lambda alive past response。Session 6 Phase 2 SHOWSTOPPER 就係呢個 — Phase 2 tier 2/3/4 喺 prod 默默死晒，audit 至 catch 到。
+18. **Top-K retrieval 冇 similarity floor 等於 noise by design** — `ORDER BY similarity LIMIT K` 一定返 K row 唔理多 irrelevant。Player 經驗 "AI 老係 reference 過場 NPC" 唔係 bug，係 by-design 行為。Vector search 永遠加 `WHERE similarity > threshold` floor — 回 EMPTY 好過回 noise。每個 source tune 唔同 floor (Story Engine: summaries 0.55 / RAG 0.5 / lorebook 0.45)。
+19. **Memory / 後台 feature differentiator 一定要 UI surface** — 即使 backend 100% work，user 見唔到就 unfalsifiable。NovelAI lorebook UI 係佢哋 #1 retention driver。"AI 真係記得" claim 冇 Memory Journal 等於 marketing 喺空氣度。Plan UI 同 backend 一齊 ship，唔係留到「之後」。
+20. **Audit cost projections 永遠 underestimate** — Phase 2 原本估 ~2% memory overhead，實際係 ~35% on Narrator baseline。每次 add LLM call 都要 re-baseline 真實 per-turn cost vs subscription tier pricing。Adventurer $9.99/mo 200-turn = $4.60 = 46% COGS。
 
 ---
 
@@ -214,4 +218,4 @@ DB：`story_characters` (模板) + `playthrough_character_states` (per-playthrou
 
 ---
 
-_Last updated: 2026-05-22 (Session 5 — Foundation Deep Audit + 7-wave hardening shipped)_
+_Last updated: 2026-05-22 (Session 6 — Phase 2 ship + Phase 2 Deep Audit + 3 fix waves shipped)_

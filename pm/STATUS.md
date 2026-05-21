@@ -7,26 +7,73 @@
 
 ## 🎯 而家狀態
 
-**Phase**: **Foundation Deep Audit done · 7 hardening waves shipped · Phase 2 (Memory) next**
+**Phase**: **Phase 2 (Memory) shipped · Deep audit done · 3 fix waves shipped · 4 migrations awaiting apply**
 **Live URL**: https://story-engine-drab.vercel.app
-**Last updated**: 2026-05-22 (Session 5 — 7-wave foundation hardening, 45+ audit findings fixed)
+**Last updated**: 2026-05-22 (Session 6 — Phase 2 ship + Phase 2 Deep Audit + 3 fix waves)
 
 ## 📍 What's next
 
-**Foundation 已加固 · Phase 2 Memory 可以入** — 但用戶要先做 1 件事：
+**Code-wise Phase 2 完整 ship + audit-cleaned。But Phase 2 memory layer 喺 prod 等於零 until 用戶 apply 4 migrations**：
 
-| | Plan item | Time | Why this order |
+| | Plan item | Time | Why |
 |---|---|---|---|
-| ⚠️ **Apply 2 migrations to prod** | <strong>0002_audit_hardening.sql</strong>（RLS with check · age column lock · indexes · pgvector）+ <strong>0003_atomic_rpcs.sql</strong>（acquire_next_turn_pair · apply_turn_npc_changes） | 5 分鐘 | Code 已有 fallback path 所以 prod 仲 work，但 audit critical (RLS / race / age-spoof) 要 apply 先真正 fix |
-| 🥇 | **Phase 2 — Memory** (pgvector + embedding pipeline + rolling summary every 20 turns + RAG retriever + auto-lorebook entity extraction) | ~2 sessions | Long-play retention. Solves #1 churn driver across competitors. |
-| 🥈 | **UI/UX polish** (UX-01..23 — 23 finding from foundation audit · UX-C-01..04 critical user-flow blockers) | ~1-2 sessions | Backend solid 而家可以 layer UX on top |
-| 🥉 | **Phase 1.5.3 M-02..M-05 medium follow-ups** | ~1 session | Polish during/after Phase 2 |
+| 🚨 **Apply 4 migrations to prod** | `0002` (RLS+pgvector) · `0003` (atomic RPCs) · `0004` (memory tables+RPCs) · `0005` (Phase 2 audit fixes) | 5-10 分鐘 | **Code 已 ship 晒，但 memory tables 唔存在 = 4 層架構等於 0 層**。Migrations apply 之後 fallback path 自動升級 |
+| 🧪 **E2E test long-play 30+ turns** | Verify memory engagement (first summary at turn 10) · lorebook entries populate · RAG retrieves relevant past · top similarity score in console logs | 15-20 分鐘 | Audit fixes only validated by real playthrough |
+| 🥇 | **Phase 3 — Multi-LLM + Credits** (DB-backed model registry · picker UI · credit ledger · per-model rate cards) | ~2 sessions | Monetization foundation |
+| 🥈 | **UI/UX polish + Memory Journal** (UX-C-01..04 foundation audit · P2-UX-C-03 Memory Journal UI — the player-visibility differentiator) | ~2 sessions | "AI 真係記得" only verifiable when player can SEE the lorebook |
+| 🥉 | **Phase 2 deferred items** (always_on demote · dimensions 1024 decision · recent turns cache breakpoint · cost capture for billing) | ~1 session | Polish, not blocking |
 
 ## 🚧 Blockers
 
-**僅 1 個**：User to apply migrations 0002 + 0003 to prod (`supabase migration up` or paste via dashboard). Code 已 ready ship 晒，fallback path 意味唔 apply 唔會壞 prod，但係 audit critical findings 要 apply 先正式關門。
+**僅 1 個**：User to apply migrations 0002 + 0003 + 0004 + 0005 (4 SQL files in `supabase/migrations/`). Code has graceful fallback so prod still works, but Phase 2 memory + Phase 1.5 RLS hardening etc all dormant until apply.
 
-## ✅ Recently completed (Session 5 — Foundation Deep Audit + 7-wave hardening)
+## ✅ Recently completed (Session 6 — Phase 2 ship + audit + 3 fix waves)
+
+### Phase 2 — 4-layer Memory shipped (commit 0f650c7)
+- **Migration 0004** — `turn_embeddings` · `memory_summaries` · `lorebook_entries` + HNSW indexes + RLS + 3 match RPCs
+- **`embed.ts`** — OpenAI text-embedding-3-small wrapper (single + batch + safe)
+- **`memory/retriever.ts`** — embed query + 3 parallel RPCs + 1 SELECT, returns pre-formatted context for Director + Narrator
+- **`memory/summarizer.ts`** — every-20-turn Haiku rollup with embedding (idempotent against existing summaries)
+- **`memory/lorebook.ts`** — per-turn Haiku entity extraction (character/place/item/event/concept) with upsert + embedding
+- **Turn route wired** — retriever pre-Director · user turn pre-persisted with reused query embedding · onFinish fires AI turn embed + summarizer + lorebook
+- ~$0.023/turn (memory adds ~35% on Narrator baseline, NOT 2% — Phase 4 pricing math needs update)
+
+### Phase 2 Deep Audit (3 parallel agents · 43 findings)
+- 3 dimension audit: Correctness · Performance/Cost · Player UX
+- 7 Critical, 17 High, 14 Medium, 5 Low
+- `audit-report-phase2-deep.html` written + linked in dashboard
+- **🛑 SHOWSTOPPER discovered**: Vercel kills `void (async () => ...)` fire-and-forget when stream ends → Phase 2 tier 2/3/4 silently non-functional in prod
+
+### Phase 2 Wave 1 — SHOWSTOPPER + critical (commit ab51c34)
+- **P2-PERF-C-02 SHOWSTOPPER**: `void (async () => {...})` → `after()` from `next/server` for all 3 fire-and-forget sites. Phase 2 background path NOW actually runs in prod
+- **Migration 0005** — UNIQUE on memory_summaries(playthrough_id, turn_range) · UNIQUE btrim() on lorebook for whitespace dedup · vector dimension CHECK constraint · match RPCs gain `p_min_similarity` param + overprovision for exclusions
+- **P2-LOGIC-C-01**: lorebook description merge changed from "longer wins" to "recency wins" — text + embedding now stay in sync
+- **P2-UX-C-02 + LOGIC-M-10**: similarity floor per source (RAG 0.5 · lorebook 0.45 · summaries 0.55) — empty result beats noise
+- **Retriever**: always_on lorebook `.limit(8)` + order by `updated_at` desc (partial P2-PERF-H-07 fix)
+- **Lorebook**: client-side trim before dedup + protagonist compare
+
+### Phase 2 Wave 2 — Quality + cost (commit 7a716c7)
+- **P2-PERF-H-05**: OpenAI 429 retry with exponential backoff (500ms→2s→8s, parses Retry-After if present)
+- **P2-PERF-H-06**: Lorebook batched `embedTexts` (5 → 1 API call · ~80% RPM reduction)
+- **P2-UX-H-04 + H-09**: Summarizer prompt allows emotional texture (1-2 weighted details/paragraph, 1 quoted line OK, 1-4 sentences) + locale branch (zh-Hant/zh-Hans/en)
+- **P2-UX-H-09**: Lorebook extractor also locale-branched
+- **P2-UX-H-08**: Director system prompt teaches memory use (earned exception relax, arc coherence, commitment callback)
+
+### Phase 2 Wave 3 — Player visibility backend (commit d9f6c8d)
+- **P2-UX-C-01**: First summary at turn 10 (not 20) — player feels memory engage within first session
+- **P2-UX-H-06**: RAG `truncateToSentence` keeps RESOLUTION (last sentences) instead of cutting mid-sentence at openings/conflicts
+- **P2-UX-M-10**: Stronger anti-quote header on memory block + matching NARRATOR_RULES line
+- **P2-UX-L-14**: Top similarity score per source logged in turn telemetry
+
+### 18 of 43 Phase 2 audit findings fixed across 3 waves. Deferred:
+- P2-UX-C-03 Memory Journal UI (UX work, separate session)
+- P2-UX-H-05 always_on demote pathway (needs cron job)
+- P2-PERF-C-01 recent turns cache breakpoint (message reshape)
+- P2-PERF-M-09 dimensions 1024 (destructive — user decision)
+- P2-UX-M-12 cost capture for Phase 4 billing
+- Several Medium/Low logic edge cases
+
+## ✅ Earlier — Session 5 (Foundation Deep Audit + 7-wave hardening)
 
 ### Foundation Deep Audit (5 parallel agents)
 - 5 dimension audit (Security · AI Pipeline · State+Render · DB · UX) — 95 finding 合計
@@ -179,7 +226,33 @@ All sub-tasks done. UI/UX polish (UX-01 / UX-02 / UX-04) parked — user decisio
 
 ## 📓 Session Log
 
-### Session 5 (most recent — Foundation Deep Audit + 7-wave hardening) — 2026-05-22
+### Session 6 (most recent — Phase 2 ship + audit + 3 fix waves) — 2026-05-22
+
+**Major outcomes**:
+- Phase 2 4-layer long-term memory shipped end-to-end (5 new files, 1 migration, 1 turn route refactor)
+- Phase 2 Deep Audit done — 3 parallel agents catalogued 43 findings
+- 🛑 SHOWSTOPPER discovered + immediately fixed — Vercel kills `void (async)` fire-and-forget, Phase 2 was silently broken in prod
+- 3 fix waves shipped — 18 of 43 findings closed
+- 5 migrations now committed (0001-0005); 4 of 5 still need user to apply
+
+**Key learnings**:
+- **Vercel kills `void (async)` background tasks** — must use `after()` from `next/server` or Vercel's `waitUntil` from `@vercel/functions`. The pattern works locally + in long-running Node servers but fails silently in serverless. Universal hazard for any Next.js app using fire-and-forget post-stream work.
+- **Top-K retrieval without similarity threshold = noise by design** — players experience "AI keeps referencing walk-on NPCs" as broken AI, but it's the by-product of `ORDER BY similarity LIMIT K` always returning K rows even when all are irrelevant. Per-source thresholds (0.45/0.5/0.55) immediately fix it.
+- **Memory differentiator is unfalsifiable without UI** — even if memory works PERFECTLY backend-side, players can't verify "AI 真係記得" unless they see lorebook + recall surfaced. NovelAI's lorebook UI is their #1 retention driver because users can SEE the AI's notebook on their story.
+- **Cost reality check**: Phase 2 memory adds ~35% overhead on Narrator-only baseline, not 2% as originally estimated. Real per-turn ~$0.023. Subscription pricing math needs revisit before Phase 3.
+
+**Decisions effective**:
+- All fire-and-forget in turn route uses `after()` going forward (project-wide rule)
+- Default similarity floors codified per source: summaries 0.55, RAG 0.5, lorebook 0.45
+- First summary at turn 10 (not 20) — memory engagement during the player's hook window
+- Lorebook description merge: recency wins (not longer wins)
+
+**Next session opening**:
+- User applies 4 pending migrations to prod
+- E2E test 30+ turn playthrough — verify summaries fire at turn 10, lorebook populates, RAG retrieves
+- Then Phase 3 (Multi-LLM + credits) OR Memory Journal UI (P2-UX-C-03)
+
+### Session 5 (Foundation Deep Audit + 7-wave hardening) — 2026-05-22
 
 **Major outcomes**:
 - Foundation Deep Audit (5 parallel agents) — 95 findings catalogued in HTML

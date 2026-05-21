@@ -565,40 +565,40 @@
       <p class="section-sub">每次新 session 開始，由呢度睇起。</p>
 
       <div class="top-meta">
-        <div><strong>Last updated</strong> 2026-05-22 · Session 5 (Foundation Audit + 7-wave hardening)</div>
-        <div><strong>Phase</strong> Foundation hardened ✅ · Phase 2 (Memory) ready</div>
+        <div><strong>Last updated</strong> 2026-05-22 · Session 6 (Phase 2 + Deep Audit + 3 fix waves)</div>
+        <div><strong>Phase</strong> Phase 2 (Memory) shipped + audited · 4 migrations pending</div>
         <div><strong>Live</strong> <a href="https://story-engine-drab.vercel.app" target="_blank" style="color: var(--primary);">story-engine-drab.vercel.app</a></div>
       </div>
 
       <div class="status-hero">
-        <div class="label">🛡️ Foundation Deep Audit 行完 · 7 浪 hardening 全部 ship · 等用戶 apply 2 migrations</div>
-        <div class="phase">45+ audit finding fixed — Schemas · AI pipeline · Auth · RLS · Atomic RPCs · Prompt cache · TS types</div>
+        <div class="label">🧠 Phase 2 4-layer Memory shipped · 43 audit findings catalogued · SHOWSTOPPER fixed · 18 fixes shipped</div>
+        <div class="phase">Embed + Retriever + Summarizer + Lorebook · waitUntil/after() fix · similarity floors · i18n · sentence-truncate</div>
         <div class="focus">
-          Session 5: 5 個 dimension agent parallel audit 出 95 finding。然後 7 浪 hardening — Wave 1 schemas, 2 AI pipeline, 3 auth/dispatcher, 4 RLS migration file, 5 atomic RPCs + code refactor, 6 prompt cache split, 7 TS types regen。Code 用 graceful fallback pattern，deploy 同 migration timing 解耦。<strong>用戶要做嘅嘢：apply migrations 0002 + 0003 落 prod。</strong>
+          Session 6: Phase 2 全 4-layer 記憶系統 ship 上 prod (embed.ts · retriever.ts · summarizer.ts · lorebook.ts · turn route wired)。3 agent parallel deep audit 出 43 finding，發現 1 個 SHOWSTOPPER — Vercel 殺 <code>void (async)</code> 即係 Phase 2 大部分 tier 喺 prod 默默死晒。3 浪 fix shipped — 18 個 finding 修咗。<strong>4 個 migration (0002+0003+0004+0005) 等用戶 apply 落 prod 先真正運作。</strong>
         </div>
       </div>
 
       <div class="status-grid">
         <div class="status-card good">
-          <div class="status-card-title">✅ Session 5 全部完成 — 7 hardening waves</div>
+          <div class="status-card-title">✅ Session 6 全部完成 — Phase 2 ship + audit + 3 fix waves</div>
           <ul>
-            <li><strong>🔍 Foundation Audit</strong> (5 agents · 95 finding · 12C/35H/33M/14L) → <code>audit-report-foundation-deep.html</code></li>
-            <li><strong>Wave 1</strong> (commit 69cd185): Zod refinements (range checks, contiguous acts), arc-dsl undefined→0 全 op, Director prompt-injection sandbox</li>
-            <li><strong>Wave 2</strong> (c98f633): schema-gen 移除 unauth use-server (was $0.20/call attack!), OpenRouter 真正 OpenAI client, provider dispatcher, tool-call merge, locale refusal, exp backoff</li>
-            <li><strong>Wave 3</strong> (4b42c39): Magic-link origin lock, next-param open-redirect block, OTP error normalize, safeNumber/safeString, dispatcher default arm, Zod parse at boundary</li>
-            <li><strong>Wave 4 (file)</strong> (331fcdc): Migration 0002 — RLS with check 全部 policies, age column lock, indexes, pgvector, UNIQUE story_characters, append-only turns/pcs</li>
-            <li><strong>Wave 5</strong> (b212875): Migration 0003 + turn route — atomic <code>acquire_next_turn_pair</code> + <code>apply_turn_npc_changes</code> RPC，pre-persist user turn, graceful fallback</li>
-            <li><strong>Wave 6</strong> (f14377e): Prompt cache split — static character template cached / dynamic disposition 唔 cache → cache hit 預期 0% → 90%+ (~10x cost save)</li>
-            <li><strong>Wave 7</strong> (18f1acf): TS types regen (32 → 505 lines, 5 table 由 any 升做 typed), <code>npm run db:types</code> script, verified Migration 0001 IS on prod</li>
+            <li><strong>🧠 Phase 2 ship</strong> (commit 0f650c7) — Migration 0004 (turn_embeddings · memory_summaries · lorebook_entries + 3 match RPCs) · <code>embed.ts</code> (OpenAI text-embedding-3-small) · <code>memory/retriever.ts</code> · <code>memory/summarizer.ts</code> · <code>memory/lorebook.ts</code> · turn route wired</li>
+            <li><strong>🔍 Phase 2 Deep Audit</strong> (3 agents · 43 finding · 7C/17H/14M/5L) → <code>audit-report-phase2-deep.html</code></li>
+            <li><strong>🛑 SHOWSTOPPER discovered + fixed</strong>: Vercel kills <code>void (async)</code> background tasks → Phase 2 tiers 2/3/4 silently dead in prod until <code>after()</code> from <code>next/server</code> wrap</li>
+            <li><strong>Wave 1</strong> (ab51c34): SHOWSTOPPER fix + Migration 0005 (UNIQUE memory_summaries · UNIQUE btrim() lorebook · vector dim CHECK · similarity threshold + overprovision in match RPCs) · lorebook recency-wins · client trim</li>
+            <li><strong>Wave 2</strong> (7a716c7): OpenAI 429 retry+backoff · lorebook batched embed (5→1 API call) · summarizer emotional texture + i18n · lorebook extractor i18n · Director teaches memory use</li>
+            <li><strong>Wave 3</strong> (d9f6c8d): First summary at turn 10 (not 20) · RAG truncate-to-sentence keeps resolution · Stronger anti-quote · top similarity telemetry</li>
+            <li><strong>18 of 43 findings fixed</strong>. Cost reality check: ~$0.023/turn (memory +35% overhead, not 2%)</li>
           </ul>
         </div>
         <div class="status-card warn">
-          <div class="status-card-title">🟡 用戶 1 個 step 唔做唔得 + 之後路線</div>
+          <div class="status-card-title">🟡 用戶 1 個 step + 之後路線</div>
           <ul>
-            <li>⚠️ <strong>Apply migrations 0002 + 0003 落 prod</strong> — file 寫晒，code 有 fallback 但係 RLS / atomic RPC / age lock / pgvector 全部 wait 你手動 apply 至生效。<code>supabase migration up</code> 或 dashboard SQL editor paste。</li>
-            <li><strong>Phase 2 — Memory</strong> (~2 sessions): pgvector embedding + 滾動摘要 + RAG retriever + 自動 lorebook。解決行業 #1 churn driver。</li>
-            <li><strong>UI/UX</strong> (UX-C-01..04 critical user-flow blockers + 19 個 high/med): library 真正 work · Phase 1.5 turn feedback timeline · wizard preview · locale switcher</li>
-            <li><strong>Phase 1.5.3 M-02..M-05</strong> medium follow-ups — 同 Phase 2 並行做</li>
+            <li>🚨 <strong>Apply 4 migrations 落 prod</strong> — <code>0002</code> (RLS + pgvector) · <code>0003</code> (atomic RPCs) · <code>0004</code> (memory tables) · <code>0005</code> (Phase 2 audit fixes)。Code 有 graceful fallback 但係 Phase 2 memory layer 喺 prod 等於零 until apply</li>
+            <li>🧪 <strong>E2E test long-play 30+ turns</strong> — verify summary fires at turn 10, lorebook populates, RAG retrieves</li>
+            <li><strong>Phase 3 — Multi-LLM + Credits</strong> (~2 sessions): DB-backed model registry · picker UI · credit ledger · per-model rate cards</li>
+            <li><strong>Memory Journal UI</strong> (P2-UX-C-03 — explicit deferred from Wave 3): "AI 真係記得" 嘅 player-visibility differentiator — NovelAI 都有，玩家見唔到就唔買單</li>
+            <li><strong>Foundation audit UX-C-01..04</strong> + Phase 2 deferred items (always_on demote · dimensions 1024 · cost capture)</li>
           </ul>
         </div>
       </div>
@@ -633,6 +633,24 @@
 
       <h3>📓 Session Log</h3>
       <div class="session-log">
+        <div class="session-entry">
+          <div class="session-date">2026-05-22 · Session 6 (Phase 2 ship + Deep Audit + 3 fix waves)</div>
+          <div class="session-title">🧠 4-layer memory live · 🛑 SHOWSTOPPER caught + fixed · 18 fixes shipped</div>
+          <div class="session-body">
+            <p><strong>Major outcome:</strong> Phase 2 (4-layer long-term memory) full ship → 3-agent parallel deep audit → 43 finding (1 SHOWSTOPPER) → 3 fix waves done in same session。Audit catch 到嘅 Vercel <code>void (async)</code> killer 係 critical level issue — 唔係 audit 就唔知 Phase 2 大部分 tier 喺 prod 等於零。</p>
+            <p><strong>🧠 Phase 2 (commit 0f650c7) — 4-layer Memory shipped:</strong></p>
+            <p>1. <strong>Tier 1 Recent N turns</strong> — already worked (passthrough)。2. <strong>Tier 2 Rolling summaries</strong> — Haiku 4.5 compresses 20-turn blocks，embed 然後存 <code>memory_summaries</code>。3. <strong>Tier 3 RAG</strong> — OpenAI text-embedding-3-small embed 每個 AI turn，HNSW cosine similarity search retrieves top-K relevant past turns。4. <strong>Tier 4 Lorebook</strong> — per-turn Haiku entity extraction (character/place/item/event/concept)，dedup by lower(name)。</p>
+            <p>5 new files: <code>embed.ts</code> · <code>memory/retriever.ts</code> · <code>memory/summarizer.ts</code> · <code>memory/lorebook.ts</code> + Migration 0004 (3 tables + 3 match RPCs + RLS)。Turn route wired — retriever pre-Director · pre-persist user turn with reused query embedding · onFinish fire-and-forget embed + summarize + lorebook (graceful fallback if migration not applied)。</p>
+            <p><strong>🔍 Phase 2 Deep Audit (3 parallel agents):</strong> Correctness · Performance/Cost · Player UX。43 findings (7C/17H/14M/5L)。Big surprises: (1) <strong>Vercel <code>void (async)</code> dies on stream end</strong> — Phase 2 tier 2/3/4 silently non-functional。(2) Top-K retrieval 冇 similarity floor → "AI 老係 reference 過場 NPC" 係 by-design 行為。(3) Memory 對 player 完全 invisible → 最貴 feature unfalsifiable。(4) Real per-turn cost ~$0.023 (memory +35% overhead, NOT 2%)。</p>
+            <p><strong>🛑 Wave 1 SHOWSTOPPER fix (ab51c34):</strong> All 3 fire-and-forget sites (user turn embed · AI turn embed · summarizer · lorebook) → <code>after()</code> from <code>next/server</code>。Phase 2 background tier NOW actually runs in prod。Plus Migration 0005 — UNIQUE memory_summaries · UNIQUE btrim() lorebook · vector dim CHECK · similarity threshold + overprovision in match RPCs。Plus lorebook description merge "recency wins" (was "longer wins" with embedding/text drift)。</p>
+            <p><strong>Wave 2 quality + cost (7a716c7):</strong> OpenAI 429 retry with exponential backoff (500ms/2s/8s, parses Retry-After) · Lorebook batched <code>embedTexts</code> (5 → 1 API call · ~80% RPM reduction) · Summarizer emotional texture (1-2 weighted details/paragraph, 1 quoted line OK, 1-4 sentences) + locale branch zh-Hant/zh-Hans/en · Lorebook extractor locale branch · Director system prompt teaches memory use (earned exception relax, arc coherence, commitment callback)。</p>
+            <p><strong>Wave 3 player visibility backend (d9f6c8d):</strong> First summary at turn 10 (not 20) — player feels memory engage within first session · RAG <code>truncateToSentence</code> keeps RESOLUTION (last sentences with "…" prefix) instead of cutting mid-sentence at conflicts · Stronger anti-quote header + NARRATOR_RULES line · Top similarity score per source logged for telemetry。</p>
+            <p><strong>18 of 43 findings fixed.</strong> Deferred: Memory Journal UI (P2-UX-C-03, explicit UX work) · always_on demote pathway (needs migration + cron) · recent turns cache breakpoint (message reshape) · dimensions 1024 (destructive ALTER) · cost capture for Phase 4 billing · several Medium/Low edge cases。</p>
+            <p><strong>新 insight:</strong> (1) <strong><code>void (async)</code> 喺 Vercel 係 silent killer</strong> — universal Next.js footgun，必須用 <code>after()</code>。(2) <strong>Top-K 冇 similarity floor 等於 noise by design</strong> — 直接 fix "AI 老係 reference 過場 NPC" frustration。(3) <strong>Memory differentiator unfalsifiable without UI</strong> — even if 100% working backend，player 見唔到 lorebook 就唔信。(4) <strong>Cost reality check</strong>：memory adds 35% NOT 2% — subscription tier math need revisit。</p>
+            <p><strong>下次 session:</strong> 用戶 apply 4 migrations (0002/0003/0004/0005) 落 prod → E2E test long-play 30+ turns → 入 Phase 3 (Multi-LLM + Credits) 或者 Memory Journal UI。</p>
+          </div>
+        </div>
+
         <div class="session-entry">
           <div class="session-date">2026-05-22 · Session 5 (Foundation Audit + 7-wave hardening)</div>
           <div class="session-title">🛡️ 95 audit finding · 7 hardening waves · 45+ fixes shipped</div>
