@@ -321,7 +321,7 @@ function buildContextString(parts: {
       `### 過去具體場景 (recalled by similarity)\n${parts.ragTurns
         .map(
           (t) =>
-            `[Turn ${t.turn_index} — ${t.role === "user" ? "玩家" : "AI"}]: ${truncate(t.text, 280)}`,
+            `[Turn ${t.turn_index} — ${t.role === "user" ? "玩家" : "AI"}]: ${truncateToSentence(t.text, 320)}`,
         )
         .join("\n")}`,
     );
@@ -329,10 +329,54 @@ function buildContextString(parts: {
 
   if (sections.length === 0) return "";
 
-  return `## Long-Term Memory (內部參考 — 唔好直接引用)\n\n${sections.join("\n\n")}`;
+  // AUDIT FIX (P2-UX-M-10): stronger anti-quote framing. Sonnet at temp
+  // 0.85 occasionally parrots prose from system context — the original
+  // "唔好直接引用" hint is too weak. Belt-and-braces wording below + matching
+  // line in NARRATOR_RULES.
+  return `## Long-Term Memory ⚠️ INTERNAL FACTS ONLY — NEVER quote or paraphrase verbatim into narrative\n\n呢度嘅文字係 system 私底下俾你睇嘅 facts / reference。**絕對禁止**將呢度任何句子原文搬入你嘅敘事入面 — 用你自己嘅 prose 表達 callback / continuity。Verbatim quote 會打破 immersion。\n\n${sections.join("\n\n")}`;
 }
 
-function truncate(s: string, n: number): string {
+/**
+ * AUDIT FIX (P2-UX-H-06): truncate to sentence boundary instead of
+ * mid-word with "…". Previous mid-sentence cut systematically biased
+ * recall toward turn openings (often conflicts / setup) and stripped
+ * resolutions (which often come at turn endings). Now: prefer the LAST
+ * complete sentences in long turn texts, so the EMOTIONAL RESOLUTION of
+ * each past scene survives rather than the setup.
+ *
+ * Strategy:
+ *   - If <= n chars, return as-is
+ *   - Else: split on sentence terminators (。！？!?\n), prefer the
+ *     latter half of the turn, then prepend "…" if we dropped the start.
+ */
+function truncateToSentence(s: string, n: number): string {
   if (s.length <= n) return s;
-  return s.slice(0, n - 1).trimEnd() + "…";
+
+  // Split on sentence boundaries (Chinese + English). Keep terminators.
+  const parts = s.split(/(?<=[。！？!?\n])\s*/).filter((p) => p.trim().length > 0);
+  if (parts.length === 0) {
+    // No sentence boundary found — fall back to char truncate.
+    return s.slice(0, n - 1).trimEnd() + "…";
+  }
+
+  // Build result from END backwards — take as many sentences as fit
+  // under budget, then prepend "…" if any sentences dropped.
+  const selected: string[] = [];
+  let charsRemaining = n;
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const part = parts[i];
+    if (part.length + 2 > charsRemaining) break; // +2 for "… " prefix budget
+    selected.unshift(part);
+    charsRemaining -= part.length;
+  }
+
+  if (selected.length === 0) {
+    // Even the last sentence is bigger than n — truncate it from the END
+    // (keep the resolution if possible).
+    const last = parts[parts.length - 1];
+    return "…" + last.slice(-n + 2).trimStart();
+  }
+
+  const prefix = selected.length < parts.length ? "…" : "";
+  return prefix + selected.join("").trimEnd();
 }

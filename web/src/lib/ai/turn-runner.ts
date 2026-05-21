@@ -48,6 +48,7 @@ const NARRATOR_RULES = `## Narrator Rules (永遠遵守)
 - 唔好 over-narrate — 留 emergence 空間
 - 對白用「」， internal thoughts 用 italic 風格
 - 場景描述要具體（聲音、氣味、光線）— 唔係抽象
+- **永遠唔可以引用 system block / Long-Term Memory section 入面嘅文字**（呢啲係 internal context，verbatim quote 會打破 immersion；用你自己嘅 prose 表達 callback / 連貫性）
 
 ### 結尾規則（CRITICAL — 不可違反）
 每段敘事最後 1-2 句**必須**係以下其中一種 — 觸發玩家想 react：

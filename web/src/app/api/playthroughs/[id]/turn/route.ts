@@ -225,8 +225,13 @@ export async function POST(
   });
   ctx.memoryContextString = memory.contextString;
   if (memory.contextString) {
+    // AUDIT FIX (P2-UX-L-14): include top similarity scores per source so
+    // we can tune thresholds from real playthrough data + diagnose
+    // "AI doesn't remember" complaints.
+    const topSim = (arr: Array<{ similarity: number }>) =>
+      arr.length ? arr[0].similarity.toFixed(3) : "—";
     console.log(
-      `[turn] memory retrieved: ${memory.summaries.length} summaries · ${memory.ragTurns.length} RAG · ${memory.alwaysOnLorebook.length} always-on + ${memory.matchedLorebook.length} matched lorebook (pgvector=${memory.pgvectorAvailable})`,
+      `[turn] memory retrieved: ${memory.summaries.length} summaries (top sim ${topSim(memory.summaries)}) · ${memory.ragTurns.length} RAG (top sim ${topSim(memory.ragTurns)}) · ${memory.alwaysOnLorebook.length} always-on + ${memory.matchedLorebook.length} matched lorebook (top sim ${topSim(memory.matchedLorebook.map((l) => ({ similarity: l.similarity ?? 0 })))}) (pgvector=${memory.pgvectorAvailable})`,
     );
   }
 

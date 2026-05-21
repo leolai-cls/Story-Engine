@@ -25,6 +25,15 @@ import { embedTextSafe } from "../embed";
  */
 
 const TURNS_PER_BLOCK = 20;
+/**
+ * AUDIT FIX (P2-UX-C-01): First summary triggered at turn 10 instead of 20.
+ * Player needs to FEEL the memory layer engage within the first session
+ * (~10-15 minutes of play) before they churn. Was: 20 turns ≈ 30-45 min of
+ * desert during which Phase 2 was invisible. Now: first rollup at turn 10
+ * gives the next batch of turns real long-term context. After that,
+ * standard 20-turn cadence resumes.
+ */
+const FIRST_BLOCK_TURNS = 10;
 const SUMMARIZER_MODEL = DEFAULT_DIRECTOR; // Haiku 4.5
 
 type StoryLanguage = "zh-Hant" | "zh-Hans" | "en";
@@ -165,8 +174,11 @@ export async function maybeRunSummarization(params: {
     return false;
   }
 
-  // Is there at least one complete unsummarized block?
-  const nextBlockUpper = maxSummarized + TURNS_PER_BLOCK;
+  // AUDIT FIX (P2-UX-C-01): first block is shorter (10 turns) so the player
+  // gets memory engagement within their first session. After that, 20-turn
+  // blocks resume.
+  const blockSize = maxSummarized === 0 ? FIRST_BLOCK_TURNS : TURNS_PER_BLOCK;
+  const nextBlockUpper = maxSummarized + blockSize;
   if (currentMaxTurnIndex + 1 < nextBlockUpper) {
     // Not enough turns yet to complete the next block.
     return false;
