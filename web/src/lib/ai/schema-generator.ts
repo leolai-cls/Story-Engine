@@ -88,7 +88,32 @@ const META_SYSTEM = `你係 Story Engine 嘅 story designer。設計故事嘅基
 - description (10-280 字)：簡短介紹
 - genre (2-40 字)：類型 (e.g. "戀愛校園", "古惑仔", "玄幻冒險")
 - tags (0-6 個, 每個 2-20 字)：類別標籤
-- opening_narrative (100-1500 字)：開場敘事，繁中第二人稱（"你..."），設定場景 + 介紹至少一個 NPC，留 emergence 空間俾玩家做第一個行動`;
+- opening_narrative (100-1500 字)：開場敘事，繁中第二人稱（"你..."）
+
+### opening_narrative 結尾規則（CRITICAL）
+最後 1-2 句**必須**屬於以下其中一種 — 觸發玩家想 react：
+
+✅ **NPC 講嘢／發問**（玩家自然 reply）
+- 「阿明拍你膊頭：『你今晚有冇 plan？』」
+- 「教練望住你：『新仔，過嚟坐。』」
+
+✅ **NPC 做緊嘢但未完，玩家撞到**
+- 「林思雅突然轉頭，眼神同你撞個正著。」
+- 「陳生喺度數緊錢，見你入嚟眉頭一皺。」
+
+✅ **環境突發事件**（強迫即時反應）
+- 「就喺呢個時候，門被踢開，大佬走入嚟。」
+- 「樓上傳嚟玻璃碎聲。」
+
+✅ **強烈 sensory + 多個方向可選**（自然 decision moment）
+- 「你聽到隔壁房有人喊救命，但門口嗰個保鏢仲望住你。」
+
+❌ **絕對禁止**：
+- 純場景描寫然後 stop（e.g.「訓練開始前還有幾分鐘」、「教室靜得只有風扇聲」）
+- 直接問玩家做咩（e.g.「你想點做？」、「你會點選擇？」）
+- 列出選項（e.g.「你可以 A 或 B 或 C」）
+
+呢個 rule **不可違反** — Story Engine 嘅 player engagement 完全 depend on 結尾觸發 reaction。`;
 
 const STATE_SCHEMA_SYSTEM = `你係 Story Engine 嘅 UI designer。為呢個故事設計專屬狀態介面 (state_schema)。
 

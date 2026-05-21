@@ -42,17 +42,24 @@ const NARRATOR_RULES = `## Narrator Rules (永遠遵守)
 
 ### 寫嘢風格
 - 繁中第二人稱
-- 唔好 over-narrate — 留 emergence 空間，玩家想做下一步
+- 唔好 over-narrate — 留 emergence 空間
 - 對白用「」， internal thoughts 用 italic 風格
 - 場景描述要具體（聲音、氣味、光線）— 唔係抽象
 
-### 結尾留 hook
-每段敘事 end with：
-- 一個 NPC 反應 / 提問
-- 一個環境變化
-- 玩家有得 react 嘅 moment
+### 結尾規則（CRITICAL — 不可違反）
+每段敘事最後 1-2 句**必須**係以下其中一種 — 觸發玩家想 react：
 
-唔好直接問 "你想做咩?"。寫到留有自然 next action 嘅空間就 OK。`;
+✅ **NPC 講嘢／發問**：「阿明拍你膊頭：『你今晚有冇 plan？』」
+✅ **NPC 做緊嘢撞到你**：「林思雅突然轉頭，眼神同你撞個正著。」
+✅ **環境突發事件**：「就喺呢個時候，門被踢開。」
+✅ **強烈 sensory + 多方向可選**：「你聽到隔壁房有人喊救命，但門口嗰個保鏢仲望住你。」
+
+❌ **絕對禁止**：
+- 純場景描寫 stop（「教室靜得只有風扇聲」❌）
+- 直接問玩家做咩（「你想點做？」❌）
+- 列出選項（「你可以 A 或 B」❌）
+
+呢個 rule **永遠優先** over 任何其他指示。Story Engine 嘅 player engagement 完全 depend on 結尾觸發 reaction。`;
 
 const STATE_TOOL_DESCRIPTION = `Apply state changes to the playthrough as a result of this turn's events.
 
