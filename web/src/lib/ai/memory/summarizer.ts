@@ -27,7 +27,69 @@ import { embedTextSafe } from "../embed";
 const TURNS_PER_BLOCK = 20;
 const SUMMARIZER_MODEL = DEFAULT_DIRECTOR; // Haiku 4.5
 
-const SUMMARIZER_SYSTEM = `你係 Story Engine 嘅 memory archivist。將最近 20 個 turn 嘅敘事壓縮成 2-4 段精簡摘要，畀未來 turn 嘅 Narrator 用嚟保持連貫性。
+type StoryLanguage = "zh-Hant" | "zh-Hans" | "en";
+
+/**
+ * AUDIT FIX (P2-UX-H-04 + P2-UX-H-09): locale-aware summarizer system prompts
+ * + emotional texture preserved.
+ *
+ * H-04: Previous prompt forced "客觀紀實，唔加 fluff" + "唔好引用對白" +
+ * "每段 1-3 句" → produced robotic CliffNotes. Romance/drama playthroughs
+ * lost the emotional texture that makes "AI remembers" feel meaningful.
+ * Now: explicitly KEEP 1-2 emotionally-weighted concrete details per
+ * paragraph, allow ONE pivotal quoted line, 1-4 sentences per paragraph.
+ *
+ * H-09: SUMMARIZER_SYSTEM was hard-coded 繁中 → 簡中/EN playthroughs got
+ * 繁中 summaries injected into Narrator → character set drift, Narrator
+ * code-switching mid-paragraph. Now: branch by story.story_bible.hard_locked.language.
+ */
+function summarizerSystemPrompt(language: StoryLanguage): string {
+  if (language === "en") {
+    return `You are Story Engine's memory archivist. Compress the last 20 turns into a 2-4 paragraph summary that the next Narrator can use for coherence.
+
+What to capture:
+- Major events (what you did, NPC reactions, scene changes)
+- Relationship / emotional shifts (trust / romance / fear / respect)
+- Player's promises / decisions / public stances
+- Story arc progression
+
+Style:
+- Second-person POV ("you...") — consistent voice
+- Preserve 1-2 emotionally-weighted concrete details per paragraph (a smile, a turning sentence, a small gesture) — DON'T strip texture
+- 2-4 paragraphs, 1-4 sentences each
+- ONE pivotal quoted line per paragraph is OK if it was a turning point
+- Concept-level summary on the rest — not a transcript
+
+Don't:
+- Invent things that didn't happen
+- Editorialize / add opinions
+- List what the player could do next
+- Use "the player" — always "you"`;
+  }
+  if (language === "zh-Hans") {
+    return `你是 Story Engine 的 memory archivist。将最近 20 个 turn 的叙事压缩成 2-4 段摘要，给未来 turn 的 Narrator 用来保持连贯性。
+
+要 capture：
+- 主要事件（玩家做了什么、NPC 反应、场景变化）
+- 关系 / 情感变化（信任 / 浪漫 / 仇恨 / 尊重等）
+- 玩家做出的承诺 / 决定 / 公开立场
+- 故事进展 (story arc)
+
+风格：
+- 简中第二人称写法保持一致（"你..."）
+- **保留 1-2 个有情感重量的具体细节** 每段（一个笑容、一句关键说话、一个小动作）— 不要把 texture stripped 走
+- 2-4 段，每段 1-4 句
+- **如果对白是关键转折点，可以引用一句**（每段最多一句）
+- 其他部分用 concept-level 描述，不是 transcript
+
+不要做的事：
+- 不要 invent 东西
+- 不要评论 / 加个人意见
+- 不要 list 玩家以后可以做什么
+- 不要用 "玩家" / "the player" — 永远用 "你"`;
+  }
+  // Default: zh-Hant
+  return `你係 Story Engine 嘅 memory archivist。將最近 20 個 turn 嘅敘事壓縮成 2-4 段摘要，畀未來 turn 嘅 Narrator 用嚟保持連貫性。
 
 要 capture：
 - 主要事件（玩家做咗咩、NPC 反應、場景變化）
@@ -37,15 +99,17 @@ const SUMMARIZER_SYSTEM = `你係 Story Engine 嘅 memory archivist。將最近 
 
 風格：
 - 繁中第二人稱寫法保持一致（"你..."）
-- 客觀紀實，唔加 fluff
-- 2-4 段，每段 1-3 句
-- 唔好引用具體對白 — concept-level 描述
+- **保留 1-2 個有情感重量嘅具體細節**每段（一個笑容、一句關鍵說話、一個小動作）— **唔好** 將 texture stripped 走
+- 2-4 段，每段 1-4 句
+- **如果對白係 pivotal turning point，可以引用一句**（每段最多一句）
+- 其他用 concept-level 描述，唔係 transcript
 
 唔好做嘅嘢：
 - 唔好 invent 嘢
 - 唔好評論 / 加個人意見
 - 唔好 list 玩家以後可以做咩
 - 唔好用 "玩家" / "the player" — 永遠用 "你"`;
+}
 
 type TurnRow = {
   turn_index: number;
@@ -63,8 +127,10 @@ export async function maybeRunSummarization(params: {
   supabase: SupabaseClient;
   playthroughId: string;
   currentMaxTurnIndex: number;
+  /** Story language for locale-aware summary prompt (P2-UX-H-09). */
+  language?: StoryLanguage;
 }): Promise<boolean> {
-  const { supabase, playthroughId, currentMaxTurnIndex } = params;
+  const { supabase, playthroughId, currentMaxTurnIndex, language = "zh-Hant" } = params;
 
   // Find highest turn_index already covered by an existing summary.
   let maxSummarized = 0;
@@ -112,6 +178,7 @@ export async function maybeRunSummarization(params: {
     playthroughId,
     fromIndex: maxSummarized,
     toIndex: nextBlockUpper,
+    language,
   });
 }
 
@@ -124,8 +191,9 @@ export async function runSummarization(params: {
   playthroughId: string;
   fromIndex: number; // inclusive
   toIndex: number; // exclusive (Postgres int4range upper)
+  language?: StoryLanguage;
 }): Promise<boolean> {
-  const { supabase, playthroughId, fromIndex, toIndex } = params;
+  const { supabase, playthroughId, fromIndex, toIndex, language = "zh-Hant" } = params;
 
   try {
     // 1. Fetch the turns to summarize
@@ -142,16 +210,25 @@ export async function runSummarization(params: {
       return false;
     }
 
-    // 2. Build prompt with the actual turn texts
+    // 2. Build prompt with the actual turn texts. Player role label varies
+    //    by language so the LLM sees consistent terminology.
+    const playerLabel = language === "en" ? "Player" : "玩家";
     const turnsText = (turns as TurnRow[])
-      .map((t) => `[Turn ${t.turn_index} — ${t.role === "user" ? "玩家" : "Narrator"}]\n${t.text}`)
+      .map((t) => `[Turn ${t.turn_index} — ${t.role === "user" ? playerLabel : "Narrator"}]\n${t.text}`)
       .join("\n\n");
 
-    // 3. Call Haiku for compression
+    // 3. Call Haiku for compression — locale-aware system + user prompt
+    const userPrompt =
+      language === "en"
+        ? `Compress the following ${turns.length} turns of narrative:\n\n${turnsText}\n\nWrite a 2-4 paragraph summary following the system prompt rules:`
+        : language === "zh-Hans"
+        ? `请压缩以下 ${turns.length} 个 turn 的叙事：\n\n${turnsText}\n\n依照 system prompt 规则写 2-4 段摘要：`
+        : `請壓縮以下 ${turns.length} 個 turn 嘅敘事：\n\n${turnsText}\n\n依照 system prompt 規則寫 2-4 段繁中摘要：`;
+
     const llmResult = await generateText({
       model: anthropicProvider(SUMMARIZER_MODEL),
-      system: SUMMARIZER_SYSTEM,
-      prompt: `請壓縮以下 ${turns.length} 個 turn 嘅敘事：\n\n${turnsText}\n\n依照 system prompt 規則寫 2-4 段繁中摘要：`,
+      system: summarizerSystemPrompt(language),
+      prompt: userPrompt,
       temperature: 0.3,
       maxOutputTokens: 1000,
     });

@@ -33,6 +33,50 @@ export type EmbeddingResult = {
 };
 
 /**
+ * AUDIT FIX (P2-PERF-H-05): retry-on-429 with exponential backoff so
+ * rate-limit spikes don't silently degrade memory quality (calling
+ * embedTextSafe → null → retriever returns empty memory context for that
+ * turn). Without this, one bad burst day cascades into systematic memory
+ * failures across the whole platform.
+ *
+ * Strategy: detect 429 / "rate limit" in error message, parse Retry-After
+ * if present, otherwise exponential backoff. Max 3 attempts.
+ */
+async function withRateLimitRetry<T>(
+  label: string,
+  op: () => Promise<T>,
+): Promise<T> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      return await op();
+    } catch (e) {
+      lastErr = e;
+      const msg = e instanceof Error ? e.message : String(e);
+      const isRateLimit =
+        /\b429\b/.test(msg) || /rate[_\s-]?limit/i.test(msg) || /too[_\s-]?many[_\s-]?requests/i.test(msg);
+      if (!isRateLimit) throw e; // non-rate-limit errors fail fast
+
+      // Try parsing Retry-After in seconds from message (OpenAI puts it in headers
+      // but error.message often includes "Retry-After: N" or just "X seconds")
+      const retryAfterMatch = msg.match(/retry[_\s-]?after[:\s]+(\d+(?:\.\d+)?)/i);
+      const retryAfterSec = retryAfterMatch ? parseFloat(retryAfterMatch[1]) : null;
+      // Exponential backoff: 500ms, 2s, 8s — unless server suggested otherwise
+      const backoffMs = retryAfterSec
+        ? Math.min(retryAfterSec * 1000, 10_000)
+        : Math.pow(4, attempt) * 500;
+      console.warn(
+        `[embed] ${label} rate-limited (attempt ${attempt + 1}/3), backing off ${backoffMs}ms`,
+      );
+      await new Promise((r) => setTimeout(r, backoffMs));
+    }
+  }
+  throw lastErr instanceof Error
+    ? lastErr
+    : new Error(`embed ${label}: rate-limit retries exhausted`);
+}
+
+/**
  * Embed a single text string. Truncates to ~8000 chars before sending to
  * keep us well under the 8192-token limit (~32K char ceiling) of
  * text-embedding-3-small. Trailing portion is what gets kept — we
@@ -47,10 +91,12 @@ export async function embedText(text: string): Promise<EmbeddingResult> {
   // content survives in case the caller passed a long blob.
   const trimmed = text.length > 8000 ? text.slice(-8000) : text;
 
-  const result = await embed({
-    model: openaiEmbedClient.embedding(EMBED_MODEL),
-    value: trimmed,
-  });
+  const result = await withRateLimitRetry("embedText", () =>
+    embed({
+      model: openaiEmbedClient.embedding(EMBED_MODEL),
+      value: trimmed,
+    }),
+  );
 
   if (result.embedding.length !== EMBED_DIMS) {
     throw new Error(
@@ -72,10 +118,12 @@ export async function embedTexts(texts: string[]): Promise<EmbeddingResult[]> {
   if (texts.length === 0) return [];
   const trimmed = texts.map((t) => (t.length > 8000 ? t.slice(-8000) : t));
 
-  const result = await embedMany({
-    model: openaiEmbedClient.embedding(EMBED_MODEL),
-    values: trimmed,
-  });
+  const result = await withRateLimitRetry("embedTexts", () =>
+    embedMany({
+      model: openaiEmbedClient.embedding(EMBED_MODEL),
+      values: trimmed,
+    }),
+  );
 
   return result.embeddings.map((vec) => {
     if (vec.length !== EMBED_DIMS) {

@@ -693,13 +693,14 @@ export async function POST(
             }
           });
 
-          // Rolling summary (every 20 turns)
+          // Rolling summary (every 20 turns) — locale-aware (P2-UX-H-09)
           after(async () => {
             try {
               await maybeRunSummarization({
                 supabase,
                 playthroughId,
                 currentMaxTurnIndex: aiTurnIndex,
+                language: storyBible.hard_locked.language,
               });
             } catch (e) {
               console.warn(
@@ -709,7 +710,7 @@ export async function POST(
             }
           });
 
-          // Lorebook entity extraction
+          // Lorebook entity extraction — locale-aware (P2-UX-H-09)
           after(async () => {
             try {
               await runLorebookExtraction({
@@ -718,6 +719,7 @@ export async function POST(
                 userAction: action,
                 aiNarrative: finalText,
                 protagonistName: pt.character_name,
+                language: storyBible.hard_locked.language,
               });
             } catch (e) {
               console.warn(
