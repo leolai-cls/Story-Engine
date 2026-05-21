@@ -166,7 +166,32 @@ const CHARACTERS_SYSTEM = `你係 Story Engine 嘅 character designer。設計 1
 
 NPC 數量 = 故事需要嘅最少 (3-5 通常啱)。質量 > 數量。`;
 
-// ─── Main function: 4 parallel calls + assemble ──────────────────────────
+// ─── Retry wrapper: 1 retry on failure for each sub-call (L-07 fix) ─────
+
+type SubCallConfig<T> = {
+  label: string;
+  call: () => Promise<{ object: T }>;
+};
+
+async function runWithRetry<T>(cfg: SubCallConfig<T>): Promise<T> {
+  try {
+    const r = await cfg.call();
+    return r.object;
+  } catch (e) {
+    const errMsg = e instanceof Error ? e.message : String(e);
+    console.warn(`[schema-gen] ${cfg.label} attempt 1 failed, retrying:`, errMsg);
+    try {
+      const r2 = await cfg.call();
+      return r2.object;
+    } catch (e2) {
+      const err2Msg = e2 instanceof Error ? e2.message : String(e2);
+      console.error(`[schema-gen] ${cfg.label} attempt 2 failed:`, err2Msg);
+      throw new Error(`${cfg.label} 生成失敗 (2 次嘗試後): ${err2Msg}`);
+    }
+  }
+}
+
+// ─── Main function: 4 parallel calls with per-call retry + assemble ─────
 
 export async function generateStory(
   input: GenerateStoryInput,
@@ -179,50 +204,65 @@ export async function generateStory(
 
   const userPrompt = userContext(input);
 
-  const [metaResult, stateResult, bibleResult, charactersResult] =
-    await Promise.all([
-      generateObject({
-        model: anthropicProvider(MODEL),
-        schema: MetaAndOpeningSchema,
-        system: META_SYSTEM,
-        prompt: userPrompt,
-        temperature: 0.8,
-        maxOutputTokens: 3000,
-      }),
-      generateObject({
-        model: anthropicProvider(MODEL),
-        schema: StateSchemaWrap,
-        system: STATE_SCHEMA_SYSTEM,
-        prompt: userPrompt,
-        temperature: 0.7,
-        maxOutputTokens: 2500,
-      }),
-      generateObject({
-        model: anthropicProvider(MODEL),
-        schema: BibleWrap,
-        system: BIBLE_SYSTEM,
-        prompt: userPrompt,
-        temperature: 0.7,
-        maxOutputTokens: 3000,
-      }),
-      generateObject({
-        model: anthropicProvider(MODEL),
-        schema: CharactersWrap,
-        system: CHARACTERS_SYSTEM,
-        prompt: userPrompt,
-        temperature: 0.85,
-        maxOutputTokens: 4000,
-      }),
-    ]);
+  const [meta, state, bible, characters] = await Promise.all([
+    runWithRetry({
+      label: "meta + opening_narrative",
+      call: () =>
+        generateObject({
+          model: anthropicProvider(MODEL),
+          schema: MetaAndOpeningSchema,
+          system: META_SYSTEM,
+          prompt: userPrompt,
+          temperature: 0.8,
+          maxOutputTokens: 3000,
+        }),
+    }),
+    runWithRetry({
+      label: "state_schema",
+      call: () =>
+        generateObject({
+          model: anthropicProvider(MODEL),
+          schema: StateSchemaWrap,
+          system: STATE_SCHEMA_SYSTEM,
+          prompt: userPrompt,
+          temperature: 0.7,
+          maxOutputTokens: 2500,
+        }),
+    }),
+    runWithRetry({
+      label: "story_bible",
+      call: () =>
+        generateObject({
+          model: anthropicProvider(MODEL),
+          schema: BibleWrap,
+          system: BIBLE_SYSTEM,
+          prompt: userPrompt,
+          temperature: 0.7,
+          maxOutputTokens: 3000,
+        }),
+    }),
+    runWithRetry({
+      label: "characters",
+      call: () =>
+        generateObject({
+          model: anthropicProvider(MODEL),
+          schema: CharactersWrap,
+          system: CHARACTERS_SYSTEM,
+          prompt: userPrompt,
+          temperature: 0.85,
+          maxOutputTokens: 4000,
+        }),
+    }),
+  ]);
 
   return {
-    title: metaResult.object.title,
-    description: metaResult.object.description,
-    genre: metaResult.object.genre,
-    tags: metaResult.object.tags,
-    opening_narrative: metaResult.object.opening_narrative,
-    state_schema: stateResult.object.state_schema,
-    story_bible: bibleResult.object.story_bible,
-    characters: charactersResult.object.characters,
+    title: meta.title,
+    description: meta.description,
+    genre: meta.genre,
+    tags: meta.tags,
+    opening_narrative: meta.opening_narrative,
+    state_schema: state.state_schema,
+    story_bible: bible.story_bible,
+    characters: characters.characters,
   };
 }

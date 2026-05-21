@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Story Engine — Phase 1 UX + Logic Audit</title>
+<style>
+  :root {
+    --primary: #4F46E5;
+    --primary-soft: #EEF2FF;
+    --accent: #F59E0B;
+    --accent-soft: #FEF3C7;
+    --bg: #FAFAF7;
+    --card: #FFFFFF;
+    --ink: #18181B;
+    --ink-soft: #3F3F46;
+    --muted: #71717A;
+    --border: #E4E4E7;
+    --green: #10B981;
+    --green-soft: #D1FAE5;
+    --rose: #E11D48;
+    --rose-soft: #FFE4E6;
+    --amber: #D97706;
+    --amber-soft: #FEF3C7;
+    --code-bg: #F4F4F5;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.65;
+    font-size: 15px;
+    -webkit-font-smoothing: antialiased;
+  }
+  main {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 48px 32px 100px;
+  }
+  .hero {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+  .eyebrow {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--primary);
+    background: var(--primary-soft);
+    padding: 5px 12px;
+    border-radius: 999px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  h1 {
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    margin-bottom: 8px;
+  }
+  .hero p {
+    color: var(--muted);
+    font-size: 16px;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+  .summary {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin: 32px 0;
+  }
+  .stat {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+    text-align: center;
+  }
+  .stat-num { font-size: 28px; font-weight: 800; line-height: 1; }
+  .stat-label {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 700;
+  }
+  .stat.crit .stat-num { color: var(--rose); }
+  .stat.med .stat-num { color: var(--amber); }
+  .stat.low .stat-num { color: var(--muted); }
+  .stat.ok .stat-num { color: var(--green); }
+
+  h2 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    margin: 40px 0 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  h2 .icon { font-size: 26px; }
+
+  .verdict {
+    background: linear-gradient(135deg, var(--primary-soft), var(--accent-soft));
+    border-left: 4px solid var(--primary);
+    padding: 18px 22px;
+    border-radius: 12px;
+    margin: 20px 0;
+  }
+  .verdict-title {
+    font-weight: 700;
+    margin-bottom: 6px;
+    font-size: 14px;
+  }
+  .verdict-body {
+    font-size: 14px;
+    color: var(--ink-soft);
+  }
+
+  .issue {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 22px;
+    margin-bottom: 12px;
+  }
+  .issue.crit { border-left: 4px solid var(--rose); }
+  .issue.med { border-left: 4px solid var(--amber); }
+  .issue.low { border-left: 4px solid var(--muted); }
+  .issue-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+  .issue-id {
+    font-weight: 800;
+    font-size: 13px;
+    color: var(--primary);
+    flex-shrink: 0;
+  }
+  .issue-title {
+    font-weight: 700;
+    font-size: 15px;
+    flex: 1;
+    min-width: 0;
+  }
+  .sev-tag {
+    font-size: 10.5px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .sev-crit { background: var(--rose-soft); color: var(--rose); }
+  .sev-med { background: var(--amber-soft); color: var(--amber); }
+  .sev-low { background: var(--code-bg); color: var(--muted); }
+
+  .type-tag {
+    font-size: 10.5px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    background: var(--primary-soft);
+    color: var(--primary);
+  }
+
+  .issue-symptom {
+    font-size: 13.5px;
+    color: var(--ink-soft);
+    margin-bottom: 8px;
+  }
+  .issue-symptom strong { color: var(--ink); }
+  .issue-fix {
+    background: var(--code-bg);
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin-top: 8px;
+  }
+  .issue-fix strong { color: var(--green); font-weight: 700; }
+  .issue-quote {
+    background: #fffbeb;
+    border-left: 3px solid var(--accent);
+    padding: 8px 14px;
+    margin: 8px 0;
+    font-size: 13px;
+    color: var(--ink-soft);
+    font-style: italic;
+  }
+
+  .priority-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin: 20px 0;
+  }
+  .priority-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+  }
+  .priority-card.now { border-top: 4px solid var(--rose); }
+  .priority-card.next { border-top: 4px solid var(--amber); }
+  .priority-card.later { border-top: 4px solid var(--muted); }
+  .priority-title {
+    font-weight: 700;
+    font-size: 14px;
+    margin-bottom: 8px;
+  }
+  .priority-list {
+    list-style: none;
+    padding: 0;
+  }
+  .priority-list li {
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    padding: 4px 0;
+    border-bottom: 1px dashed var(--border);
+  }
+  .priority-list li:last-child { border-bottom: none; }
+  .priority-list li strong { color: var(--ink); }
+
+  .category-header {
+    margin-top: 28px;
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ink);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .category-header .count {
+    color: var(--muted);
+    font-weight: 500;
+    margin-left: 8px;
+  }
+
+  code {
+    background: var(--code-bg);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-family: "SF Mono", Monaco, monospace;
+    font-size: 12.5px;
+  }
+  @media (max-width: 700px) {
+    .summary, .priority-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <div class="hero">
+    <span class="eyebrow">Phase 1 · Deep UX + Logic Audit</span>
+    <h1>有問題，但都唔致命</h1>
+    <p>由 player POV walk 完整 flow，揾到 18 個 issue。2 個 critical UX hurt first-impression，6 個 medium friction，10 個 minor / 後階段先 surface。Code logic 大致 sound。</p>
+  </div>
+
+  <div class="summary">
+    <div class="stat crit">
+      <div class="stat-num">2</div>
+      <div class="stat-label">Critical UX</div>
+    </div>
+    <div class="stat med">
+      <div class="stat-num">6</div>
+      <div class="stat-label">Medium friction</div>
+    </div>
+    <div class="stat low">
+      <div class="stat-num">10</div>
+      <div class="stat-label">Minor / Phase 1.5+</div>
+    </div>
+    <div class="stat ok">
+      <div class="stat-num">0</div>
+      <div class="stat-label">Hard blockers</div>
+    </div>
+  </div>
+
+  <div class="verdict">
+    <div class="verdict-title">🎯 一句話結論</div>
+    <div class="verdict-body">
+      <strong>Phase 1 嘅限制冇致命傷玩家體驗。最痛係兩點：</strong>(1) 35-50 秒等故事生成中間冇 progress 反饋，用戶會懷疑 hung up；(2) 玩家輸入 action 之後睇唔到 state 數值點變 — narrative 完先 panel 跳，斷咗 cause-and-effect 感覺。呢兩點都係 quick win（半日工程），唔需要等 Phase 1.5 / Phase 2。
+    </div>
+  </div>
+
+  <h2><span class="icon">🔴</span>2 個 CRITICAL UX issue</h2>
+
+  <div class="issue crit">
+    <div class="issue-head">
+      <span class="issue-id">UX-01</span>
+      <span class="issue-title">生成故事 35-50 秒，冇 progress 反饋</span>
+      <span class="sev-tag sev-crit">Critical</span>
+      <span class="type-tag">Constraint</span>
+    </div>
+    <div class="issue-symptom">
+      <strong>症狀：</strong>用戶按「生成 + 即時開始」之後，得 1 個 spinner + 4 行靜態文字（「↳ AI 設計緊 state_schema...」永遠唔變）。35-50 秒對 first-time 用戶感覺超長 — 佢哋會懷疑系統 hung 咗、按到第二次、或者離開。
+    </div>
+    <div class="issue-symptom">
+      <strong>根本原因：</strong>我哋而家 server-side 一次過跑 4 parallel LLM calls，client 只見到 Server Action pending。client 唔知個 4 個 call 各自喺邊 stage。
+    </div>
+    <div class="issue-fix">
+      <strong>Fix（半日 work）：</strong>將 4 parallel calls 改成 Server-Sent Events / streaming server action：每個 sub-call 完成就 stream「✅ 設計 dashboard 完成」「✅ 寫埋角色」反饋俾 client。用戶見到 step-by-step progress = 同樣 50 秒但感覺快 50%。
+    </div>
+  </div>
+
+  <div class="issue crit">
+    <div class="issue-head">
+      <span class="issue-id">UX-02</span>
+      <span class="issue-title">State 數值更新同 narrative 斷咗連繫</span>
+      <span class="sev-tag sev-crit">Critical</span>
+      <span class="type-tag">Logic flaw</span>
+    </div>
+    <div class="issue-symptom">
+      <strong>症狀：</strong>用戶輸入「我送花俾林思雅」→ AI 串流敘事完 → side panel 突然跳數值（好感度 +12 etc.）。用戶睇唔到「呢個變化由我嗰個 action 引起」嘅 cause-and-effect feedback。對手平台（D&D Beyond，AI Dungeon 新版）都有 inline state delta toast。
+    </div>
+    <div class="issue-symptom">
+      <strong>根本原因：</strong>而家 turn endpoint 用 <code>onFinish</code> 寫 state delta 入 DB，client 之後 <code>refreshState()</code> fetch。整個 update 喺 stream 結束之後先發生，唔係 inline。
+    </div>
+    <div class="issue-fix">
+      <strong>Fix（半日 work）：</strong>turn endpoint 在 stream 嘅 data chunks 之間插 state delta event (e.g. <code>{ type: 'state-delta', changes: [...] }</code>)。Client parse event → 即場顯示 toast「💗 林思雅好感度 +12」 + animate 個 ring。狀態變化變成 narrative 嘅一部分，玩家感到「我做嘅嘢有 impact」。
+    </div>
+  </div>
+
+  <h2><span class="icon">🟡</span>6 個 Medium friction</h2>
+
+  <div class="category-header">Player journey friction <span class="count">3 條</span></div>
+
+  <div class="issue med">
+    <div class="issue-head">
+      <span class="issue-id">UX-03</span>
+      <span class="issue-title">冇 turn count / Act 進度感</span>
+      <span class="sev-tag sev-med">Med</span>
+      <span class="type-tag">Missing feature</span>
+    </div>
+    <div class="issue-symptom">
+      <strong>症狀：</strong>玩 10 turn 之後用戶完全唔知自己「行咗幾遠」、「Act 1 完未」、「故事到中段定剛剛開頭」。冇 progression feedback = 冇成就感、冇 commit 感。
+    </div>
+    <div class="issue-fix">
+      <strong>Fix：</strong>Header 加 turn count badge。State panel 頂部加「Act 1 / 4」slim indicator（從 bible.story_arc length + 玩到邊 act 推導）。Act 完成時加 toast「🎭 Act 1 完結 — 進入 Act 2」。
+    </div>
+  </div>
+
+  <div class="issue med">
+    <div class="issue-head">
+      <span class="issue-id">UX-04</span>
+      <span class="issue-title">冇 「New Story」 / 過去 playthroughs entry point</span>
+      <span class="sev-tag sev-med">Med</span>
+      <span class="type-tag">Missing feature</span>
+    </div>
+    <div class="issue-symptom">
+      <strong>症狀：</strong>用戶完成第一個故事之後，唯一返去其他故事嘅途徑 = 重新 navigate /stories/new 或者記住個 URL。/library 係 placeholder。/profile 都係 placeholder。Header「故事庫」 link 去 placeholder page。
+    </div>
+    <div class="issue-fix">
+      <strong>Fix：</strong>/library 簡單實作 — list 用戶嘅 playthroughs (title + last_played_at + 「繼續」按鈕)。Header 嘅「故事庫」變 functional。Play screen header 加「+ 新故事」link。
+    </div>
+  </div>
+
+  <div class="issue med">
+    <div class="issue-head">
+      <span class="issue-id">UX-05</span>
+      <span class="issue-title">冇 preview / 唔可以重新 generate 故事</span>
+      <span class="sev-tag sev-med">Med</span>
+      <span class="type-tag">Missing feature</span>
+    </div>
+    <div class="issue-symptom">
+      <strong>症狀：</strong>提交 prompt → AI 生成 → 自動 redirect /play/[id]。如果用戶睇完開場唔鍾意（NPC 不合心水、tone 唔啱），唯一辦法係重 prompt 一個全新故事。冇 preview / regenerate / edit 步驟。
+    </div>
+    <div class="issue-fix">
+      <strong>Fix：</strong>生成完先去 /stories/[id]/preview，showcase title + opening + characters list + state panel。用戶按「開始玩」先建 playthrough；按「重新生成」就 retry (re-call schema generator)；按「微調 prompt」回到 form。
+    </div>
+  </div>
+
+  <div class="category-header">Logic / robustness <span class="count">3 條</span></div>
+
+  <div class="issue med">
+    <div class="issue-head">
+      <span class="issue-id">L-06</span>
+      <span class="issue-title">/turn endpoint 冇 rate limiting / debounce</span>
+      <span class="sev-tag sev-med">Med</span>
+      <span class="type-tag">Logic risk</span>
+    </div>
+    <div class="issue-symptom">
+      <strong>症狀：</strong>用戶 spam click「行動」可以同一時間 trigger 多個 parallel LLM call → race condition 寫入 turn_index UNIQUE constraint conflict → DB error。更壞：免費 tier 用戶 burn credits 多倍。
+    </div>
+    <div class="issue-symptom">
+      <strong>而家有的保護：</strong>Client 嘅 <code>streaming</code> state disable button。但 client-side 唔可信 — 用戶可以 devtools 強推。
+    </div>
+    <div class="issue-fix">
+      <strong>Fix：</strong>Server 加 in-memory rate limit（5 req / minute per user）。Turn route 開始時 lock playthrough 寫一個 "in_progress" flag，stream 結束釋放；接下來 POST 見到 flag 就 reject 429。
+    </div>
+  </div>
+
+  <div class="issue med">
+    <div class="issue-head">
+      <span class="issue-id">L-07</span>
+      <span class="issue-title">Schema generation partial failure 嘅 cleanup 唔完整</span>
+      <span class="sev-tag sev-med">Med</span>
+      <span class="type-tag">Logic flaw</span>
+    </div>
+    <div class="issue-symptom">
+      <strong>症狀：</strong>4 個 parallel calls 任何一個 fail → Promise.all rejects → schema-generator throw → actions.ts catch + 返錯誤俾用戶。但用戶見到嘅 error 係 generic "Story generation failed: ..."，唔知 fail 邊個 component。
+    </div>
+    <div class="issue-fix">
+      <strong>Fix：</strong>用 <code>Promise.allSettled</code> + 確認所有 4 個 succeed 先繼續。任何一個 fail：retry 個 fail 嗰個 (max 1 retry)，全部 retry 完仲 fail 先 surface error 俾用戶 + 顯示 fail 邊個 part。
+    </div>
+  </div>
+
+  <div class="issue med">
+    <div class="issue-head">
+      <span class="issue-id">L-08</span>
+      <span class="issue-title">冇 LLM refusal 處理</span>
+      <span class="sev-tag sev-med">Med</span>
+      <span class="type-tag">Logic gap</span>
+    </div>
+    <div class="issue-symptom">
+      <strong>症狀：</strong>Claude 對某啲 content (e.g. 過度暴力, illegal acts) 會 refuse 寫敘事，返一段 "I can't help with that..." instead of in-fiction response。我哋 turn endpoint 照當正常 response 處理 + 寫入 turn record → 玩家見到 AI 出戲嘅 refusal。
+    </div>
+    <div class="issue-fix">
+      <strong>Fix：</strong>Phase 1.5 嘅 Director Model 會 pre-filter，避免 prompt 入到 Narrator。Phase 1 quick fix：onFinish 入 DB 之前 quick check text 開頭 keyword (e.g. "I can't", "I cannot help") + 回應一個 in-fiction generic「林思雅好似聽唔明你嘅意思，望住你...」當 fallback。
+    </div>
+  </div>
+
+  <h2><span class="icon">🟢</span>10 個 Low / Phase 1.5+ items</h2>
+
+  <div class="category-header">Anonymous user UX <span class="count">2 條</span></div>
+
+  <div class="issue low">
+    <div class="issue-head">
+      <span class="issue-id">L-09</span>
+      <span class="issue-title">Anonymous user 冇 display_name (顯示 null)</span>
+      <span class="sev-tag sev-low">Low</span>
+      <span class="type-tag">Missing fallback</span>
+    </div>
+    <div class="issue-symptom">
+      <strong>Fix：</strong>UI fallback 「訪客」when display_name null。/profile page 加 「升級為正式帳戶」 button (Phase 6 + email 升級流程)。
+    </div>
+  </div>
+
+  <div class="issue low">
+    <div class="issue-head">
+      <span class="issue-id">L-10</span>
+      <span class="issue-title">Magic link PKCE 喺 prod 仍然壞</span>
+      <span class="sev-tag sev-low">Low</span>
+      <span class="type-tag">Defer</span>
+    </div>
+    <div class="issue-symptom">
+      <strong>Fix：</strong>Phase 0 嘅 cookie issue 仍未解決，依賴 Guest mode 嚟 bypass。要做 production-ready 要轉 OTP code entry（用戶手動輸入 email 收到嘅 6 位數）— Phase 1.5 polish。
+    </div>
+  </div>
+
+  <div class="category-header">Phase 1.5 Narrative Integrity <span class="count">3 條</span></div>
+
+  <div class="issue low">
+    <div class="issue-head">
+      <span class="issue-id">L-11</span>
+      <span class="issue-title">Director Model 仲未 integrate</span>
+      <span class="sev-tag sev-low">Low</span>
+      <span class="type-tag">Phase 1.5</span>
+    </div>
+    <div class="issue-symptom">
+      Bible/character red lines 而家只係 system prompt — Narrator 95% 跟，但老練玩家可 jailbreak。Phase 1.5 加 Director (Haiku 平 model) 喺 Narrator 之前審。
+    </div>
+  </div>
+
+  <div class="issue low">
+    <div class="issue-head">
+      <span class="issue-id">L-12</span>
+      <span class="issue-title">Skill Check engine 未起</span>
+      <span class="sev-tag sev-low">Low</span>
+      <span class="type-tag">Phase 1.5</span>
+    </div>
+    <div class="issue-symptom">
+      (skill + d20) vs difficulty 判定 — failed checks 有真實 state cost。前端骰子動畫。
+    </div>
+  </div>
+
+  <div class="issue low">
+    <div class="issue-head">
+      <span class="issue-id">L-13</span>
+      <span class="issue-title">Story arc transition DSL parser 未實作</span>
+      <span class="sev-tag sev-low">Low</span>
+      <span class="type-tag">Phase 1.5</span>
+    </div>
+    <div class="issue-symptom">
+      Bible 嘅 <code>transition_condition</code> string 而家係純 storage。Phase 1.5 Director 會 parse + evaluate 來決定 Act 切換。
+    </div>
+  </div>
+
+  <div class="category-header">Phase 2 Memory <span class="count">2 條</span></div>
+
+  <div class="issue low">
+    <div class="issue-head">
+      <span class="issue-id">L-14</span>
+      <span class="issue-title">Memory 限 last 20 turns — 長故事會「忘記」早期</span>
+      <span class="sev-tag sev-low">Low</span>
+      <span class="type-tag">Phase 2</span>
+    </div>
+    <div class="issue-symptom">
+      Phase 1 用 simplest pattern — 20 turn 之後早期細節 dropped。Phase 2 加 rolling summary + pgvector RAG + auto-lorebook (per ADR-005)。
+    </div>
+  </div>
+
+  <div class="issue low">
+    <div class="issue-head">
+      <span class="issue-id">L-15</span>
+      <span class="issue-title">Anthropic prompt caching 未 enabled</span>
+      <span class="sev-tag sev-low">Low</span>
+      <span class="type-tag">Phase 3</span>
+    </div>
+    <div class="issue-symptom">
+      Bible + characters 每 turn 重新 send，input cost 浪費 ~90%。Enable cache_control 可大省。Phase 3 配 credit system 一齊做。
+    </div>
+  </div>
+
+  <div class="category-header">Cosmetic / Polish <span class="count">3 條</span></div>
+
+  <div class="issue low">
+    <div class="issue-head">
+      <span class="issue-id">L-16</span>
+      <span class="issue-title">"undo / rewind" 未做</span>
+      <span class="sev-tag sev-low">Low</span>
+      <span class="type-tag">v1.5 backlog</span>
+    </div>
+    <div class="issue-symptom">
+      AI 寫錯嘢時無法 rewind。AI Dungeon 有「redo」「edit」按鈕。我哋目標係 ADR-008 嘅「永久後果」設計，所以 undo 要謹慎 — 可能只限「最後一個 turn」rewrite。v1.5 backlog item。
+    </div>
+  </div>
+
+  <div class="issue low">
+    <div class="issue-head">
+      <span class="issue-id">L-17</span>
+      <span class="issue-title">Streaming SSE 自製 parser fragile</span>
+      <span class="sev-tag sev-low">Low</span>
+      <span class="type-tag">Polish</span>
+    </div>
+    <div class="issue-symptom">
+      Play-client.tsx 自製 SSE parser，假設 AI SDK v6 protocol 唔變。Future SDK upgrade 可能 break。可改用 SDK 嘅 <code>useChat</code> hook（更 robust）但要 adapt 我哋嘅 API shape (action vs messages)。
+    </div>
+  </div>
+
+  <div class="issue low">
+    <div class="issue-head">
+      <span class="issue-id">L-18</span>
+      <span class="issue-title">Schema field key migration 冇處理</span>
+      <span class="sev-tag sev-low">Low</span>
+      <span class="type-tag">Edge case</span>
+    </div>
+    <div class="issue-symptom">
+      如果用戶將來編輯故事 schema (e.g. 加新 field, 改 key 名)，舊嘅 <code>current_state</code> 入面孤兒 keys 會留低，render 出非 expected 結果。v1.5 schema editor 加入時要設計 migration logic。
+    </div>
+  </div>
+
+  <h2><span class="icon">🎯</span>建議 priority</h2>
+
+  <div class="priority-grid">
+    <div class="priority-card now">
+      <div class="priority-title">🔴 而家做（半日內）</div>
+      <ul class="priority-list">
+        <li><strong>UX-01</strong> Stream progress 反饋（4 個 sub-call status）</li>
+        <li><strong>UX-02</strong> Inline state delta toast / animation</li>
+        <li><strong>UX-04</strong> /library 簡單 list playthroughs</li>
+      </ul>
+    </div>
+    <div class="priority-card next">
+      <div class="priority-title">🟡 下個 session</div>
+      <ul class="priority-list">
+        <li><strong>UX-03</strong> Turn count + Act indicator</li>
+        <li><strong>UX-05</strong> Preview + regenerate before commit</li>
+        <li><strong>L-06</strong> Turn endpoint rate limit / lock</li>
+        <li><strong>L-07</strong> Partial failure retry</li>
+        <li><strong>L-08</strong> LLM refusal fallback</li>
+        <li><strong>L-09</strong> Anonymous「訪客」display fallback</li>
+      </ul>
+    </div>
+    <div class="priority-card later">
+      <div class="priority-title">🟢 Phase 1.5 / 2 / 3</div>
+      <ul class="priority-list">
+        <li><strong>L-11</strong> Director Model integration</li>
+        <li><strong>L-12</strong> Skill Check engine</li>
+        <li><strong>L-13</strong> Arc transition DSL parser</li>
+        <li><strong>L-14</strong> Memory rolling summary + RAG</li>
+        <li><strong>L-15</strong> Anthropic prompt caching</li>
+        <li><strong>L-16 / 17 / 18</strong> Polish + edge cases</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="verdict">
+    <div class="verdict-title">📊 我嘅 take</div>
+    <div class="verdict-body">
+      Phase 1 嘅 architecture choices 冇致命傷玩家體驗 — <strong>實質痛點 = 兩個半日工程可以修</strong>（UX-01 progress feedback + UX-02 inline state delta）。
+      <br><br>
+      其他 6 個 medium 嘅 friction（turn count、library、preview、rate limit、retry、refusal）都係 standard product polish，1-2 session 內可以全部 ship。
+      <br><br>
+      10 個 low 大部分都係 Phase 1.5 / Phase 2 / Phase 3 已經 plan 緊嘅嘢 — 唔係 surprise，係 roadmap 預設 defer 嘅嘢。
+      <br><br>
+      建議：<strong>而家做 UX-01 + UX-02 + UX-04</strong>，等下個 E2E test 確認 first-impression 改善，再決定 Phase 1.5 開工 vs Phase 1 polish 多一輪。
+    </div>
+  </div>
+</main>
+</body>
+</html>

@@ -98,35 +98,74 @@ export type TurnContext = {
   playthrough_character_name: string | null;
 };
 
-export function buildSystemPrompt(ctx: TurnContext): string {
+/**
+ * Stable prefix — same across all turns of a playthrough.
+ * Anthropic prompt-cacheable (per ADR follow-up, L-15 fix).
+ * Includes: NARRATOR_RULES + story bible + character cards + protagonist + schema field list.
+ */
+export function buildStableSystemPrompt(ctx: TurnContext): string {
   const bible = bibleToSystemPrompt(ctx.story.story_bible);
   const chars = allCharactersToSystemPrompt(ctx.characters);
-  const stateSnapshot = `## Current Game State
-\`\`\`json
-${JSON.stringify(ctx.current_state, null, 2)}
-\`\`\`
-
-State schema fields:
+  const schemaFields = `## State Schema Fields (这些 fields 可以喺 update_state 入面 reference)
 ${ctx.story.state_schema.fields
-  .map(
-    (f) =>
-      `- \`${f.key}\` (${f.render_hint}): ${f.label}${"description" in f && f.description ? ` — ${f.description}` : ""}`,
-  )
+  .map((f) => `- \`${f.key}\` (${f.render_hint}): ${f.label}`)
   .join("\n")}`;
-
   const protagonist = ctx.playthrough_character_name
     ? `## Protagonist\n玩家扮演：${ctx.playthrough_character_name}\n`
     : "";
 
-  return [
-    NARRATOR_RULES,
-    bible,
-    chars,
-    protagonist,
-    stateSnapshot,
-  ]
+  return [NARRATOR_RULES, bible, chars, protagonist, schemaFields]
     .filter(Boolean)
     .join("\n\n");
+}
+
+/**
+ * Dynamic suffix — changes every turn. NOT cached.
+ * Just the current state snapshot.
+ */
+export function buildDynamicSystemPrompt(ctx: TurnContext): string {
+  return `## Current Game State (this turn only)
+\`\`\`json
+${JSON.stringify(ctx.current_state, null, 2)}
+\`\`\``;
+}
+
+/**
+ * Legacy combined builder (kept for backward compat / non-cached callers).
+ */
+export function buildSystemPrompt(ctx: TurnContext): string {
+  return (
+    buildStableSystemPrompt(ctx) + "\n\n" + buildDynamicSystemPrompt(ctx)
+  );
+}
+
+/**
+ * Detect LLM refusals to write narrative (safety filter trips, etc.).
+ * If detected, caller should replace with in-fiction fallback.
+ */
+const REFUSAL_PATTERNS = [
+  /^(i can'?t|i cannot|i'm not able|i won'?t|i am unable)/i,
+  /^(對不起|抱歉|不好意思)[\s，,]*(?:我|本AI)/,
+  /^(sorry,? but i)/i,
+  /violates? (my|the) (content|safety|usage) (policy|guideline)/i,
+];
+
+export function isLLMRefusal(text: string): boolean {
+  const trimmed = text.trim();
+  if (trimmed.length < 30) return false; // very short replies aren't refusals
+  // Check first ~200 chars only — refusals appear at start
+  const head = trimmed.slice(0, 200);
+  return REFUSAL_PATTERNS.some((p) => p.test(head));
+}
+
+/**
+ * In-fiction fallback when refusal detected. Generic enough to not break
+ * the story but signals to user that AI didn't engage with their action.
+ */
+export function refusalFallbackNarrative(): string {
+  return `你提出嘅嘢令場面突然停頓。對面嘅角色望住你，眉頭微皺 — 似乎聽唔明、或者唔知點 react。
+
+「你...你係咪認真？」對方半信半疑咁睇住你，等你重新表達意圖。`;
 }
 
 export function buildMessages(

@@ -3,10 +3,13 @@ import { streamText } from "ai";
 import { anthropicProvider } from "@/lib/ai/providers";
 import { createClient } from "@/lib/supabase/server";
 import {
-  buildSystemPrompt,
+  buildStableSystemPrompt,
+  buildDynamicSystemPrompt,
   buildMessages,
   extractStateDelta,
   updateStateTool,
+  isLLMRefusal,
+  refusalFallbackNarrative,
   type TurnContext,
 } from "@/lib/ai/turn-runner";
 import { applyDelta } from "@/schemas/state-delta";
@@ -27,6 +30,15 @@ export const maxDuration = 60;
 
 const RECENT_TURN_LIMIT = 20; // Phase 2 will swap to recent + RAG + summaries
 
+/**
+ * Per-playthrough rate limit. In-memory map — best-effort across single
+ * serverless instance. Real production should use Redis / DB-backed lock,
+ * but for Phase 1 (low concurrency) in-memory + DB UNIQUE constraint on
+ * (playthrough_id, turn_index) covers both UX (debounce) + correctness.
+ */
+const TURN_COOLDOWN_MS = 1500;
+const lastTurnAt = new Map<string, number>();
+
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -41,6 +53,16 @@ export async function POST(
   if (!user) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
+
+  // 1.5 Rate limit (L-06 fix)
+  const lastAt = lastTurnAt.get(playthroughId) ?? 0;
+  if (Date.now() - lastAt < TURN_COOLDOWN_MS) {
+    return NextResponse.json(
+      { error: "請稍等 — 上一個 turn 仲處理緊" },
+      { status: 429 },
+    );
+  }
+  lastTurnAt.set(playthroughId, Date.now());
 
   // 2. Parse body
   let action: string;
@@ -148,8 +170,11 @@ export async function POST(
     playthrough_character_name: pt.character_name,
   };
 
-  // 4. Stream Narrator response
-  const systemPrompt = buildSystemPrompt(ctx);
+  // 4. Stream Narrator response with prompt caching (L-15 fix)
+  // Stable system prompt (bible + characters + rules) cached;
+  // dynamic state appears in a separate non-cached system message.
+  const stableSystem = buildStableSystemPrompt(ctx);
+  const dynamicSystem = buildDynamicSystemPrompt(ctx);
   const messages = buildMessages(ctx.recent_turns, action);
 
   const userTurnIndex = pt.turn_count;
@@ -157,29 +182,47 @@ export async function POST(
 
   const result = streamText({
     model: anthropicProvider(pt.llm_model ?? "claude-sonnet-4-6"),
-    system: systemPrompt,
-    messages,
+    messages: [
+      {
+        role: "system",
+        content: stableSystem,
+        // Mark stable system for Anthropic prompt caching — saves ~90% on input cost
+        // for repeat turns (bible + characters + rules stay constant per playthrough).
+        providerOptions: {
+          anthropic: { cacheControl: { type: "ephemeral" } },
+        },
+      },
+      {
+        role: "system",
+        content: dynamicSystem,
+      },
+      ...messages,
+    ],
     tools: { update_state: updateStateTool },
     temperature: 0.85,
     maxOutputTokens: 1500,
     onFinish: async ({ text, toolCalls, usage }) => {
       try {
+        // L-08 fix: detect LLM refusal + substitute in-fiction fallback
+        const isRefusal = isLLMRefusal(text);
+        const finalText = isRefusal ? refusalFallbackNarrative() : text;
+        if (isRefusal) {
+          console.warn("[turn] LLM refused — replaced with in-fiction fallback. Original:", text.slice(0, 200));
+        }
+
         const delta = extractStateDelta(toolCalls);
         let newState = currentState;
-        if (delta && delta.ops.length > 0) {
-          const result = applyDelta(currentState, delta, stateSchema);
-          newState = result.state;
-          if (result.skipped.length > 0) {
+        if (delta && delta.ops.length > 0 && !isRefusal) {
+          const applied = applyDelta(currentState, delta, stateSchema);
+          newState = applied.state;
+          if (applied.skipped.length > 0) {
             console.warn(
-              `[turn] ${result.skipped.length} ops skipped:`,
-              result.skipped.map((s) => `${s.op.op} ${s.op.key}: ${s.reason}`),
+              `[turn] ${applied.skipped.length} ops skipped:`,
+              applied.skipped.map((s) => `${s.op.op} ${s.op.key}: ${s.reason}`),
             );
           }
         }
 
-        // Persist user turn + AI turn atomically (best-effort — Supabase
-        // doesn't have transactions via JS client, but we use unique
-        // (playthrough_id, turn_index) to prevent duplicates).
         await supabase.from("turns").insert([
           {
             playthrough_id: playthroughId,
@@ -191,8 +234,8 @@ export async function POST(
             playthrough_id: playthroughId,
             turn_index: aiTurnIndex,
             role: "ai",
-            text,
-            state_delta: delta,
+            text: finalText,
+            state_delta: isRefusal ? null : delta,
             llm_provider: "anthropic",
             model: pt.llm_model ?? "claude-sonnet-4-6",
             input_tokens: usage?.inputTokens,
@@ -210,6 +253,11 @@ export async function POST(
           .eq("id", playthroughId);
       } catch (e) {
         console.error("[turn] onFinish persistence failed", e);
+      } finally {
+        // Release rate-limit slot a bit earlier than cooldown so user
+        // can submit next turn smoothly after stream finishes.
+        const newLastAt = Date.now() - TURN_COOLDOWN_MS / 2;
+        lastTurnAt.set(playthroughId, newLastAt);
       }
     },
   });

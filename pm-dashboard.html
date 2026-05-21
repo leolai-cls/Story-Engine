@@ -565,56 +565,55 @@
       <p class="section-sub">每次新 session 開始，由呢度睇起。</p>
 
       <div class="top-meta">
-        <div><strong>Last updated</strong> 2026-05-21 · Session 3 (Phase 1)</div>
-        <div><strong>Phase</strong> 1 ✅ code + audit complete</div>
+        <div><strong>Last updated</strong> 2026-05-21 · Session 3 (extensive Phase 1 iter)</div>
+        <div><strong>Phase</strong> 1 ✅ functional · A → B → C next</div>
         <div><strong>Live</strong> <a href="https://story-engine-drab.vercel.app" target="_blank" style="color: var(--primary);">story-engine-drab.vercel.app</a></div>
       </div>
 
       <div class="status-hero">
-        <div class="label">🎮 Story Engine MVP code-complete</div>
-        <div class="phase">Schema generator + Play loop + 9 renderers live on prod</div>
-        <div class="focus">Phase 1 全部 10 個 sub-tasks done · code audit 揾 4 個 MED 即場修 · 11 個 low/defer items tracked。<br>等你 manual E2E test 試玩個流程：<code style="background:rgba(255,255,255,.15);padding:1px 6px;border-radius:4px;">/login → /stories/new → /play/[id]</code></div>
+        <div class="label">🎮 Phase 1 functional · Backend polish next</div>
+        <div class="phase">Story generation + Play loop verified end-to-end</div>
+        <div class="focus">
+          Session 3 修咗 3 個 critical issue (SDK baseURL bug · schema grammar limit via 4-call split · narrative hook rules)。User decision: <strong>backend polish first</strong> (Option A: prompt caching + rate limit + retry + refusal fallback) → Phase 1.5 (Director) → Phase 2 (Memory)。
+        </div>
       </div>
 
       <div class="status-grid">
         <div class="status-card good">
-          <div class="status-card-title">✅ Session 3 全部完成</div>
+          <div class="status-card-title">✅ Session 3 全部完成 (功能 + bug fix + audit)</div>
           <ul>
-            <li><strong>4 Zod schemas</strong>：state_schema (9 render hints discriminated union) + bible (3-tier) + character cards (red lines) + state_delta (set/inc/push/remove ops)</li>
-            <li><strong>9 atomic renderers</strong>：bar / progress_ring / number / enum_chip / inventory_list / relationship_graph / meter_with_label / portrait / note</li>
-            <li><strong>DynamicStatePanel</strong> dispatcher + demo at <code>/dev/state-demo</code> (3 schemas)</li>
-            <li><strong>AI SDK setup</strong>：Anthropic + OpenRouter providers + model catalog</li>
-            <li><strong>Schema generator</strong>：Claude Sonnet 4.6 生成完整 story package（state + bible + characters + opening）</li>
-            <li><strong>Creation wizard</strong> at <code>/stories/new</code> 含 cleanup-on-failure</li>
-            <li><strong>Turn endpoint</strong> + streaming Narrator + tool calling for state delta</li>
-            <li><strong>Play screen</strong> at <code>/play/[id]</code> + state panel auto-refresh</li>
-            <li><strong>Code audit</strong>：26 finding · 4 MED 即場修 (M1 transaction cleanup, M2 number coercion, M3 key uniqueness, M4 per-op tolerance) · 11 deferred to Phase 1.5/2/3</li>
+            <li><strong>4 Zod schemas + 9 renderers + DynamicStatePanel + AI SDK + 4-parallel schema generator + Creation wizard + Streaming turn endpoint + Play screen</strong></li>
+            <li>🐛 <strong>Fixed: SDK baseURL bug</strong>（@ai-sdk/anthropic 預設打 <code>/messages</code> 漏 <code>/v1</code> → 用戶 instinct catch 到）</li>
+            <li>🐛 <strong>Fixed: Schema grammar too large</strong>（split 成 4 parallel LLM calls — meta+opening / state / bible / characters — Promise.all 跑 ~35-50s）</li>
+            <li>🐛 <strong>Fixed: Narrative hook rules</strong>（opening + 每 turn 結尾必須 trigger reaction — NPC 講嘢/動作/環境事件/sensory tension，禁 static description / 直接問 / 列選項）</li>
+            <li>🔐 <strong>Guest mode</strong>（anonymous sign-in，bypass PKCE magic link）</li>
+            <li>📋 <strong>3 audit reports</strong>: Phase 0 code (26/5) · Phase 1 code (26/4) · Phase 1 UX (18 / 0 critical blocker)</li>
           </ul>
         </div>
         <div class="status-card warn">
-          <div class="status-card-title">🟡 等緊 / next step</div>
+          <div class="status-card-title">🟡 Next 3 steps (用戶決定 A → B → C)</div>
           <ul>
-            <li><strong>用戶 manual E2E test on prod</strong> (~5 分鐘) — 試一次完整 create story → play 3 turns flow，確認 streaming + state panel + LLM 全部 work</li>
-            <li><strong>Phase 1.5 (Narrative Integrity)</strong>：Director Model + Skill Check + Earned Exceptions</li>
-            <li><strong>Phase 2 (Memory)</strong>：pgvector RAG + rolling summary + auto-lorebook</li>
-            <li><strong>Phase 3 (Credits)</strong>：Stripe + Anthropic prompt caching + per-turn billing</li>
+            <li><strong>A. Phase 1 polish backend</strong> (~1 session): Anthropic prompt caching (-90% input cost) + rate limit + partial-failure retry + LLM refusal fallback</li>
+            <li><strong>B. Phase 1.5 — Narrative Integrity</strong> (~2 sessions): Director Model + Skill Check + Earned Exceptions + Arc DSL parser + NPC disposition auto-update</li>
+            <li><strong>C. Phase 2 — Memory</strong> (~2 sessions): pgvector + embedding + rolling summary + RAG + auto-lorebook</li>
+            <li><strong>UI/UX polish</strong> (UX-01/UX-02/UX-04) — defer per user decision，等 backend stable 先返嚟</li>
           </ul>
         </div>
       </div>
 
       <h3>What's next（按優先排）</h3>
       <div class="quick-links">
-        <a href="https://story-engine-drab.vercel.app/stories/new" class="quick-link" target="_blank">
-          <div class="quick-link-title">🎮 試玩 Phase 1 MVP (live)</div>
-          <div class="quick-link-desc">login → create story → play 3 turns</div>
+        <a href="https://story-engine-drab.vercel.app/login" class="quick-link" target="_blank">
+          <div class="quick-link-title">🎮 試玩 Phase 1 (Guest mode)</div>
+          <div class="quick-link-desc">Login → Guest button → /stories/new</div>
+        </a>
+        <a href="audit-report-phase1-ux.html" class="quick-link">
+          <div class="quick-link-title">🔍 Phase 1 UX Audit (latest)</div>
+          <div class="quick-link-desc">18 finding · 2 critical UX deferred · 10 backend → A/B/C</div>
         </a>
         <a href="audit-report-phase1.html" class="quick-link">
-          <div class="quick-link-title">🔍 Phase 1 Audit Report</div>
-          <div class="quick-link-desc">26 finding · 4 fixed · 11 deferred</div>
-        </a>
-        <a href="https://story-engine-drab.vercel.app/dev/state-demo" class="quick-link" target="_blank">
-          <div class="quick-link-title">📊 State demo (no LLM)</div>
-          <div class="quick-link-desc">9 renderers × 3 genres side-by-side</div>
+          <div class="quick-link-title">🔍 Phase 1 Code Audit</div>
+          <div class="quick-link-desc">26 finding · 4 MED fixed · grammar / optionals</div>
         </a>
         <a href="plan.html" class="quick-link">
           <div class="quick-link-title">📘 Business plan</div>
@@ -625,8 +624,23 @@
       <h3>📓 Session Log</h3>
       <div class="session-log">
         <div class="session-entry">
-          <div class="session-date">2026-05-21 · Session 3 (Phase 1)</div>
-          <div class="session-title">🎮 Story Engine MVP code-complete + audit pass</div>
+          <div class="session-date">2026-05-21 · Session 3 (extensive Phase 1 iter)</div>
+          <div class="session-title">🐛 3 critical fixes + Phase 1 functional on prod</div>
+          <div class="session-body">
+            <p><strong>Major outcome:</strong> Phase 1 完整 build + 3 個 critical bug 修咗 + Phase 1 functionally verified on prod via Guest mode。Story Engine MVP first-impression working end-to-end。</p>
+            <p><strong>3 critical fixes this iteration:</strong></p>
+            <p>1. 🐛 <strong>SDK baseURL bug</strong> — <code>@ai-sdk/anthropic</code> v3.0.78 預設 hit <code>/messages</code> 漏 <code>/v1</code> → 永遠 404。用戶嘅 sharp instinct catch 到「秒速彈 error 唔似真 LLM 處理」push back，避免咗我 ship 錯 fix。修法：explicit <code>createAnthropic({ baseURL: 'https://api.anthropic.com/v1' })</code>。</p>
+            <p>2. 🐛 <strong>Schema grammar too large</strong> — Anthropic 有第二個 limit (除咗 24-optional)：tool-mode compiled grammar size。我哋 9-way discriminated union × 4 sub-schemas 超 ceiling。修法：split 成 4 parallel <code>generateObject</code> calls（meta+opening / state_schema / story_bible / characters），Promise.all 跑 ~35-50s（max of 4，唔係 sum）。</p>
+            <p>3. 🐛 <strong>Narrative hook rules</strong> — 用戶試玩後反映 opening 結尾「你站在格子前，球衣在手裡」純 description，玩家無所適從。修法：META_SYSTEM + NARRATOR_RULES 加 strict ending rules — 必須係 NPC 講嘢/動作/環境事件/sensory tension，禁止 static description / 「你想點做？」 / 列選項。</p>
+            <p><strong>Audit reports:</strong> Phase 0 (26 finding, 5 fixed) + Phase 1 code (26, 4 fixed) + Phase 1 UX (18 finding, 2 critical UX deferred for user-chosen backend focus, 10 backend → A/B/C plan)。</p>
+            <p><strong>User decision:</strong> Backend first, UI/UX defer。Order: <strong>A → B → C</strong> (Phase 1 polish backend → Phase 1.5 Narrative Integrity → Phase 2 Memory).</p>
+            <p><strong>下次 session:</strong> 開 Option A (prompt caching + rate limit + partial-failure retry + LLM refusal fallback)。</p>
+          </div>
+        </div>
+
+        <div class="session-entry">
+          <div class="session-date">2026-05-21 · Session 3 (Phase 1 initial build)</div>
+          <div class="session-title">🎮 Story Engine MVP code-complete + initial audit pass</div>
           <div class="session-body">
             <p><strong>Major outcome：</strong>Phase 1 (Story Engine MVP) 整個 product 核心 build 晒。用戶可由零創作故事 → AI 生成 state schema + bible + 3-5 character cards + opening → 玩 streaming turns，狀態 panel 跟住變。Live on prod。</p>
             <p><strong>Built：</strong>4 Zod schemas (state_schema 9 render hints discriminated union, bible 3-tier hard/soft, character cards with red_lines, state_delta with custom ops + JSON-Patch-like applier) + 9 atomic renderers + DynamicStatePanel dispatcher + AI provider catalog (Anthropic + OpenRouter Phase 6 ready) + LLM schema generator (Claude Sonnet 4.6 with Zod-structured output) + Story creation wizard with Server Action + cleanup-on-failure + Streaming turn endpoint with tool calling for state delta + Play screen with optimistic user turns + state panel refresh on stream finish。</p>
@@ -721,22 +735,22 @@
             <div class="phase-title">故事引擎 MVP <strong style="color: var(--rose); font-size: 12px; margin-left: 6px;">★ MVP CORE</strong></div>
             <div class="phase-done-def">Code complete + audited. E2E user test pending = official Phase 1 done.</div>
           </div>
-          <span class="phase-status ps-in-progress">90% · pending E2E</span>
+          <span class="phase-status ps-done">DONE · 100% (functional)</span>
         </div>
-        <div class="progress-bar"><div class="progress-fill" style="width: 90%"></div></div>
-        <details open>
-          <summary>展開 checklist (10 sub-tasks) — 9 done · 1 awaiting E2E</summary>
+        <div class="progress-bar"><div class="progress-fill" style="width: 100%"></div></div>
+        <details>
+          <summary>展開 checklist (10 sub-tasks) — 全部 done · UI/UX polish deferred per user decision</summary>
           <ul class="checklist">
-            <li class="done">1.1 Types + Zod schemas (state, bible 3-tier, characters, state_delta)</li>
-            <li class="done">1.2 9 render hint components</li>
+            <li class="done">1.1 Types + Zod schemas (iterated 3× — optionals → 0, redesigned for grammar limit)</li>
+            <li class="done">1.2 9 render hint components (decoupled from schema via heuristics)</li>
             <li class="done">1.3 DynamicStatePanel generic renderer</li>
-            <li class="done">1.4 Demo route /dev/state-demo (3 schemas side-by-side)</li>
-            <li class="done">1.5 Anthropic + OpenRouter SDK setup + model catalog</li>
-            <li class="done">1.6 Schema generator (Claude Sonnet 4.6 structured output)</li>
-            <li class="done">1.7 Story creation wizard + cleanup-on-failure</li>
-            <li class="done">1.8 Streaming turn endpoint + state delta tool calling</li>
-            <li class="done">1.9 Play screen UI (streaming + state panel refresh)</li>
-            <li>1.10 E2E verify on prod (waiting user manual test)</li>
+            <li class="done">1.4 /dev/state-demo (3 schemas side-by-side)</li>
+            <li class="done">1.5 Anthropic + OpenRouter SDK setup + baseURL fix + model catalog</li>
+            <li class="done">1.6 Schema generator (4 parallel calls + narrative hook rules)</li>
+            <li class="done">1.7 Story creation wizard /stories/new + cleanup-on-failure</li>
+            <li class="done">1.8 Streaming turn endpoint /api/playthroughs/[id]/turn + tool calling</li>
+            <li class="done">1.9 Play screen /play/[id] + state panel refresh</li>
+            <li class="done">1.10 E2E verified on prod via Guest mode (opening narrative quality fixed)</li>
           </ul>
         </details>
       </div>
