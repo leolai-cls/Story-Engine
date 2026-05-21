@@ -47,82 +47,115 @@ export const StateDeltaSchema = z.object({
 
 export type StateDelta = z.infer<typeof StateDeltaSchema>;
 
+export type ApplyDeltaResult = {
+  state: Record<string, unknown>;
+  applied: number;
+  skipped: Array<{ op: StateOp; reason: string }>;
+};
+
 /**
- * Apply a delta to a state instance. Pure function — returns a new state.
- * Throws on schema violation (e.g., key not in schema, value type mismatch,
- * numeric out of bounds, enum value not in options).
+ * Apply a delta to a state instance. Pure function — returns a new state
+ * along with which ops were skipped (and why).
+ *
+ * Per-op error tolerance: invalid ops (unknown key, wrong type, numeric
+ * coercion failure) are skipped + reported, NOT thrown. This way one bad
+ * op from the LLM doesn't lose the rest of the turn's state changes.
+ *
+ * Caller decides whether to log / surface skipped ops.
  */
 export function applyDelta(
   state: Record<string, unknown>,
   delta: StateDelta,
   schema: StateSchema,
-): Record<string, unknown> {
+): ApplyDeltaResult {
   const next = { ...state };
   const fieldsByKey = new Map<string, Field>(
     schema.fields.map((f) => [f.key, f]),
   );
+  const skipped: Array<{ op: StateOp; reason: string }> = [];
+  let applied = 0;
 
   for (const op of delta.ops) {
     const field = fieldsByKey.get(op.key);
     if (!field) {
-      throw new Error(`State delta references unknown field: ${op.key}`);
+      skipped.push({ op, reason: `unknown field: ${op.key}` });
+      continue;
     }
 
-    switch (op.op) {
-      case "set":
-        next[op.key] = validateValue(field, op.value);
-        break;
+    try {
+      switch (op.op) {
+        case "set":
+          next[op.key] = validateValue(field, op.value);
+          break;
 
-      case "inc": {
-        if (!isNumericField(field)) {
-          throw new Error(`inc op not valid for field ${op.key} (${field.render_hint})`);
+        case "inc": {
+          if (!isNumericField(field)) {
+            throw new Error(`inc only valid for numeric fields (${field.render_hint})`);
+          }
+          const cur = coerceNumber(next[op.key]) ?? 0;
+          const by = coerceNumber(op.by) ?? 0;
+          next[op.key] = clampNumeric(field, cur + by);
+          break;
         }
-        const cur = typeof next[op.key] === "number" ? (next[op.key] as number) : 0;
-        const proposed = cur + op.by;
-        next[op.key] = clampNumeric(field, proposed);
-        break;
-      }
 
-      case "push": {
-        if (field.render_hint !== "inventory_list") {
-          throw new Error(`push op only valid for inventory_list (${op.key})`);
+        case "push": {
+          if (field.render_hint !== "inventory_list") {
+            throw new Error(`push only valid for inventory_list`);
+          }
+          const arr = Array.isArray(next[op.key]) ? [...(next[op.key] as unknown[])] : [];
+          if (field.max_items && arr.length >= field.max_items) {
+            throw new Error(`inventory at max_items (${field.max_items})`);
+          }
+          arr.push(op.value);
+          next[op.key] = arr;
+          break;
         }
-        const arr = Array.isArray(next[op.key]) ? [...(next[op.key] as unknown[])] : [];
-        if (field.max_items && arr.length >= field.max_items) {
-          throw new Error(
-            `inventory_list ${op.key} at max_items (${field.max_items})`,
-          );
-        }
-        arr.push(op.value);
-        next[op.key] = arr;
-        break;
-      }
 
-      case "remove": {
-        if (field.render_hint !== "inventory_list") {
-          throw new Error(`remove op only valid for inventory_list (${op.key})`);
+        case "remove": {
+          if (field.render_hint !== "inventory_list") {
+            throw new Error(`remove only valid for inventory_list`);
+          }
+          const arr = Array.isArray(next[op.key]) ? [...(next[op.key] as unknown[])] : [];
+          if (op.index !== undefined && op.index < arr.length) {
+            arr.splice(op.index, 1);
+          } else if (op.match) {
+            const idx = arr.findIndex(
+              (item) =>
+                item !== null &&
+                typeof item === "object" &&
+                Object.entries(op.match!).every(
+                  ([k, v]) => (item as Record<string, unknown>)[k] === v,
+                ),
+            );
+            if (idx >= 0) arr.splice(idx, 1);
+          }
+          next[op.key] = arr;
+          break;
         }
-        const arr = Array.isArray(next[op.key]) ? [...(next[op.key] as unknown[])] : [];
-        if (op.index !== undefined) {
-          arr.splice(op.index, 1);
-        } else if (op.match) {
-          const idx = arr.findIndex(
-            (item) =>
-              item !== null &&
-              typeof item === "object" &&
-              Object.entries(op.match!).every(
-                ([k, v]) => (item as Record<string, unknown>)[k] === v,
-              ),
-          );
-          if (idx >= 0) arr.splice(idx, 1);
-        }
-        next[op.key] = arr;
-        break;
       }
+      applied++;
+    } catch (e) {
+      skipped.push({
+        op,
+        reason: e instanceof Error ? e.message : String(e),
+      });
     }
   }
 
-  return next;
+  return { state: next, applied, skipped };
+}
+
+/**
+ * Coerce a value to a number if possible. Handles strings like "42" or "3.14".
+ * Returns null if not coercible.
+ */
+function coerceNumber(v: unknown): number | null {
+  if (typeof v === "number" && !Number.isNaN(v)) return v;
+  if (typeof v === "string") {
+    const n = Number(v);
+    if (!Number.isNaN(n)) return n;
+  }
+  return null;
 }
 
 function isNumericField(field: Field): field is Extract<
@@ -151,17 +184,21 @@ function validateValue(field: Field, value: unknown): unknown {
   switch (field.render_hint) {
     case "bar":
     case "progress_ring":
-    case "meter_with_label":
-      if (typeof value !== "number") {
+    case "meter_with_label": {
+      const n = coerceNumber(value);
+      if (n === null) {
         throw new Error(`Field ${field.key} expects number, got ${typeof value}`);
       }
-      return clampNumeric(field, value);
+      return clampNumeric(field, n);
+    }
 
-    case "number":
-      if (typeof value !== "number") {
+    case "number": {
+      const n = coerceNumber(value);
+      if (n === null) {
         throw new Error(`Field ${field.key} expects number, got ${typeof value}`);
       }
-      return value;
+      return n;
+    }
 
     case "enum_chip":
       if (typeof value !== "string" || !field.options.includes(value)) {

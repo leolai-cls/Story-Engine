@@ -167,10 +167,13 @@ export async function POST(
         const delta = extractStateDelta(toolCalls);
         let newState = currentState;
         if (delta && delta.ops.length > 0) {
-          try {
-            newState = applyDelta(currentState, delta, stateSchema);
-          } catch (e) {
-            console.warn("[turn] applyDelta failed, keeping state", e);
+          const result = applyDelta(currentState, delta, stateSchema);
+          newState = result.state;
+          if (result.skipped.length > 0) {
+            console.warn(
+              `[turn] ${result.skipped.length} ops skipped:`,
+              result.skipped.map((s) => `${s.op.op} ${s.op.key}: ${s.reason}`),
+            );
           }
         }
 

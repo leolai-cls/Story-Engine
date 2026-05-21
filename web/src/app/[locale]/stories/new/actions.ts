@@ -76,6 +76,16 @@ export async function createStoryFromPrompt(
     };
   }
 
+  // Helper: best-effort cleanup if a later step fails. Supabase JS client
+  // has no native transactions, so we manually rollback created rows.
+  async function cleanup(storyId?: string) {
+    if (storyId) {
+      // story has CASCADE on characters / playthroughs / etc, so deleting
+      // the story row tears everything down.
+      await supabase.from("stories").delete().eq("id", storyId);
+    }
+  }
+
   // Insert story
   const { data: story, error: storyErr } = await supabase
     .from("stories")
@@ -124,6 +134,7 @@ export async function createStoryFromPrompt(
 
   if (charsErr || !insertedChars) {
     console.error("[createStory] character insert failed", charsErr);
+    await cleanup(story.id);
     return { ok: false, error: charsErr?.message ?? "Character insert failed" };
   }
 
@@ -146,6 +157,7 @@ export async function createStoryFromPrompt(
 
   if (ptErr || !playthrough) {
     console.error("[createStory] playthrough insert failed", ptErr);
+    await cleanup(story.id);
     return { ok: false, error: ptErr?.message ?? "Playthrough insert failed" };
   }
 

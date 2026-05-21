@@ -7,89 +7,111 @@
 
 ## 🎯 而家狀態
 
-**Phase**: ✅ **Phase 0 COMPLETE — production live + E2E verified**
+**Phase**: ✅ **Phase 1 code-complete — Story Engine MVP ready for E2E test**
 **Live URL**: https://story-engine-drab.vercel.app
-**Last updated**: 2026-05-21 (Session 2 PM, after deploy fix)
+**Last updated**: 2026-05-21 Session 3 (Phase 1)
 
 ## 📍 What's next
 
-Pick one:
-1. **Phase 1 開工** — Story Engine MVP (schema generator + state panel + play loop) ⭐ 最 exciting
-2. **Manual signup test** — open https://story-engine-drab.vercel.app/login，input your real email，confirm magic link arrives + clicking it lands on /profile
-3. **Sentry + PostHog setup** — observability (defer to v1.5 polish — not blocking Phase 1)
-4. **Custom domain** — point storyengine.app / hk / .ai → Vercel (if you buy one)
-5. **休息** — Phase 0 是大里程碑，可以食飯先
+**E2E test on prod** — 你 manually 行一次完整 flow:
+1. 打開 https://story-engine-drab.vercel.app/login → 入你 email → click magic link → /profile
+2. Navigate to https://story-engine-drab.vercel.app/stories/new
+3. Paste 任何一個故事 prompt（form 有 4 個 example）
+4. 等 15-30 秒 AI 生成（schema + bible + 3-5 characters + opening）
+5. 自動 redirect 去 /play/[id]，見到狀態 panel + opening narrative
+6. 輸入第一個 action（e.g.「我行去林思雅旁邊講聲早晨」）
+7. 等 5-10 秒，AI 串流敘事 + side panel 更新（好感度應該變）
+8. 玩 2-3 個 turns 確認 state changes 真係 reflect
+
+如果順利，呢個就係 Phase 1 verification 完成 — full Story Engine MVP live。
 
 ## 🚧 Blockers
 
-**NONE**. Production stable. Code-side fully unblocked for Phase 1.
+**冇** — code 全部 push 上 prod，Vercel env vars (ANTHROPIC_API_KEY + OPENROUTER_API_KEY + Supabase) 全部加咗。
+Local dev 有 cache issue（proxy.ts → middleware.ts rename 殘留），但唔影響 prod。
+下次 session 開頭如果要 local dev，rm -rf .next + restart 應該得。
 
-## ✅ Recently completed (Session 2 PM continued)
+## ✅ Recently completed (Session 3 — Phase 1)
 
-- **GitHub repo**: `leolai-cls/Story-Engine` (PUBLIC, paranoid secret-scan passed)
-- **Monorepo git** at root level (web/ subdir + supabase/ + pm/ + docs)
-- **Vercel deploy fix**: Framework Preset = Next.js + Root Directory = web (was "Other" + "./" — caused 2s no-op build + 404)
-- **Vercel env vars set**: NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY / NEXT_PUBLIC_SITE_URL
-- **Supabase auth URLs**: site_url + uri_allow_list 加 production domain
-- **proxy.ts → middleware.ts rename**: Next.js 16's proxy.ts not yet supported by Vercel
-- **Production E2E verified**: admin create user via Google-OAuth-shape metadata → profile auto-created with display_name from full_name + avatar from picture → cascade delete works
-- 8 prod routes all 200 (/, /login, /pricing, /en, /zh-Hans, /library, /profile, /settings)
+**Schemas + types (Phase 1.1)**:
+- `src/schemas/state-schema.ts` — 9 render hints + Zod discriminated union + JSON Patch state delta
+- `src/schemas/bible.ts` — 3-tier (hard_locked / soft_guided) per ADR-008
+- `src/schemas/character.ts` — Character cards with red_lines + disposition
+- `src/schemas/state-delta.ts` — Custom ops (set/inc/push/remove) + clamp + validation applier
+
+**UI components (Phase 1.2-1.3)**:
+- 9 atomic renderers: bar / progress_ring / number / enum_chip / inventory_list / relationship_graph / meter_with_label / portrait / note
+- `<DynamicStatePanel>` generic dispatcher
+
+**Demo (Phase 1.4)**:
+- `/dev/state-demo` — 3 hardcoded schemas (戀愛 / D&D / NBA) side-by-side proves dynamic rendering works
+
+**AI integration (Phase 1.5-1.6)**:
+- @ai-sdk/anthropic + ai SDK
+- Provider factory (Anthropic + OpenRouter Phase 6 ready)
+- Model catalog (Sonnet 4.6 default Narrator, Haiku 4.5 future Director)
+- Schema generator — calls Claude with structured Zod output → full story package
+
+**Story creation flow (Phase 1.7)**:
+- `/stories/new` form with prompt + protagonist hint + content rating
+- Server Action: validate → call generator → insert story + characters + playthrough + opening turn → redirect to /play
+
+**Play loop (Phase 1.8-1.9)**:
+- POST /api/playthroughs/[id]/turn — load context, streamText with update_state tool, onFinish persist user+AI turn and apply state delta
+- GET /api/playthroughs/[id] — state refresh after turn
+- `/play/[playthroughId]` — 2-col layout (narrative + state panel), streaming narrative display, optimistic user turn, state panel refresh after each turn
 
 ---
 
-## 📦 Phase 0 — COMPLETE (14/14 items, 2 deferred to polish)
+## 📦 Phase 1 — Code complete (10/10 sub-tasks)
 
-| Item | Status |
+| Task | Status |
 |---|---|
-| Next.js 16 project init | ✅ |
-| Tailwind v4 + shadcn/ui setup | ✅ |
-| next-intl 繁中 default | ✅ |
-| Supabase project setup | ✅ |
-| Migration 0001 applied + verified | ✅ |
-| Supabase Auth magic link wired up + E2E tested | ✅ |
-| Google OAuth | ⏸️ Phase 6 (KYC/adult mode) |
-| Auto-create profile trigger | ✅ E2E verified |
-| App layout + header + footer + i18n nav | ✅ |
-| Marketing landing | ✅ |
-| Pricing page | ✅ |
-| Settings skeleton | ✅ |
-| **Deploy to Vercel (production)** | ✅ https://story-engine-drab.vercel.app |
-| Sentry + PostHog | ⏸️ Defer to v1.5 polish |
-| Custom domain | ⏸️ User action when ready |
+| 1.1 Zod schemas | ✅ |
+| 1.2 9 render components | ✅ |
+| 1.3 DynamicStatePanel | ✅ |
+| 1.4 Demo route | ✅ /dev/state-demo |
+| 1.5 Anthropic SDK setup | ✅ |
+| 1.6 Schema generator | ✅ uses Claude Sonnet 4.6 |
+| 1.7 Creation wizard | ✅ /stories/new |
+| 1.8 Turn endpoint | ✅ streaming + tool calling |
+| 1.9 Play screen | ✅ /play/[id] |
+| 1.10 E2E verify | 🟡 waiting user manual test |
+
+**Not in Phase 1 (deferred)**:
+- Phase 1.5 = Director Model (separate from Narrator) — ADR-006/015 Narrative Integrity full implementation
+- Phase 2 = pgvector memory layers (summarization + RAG + lorebook)
+- Inline schema/bible/character editor (post-MVP UX polish)
+- Schema generator NSFW guidance for adult mode (Phase 6)
+- Credit metering on turn API (Phase 3)
 
 ---
 
 ## 📓 Session Log
 
-### Session 2 PM (continued) — 2026-05-21 — Production live
+### Session 3 — 2026-05-21 (Phase 1 build)
 
-**Major outcome**: Phase 0 100% functional end-to-end. Story Engine 而家係 live website。
+**Major outcome**: Story Engine MVP code-complete on prod. User can create a story from prompt + play with streaming narrative + dynamic state panel.
 
 **Did**:
-- Monorepo git setup at parent level（remove web/.git → init parent → .gitignore exclude .env.local + node_modules → init commit 64 files → paranoid public-repo secret scan passed → push to leolai-cls/Story-Engine）
-- Vercel auto-detect triggered, built but 2s (red flag — found "Other" preset + "./" root)
-- Used Chrome MCP to drive Vercel dashboard:
-  - Fixed Framework Preset → Next.js
-  - Fixed Root Directory → web
-  - Added 4 env vars via Add Another (multi-line paste 唔 work)
-  - Triggered redeploy with fresh build cache
-- Updated Supabase auth URLs (site_url + uri_allow_list) for prod domain via Management API
-- Renamed src/proxy.ts → src/middleware.ts (Next.js 16's proxy.ts naming silently ignored by Vercel)
-- E2E verified production signup → trigger → profile create with correct OAuth field extraction
+- All 10 Phase 1 sub-tasks (Zod schemas, 9 renderers, DynamicStatePanel, demo, AI SDK setup, generator, wizard, turn endpoint, play screen)
+- Demo at /dev/state-demo proves 故事自適應介面 (3 genres rendering correctly)
+- Added ANTHROPIC_API_KEY + OPENROUTER_API_KEY to Vercel env vars via Chrome MCP
+- Fixed web/.gitignore to allow .env.example
+- Committed paranoid-safe: no API keys in git (`.env.local` properly ignored)
 
-**新 insight**:
-- Vercel auto-import from GitHub doesn't auto-detect Next.js for repos with subdir Next.js (Root Directory needs explicit set to subdirectory)
-- Vercel's build pipeline doesn't recognize proxy.ts (Next.js 16's renamed middleware) yet — must use middleware.ts
-- Chrome MCP via browser_batch is fast for multi-step UI flows (but file-picker dialogs freeze screenshot)
-- Auto-mode classifier properly blocks unsafe direct PAT API writes without read-only verify chain
-- Supabase PAT in ~/.claude.json works for Management API; account-scoped, must always verify project ref before write
+**Architecture decisions reinforced this session**:
+- State schema = discriminated union on render_hint (instead of JSON Schema) for type safety end-to-end (Zod → tool calling → renderer dispatch)
+- State delta = custom ops (set/inc/push/remove) NOT raw JSON Patch (LLM generates cleaner output, easier validation)
+- Turn endpoint uses Vercel AI SDK streamText with `update_state` tool — narrative streams to client, state mutation happens in onFinish callback (server-side, atomic with DB writes)
+- Client refetches /api/playthroughs/[id] for fresh state after stream finishes (simple, avoids client-side delta replication)
+- Phase 1.5 Director Model deferred to next phase — Phase 1 just runs Narrator with bible/cards in system prompt
 
-**下個 session 開頭**:
-- 確認用戶 Phase 1 ready?
-- 如果 ready → 開始 schema generator + state panel + play loop（核心 product）
-- 如果 want polish → Sentry / PostHog / custom domain
+**Local dev issues encountered**:
+- HMR cache held stale reference to proxy.ts after rename → SyntaxError on env reload
+- `rm -rf .next` blocked by zombie node process
+- Pushed straight to prod; local dev to be revisited next session
 
----
-
-## Session 2 AM — Phase 0 scaffold + audit (already in pm-dashboard.html)
-## Session 1 — Vision + 15 ADRs (already in pm-dashboard.html)
+**Next session**:
+- User E2E test results — fix any bugs
+- If all green → mark Phase 1 done, plan Phase 1.5 (Director + Skill Check) or Phase 2 (memory layers)

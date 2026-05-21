@@ -122,10 +122,15 @@ export type Field = z.infer<typeof FieldSchema>;
  * renders them in this sequence. Group headers can be inserted between
  * fields for visual grouping (v1.5).
  */
-export const StateSchemaShape = z.object({
-  version: z.literal("story-engine/state/v1").default("story-engine/state/v1"),
-  fields: z.array(FieldSchema).min(1).max(20),
-});
+export const StateSchemaShape = z
+  .object({
+    version: z.literal("story-engine/state/v1").default("story-engine/state/v1"),
+    fields: z.array(FieldSchema).min(1).max(20),
+  })
+  .refine(
+    (s) => new Set(s.fields.map((f) => f.key)).size === s.fields.length,
+    { message: "Field keys must be unique" },
+  );
 
 export type StateSchema = z.infer<typeof StateSchemaShape>;
 
