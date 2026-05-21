@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vercel — 最後 2 步 setup</title>
+<style>
+  :root {
+    --primary: #4F46E5;
+    --primary-soft: #EEF2FF;
+    --accent: #F59E0B;
+    --accent-soft: #FEF3C7;
+    --bg: #FAFAF7;
+    --card: #FFFFFF;
+    --ink: #18181B;
+    --ink-soft: #3F3F46;
+    --muted: #71717A;
+    --border: #E4E4E7;
+    --green: #10B981;
+    --green-soft: #D1FAE5;
+    --rose: #E11D48;
+    --rose-soft: #FFE4E6;
+    --code-bg: #F4F4F5;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.7;
+    font-size: 15px;
+    -webkit-font-smoothing: antialiased;
+  }
+  main {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 48px 32px 100px;
+  }
+  .hero {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  .eyebrow {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--primary);
+    background: var(--primary-soft);
+    padding: 5px 12px;
+    border-radius: 999px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  h1 {
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    margin-bottom: 10px;
+  }
+  .hero p {
+    color: var(--muted);
+    font-size: 15px;
+  }
+  .summary {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 22px 26px;
+    margin-bottom: 28px;
+  }
+  .summary-row {
+    display: grid;
+    grid-template-columns: 130px 1fr;
+    gap: 12px;
+    padding: 8px 0;
+    font-size: 14px;
+    border-bottom: 1px dashed var(--border);
+  }
+  .summary-row:last-child { border-bottom: none; }
+  .summary-row strong { color: var(--ink); }
+  .summary-row a {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 600;
+    border-bottom: 1px dashed var(--primary);
+  }
+  .step {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 16px;
+  }
+  .step-head {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+  .step-num {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    line-height: 36px;
+    text-align: center;
+    background: var(--primary);
+    color: white;
+    border-radius: 10px;
+    font-weight: 800;
+    font-size: 15px;
+  }
+  .step-title {
+    font-size: 18px;
+    font-weight: 700;
+    flex: 1;
+  }
+  .step-time {
+    font-size: 12px;
+    color: var(--muted);
+    background: var(--code-bg);
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-weight: 600;
+  }
+  .step-body { color: var(--ink-soft); font-size: 14.5px; }
+  .step-body ol, .step-body ul {
+    padding-left: 22px;
+    margin: 8px 0;
+  }
+  .step-body li { margin-bottom: 6px; }
+  .step-body strong { color: var(--ink); }
+  .step-body a {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 600;
+    border-bottom: 1px dashed var(--primary);
+  }
+  code {
+    background: var(--code-bg);
+    padding: 2px 6px;
+    border-radius: 5px;
+    font-family: "SF Mono", Monaco, monospace;
+    font-size: 13px;
+    color: var(--ink);
+  }
+  .env-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    font-size: 13px;
+    background: var(--code-bg);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .env-table th, .env-table td {
+    padding: 10px 14px;
+    text-align: left;
+    vertical-align: top;
+    border-bottom: 1px solid var(--border);
+  }
+  .env-table th {
+    background: #E4E4E7;
+    font-weight: 700;
+    font-size: 12px;
+  }
+  .env-table tr:last-child td { border-bottom: none; }
+  .env-table .key {
+    font-family: "SF Mono", Monaco, monospace;
+    color: var(--primary-dark);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .env-table .scope {
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 999px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .scope-all { background: var(--green-soft); color: #047857; }
+  .scope-prod { background: var(--primary-soft); color: var(--primary); }
+  .substep {
+    background: var(--code-bg);
+    border-left: 3px solid var(--primary);
+    padding: 12px 16px;
+    border-radius: 0 8px 8px 0;
+    margin: 10px 0;
+    font-size: 13.5px;
+  }
+  .substep strong { color: var(--primary); }
+  .warn {
+    background: var(--rose-soft);
+    border-left: 4px solid var(--rose);
+    padding: 14px 18px;
+    border-radius: 0 10px 10px 0;
+    margin: 14px 0;
+    font-size: 13.5px;
+    color: var(--ink-soft);
+  }
+  .warn strong { color: var(--rose); }
+  .done-cta {
+    background: linear-gradient(135deg, var(--primary), #8B5CF6);
+    color: white;
+    padding: 28px 32px;
+    border-radius: 16px;
+    margin-top: 32px;
+    text-align: center;
+  }
+  .done-cta h3 {
+    color: white;
+    font-size: 20px;
+    margin-bottom: 6px;
+    margin-top: 0;
+  }
+  .done-cta p {
+    color: rgba(255,255,255,0.9);
+    font-size: 14px;
+    margin: 0;
+  }
+  pre {
+    background: #18181B;
+    color: #F4F4F5;
+    padding: 14px 16px;
+    border-radius: 10px;
+    font-family: "SF Mono", Monaco, monospace;
+    font-size: 12.5px;
+    overflow-x: auto;
+    margin: 10px 0;
+  }
+</style>
+</head>
+<body>
+<main>
+  <div class="hero">
+    <span class="eyebrow">Phase 0.10 · Final 2 manual steps</span>
+    <h1>Vercel 仲差 2 步</h1>
+    <p>你已經 connect GitHub → Vercel auto-deploy 成功。剩 2 個 manual config 我用 MCP 做唔到（需要你 dashboard 動手）。</p>
+  </div>
+
+  <div class="summary">
+    <div class="summary-row">
+      <strong>Vercel team</strong>
+      <span><code>tweenr</code></span>
+    </div>
+    <div class="summary-row">
+      <strong>Project</strong>
+      <span><a href="https://vercel.com/tweenr/story-engine" target="_blank">vercel.com/tweenr/story-engine</a></span>
+    </div>
+    <div class="summary-row">
+      <strong>Current deploy</strong>
+      <span><a href="https://story-engine-adytgv79u-tweenr.vercel.app" target="_blank">story-engine-adytgv79u-tweenr.vercel.app</a> ← 401 而家</span>
+    </div>
+    <div class="summary-row">
+      <strong>GitHub repo</strong>
+      <span><a href="https://github.com/leolai-cls/Story-Engine" target="_blank">leolai-cls/Story-Engine</a> · main branch</span>
+    </div>
+  </div>
+
+  <!-- STEP 1 -->
+  <div class="step">
+    <div class="step-head">
+      <div class="step-num">1</div>
+      <div class="step-title">關 Deployment Protection（令 site public）</div>
+      <span class="step-time">~1 分鐘</span>
+    </div>
+    <div class="step-body">
+      <p>而家 access deployment 嗰陣 Vercel 要 auth — 你嘅 marketing site 應該係 public，等遊客可以見到。</p>
+      <ol>
+        <li>打開 <a href="https://vercel.com/tweenr/story-engine/settings/deployment-protection" target="_blank">project Deployment Protection settings</a></li>
+        <li>"Vercel Authentication" 預設可能係 <strong>"Standard Protection"</strong> 或 <strong>"All Deployments"</strong></li>
+        <li>改去 <strong>"Only Preview Deployments"</strong> 或者 <strong>"Disabled"</strong>
+          <ul>
+            <li><strong>Only Preview Deployments</strong> — Production 公開，Preview deploys 仍受 auth 保護（推薦）</li>
+            <li><strong>Disabled</strong> — 完全公開（如果你會手動分享 preview URL 俾 beta tester）</li>
+          </ul>
+        </li>
+        <li>按 "Save"</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="step">
+    <div class="step-head">
+      <div class="step-num">2</div>
+      <div class="step-title">Add Environment Variables</div>
+      <span class="step-time">~3 分鐘</span>
+    </div>
+    <div class="step-body">
+      <p>而家 deploy 入面冇 Supabase env vars → runtime 會 crash。Paste 落 Vercel：</p>
+      <ol>
+        <li>打開 <a href="https://vercel.com/tweenr/story-engine/settings/environment-variables" target="_blank">project Environment Variables</a></li>
+        <li>每個 variable 都揀 <strong>"All Environments"</strong>（Production / Preview / Development 全部）</li>
+        <li>由你本地 <code>web/.env.local</code> 嘅 value 直接 copy</li>
+      </ol>
+
+      <table class="env-table">
+        <thead>
+          <tr><th>Key</th><th>從邊度 copy</th><th>Scope</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="key">NEXT_PUBLIC_SUPABASE_URL</td>
+            <td>由 <code>web/.env.local</code> copy（<code>https://oivhvdfjmthydxqpcncp.supabase.co</code>）</td>
+            <td><span class="scope scope-all">All</span></td>
+          </tr>
+          <tr>
+            <td class="key">NEXT_PUBLIC_SUPABASE_ANON_KEY</td>
+            <td>由 <code>web/.env.local</code> copy（<code>eyJhbGc...</code> 嗰段）</td>
+            <td><span class="scope scope-all">All</span></td>
+          </tr>
+          <tr>
+            <td class="key">SUPABASE_SERVICE_ROLE_KEY</td>
+            <td>由 <code>web/.env.local</code> copy（service role <code>eyJhbGc...</code>）</td>
+            <td><span class="scope scope-prod">Prod</span></td>
+          </tr>
+          <tr>
+            <td class="key">NEXT_PUBLIC_SITE_URL</td>
+            <td>暫時用 <code>https://story-engine-tweenr.vercel.app</code>（或者你之後嘅 custom domain）</td>
+            <td><span class="scope scope-all">All</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="warn">
+        <strong>⚠️ 安全：</strong><code>SUPABASE_SERVICE_ROLE_KEY</code> <strong>絕密</strong>，可以 bypass 所有 RLS。Vercel 上面只 set <strong>"Production"</strong> scope（唔 share 落 Preview 因為 preview URL 可能 leak）。
+      </div>
+
+      <p>4 個都 add 完，按 <strong>"Save"</strong>。Vercel 會建議 redeploy — 你 next push 會自動拎新 env vars，或者你可以喺 Deployments tab 揀最新嗰個按 "Redeploy"。</p>
+    </div>
+  </div>
+
+  <!-- After done -->
+  <div class="step">
+    <div class="step-head">
+      <div class="step-num">✓</div>
+      <div class="step-title">完成之後話我知</div>
+      <span class="step-time">— </span>
+    </div>
+    <div class="step-body">
+      <p>我會做剩低嗰幾步（你唔需要動手）：</p>
+      <ul>
+        <li>Update Supabase auth URL allow list 加 production URL</li>
+        <li>Verify 新 deploy public-accessible</li>
+        <li>跑 E2E：production signup → magic link → /profile</li>
+        <li>Update PM dashboard 標 Phase 0.10 完成</li>
+      </ul>
+      <p>同我講「Vercel 搞掂」就 OK。</p>
+    </div>
+  </div>
+
+  <div class="done-cta">
+    <h3>🎉 完成呢 2 步 Phase 0 就 100% done</h3>
+    <p>Phase 1 (Story Engine MVP) 就可以開工 — schema generator / state panel / play loop。</p>
+  </div>
+</main>
+</body>
+</html>
