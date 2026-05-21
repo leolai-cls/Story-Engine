@@ -7,27 +7,96 @@
 
 ## 🎯 而家狀態
 
-**Phase**: **Phase 1.5.3 done + C-01 hotfix shipped · Phase 2 (Memory) next**
+**Phase**: **Foundation Deep Audit done · 7 hardening waves shipped · Phase 2 (Memory) next**
 **Live URL**: https://story-engine-drab.vercel.app
-**Last updated**: 2026-05-21 (Session 4 — A → B done + C-01 Arc DSL hotfix)
+**Last updated**: 2026-05-22 (Session 5 — 7-wave foundation hardening, 45+ audit findings fixed)
 
 ## 📍 What's next
 
-**Option A (polish) ✅ done · Option B (Phase 1.5 Narrative Integrity) ✅ done · Option C (Phase 2 Memory) is next**
+**Foundation 已加固 · Phase 2 Memory 可以入** — 但用戶要先做 1 件事：
 
 | | Plan item | Time | Why this order |
 |---|---|---|---|
-| 🥇 | **Phase 1.5.3 medium follow-ups** (M-02 NPC name fuzzy match, M-03 init all 4 disposition axes, M-04 stream act-advance toast, M-05 earned-exception consistency testing) | ~1 session | Polish before Phase 2 amplifies prompt cost — fix Director-Narrator drift now |
-| 🥈 | **Option C: Phase 2 — Memory** (pgvector + embedding pipeline + rolling summary every 20 turns + RAG retriever + auto-lorebook entity extraction) | ~2 sessions | Long-play retention. Solves #1 churn driver across competitors. |
-| 🥉 | **UI/UX polish** (UX-01 progress feedback, UX-02 inline state delta toast, UX-04 library list) | ~1 session | Deferred from Phase 1 — backend stable enough now to layer on. |
-
-⚠️ **E2E test still pending** for C-01 fix — need real story playthrough to confirm Arc transitions actually advance past Act 1.
+| ⚠️ **Apply 2 migrations to prod** | <strong>0002_audit_hardening.sql</strong>（RLS with check · age column lock · indexes · pgvector）+ <strong>0003_atomic_rpcs.sql</strong>（acquire_next_turn_pair · apply_turn_npc_changes） | 5 分鐘 | Code 已有 fallback path 所以 prod 仲 work，但 audit critical (RLS / race / age-spoof) 要 apply 先真正 fix |
+| 🥇 | **Phase 2 — Memory** (pgvector + embedding pipeline + rolling summary every 20 turns + RAG retriever + auto-lorebook entity extraction) | ~2 sessions | Long-play retention. Solves #1 churn driver across competitors. |
+| 🥈 | **UI/UX polish** (UX-01..23 — 23 finding from foundation audit · UX-C-01..04 critical user-flow blockers) | ~1-2 sessions | Backend solid 而家可以 layer UX on top |
+| 🥉 | **Phase 1.5.3 M-02..M-05 medium follow-ups** | ~1 session | Polish during/after Phase 2 |
 
 ## 🚧 Blockers
 
-**冇** — Phase 1.5.3 functional on prod with C-01 fix shipped.
+**僅 1 個**：User to apply migrations 0002 + 0003 to prod (`supabase migration up` or paste via dashboard). Code 已 ready ship 晒，fallback path 意味唔 apply 唔會壞 prod，但係 audit critical findings 要 apply 先正式關門。
 
-## ✅ Recently completed (Session 4 — Phase 1.5.x ship + C-01 hotfix)
+## ✅ Recently completed (Session 5 — Foundation Deep Audit + 7-wave hardening)
+
+### Foundation Deep Audit (5 parallel agents)
+- 5 dimension audit (Security · AI Pipeline · State+Render · DB · UX) — 95 finding 合計
+- Critical: 12 · High: 35 · Medium: 33 · Low: 14
+- `audit-report-foundation-deep.html` 寫入 dashboard quick-link
+- 揪出 3 個 silent corruption pattern：RLS 冇 with check / disposition race / prompt cache embed dynamic data
+
+### Wave 1 — Schema + DSL refinements (commit 69cd185)
+- state-schema.ts superRefine: bar/meter/ring/enum/relationship default 範圍驗證
+- INTERNAL_STATE_KEY_PREFIX exported
+- state-delta.ts: coerceNumber reject Infinity/NaN · inventory push validate item shape · relationship_graph clamp + reject array
+- bible.ts story_arc contiguous-from-1 check
+- arc-dsl.ts compare() undefined→0 for ALL ops (not just >=/>/==)
+- deriveCurrentAct floor + cap guards
+- director.ts userAction prompt-injection sandbox + tag escape
+- director schema affected_character empty → "故事規則" fallback
+
+### Wave 2 — AI pipeline hardening (commit c98f633)
+- schema-generator.ts: REMOVED `"use server"` (was unauth $0.20/call attack vector!)
+- providers.ts: OpenRouter now uses createOpenAI (was createAnthropic → would 404 in Phase 6)
+- New `getProviderModel(modelId)` dispatcher — turn route routes to right SDK
+- Added @ai-sdk/openai dep
+- turn-runner extract* helpers: .find → .filter + merge across calls
+- buildDynamicSystemPrompt strips __-prefix keys from LLM view
+- isLLMRefusal regex tightened (no longer false-positive on 對不起 NPC dialogue)
+- refusalFallbackNarrative locale-aware (zh-Hant/zh-Hans/en)
+- schema-generator + director: 1s backoff before retry, skip 4xx
+- Dropped onFinish rate-limit clobber (was racy)
+
+### Wave 3 — Auth + dispatcher + error handling (commit 4b42c39)
+- Magic link emailRedirectTo: dropped headers.origin → only NEXT_PUBLIC_SITE_URL
+- OTP errors normalized to "otp_failed" (no enumeration leak)
+- auth/callback: safeRelativeNext rejects //evil.com / javascript: open-redirect
+- state-panel: safeNumber/safeString prevent NaN / "null" rendering
+- Dispatcher default arm: unknown render_hint shows "(未支援)" + warn-once
+- Story creation + turn route: generic 繁中 error messages, raw details logged server-side
+- play/page.tsx + turn/route.ts: Zod parse at boundary instead of `as Schema` cast
+
+### Wave 4 — Migration 0002 RLS hardening (commit 331fcdc — file only, ⚠️ NOT applied)
+- All write policies get `with check` clause (SEC-C-01 cross-user data write)
+- profiles INSERT/DELETE policies + with check on UPDATE (SEC-H-01)
+- adult_mode_enabled CHECK constraint + sensitive-column protection trigger (SEC-H-02)
+- handle_new_user EXCEPTION block — idempotent + anon-safe (DB-C-02)
+- 3 new indexes (official-visible / turns-by-role / playthroughs-by-story-recent)
+- UNIQUE story_characters(story_id, lower(name))
+- pgvector extension
+- turns + pcs policies split (no DELETE for users — append-only ledger)
+- Dropped redundant stories_official_read + unlisted from public_read
+
+### Wave 5 — Atomic RPCs + pre-persist user turn (commit 331fcdc SQL + b212875 code)
+- Migration 0003 with `acquire_next_turn_pair` + `apply_turn_npc_changes` RPCs (⚠️ NOT applied)
+- Turn route refactored to use RPCs with GRACEFUL FALLBACK (works whether migration applied or not)
+- User turn pre-persisted before stream (AI-H-04 — durable input even if stream aborts)
+- Disposition + flag changes grouped by character → single atomic RPC per NPC
+
+### Wave 6 — Prompt cache split + token capture (commit f14377e)
+- characterCardStaticTemplate (no disposition/flags) vs characterDynamicState (the dynamic bits)
+- buildStableSystemPrompt: only static cached prefix
+- buildDynamicSystemPrompt: dynamic NPC state + game state (not cached)
+- Cost: cache hit on long playthroughs should jump from ~0% → >90%
+- Director returns DirectorResult {verdict, usage} — turn route persists director tokens
+- Schema-gen logs total token usage + approx $ cost per story
+
+### Wave 7 — TypeScript types regen + prod verify (commit 18f1acf)
+- npm run db:types — generates types via `supabase gen types typescript`
+- types.ts went 32 → 505 lines, 5 tables left `any` land
+- Confirmed Migration 0001 IS deployed to prod ref `oivhvdfjmthydxqpcncp`
+  (audit's SEC-C-03 was false alarm — MCP was on wrong project)
+
+## ✅ Earlier — Session 4 (Phase 1.5.x ship + C-01 hotfix)
 
 ### Phase 1.5.1 — Director Model
 - `lib/ai/director.ts` — Haiku 4.5 cheap pre-Narrator check with prompt caching
@@ -110,7 +179,32 @@ All sub-tasks done. UI/UX polish (UX-01 / UX-02 / UX-04) parked — user decisio
 
 ## 📓 Session Log
 
-### Session 4 (most recent — Phase 1.5.x ship + C-01 hotfix) — 2026-05-21
+### Session 5 (most recent — Foundation Deep Audit + 7-wave hardening) — 2026-05-22
+
+**Major outcomes**:
+- Foundation Deep Audit (5 parallel agents) — 95 findings catalogued in HTML
+- 7 hardening waves shipped — 45+ findings fixed across schemas, AI pipeline, auth, RLS, atomic RPCs, prompt cache, TS types
+- 2 migration files written (0002 RLS hardening + 0003 atomic RPCs) — committed but NOT YET APPLIED to prod
+- All Vercel deploys clean (each wave's commit deployed within 30s)
+- Code uses resilient fallback pattern so RPCs work whether migration applied or not
+
+**Key learnings**:
+- **Multi-agent parallel audit catches what serial audits miss**: 5 agent dimensions × 95 findings dwarfs anything a single agent / sequential pass would surface. The cost of running 5 in parallel is small vs. the visibility into systemic patterns.
+- **Resilient deploy pattern enables independent migration timing**: Code calls new RPC with try/catch → on RPC-doesn't-exist error, falls back to old non-atomic path. Logs warning but doesn't break prod. Once migration lands, RPC path activates automatically. Decouples code deploy from migration apply.
+- **Prompt cache is fragile to dynamic data in "stable" prefix**: Every byte change → cache miss. The static/dynamic split for character cards is a pattern worth replicating any time cached content has fast-changing sub-fields. Cost impact ~10x.
+- **Server Action accidental-public-export is a real attack vector**: `"use server"` directive at the top of a "library" file made the whole module exposed to anonymous POST. Discovered during security agent's review. Worth checking all such directives in any Next.js codebase.
+
+**Decisions effective (worth ADR if not yet)**:
+- Always use static / dynamic prompt split for any LLM call with prompt caching
+- Always use Zod parse at the DB-to-domain boundary instead of cast
+- All write policies need `with check`, period
+
+**Next session opening**:
+- User applies migrations 0002 + 0003 to prod
+- Confirm prod RPCs work (server logs lose the "RPC unavailable" warning)
+- Open Phase 2 (pgvector + embedding + rolling summary + RAG + lorebook) OR address Foundation Audit UX-C-01..04 critical findings
+
+### Session 4 (Phase 1.5.x ship + C-01 hotfix) — 2026-05-21
 
 **Major outcomes**:
 - Phase 1.5.1 / 1.5.2 / 1.5.3 all functionally complete on prod

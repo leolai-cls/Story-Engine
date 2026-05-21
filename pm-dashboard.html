@@ -565,37 +565,40 @@
       <p class="section-sub">每次新 session 開始，由呢度睇起。</p>
 
       <div class="top-meta">
-        <div><strong>Last updated</strong> 2026-05-21 · Session 4 (Phase 1.5.x + C-01 hotfix)</div>
-        <div><strong>Phase</strong> 1.5.3 ✅ shipped · Phase 2 (Memory) next</div>
+        <div><strong>Last updated</strong> 2026-05-22 · Session 5 (Foundation Audit + 7-wave hardening)</div>
+        <div><strong>Phase</strong> Foundation hardened ✅ · Phase 2 (Memory) ready</div>
         <div><strong>Live</strong> <a href="https://story-engine-drab.vercel.app" target="_blank" style="color: var(--primary);">story-engine-drab.vercel.app</a></div>
       </div>
 
       <div class="status-hero">
-        <div class="label">🛡️ Narrative Integrity Engine functional · C-01 Arc DSL fix live</div>
-        <div class="phase">Director + Skill Check + Earned Exceptions + Arc transitions all wired</div>
+        <div class="label">🛡️ Foundation Deep Audit 行完 · 7 浪 hardening 全部 ship · 等用戶 apply 2 migrations</div>
+        <div class="phase">45+ audit finding fixed — Schemas · AI pipeline · Auth · RLS · Atomic RPCs · Prompt cache · TS types</div>
         <div class="focus">
-          Session 4: Option A polish + Phase 1.5.1 (Director) + 1.5.2 (Skill Check) + 1.5.3 (Arc DSL + disposition + earned exceptions) 全部 ship。Audit-phase1.5.3 catch 到 C-01 critical (parser ↔ prompt path format mismatch) — 已 fix 同 deploy。下一步 user E2E verify or 直接入 <strong>Phase 2 Memory</strong>。
+          Session 5: 5 個 dimension agent parallel audit 出 95 finding。然後 7 浪 hardening — Wave 1 schemas, 2 AI pipeline, 3 auth/dispatcher, 4 RLS migration file, 5 atomic RPCs + code refactor, 6 prompt cache split, 7 TS types regen。Code 用 graceful fallback pattern，deploy 同 migration timing 解耦。<strong>用戶要做嘅嘢：apply migrations 0002 + 0003 落 prod。</strong>
         </div>
       </div>
 
       <div class="status-grid">
         <div class="status-card good">
-          <div class="status-card-title">✅ Session 4 全部完成 (Phase 1.5.x ship)</div>
+          <div class="status-card-title">✅ Session 5 全部完成 — 7 hardening waves</div>
           <ul>
-            <li><strong>Phase 1.5.1 Director Model</strong> — Haiku 4.5 cheap pre-Narrator check with prompt caching · 4-variant verdict union · 1-retry wrapper</li>
-            <li><strong>Phase 1.5.2 Skill Check</strong> — pure dice roller (d20 + skill_value vs difficulty) · 4 outcomes · seed stored for replay · median fallback for missing skill</li>
-            <li><strong>Phase 1.5.3 Arc DSL + disposition + earned exceptions</strong> — boolean condition parser (AND/OR + >= <= > < == !=) · 3 Narrator tools (update_state, update_character_disposition, set_permanent_flag) · monotonic __act advance · refusal fallback</li>
-            <li>🐛 <strong>Fixed: C-01 Arc DSL path mismatch</strong>（prompt taught LLM <code>characters.X.disposition.Y</code> + <code>interactions.X</code>，但 parser 只認 <code>characters.X.Y</code> → ALL Arc transitions 默默 fail。Both ends 修咗，commit d2292e3）</li>
-            <li>📋 <strong>audit-report-phase1.5.3.html</strong>: 1 critical (fixed) · 4 medium (M-02..M-05 follow-ups)</li>
+            <li><strong>🔍 Foundation Audit</strong> (5 agents · 95 finding · 12C/35H/33M/14L) → <code>audit-report-foundation-deep.html</code></li>
+            <li><strong>Wave 1</strong> (commit 69cd185): Zod refinements (range checks, contiguous acts), arc-dsl undefined→0 全 op, Director prompt-injection sandbox</li>
+            <li><strong>Wave 2</strong> (c98f633): schema-gen 移除 unauth use-server (was $0.20/call attack!), OpenRouter 真正 OpenAI client, provider dispatcher, tool-call merge, locale refusal, exp backoff</li>
+            <li><strong>Wave 3</strong> (4b42c39): Magic-link origin lock, next-param open-redirect block, OTP error normalize, safeNumber/safeString, dispatcher default arm, Zod parse at boundary</li>
+            <li><strong>Wave 4 (file)</strong> (331fcdc): Migration 0002 — RLS with check 全部 policies, age column lock, indexes, pgvector, UNIQUE story_characters, append-only turns/pcs</li>
+            <li><strong>Wave 5</strong> (b212875): Migration 0003 + turn route — atomic <code>acquire_next_turn_pair</code> + <code>apply_turn_npc_changes</code> RPC，pre-persist user turn, graceful fallback</li>
+            <li><strong>Wave 6</strong> (f14377e): Prompt cache split — static character template cached / dynamic disposition 唔 cache → cache hit 預期 0% → 90%+ (~10x cost save)</li>
+            <li><strong>Wave 7</strong> (18f1acf): TS types regen (32 → 505 lines, 5 table 由 any 升做 typed), <code>npm run db:types</code> script, verified Migration 0001 IS on prod</li>
           </ul>
         </div>
         <div class="status-card warn">
-          <div class="status-card-title">🟡 Next 3 steps (E2E test → polish → Phase 2)</div>
+          <div class="status-card-title">🟡 用戶 1 個 step 唔做唔得 + 之後路線</div>
           <ul>
-            <li><strong>🧪 E2E test C-01 fix</strong> — 用戶玩夠 turns 觸發 Act 1 → Act 2，confirm 真係會升 act</li>
-            <li><strong>Phase 1.5.3 收尾</strong> (M-02 NPC name fuzzy match · M-03 4-axis disposition init · M-04 act-advance toast · M-05 earned exception consistency)</li>
-            <li><strong>Option C: Phase 2 — Memory</strong> (~2 sessions): pgvector + embedding + rolling summary every 20 turns + RAG retriever + auto-lorebook 解決行業 #1 churn driver</li>
-            <li><strong>UI/UX polish</strong> (UX-01/UX-02/UX-04) — backend stable enough 而家可以開始層 UI</li>
+            <li>⚠️ <strong>Apply migrations 0002 + 0003 落 prod</strong> — file 寫晒，code 有 fallback 但係 RLS / atomic RPC / age lock / pgvector 全部 wait 你手動 apply 至生效。<code>supabase migration up</code> 或 dashboard SQL editor paste。</li>
+            <li><strong>Phase 2 — Memory</strong> (~2 sessions): pgvector embedding + 滾動摘要 + RAG retriever + 自動 lorebook。解決行業 #1 churn driver。</li>
+            <li><strong>UI/UX</strong> (UX-C-01..04 critical user-flow blockers + 19 個 high/med): library 真正 work · Phase 1.5 turn feedback timeline · wizard preview · locale switcher</li>
+            <li><strong>Phase 1.5.3 M-02..M-05</strong> medium follow-ups — 同 Phase 2 並行做</li>
           </ul>
         </div>
       </div>
@@ -626,6 +629,24 @@
 
       <h3>📓 Session Log</h3>
       <div class="session-log">
+        <div class="session-entry">
+          <div class="session-date">2026-05-22 · Session 5 (Foundation Audit + 7-wave hardening)</div>
+          <div class="session-title">🛡️ 95 audit finding · 7 hardening waves · 45+ fixes shipped</div>
+          <div class="session-body">
+            <p><strong>Major outcome:</strong> Foundation Deep Audit + 7 hardening waves done。Foundation 由「prototype 級」hardened 到「Phase 2 ready」。User explicit asked non-UX fixes — backend / schema / pipeline / auth / DB / types 全部 covered。</p>
+            <p><strong>🔍 Foundation Deep Audit (5 parallel agents):</strong> Security · AI Pipeline · State+Render · DB · UX 五個 dimension 各 spawn 一個 agent，跨 Phase 0+1+1.5 整體 audit。產出 95 finding (12 Critical, 35 High, 33 Medium, 14 Low) → <code>audit-report-foundation-deep.html</code>。發現 3 個 silent corruption pattern (RLS 冇 with check / disposition lost-update race / prompt cache embed dynamic data)。</p>
+            <p><strong>Wave 1 (commit 69cd185):</strong> Schema + DSL refinements。state-schema superRefine: bar/meter/ring/enum/relationship default 範圍驗證 + INTERNAL prefix。state-delta: coerceNumber 拒絕 Infinity, inventory push validate, relationship_graph clamp + reject array。bible: story_arc contiguous-from-1。arc-dsl compare() undefined→0 for ALL ops。deriveCurrentAct floor + cap guards。director.ts userAction <code>&lt;player_action&gt;</code> sandbox tag + escape (prompt injection AI-H-08)。affected_character empty handled。</p>
+            <p><strong>Wave 2 (c98f633):</strong> AI pipeline。<code>schema-generator.ts</code> 移除咗 <code>"use server"</code> directive (was making generateStory <strong>unauthenticated $0.20/call attack vector</strong>!)。<code>providers.ts</code> OpenRouter 用真正 <code>createOpenAI</code> (was createAnthropic 會 404), 加 <code>getProviderModel</code> dispatcher。turn-runner extract* helpers .find → .filter (was dropping subsequent tool calls)。<code>buildDynamicSystemPrompt</code> strips __-prefix keys。isLLMRefusal regex tightened (false-positive 對不起 NPC dialogue 唔再 trigger)。refusalFallbackNarrative locale-aware。Exponential backoff retry on rate-limit error。Dropped onFinish rate-limit clobber (was racy)。</p>
+            <p><strong>Wave 3 (4b42c39):</strong> Auth + dispatcher + error handling。Magic link emailRedirectTo 用 only NEXT_PUBLIC_SITE_URL (drop browser origin header — phishing defense SEC-M-01)。OTP errors normalized "otp_failed" (no enumeration leak SEC-L-01)。<code>safeRelativeNext</code> rejects //evil.com (open redirect SEC-M-02)。state-panel <code>safeNumber</code>/<code>safeString</code> prevent NaN / "null" rendering。Dispatcher default arm 顯示「未支援嘅 field」+ warn-once。Story creation + turn route: 用 generic 繁中 error messages, raw details logged Sentry-ready。<code>StateSchemaShape.safeParse</code> / <code>StoryBibleSchema.safeParse</code> at boundary 代替 bare cast。</p>
+            <p><strong>Wave 4 (331fcdc, file only — ⚠️ NOT APPLIED):</strong> Migration 0002 RLS hardening — 全部 5 條 write policy 加 <code>with check</code> (SEC-C-01)。profiles INSERT/DELETE policies + with check (SEC-H-01)。<code>adult_mode_enabled</code> CHECK constraint + sensitive-column protection trigger (SEC-H-02)。<code>handle_new_user</code> EXCEPTION block (DB-C-02 — idempotent + anon-safe)。3 個新 index (official-visible / turns-by-role / playthroughs-story-recent)。UNIQUE story_characters(story_id, lower(name)) (AI-L-02)。pgvector extension。turns + pcs append-only (no DELETE policy)。</p>
+            <p><strong>Wave 5 (331fcdc SQL + b212875 code):</strong> Migration 0003 + turn route refactor。<code>acquire_next_turn_pair(playthrough_id)</code> RPC atomic UPDATE RETURNING — replaces racy read-then-write (AI-C-03)。<code>apply_turn_npc_changes(...)</code> RPC FOR UPDATE row lock + jsonb_set per-axis merge — replaces broken from-snapshot disposition upsert (AI-C-01)。Turn route 用 RPCs with graceful try/catch fallback (works whether migration applied or not)。User turn pre-persisted before stream (AI-H-04 durable input)。Disposition + flag changes 用 character_id grouped 落 single RPC call per NPC。</p>
+            <p><strong>Wave 6 (f14377e):</strong> Prompt cache split。<code>characterCardStaticTemplate(card)</code> = name/role/traits/backstory/red_lines/voice/arc (永遠唔變 → cached prefix)。<code>characterDynamicState(disposition, flags)</code> = 每 turn 變嘅 bit (移出 cached prefix)。<code>buildStableSystemPrompt</code> + <code>buildDynamicSystemPrompt</code> 分開。Director 同 turn route 都 wired up。Cache hit 由 ~0% (long playthrough) 估升去 >90% — 估計 ~10x cost save (AI-C-02)。<code>callDirector</code> returns DirectorResult {verdict, usage} — turn route 寫 director_input_tokens / director_output_tokens (AI-H-02)。Schema-gen logs total token usage + approx $ cost per story。</p>
+            <p><strong>Wave 7 (18f1acf):</strong> TypeScript types regen via <code>supabase gen types typescript --project-id oivhvdfjmthydxqpcncp</code> piped through awk filter。types.ts 32 → 505 lines, 5 個 table 由 <code>any</code> 升做 typed。<code>npm run db:types</code> script。同時 verified Migration 0001 IS deployed to prod ref <code>oivhvdfjmthydxqpcncp</code> (audit SEC-C-03 嗰個「migration not applied」係 false alarm — MCP 連住 CLS Studio 唔係 Story Engine)。</p>
+            <p><strong>新 insight:</strong> (1) 5-agent parallel dimension audit catches systemic patterns that serial passes miss — 同樣個 bug class (RLS 冇 with check) 喺多個 finding 度浮現，呢種 cross-dimension 對應指向 root cause。(2) Resilient deploy pattern (code calls RPC with try/catch fallback) decouples code deploy 同 migration timing — 一個極之 valuable 嘅 ops pattern。(3) Prompt cache 對 dynamic data leak 入 stable prefix 極之 fragile — 任何 byte change → cache miss。Static / dynamic split 係 reusable pattern。(4) Server Action accidental-public-export (use server 喺 library file 入面) 係 real attack vector — schema-generator 暴露做 unauth $0.20/call API。</p>
+            <p><strong>下次 session:</strong> 等用戶 apply migrations 0002 + 0003 落 prod → verify RPC path activates → 入 Phase 2 Memory (pgvector + 滾動摘要 + RAG + lorebook)。或者撥去 UX-C-01..04 critical user-flow blockers。</p>
+          </div>
+        </div>
+
         <div class="session-entry">
           <div class="session-date">2026-05-21 · Session 4 (Phase 1.5.x ship + C-01 hotfix)</div>
           <div class="session-title">🛡️ Narrative Integrity Engine live · Arc DSL bug caught + shipped</div>

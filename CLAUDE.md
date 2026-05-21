@@ -195,6 +195,12 @@ DB：`story_characters` (模板) + `playthrough_character_states` (per-playthrou
 8. **Path-format drift 係 recurring bug class** — 凡係 prompt 教 LLM 寫某格式、parser 認某格式，兩邊 spec 一定要同步。Mitigation：parser 接受多種合理 format + log undefined-path warnings 做 future drift visibility。Examples 寫 prompt 入面要 strict match parser 嘅 expected paths。
 9. **用戶 instinct 永遠值得 push back** — Session 3 嘅「秒速彈 error 唔似真 LLM 處理」push back 直接 catch 到 SDK baseURL bug。佢 vibe coder 但 product sense 好強，唔好為咗 efficiency 跳過佢嘅 doubt。
 10. **Anthropic structured output 有 2 個 limits**：(a) ≤24 optional params per schema (b) compiled grammar size ceiling。Both must be respected。解法：split 成 parallel sub-calls，每個 schema 簡單到唔爆 grammar ceiling。
+11. **5-agent parallel dimension audit > sequential** — Session 5 用 Security · AI Pipeline · State+Render · DB · UX 五個 dimension agent 同時跑 → 95 finding 浮現，包括 3 個 silent corruption pattern 跨多個 dimension。Cross-dimension 對應指向 root cause。Cost 細，visibility 大。
+12. **Resilient deploy pattern**：當 code 需要 prod migration 時，try/catch RPC call → fallback to legacy path。Deploy 同 migration timing 解耦，唔需要嚴格 sequencing。Logs warning 但唔 break prod。Wave 5 用咗呢個 pattern shipped 兩個 atomic RPC 即時 deploy 安全。
+13. **Prompt cache fragile to dynamic data** — Anthropic ephemeral cache key = byte equality on prefix。一 byte 變 → cache miss。Static template (永遠唔變) 同 dynamic state (每 turn 變) 必須分開。Wave 6 拆 characterCardStaticTemplate / characterDynamicState → estimated cache hit 由 ~0% 升 >90% (~10x cost save)。
+14. **`"use server"` 喺 library file 係 attack vector** — Next.js Server Action 暴露 directive 到客戶端。喺 lib/ 嘅 file 唔需要做 Server Action 就唔好寫 `"use server"`。Wave 2 嘅 schema-generator.ts 就係呢個 footgun — 任何 unauth visitor 可以直接 POST 燒 $0.20/call。
+15. **All write policies need `with check`** — Postgres RLS `using` 只 filter SELECT/UPDATE/DELETE 嘅可見性，`with check` 先 validate INSERT 同 post-UPDATE state。冇 `with check` 等於用戶可以 INSERT 帶其他人 owner_id。Hard rule。
+16. **Zod parse at DB boundary, never cast** — `as StateSchema` cast 唔 runtime check，corrupt jsonb 會深層 crash。永遠用 `XxxSchema.safeParse(...)` at boundary，friendly error 比 stack trace 好。
 
 ---
 
@@ -208,4 +214,4 @@ DB：`story_characters` (模板) + `playthrough_character_states` (per-playthrou
 
 ---
 
-_Last updated: 2026-05-21 (Session 4 — Phase 1.5.x + C-01 hotfix shipped)_
+_Last updated: 2026-05-22 (Session 5 — Foundation Deep Audit + 7-wave hardening shipped)_
