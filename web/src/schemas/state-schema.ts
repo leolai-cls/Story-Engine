@@ -26,6 +26,15 @@ export const RENDER_HINTS = [
 
 export type RenderHint = (typeof RENDER_HINTS)[number];
 
+/**
+ * Reserved prefix for engine-internal state keys (e.g., `__act`).
+ * LLM-generated schema field keys MUST NOT start with this — the `baseField`
+ * regex already enforces this at the key level, but the constant is exported
+ * for callers (dispatcher, turn-runner) that need to filter internal keys
+ * out of LLM-visible state.
+ */
+export const INTERNAL_STATE_KEY_PREFIX = "__";
+
 // All field types share: key (machine name) + label (human display name).
 // No description / no metadata — kept tight to stay under Anthropic 24-optional limit.
 const baseField = z.object({
@@ -108,15 +117,81 @@ export type Field = z.infer<typeof FieldSchema>;
 /**
  * Full state schema attached to a story. Fields are ordered — frontend
  * renders them in this sequence.
+ *
+ * Cross-variant refinements live here (NOT on individual variant schemas)
+ * because Zod's `z.discriminatedUnion` rejects ZodEffects-wrapped members.
+ * superRefine lets us check multiple constraints + collect all issues.
  */
 export const StateSchemaShape = z
   .object({
     fields: z.array(FieldSchema).min(1).max(20),
   })
-  .refine(
-    (s) => new Set(s.fields.map((f) => f.key)).size === s.fields.length,
-    { message: "Field keys must be unique" },
-  );
+  .superRefine((s, ctx) => {
+    // Unique keys
+    const keys = s.fields.map((f) => f.key);
+    if (new Set(keys).size !== keys.length) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Field keys must be unique",
+        path: ["fields"],
+      });
+    }
+
+    // Per-field cross-property validation (defaults vs. constraints)
+    s.fields.forEach((f, i) => {
+      // No engine-reserved __ prefix (the key regex already disallows leading
+      // underscore, but this is defense-in-depth + clearer error message)
+      if (f.key.startsWith(INTERNAL_STATE_KEY_PREFIX)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Field key "${f.key}" uses reserved __ prefix (engine-internal)`,
+          path: ["fields", i, "key"],
+        });
+      }
+
+      switch (f.render_hint) {
+        case "bar":
+        case "meter_with_label":
+          if (f.default < 0 || f.default > f.max) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: `${f.render_hint} default ${f.default} must be in [0, ${f.max}]`,
+              path: ["fields", i, "default"],
+            });
+          }
+          break;
+        case "progress_ring":
+          if (f.default < 0 || f.default > 100) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: `progress_ring default ${f.default} must be in [0, 100]`,
+              path: ["fields", i, "default"],
+            });
+          }
+          break;
+        case "enum_chip":
+          if (!f.options.includes(f.default)) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: `enum_chip default "${f.default}" must be one of [${f.options.join(", ")}]`,
+              path: ["fields", i, "default"],
+            });
+          }
+          break;
+        case "relationship_graph":
+          for (const [k, v] of Object.entries(f.default)) {
+            if (v < -100 || v > 100) {
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: `relationship_graph "${k}" value ${v} must be in [-100, 100]`,
+                path: ["fields", i, "default", k],
+              });
+            }
+          }
+          break;
+      }
+    });
+  });
 
 export type StateSchema = z.infer<typeof StateSchemaShape>;
 

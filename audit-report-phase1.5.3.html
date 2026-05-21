@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Story Engine — Phase 1.5.3 Audit</title>
+<style>
+  :root {
+    --primary: #4F46E5;
+    --primary-soft: #EEF2FF;
+    --accent: #F59E0B;
+    --accent-soft: #FEF3C7;
+    --bg: #FAFAF7;
+    --card: #FFFFFF;
+    --ink: #18181B;
+    --ink-soft: #3F3F46;
+    --muted: #71717A;
+    --border: #E4E4E7;
+    --green: #10B981;
+    --green-soft: #D1FAE5;
+    --rose: #E11D48;
+    --rose-soft: #FFE4E6;
+    --amber: #D97706;
+    --amber-soft: #FEF3C7;
+    --code-bg: #F4F4F5;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+    background: var(--bg); color: var(--ink); line-height: 1.65; font-size: 15px;
+    -webkit-font-smoothing: antialiased;
+  }
+  main { max-width: 920px; margin: 0 auto; padding: 48px 32px 100px; }
+  .hero { text-align: center; margin-bottom: 36px; }
+  .eyebrow {
+    display: inline-block; font-size: 11px; font-weight: 700;
+    color: var(--primary); background: var(--primary-soft);
+    padding: 5px 12px; border-radius: 999px;
+    letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 16px;
+  }
+  h1 { font-size: 32px; font-weight: 800; letter-spacing: -0.025em; margin-bottom: 8px; }
+  .hero p { color: var(--muted); font-size: 16px; max-width: 640px; margin: 0 auto; }
+
+  .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 32px 0; }
+  .stat { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 18px; text-align: center; }
+  .stat-num { font-size: 28px; font-weight: 800; line-height: 1; }
+  .stat-label { font-size: 11px; color: var(--muted); margin-top: 6px; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700; }
+  .stat.crit .stat-num { color: var(--rose); }
+  .stat.med .stat-num { color: var(--amber); }
+  .stat.low .stat-num { color: var(--muted); }
+  .stat.ok .stat-num { color: var(--green); }
+
+  h2 { font-size: 22px; font-weight: 700; margin: 40px 0 14px; display: flex; align-items: center; gap: 10px; }
+  h2 .icon { font-size: 26px; }
+
+  .verdict { background: linear-gradient(135deg, var(--rose-soft), var(--amber-soft)); border-left: 4px solid var(--rose); padding: 18px 22px; border-radius: 12px; margin: 20px 0; }
+  .verdict-title { font-weight: 700; margin-bottom: 6px; font-size: 14px; color: var(--rose); }
+  .verdict-body { font-size: 14px; color: var(--ink-soft); }
+
+  .issue { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px 22px; margin-bottom: 12px; }
+  .issue.crit { border-left: 4px solid var(--rose); background: linear-gradient(180deg, #fff5f5, var(--card)); }
+  .issue.med { border-left: 4px solid var(--amber); }
+  .issue.low { border-left: 4px solid var(--muted); }
+  .issue-head { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; flex-wrap: wrap; }
+  .issue-id { font-weight: 800; font-size: 13px; color: var(--primary); flex-shrink: 0; }
+  .issue-title { font-weight: 700; font-size: 15px; flex: 1; min-width: 0; }
+  .sev-tag { font-size: 10.5px; padding: 2px 8px; border-radius: 999px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+  .sev-crit { background: var(--rose); color: white; }
+  .sev-med { background: var(--amber-soft); color: var(--amber); }
+  .sev-low { background: var(--code-bg); color: var(--muted); }
+  .type-tag { font-size: 10.5px; padding: 2px 8px; border-radius: 999px; font-weight: 700; background: var(--primary-soft); color: var(--primary); }
+
+  .issue-symptom { font-size: 13.5px; color: var(--ink-soft); margin-bottom: 8px; }
+  .issue-symptom strong { color: var(--ink); }
+  .issue-evidence { background: #18181B; color: #F4F4F5; padding: 10px 14px; border-radius: 8px; font-family: "SF Mono", Monaco, monospace; font-size: 12.5px; margin: 8px 0; overflow-x: auto; line-height: 1.5; }
+  .issue-fix { background: var(--code-bg); padding: 10px 14px; border-radius: 8px; font-size: 13px; color: var(--ink-soft); margin-top: 8px; }
+  .issue-fix strong { color: var(--green); font-weight: 700; }
+
+  code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; font-family: "SF Mono", Monaco, monospace; font-size: 12.5px; }
+  .category-header { margin-top: 28px; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border); font-size: 13px; font-weight: 700; color: var(--ink); text-transform: uppercase; letter-spacing: 0.06em; }
+  .category-header .count { color: var(--muted); font-weight: 500; margin-left: 8px; }
+
+  .priority-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 20px 0; }
+  .priority-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; }
+  .priority-card.now { border-top: 4px solid var(--rose); }
+  .priority-card.next { border-top: 4px solid var(--amber); }
+  .priority-card.later { border-top: 4px solid var(--muted); }
+  .priority-title { font-weight: 700; font-size: 14px; margin-bottom: 8px; }
+  .priority-list { list-style: none; padding: 0; }
+  .priority-list li { font-size: 12.5px; color: var(--ink-soft); padding: 4px 0; border-bottom: 1px dashed var(--border); }
+  .priority-list li:last-child { border-bottom: none; }
+  .priority-list li strong { color: var(--ink); }
+
+  @media (max-width: 700px) {
+    .summary, .priority-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <div class="hero">
+    <span class="eyebrow">Phase 1.5.3 · Deep Audit</span>
+    <h1>1 critical bug + 4 medium — Arc DSL 而家完全唔 work</h1>
+    <p>Disposition tool / earned exceptions / Director retry / NEVER QUOTE prefix 嗰啲都 sound。但 <strong>Arc DSL parser 同 schema-generator 嘅 path format 唔對齊</strong> — 所有 transition 計算永遠返 false，故事永遠 stuck 喺 Act 1。</p>
+  </div>
+
+  <div class="summary">
+    <div class="stat crit"><div class="stat-num">1</div><div class="stat-label">CRITICAL</div></div>
+    <div class="stat med"><div class="stat-num">4</div><div class="stat-label">Medium</div></div>
+    <div class="stat low"><div class="stat-num">6</div><div class="stat-label">Low</div></div>
+    <div class="stat ok"><div class="stat-num">0</div><div class="stat-label">Blocker (other)</div></div>
+  </div>
+
+  <div class="verdict">
+    <div class="verdict-title">⚠️ Critical finding 影響每一個用戶</div>
+    <div class="verdict-body">
+      <strong>Arc DSL evaluator 對唔到 schema-generator 寫嘅 condition 格式</strong>。Schema-generator 系統 prompt 教 LLM 寫 <code>characters.linsiya.disposition.trust >= 60 AND interactions.linsiya >= 3</code>，但我哋 parser 期望 <code>characters.linsiya.trust >= 60</code>（無 <code>.disposition.</code> middle，無 <code>interactions.</code> namespace）。結果：<strong>所有故事嘅 Arc transition 永遠 false，players 永遠停喺 Act 1</strong>。Phase 1.5.3 嘅 Arc 系統 functionally broken。
+    </div>
+  </div>
+
+  <h2><span class="icon">🔴</span>1 個 CRITICAL bug</h2>
+
+  <div class="issue crit">
+    <div class="issue-head">
+      <span class="issue-id">C-01</span>
+      <span class="issue-title">Arc DSL parser 同 schema-generator prompt 嘅 path 格式 mismatch — Arc 永遠唔會 advance</span>
+      <span class="sev-tag sev-crit">CRITICAL</span>
+      <span class="type-tag">Logic + Prompt</span>
+    </div>
+    <div class="issue-symptom">
+      <strong>症狀：</strong>玩家無論玩幾多 turn，無論 disposition 升幾高，<code>__act</code> 永遠停喺 1。Arc transition system 完全 dead。
+    </div>
+    <div class="issue-symptom">
+      <strong>Trace：</strong>
+    </div>
+    <div class="issue-evidence">// schema-generator.ts BIBLE_SYSTEM 教 LLM:
+"characters.linsiya.disposition.trust >= 60 AND interactions.linsiya >= 3"
+
+// arc-dsl.ts resolvePath() expects:
+characters.NAME.AXIS  (3 parts)
+state.X.Y             (any depth under state)
+
+// What happens with characters.linsiya.disposition.trust:
+parts = ["characters", "linsiya", "disposition", "trust"]
+parts[2] = "disposition"  → looked up as char.disposition["disposition"] → undefined
+compare(undefined, ">=", 60) → returns false (via the undefined fallback)
+
+// What happens with interactions.linsiya:
+parts = ["interactions", "linsiya"]
+parts[0] = "interactions" → not handled → undefined → false</div>
+    <div class="issue-fix">
+      <strong>Fix (20 分鐘):</strong>
+      <br>(a) <code>arc-dsl.ts</code> 嘅 <code>resolvePath</code> 加 skip-optional-".disposition."：若 path 嘅第 3 部分係「disposition」，跳到第 4 部分當 axis。Accept BOTH <code>characters.X.Y</code> 同 <code>characters.X.disposition.Y</code>。
+      <br>(b) <code>schema-generator.ts</code> BIBLE_SYSTEM example 換成 <code>characters.linsiya.trust >= 60</code>（無 <code>.disposition.</code>）兼 drop <code>interactions.X</code>（we don't track interactions count；改用 disposition value as proxy — e.g., <code>trust >= 30</code> 已經暗示多次 friendly 互動）。
+      <br>(c) <code>arc-dsl.ts</code> 加 console.warn 如果 <code>resolvePath</code> 返 undefined（debug aid）。
+    </div>
+  </div>
+
+  <h2><span class="icon">🟡</span>4 個 Medium</h2>
+
+  <div class="issue med">
+    <div class="issue-head">
+      <span class="issue-id">M-02</span>
+      <span class="issue-title">NPC name match 必須完全相同 — Narrator 用變體名嘅 disposition update silently drop</span>
+      <span class="sev-tag sev-med">Med</span>
+      <span class="type-tag">Logic</span>
+    </div>
+    <div class="issue-symptom">
+      Turn route <code>charByName.get(change.character_name)</code> 用 exact match。如果 DB 有「林思雅」但 Narrator emit「Lin Siya」/「思雅」/「林同學」 → 揾唔到 NPC → skipped + warning logged。Players 唔知道發生咗咩。
+    </div>
+    <div class="issue-fix">
+      <strong>Fix:</strong>(a) Narrator system prompt 加 explicit「NPC 名 EXACTLY match characters cards 入面嘅 name field」+ list NPC names。(b) Fuzzy match fallback：normalize 比較（去空格、繁簡轉換）然後揾接近嘅。
+    </div>
+  </div>
+
+  <div class="issue med">
+    <div class="issue-head">
+      <span class="issue-id">M-03</span>
+      <span class="issue-title">初始 disposition 只 seed <code>trust</code> 一個 axis — Director 對 NPC 嘅理解早期 incomplete</span>
+      <span class="sev-tag sev-med">Med</span>
+      <span class="type-tag">Logic</span>
+    </div>
+    <div class="issue-symptom">
+      <code>actions.ts</code> 嘅 <code>dispositionFromDefault()</code> 只 set <code>{ trust: N }</code>。其他 axes (romance / respect / fear) 喺第一個 turn 之前 undefined。Director 睇唔到 NPC 嘅多維情感結構。
+    </div>
+    <div class="issue-fix">
+      <strong>Fix:</strong>Story creation 時 init 4 個 default axes — trust (from default_disposition), romance: 0, respect: 0, fear: 0。Narrator 用 update tool incrementally 改。
+    </div>
+  </div>
+
+  <div class="issue med">
+    <div class="issue-head">
+      <span class="issue-id">M-04</span>
+      <span class="issue-title">Act transition 唔顯示俾 player — 故事進展感缺失</span>
+      <span class="sev-tag sev-med">Med</span>
+      <span class="type-tag">UX</span>
+    </div>
+    <div class="issue-symptom">
+      Arc 升 Act 之後我哋只 <code>console.log</code>，client UI 完全唔知。Player 永遠唔知佢已經完咗 Act 1。
+    </div>
+    <div class="issue-fix">
+      <strong>Fix:</strong>(a) Stream custom event <code>{ type: "act-advance", act, name }</code> 喺 turn endpoint。Client 接收後 show toast「🎭 進入 Act 2: 試探」。(b) 將 act + name 加入 Narrator system prompt，narrative 自然 reference。
+    </div>
+  </div>
+
+  <div class="issue med">
+    <div class="issue-head">
+      <span class="issue-id">M-05</span>
+      <span class="issue-title">Director 可能未一致咁應用 earned exceptions — Haiku 未足智能</span>
+      <span class="sev-tag sev-med">Med</span>
+      <span class="type-tag">User testing</span>
+    </div>
+    <div class="issue-symptom">
+      Director system prompt 解釋咗 permanent_flags 可以 relax red_lines。但 Haiku 4.5 可能唔記得 reference flags 嘅 reasoning，特別係 flags 多嗰時。Need real cases 才可確定。
+    </div>
+    <div class="issue-fix">
+      <strong>Fix:</strong>User testing collect cases → tune prompt。如果 Haiku 持續 miss，升 Director model 到 Sonnet（成本 3x 但 reasoning 更穩）。
+    </div>
+  </div>
+
+  <h2><span class="icon">🟢</span>6 個 Low / Edge cases</h2>
+
+  <div class="category-header">DSL parser limitations <span class="count">3 條</span></div>
+
+  <div class="issue low">
+    <div class="issue-head">
+      <span class="issue-id">L-06</span>
+      <span class="issue-title">Arc DSL 唔識 parentheses / NOT operator</span>
+      <span class="sev-tag sev-low">Low</span>
+      <span class="type-tag">Edge case</span>
+    </div>
+    <div class="issue-symptom">
+      <code>(A OR B) AND C</code> parse 做 <code>A OR (B AND C)</code>（順序錯）。如果 LLM 寫 condition 帶 paren，結果錯。<br>
+      <strong>Fix:</strong>Phase 1.5.4 polish 加 proper precedence parser。MVP 接受呢個 limit — schema-generator prompt 教 LLM 唔使 paren。
+    </div>
+  </div>
+
+  <div class="issue low">
+    <div class="issue-head">
+      <span class="issue-id">L-07</span>
+      <span class="issue-title">DSL parser silent failure — 唔識嘅 syntax 默默返 false</span>
+      <span class="sev-tag sev-low">Low</span>
+      <span class="type-tag">Debug</span>
+    </div>
+    <div class="issue-symptom">
+      LLM generate 奇怪 syntax → parse 失敗 → silently false → Act 永遠唔 advance。冇 console output → debug 痛苦。<br>
+      <strong>Fix:</strong>每個 leaf 解析失敗 log warning（C-01 fix 一齊做）。
+    </div>
+  </div>
+
+  <div class="issue low">
+    <div class="issue-head">
+      <span class="issue-id">L-08</span>
+      <span class="issue-title">Director / Narrator 睇到 state 入面有 <code>__act</code> field</span>
+      <span class="sev-tag sev-low">Low</span>
+      <span class="type-tag">Cosmetic</span>
+    </div>
+    <div class="issue-symptom">
+      State snapshot 入面 <code>{ ..., "__act": 2 }</code>。LLM 一般識 ignore (__ prefix 係 convention)，但有時可能 reference。<br>
+      <strong>Fix:</strong>Build dynamic system prompt 時 strip <code>__</code> prefix fields → 另外作為「Story Context」section 顯式講。
+    </div>
+  </div>
+
+  <div class="category-header">Tool overuse / underuse <span class="count">2 條</span></div>
+
+  <div class="issue low">
+    <div class="issue-head">
+      <span class="issue-id">L-09</span>
+      <span class="issue-title">無法刪除 permanent_flag — 真係「永久」</span>
+      <span class="sev-tag sev-low">Low</span>
+      <span class="type-tag">By design</span>
+    </div>
+    <div class="issue-symptom">
+      Player 救咗 NPC（flag set），之後背叛 NPC，但 flag 仍然 active → Director 仍會 relax 嗰條紅線。By design 可能 OK，但故事感差。<br>
+      <strong>Fix (defer):</strong>v1.5+ 加 <code>remove_permanent_flag</code> tool。
+    </div>
+  </div>
+
+  <div class="issue low">
+    <div class="issue-head">
+      <span class="issue-id">L-10</span>
+      <span class="issue-title">Narrator 可能 over-use <code>set_permanent_flag</code> — 太多 flag = 紅線變鬆</span>
+      <span class="sev-tag sev-low">Low</span>
+      <span class="type-tag">Quality</span>
+    </div>
+    <div class="issue-symptom">
+      System prompt 講「use sparingly」但 LLM 可能每個 significant moment 都 trigger。100 turn 之後一個 NPC 可能有 20 個 flag → 紅線變鬆到等於冇。<br>
+      <strong>Fix (defer):</strong>Server 加 per-character flag cap (e.g. max 5)。
+    </div>
+  </div>
+
+  <div class="category-header">Misc <span class="count">1 條</span></div>
+
+  <div class="issue low">
+    <div class="issue-head">
+      <span class="issue-id">L-11</span>
+      <span class="issue-title">Pre-1.5.3 playthroughs (即 Phase 1 + 1.5.1/2 留低嘅 playthroughs) 冇 disposition data — Phase 1.5.3 feature 一啓動就 baseline 0</span>
+      <span class="sev-tag sev-low">Low</span>
+      <span class="type-tag">Migration</span>
+    </div>
+    <div class="issue-symptom">
+      舊 playthrough 嘅 <code>playthrough_character_states</code> 可能未 init disposition (取決於故事創建邏輯)。新 Narrator 第一次 update_character_disposition 會 upsert，但起步分數係 0 (中性)。<br>
+      <strong>Fix:</strong>Migration script 一次性後填，或者接受呢個 quirk（舊 playthrough 重新 calibrate）。
+    </div>
+  </div>
+
+  <h2><span class="icon">🎯</span>建議 priority</h2>
+
+  <div class="priority-grid">
+    <div class="priority-card now">
+      <div class="priority-title">🔴 而家做（20-30 分鐘）</div>
+      <ul class="priority-list">
+        <li><strong>C-01</strong> Arc DSL path mismatch — 3 部分修正一齊做：parser accept .disposition. middle + schema-generator prompt drop interactions.X + log warnings on undefined paths</li>
+      </ul>
+    </div>
+    <div class="priority-card next">
+      <div class="priority-title">🟡 下一個 session</div>
+      <ul class="priority-list">
+        <li><strong>M-02</strong> Narrator name match — fuzzy + explicit NPC names list</li>
+        <li><strong>M-03</strong> Init all 4 disposition axes</li>
+        <li><strong>M-04</strong> Stream act-advance event + show toast</li>
+        <li><strong>M-05</strong> User testing → tune Director on earned exceptions</li>
+      </ul>
+    </div>
+    <div class="priority-card later">
+      <div class="priority-title">🟢 Polish / later</div>
+      <ul class="priority-list">
+        <li><strong>L-06 ~ L-08</strong> DSL parser polish</li>
+        <li><strong>L-09 / L-10</strong> Flag remove + cap</li>
+        <li><strong>L-11</strong> Migration script for old playthroughs</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="verdict" style="background: linear-gradient(135deg, var(--primary-soft), var(--accent-soft)); border-left-color: var(--primary);">
+    <div class="verdict-title" style="color: var(--primary);">📊 我嘅 take</div>
+    <div class="verdict-body">
+      Phase 1.5.3 大部份 work（disposition / flags / Director retry / NEVER QUOTE）— 但 <strong>Arc 系統因為 path mismatch 100% broken</strong>。呢個係我自己 introduce 嘅 bug — 寫 parser 嗰時用咗 <code>characters.X.AXIS</code>，但寫 schema-generator prompt 嗰時例子用 <code>characters.X.disposition.AXIS</code>。兩邊未對齊。
+      <br><br>
+      <strong>而家就修</strong> — 20-30 分鐘工夫，3 個 small change：parser flex 啲、prompt example 簡化、log undefined paths。修完 Arc transition 真係會發生，players 會見到 Act 演進。
+      <br><br>
+      其他 4 個 medium 都係 polish-level — 下個 session 一齊處理（或者跳 Phase 2 之前打掃）。
+    </div>
+  </div>
+</main>
+</body>
+</html>

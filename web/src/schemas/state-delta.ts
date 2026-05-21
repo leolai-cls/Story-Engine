@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { StateSchema, Field } from "./state-schema";
+import { InventoryItemSchema, type StateSchema, type Field } from "./state-schema";
 
 /**
  * State delta — what the Narrator outputs via tool calling each turn.
@@ -102,8 +102,20 @@ export function applyDelta(
           if (field.render_hint !== "inventory_list") {
             throw new Error(`push only valid for inventory_list`);
           }
+          // Validate item shape — LLM occasionally pushes raw string or partial object.
+          // Auto-coerce a bare string to a minimum-viable item; reject everything else.
+          let item: unknown = op.value;
+          if (typeof item === "string") {
+            item = { name: item, count: 1, icon: "" };
+          }
+          const parsed = InventoryItemSchema.safeParse(item);
+          if (!parsed.success) {
+            throw new Error(
+              `inventory item shape invalid: ${parsed.error.issues[0]?.message ?? "unknown"}`,
+            );
+          }
           const arr = Array.isArray(next[op.key]) ? [...(next[op.key] as unknown[])] : [];
-          arr.push(op.value);
+          arr.push(parsed.data);
           next[op.key] = arr;
           break;
         }
@@ -144,13 +156,16 @@ export function applyDelta(
 
 /**
  * Coerce a value to a number if possible. Handles strings like "42" or "3.14".
- * Returns null if not coercible.
+ * Returns null if not coercible OR not finite (rejects NaN, ±Infinity — those
+ * silently break JSON round-trip and clamp logic).
  */
 function coerceNumber(v: unknown): number | null {
-  if (typeof v === "number" && !Number.isNaN(v)) return v;
+  if (typeof v === "number") {
+    return Number.isFinite(v) ? v : null;
+  }
   if (typeof v === "string") {
     const n = Number(v);
-    if (!Number.isNaN(n)) return n;
+    if (Number.isFinite(n)) return n;
   }
   return null;
 }
@@ -209,16 +224,43 @@ function validateValue(field: Field, value: unknown): unknown {
       }
       return value;
 
-    case "inventory_list":
+    case "inventory_list": {
       if (!Array.isArray(value)) {
         throw new Error(`Field ${field.key} expects array`);
       }
-      return value;
-
-    case "relationship_graph":
-      if (typeof value !== "object" || value === null) {
-        throw new Error(`Field ${field.key} expects object`);
+      // Validate each item shape; coerce bare strings to minimum-viable items.
+      const validated: Array<{ name: string; count: number; icon: string }> = [];
+      for (const raw of value) {
+        let item: unknown = raw;
+        if (typeof item === "string") {
+          item = { name: item, count: 1, icon: "" };
+        }
+        const parsed = InventoryItemSchema.safeParse(item);
+        if (!parsed.success) {
+          throw new Error(
+            `inventory_list item invalid: ${parsed.error.issues[0]?.message ?? "unknown"}`,
+          );
+        }
+        validated.push(parsed.data);
       }
-      return value;
+      return validated;
+    }
+
+    case "relationship_graph": {
+      // Reject arrays — `typeof [] === "object"` would otherwise pass.
+      if (typeof value !== "object" || value === null || Array.isArray(value)) {
+        throw new Error(`Field ${field.key} expects object map<string,number>`);
+      }
+      // Clamp every value to [-100, 100] and reject non-numeric entries.
+      const clamped: Record<string, number> = {};
+      for (const [k, v] of Object.entries(value)) {
+        const n = coerceNumber(v);
+        if (n === null) {
+          throw new Error(`relationship_graph "${k}" not numeric`);
+        }
+        clamped[k] = Math.max(-100, Math.min(100, n));
+      }
+      return clamped;
+    }
   }
 }

@@ -68,11 +68,36 @@ export type SoftGuided = z.infer<typeof SoftGuidedSchema>;
 
 /**
  * Top-level Bible. Stored as `stories.story_bible jsonb`.
+ *
+ * Cross-field refinement: story_arc acts must be contiguous starting from 1.
+ * Without this, an LLM emitting `[{act:2},{act:4}]` would create a story that
+ * can never advance past `persisted_act=1` (no matching entry to evaluate).
  */
-export const StoryBibleSchema = z.object({
-  hard_locked: HardLockedSchema,
-  soft_guided: SoftGuidedSchema,
-});
+export const StoryBibleSchema = z
+  .object({
+    hard_locked: HardLockedSchema,
+    soft_guided: SoftGuidedSchema,
+  })
+  .superRefine((b, ctx) => {
+    const acts = b.soft_guided.story_arc.map((a) => a.act).sort((x, y) => x - y);
+    if (acts[0] !== 1) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `story_arc must start at act=1 (first act was ${acts[0]})`,
+        path: ["soft_guided", "story_arc"],
+      });
+    }
+    for (let i = 1; i < acts.length; i++) {
+      if (acts[i] !== acts[i - 1] + 1) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `story_arc acts must be contiguous (gap between ${acts[i - 1]} and ${acts[i]})`,
+          path: ["soft_guided", "story_arc"],
+        });
+        break;
+      }
+    }
+  });
 
 export type StoryBible = z.infer<typeof StoryBibleSchema>;
 

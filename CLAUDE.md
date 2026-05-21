@@ -191,6 +191,10 @@ DB：`story_characters` (模板) + `playthrough_character_states` (per-playthrou
 4. **Credits 計算邏輯要絕對啱** — 用戶會 trust 你 credit balance。任何 off-by-one 等於信任崩塌。Ledger append-only，永遠唔好 mutate balance 而唔寫 ledger entry。
 5. **成人模式嘅 LLM 隔離係 hard rule** — 唔好為咗方便就喺 Claude API 上面跑 NSFW 流量。整個平台會 ban。
 6. **無論咩模式都要 CSAM / 違法內容 pre-filter** — 法律底線，唔可以 bypass。
+7. **Audit-before-next-phase 紀律** — 每個 phase 完成後做一次 deep audit (HTML report)，先入下一 phase。Pattern proven 救命：Session 4 嘅 C-01 Arc DSL bug 喺 audit catch 到，玩家無感知就修好。**ship → audit → fix critical → next phase**。
+8. **Path-format drift 係 recurring bug class** — 凡係 prompt 教 LLM 寫某格式、parser 認某格式，兩邊 spec 一定要同步。Mitigation：parser 接受多種合理 format + log undefined-path warnings 做 future drift visibility。Examples 寫 prompt 入面要 strict match parser 嘅 expected paths。
+9. **用戶 instinct 永遠值得 push back** — Session 3 嘅「秒速彈 error 唔似真 LLM 處理」push back 直接 catch 到 SDK baseURL bug。佢 vibe coder 但 product sense 好強，唔好為咗 efficiency 跳過佢嘅 doubt。
+10. **Anthropic structured output 有 2 個 limits**：(a) ≤24 optional params per schema (b) compiled grammar size ceiling。Both must be respected。解法：split 成 parallel sub-calls，每個 schema 簡單到唔爆 grammar ceiling。
 
 ---
 
@@ -200,7 +204,8 @@ DB：`story_characters` (模板) + `playthrough_character_states` (per-playthrou
 - 預設訂價係 USD 定 HKD？最終 launch 時 confirm
 - v1.5 嘅 cover image 生成用邊個 provider（Fal.ai vs Replicate vs Together）
 - Lorebook entity 同名 dedup 策略（「阿明」vs「陳家明」）— 用 naive exact match 先
+- Phase 1.5.3 M-02 NPC name fuzzy match strategy（exact + Levenshtein fallback?）
 
 ---
 
-_Last updated: 2026-05-21_
+_Last updated: 2026-05-21 (Session 4 — Phase 1.5.x + C-01 hotfix shipped)_

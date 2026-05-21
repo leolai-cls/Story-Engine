@@ -145,12 +145,11 @@ function compare(
         return lhs !== rhs;
     }
   }
-  // Treat undefined as 0 for numeric comparisons (e.g. "characters.unknown_npc.trust >= 50" → false)
-  if (
-    lhs === undefined &&
-    typeof rhs === "number" &&
-    (op === ">=" || op === ">" || op === "==")
-  ) {
+  // Treat undefined as 0 for ALL numeric comparisons.
+  // Without this, conditions like `state.fear < 30` over an uninitialized
+  // field silently evaluate to false even though semantically `0 < 30` should
+  // be true — arcs get stuck. Applies to >, >=, <, <=, ==, != against numeric RHS.
+  if (lhs === undefined && typeof rhs === "number") {
     return compare(0, op, rhs);
   }
   // String / bool equality
@@ -172,14 +171,22 @@ export function deriveCurrentAct(params: {
   ctx: ArcContext;
   persisted_act: number;
 }): { act: number; just_advanced_to?: { act: number; name: string } } {
-  let highest = params.persisted_act;
+  // Floor persisted_act to a sane value (1 minimum) — guards against legacy
+  // playthroughs where __act was never seeded.
+  const persisted = Math.max(1, params.persisted_act);
+  let highest = persisted;
   let lastAdvancedAct: { act: number; name: string } | undefined;
 
   // Sort arc by act ascending for monotonic check
   const sorted = [...params.story_arc].sort((a, b) => a.act - b.act);
 
+  // Cap to last available act — protects against bible regenerated/shrunk
+  // (e.g., persisted=4 but arc only has acts 1-3 now).
+  const maxArcAct = sorted.length ? sorted[sorted.length - 1].act : 1;
+  if (highest > maxArcAct) highest = maxArcAct;
+
   for (const entry of sorted) {
-    if (entry.act <= params.persisted_act) continue; // already past this act
+    if (entry.act <= persisted) continue; // already past this act
 
     const ok = evaluateCondition(entry.transition_condition, params.ctx);
     if (ok) {

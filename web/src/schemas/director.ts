@@ -27,6 +27,9 @@ export const VerdictSchema = z.discriminatedUnion("verdict", [
   }),
 
   // ─── REJECT — Narrator must in-fiction pushback ─────────────────────
+  // `affected_character`: NPC whose red_line was crossed. Empty string when
+  // the rejection is on world-invariant grounds (no specific NPC) — Narrator
+  // instruction handles that case with a generic "故事規則" fallback.
   z.object({
     verdict: z.literal("reject"),
     reasoning: z.string().min(10).max(280),
@@ -65,16 +68,21 @@ export function verdictToNarratorInstruction(v: Verdict): string {
 ## Director Verdict
 Director 允許呢個 action。正常 narrate 後果。`;
 
-    case "reject":
+    case "reject": {
+      const who = v.affected_character.trim() || "故事規則";
+      const pushback = v.affected_character.trim()
+        ? `**你必須**寫 in-fiction pushback — ${who} 拒絕、反抗、或離開。`
+        : `**你必須**寫 in-fiction pushback — 環境 / 物理 / 場景強制阻止玩家。`;
       return `[INTERNAL CONTEXT — DO NOT QUOTE OR PARAPHRASE IN YOUR NARRATIVE]
 ## Director Verdict — REJECT (你必須遵守)
-玩家行動違反咗 ${v.affected_character} 嘅紅線 / Bible 限制。
+玩家行動違反咗${v.affected_character.trim() ? ` ${who} 嘅紅線 / ` : ""}Bible 限制。
 原因：${v.reasoning}
 
-**你必須**寫 in-fiction pushback — ${v.affected_character} 拒絕、反抗、或離開。
+${pushback}
 Pushback hint: ${v.in_fiction_pushback_hint}
 
-⚠️ 唔好 narrate 玩家 action 成功 — 必須 narrate 失敗或 NPC 反抗。`;
+⚠️ 唔好 narrate 玩家 action 成功 — 必須 narrate 失敗或 NPC / 環境 反抗。`;
+    }
 
     case "allow_with_constraint":
       return `[INTERNAL CONTEXT — DO NOT QUOTE OR PARAPHRASE IN YOUR NARRATIVE]
