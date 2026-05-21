@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:types": "npx supabase gen types typescript --project-id oivhvdfjmthydxqpcncp 2>/dev/null | awk '/^export type Json/{f=1} f{print} /^} as const$/{f=0}' > src/lib/supabase/types.ts && echo 'types regenerated to src/lib/supabase/types.ts'"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.78",
