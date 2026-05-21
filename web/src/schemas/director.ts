@@ -83,13 +83,11 @@ ${v.constraint}
 正常 narrate 後果，但必須包含 constraint 描述嘅嘢。`;
 
     case "require_skill_check":
-      // Phase 1.5.2 will do actual dice roll. For 1.5.1, treat as constraint.
-      return `## Director Verdict — SKILL CHECK NEEDED (Phase 1.5.2 will roll dice)
-玩家行動需要 \`${v.skill_key}\` skill check (difficulty ${v.difficulty}).
-而家 Phase 1.5.1 — 暫時當 50/50 narrate:
-- 如果成功：${v.success_consequence_hint}
-- 如果失敗：${v.failure_consequence_hint}
-
-Narrate 一個結果，包含失敗 / 成功 都得（pick 一個合理嘅）。`;
+      // This case is handled separately in turn route — dice rolled BEFORE
+      // Narrator is called, and skillCheckToNarratorInstruction produces
+      // the actual instruction with the rolled outcome.
+      // This text is a fallback if for some reason dice isn't rolled.
+      return `## Director Verdict — SKILL CHECK NEEDED
+\`${v.skill_key}\` vs difficulty ${v.difficulty}. Dice 應該已經喺 turn route 擲過 — 如果你睇到呢段，係 fallback path，pick 一個合理結果寫。`;
   }
 }

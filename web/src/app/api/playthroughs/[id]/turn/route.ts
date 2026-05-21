@@ -14,6 +14,11 @@ import {
 } from "@/lib/ai/turn-runner";
 import { callDirector } from "@/lib/ai/director";
 import { verdictToNarratorInstruction } from "@/schemas/director";
+import {
+  rollSkillCheck,
+  skillCheckToNarratorInstruction,
+  type SkillCheckResult,
+} from "@/lib/ai/skill-check";
 import { applyDelta } from "@/schemas/state-delta";
 import { initialStateFromSchema, type StateSchema } from "@/schemas/state-schema";
 import type { StoryBible } from "@/schemas/bible";
@@ -185,7 +190,28 @@ export async function POST(
       reasoning: "Director call failed; defaulting to allow.",
     };
   }
-  const directorInstruction = verdictToNarratorInstruction(verdict);
+
+  // 4.5 SKILL CHECK — Phase 1.5.2: if Director required a check, roll dice now.
+  let skillCheckResult: SkillCheckResult | null = null;
+  let directorInstruction: string;
+  if (verdict.verdict === "require_skill_check") {
+    skillCheckResult = rollSkillCheck({
+      state: currentState,
+      schema: stateSchema,
+      skill_key: verdict.skill_key,
+      difficulty: verdict.difficulty,
+    });
+    console.log(
+      `[turn] Skill check: ${verdict.skill_key} d20=${skillCheckResult.d20_roll} total=${skillCheckResult.total} vs ${verdict.difficulty} → ${skillCheckResult.outcome}`,
+    );
+    directorInstruction = skillCheckToNarratorInstruction(
+      skillCheckResult,
+      verdict.success_consequence_hint,
+      verdict.failure_consequence_hint,
+    );
+  } else {
+    directorInstruction = verdictToNarratorInstruction(verdict);
+  }
 
   // 5. Stream Narrator response with prompt caching + Director instruction
   const stableSystem = buildStableSystemPrompt(ctx);
@@ -253,6 +279,7 @@ export async function POST(
             text: finalText,
             state_delta: isRefusal ? null : delta,
             director_verdict: verdict,
+            skill_check: skillCheckResult,
             llm_provider: "anthropic",
             model: pt.llm_model ?? "claude-sonnet-4-6",
             input_tokens: usage?.inputTokens,
