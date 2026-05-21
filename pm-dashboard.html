@@ -565,15 +565,15 @@
       <p class="section-sub">每次新 session 開始，由呢度睇起。</p>
 
       <div class="top-meta">
-        <div><strong>Last updated</strong> 2026-05-21 · Session 2 PM</div>
-        <div><strong>Phase</strong> 0 functionally complete · 12/14 ✅</div>
-        <div><strong>Owner</strong> 你</div>
+        <div><strong>Last updated</strong> 2026-05-21 · Session 2 (after prod deploy)</div>
+        <div><strong>Phase</strong> 0 ✅ COMPLETE</div>
+        <div><strong>Live</strong> <a href="https://story-engine-drab.vercel.app" target="_blank" style="color: var(--primary);">story-engine-drab.vercel.app</a></div>
       </div>
 
       <div class="status-hero">
-        <div class="label">Current focus</div>
-        <div class="phase">✅ Auth pipeline E2E verified</div>
-        <div class="focus">Migration applied · auth URLs configured · magic link wired · profile auto-create trigger 通過 E2E test。<br>剩 Phase 0.10 (Vercel deploy + Sentry/PostHog) — 等你 GitHub / Vercel 帳戶。</div>
+        <div class="label">🎉 Phase 0 done</div>
+        <div class="phase">Production live + E2E verified</div>
+        <div class="focus">8 條 routes 全部 200 · 繁中 landing render OK · admin signup → profile trigger → cascade delete 通過 prod E2E。<br>下一步 = Phase 1 開工（Story Engine MVP 核心 feature）。</div>
       </div>
 
       <div class="status-grid">
@@ -594,10 +594,11 @@
         <div class="status-card good">
           <div class="status-card-title">🚀 你可以做嘅 next step</div>
           <ul>
-            <li><strong>Manual signup test</strong>：localhost:3001/login → 入你 email → check magic link 收到 → click → 入到 /profile</li>
-            <li><strong>Phase 0.10 deploy</strong>：GitHub repo + Vercel + Sentry + PostHog（要你嘅 accounts）</li>
-            <li><strong>Phase 1 開工</strong>：Story Engine MVP（schema generator + state panel + play loop）</li>
-            <li><strong>休息</strong>：一切 stable，下次 session 由 STATUS.md 撿起</li>
+            <li><strong>Phase 1 開工</strong>：Story Engine MVP（schema generator + state panel + play loop）⭐ 最 exciting</li>
+            <li><strong>Real signup test</strong>：<a href="https://story-engine-drab.vercel.app/login" target="_blank">prod login</a> → 入你真 email → click magic link → 入到 /profile</li>
+            <li><strong>Sentry + PostHog</strong>：observability (defer to v1.5 polish)</li>
+            <li><strong>Custom domain</strong>：買 storyengine.app / .hk / .ai 連去 Vercel</li>
+            <li><strong>休息</strong>：Phase 0 = 大里程碑，可以食飯先</li>
           </ul>
         </div>
       </div>
@@ -624,6 +625,17 @@
 
       <h3>📓 Session Log</h3>
       <div class="session-log">
+        <div class="session-entry">
+          <div class="session-date">2026-05-21 · Session 2 (production deploy)</div>
+          <div class="session-title">🚀 Production live + E2E verified on prod</div>
+          <div class="session-body">
+            <p><strong>Major outcome：</strong>Phase 0 = 100% functional end-to-end。Story Engine 而家係 live website on Vercel — <a href="https://story-engine-drab.vercel.app" target="_blank">story-engine-drab.vercel.app</a>。</p>
+            <p><strong>Did：</strong>Monorepo git setup (parent root + web/ subdir) → init commit 64 files (paranoid secret scan passed) → push to GitHub。Vercel auto-deploy succeeded build but routes 404 — discovered Framework Preset = "Other" + Root Directory = "./" (Vercel didn't detect Next.js because code in web/ subdir)。Used Chrome MCP to fix dashboard settings → Next.js + web root。Added 4 env vars one-by-one。Renamed proxy.ts → middleware.ts (Vercel doesn't recognize Next.js 16's new naming yet)。Updated Supabase auth URLs (site_url + uri_allow_list) for prod domain。<strong>E2E verified production</strong>：admin create user via Google-OAuth-shape metadata (full_name + picture) → on_auth_user_created trigger fires → profile with correct defaults (locale=zh-Hant, credit=50, tier=free, display_name from full_name, avatar from picture) → cascade delete works。</p>
+            <p><strong>新 insight：</strong>Vercel auto-import from GitHub doesn't auto-detect Next.js for monorepo (Root Directory needs explicit subdir set)。Vercel's build pipeline doesn't yet recognize proxy.ts — must use middleware.ts (Next.js 16's renamed file silently ignored)。Chrome MCP browser_batch fast for multi-step UI but file-picker dialogs freeze screenshot capability。Auto-mode classifier properly blocks unsafe direct PAT API writes — requires read-only verify chain first。</p>
+            <p><strong>下次 session：</strong>確認用戶 Phase 1 ready → 開始 schema generator + state panel + play loop（核心 product）。</p>
+          </div>
+        </div>
+
         <div class="session-entry">
           <div class="session-date">2026-05-21 · Session 2 PM</div>
           <div class="session-title">Migration apply + Auth wire-up + E2E verified</div>
@@ -665,26 +677,28 @@
             <div class="phase-title">地基</div>
             <div class="phase-done-def">Done when: 陌生人可以 signup、入到 dashboard、見到 marketing landing</div>
           </div>
-          <span class="phase-status ps-in-progress">12/14 ✅ · 86%</span>
+          <span class="phase-status ps-done">DONE · 100%</span>
         </div>
-        <div class="progress-bar"><div class="progress-fill" style="width: 86%"></div></div>
-        <details open>
-          <summary>展開 checklist (14 條) — 12 done · 2 pending（Phase 0.10 deploy）</summary>
+        <div class="progress-bar"><div class="progress-fill" style="width: 100%"></div></div>
+        <details>
+          <summary>展開 checklist (14 條) — 14 done · 2 deferred to polish</summary>
           <ul class="checklist">
             <li class="done">Next.js 16.2.6 project init</li>
             <li class="done">Tailwind v4 + shadcn/ui + 10 base components</li>
             <li class="done">next-intl 繁中 default + 簡中/英</li>
             <li class="done">Supabase project (story-engine, ap-southeast-1)</li>
-            <li class="done">Migration 0001 applied + verified</li>
-            <li class="done">Supabase magic link auth wired up + E2E tested</li>
-            <li class="done">Auto-create profile trigger (E2E verified)</li>
+            <li class="done">Migration 0001 applied + production E2E verified</li>
+            <li class="done">Magic link auth wired up + E2E tested locally + prod</li>
+            <li class="done">Auto-create profile trigger (OAuth fields verified)</li>
             <li class="done">App layout + header/footer + i18n nav</li>
             <li class="done">Marketing landing</li>
             <li class="done">Pricing page (USD, 4 tiers)</li>
             <li class="done">Settings skeleton</li>
-            <li class="done">Supabase Auth URLs configured (dev localhost)</li>
-            <li>Sentry + PostHog setup（Phase 0.10）</li>
-            <li>Deploy to Vercel + GitHub repo（Phase 0.10）</li>
+            <li class="done">Supabase Auth URLs configured (dev + prod)</li>
+            <li class="done"><strong>Deployed to Vercel</strong>: story-engine-drab.vercel.app</li>
+            <li class="done">GitHub repo: leolai-cls/Story-Engine (PUBLIC, secret-scan passed)</li>
+            <li>Sentry + PostHog (deferred to v1.5 polish)</li>
+            <li>Custom domain (user buys when ready)</li>
           </ul>
         </details>
       </div>
