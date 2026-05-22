@@ -36,6 +36,7 @@ import { embedTextSafe } from "@/lib/ai/embed";
 import {
   chargeCredits,
   computeCredits,
+  computeTurnCredits,
   estimateTurnCredits,
   getBalanceAndCheck,
   userTierAllowsModel,
@@ -718,31 +719,58 @@ export async function POST(
           .update(playthroughUpdate)
           .eq("id", playthroughId);
 
-        // ─── Phase 3: charge credits for Narrator + Director ──────────────
-        // AUDIT FIX (AI-H-03): post-charge via atomic RPC. Charges only the
-        // foreground LLM calls (Narrator + Director); background work
-        // (lorebook + summarizer + embed) is absorbed by the 2× markup —
-        // acceptable for MVP, granular per-call charging can come later.
+        // ─── Phase 3: charge credits for full turn cost ───────────────────
+        // AUDIT FIX (P3-COST-H-05 / LOGIC-M-07): now charges FULL turn cost
+        // including background work (lorebook + summarizer + embed) as a
+        // reserve, not just Narrator + Director. Previously claimed 2×
+        // markup was effectively 1.62× because ~$0.004/turn of background
+        // work was unbilled. Reserve uses ESTIMATED tokens (actual variance
+        // absorbed by 2× markup buffer) so charge happens upfront before
+        // after() blocks fire; no need to coordinate post-fire charges.
         //
-        // If isRefusal, only charge Director (we got nothing useful from
-        // Narrator and substituted canned fallback).
+        // On refusal: Narrator/lorebook/summarizer/embed skipped — only
+        // Director cost charged (one Haiku call already happened).
         const aiTurnIdForCharge = aiTurnRow?.id ?? null;
         if (aiTurnIdForCharge) {
-          const narratorCredits = isRefusal
-            ? 0
-            : computeCredits({
-                modelId: pt.llm_model ?? "claude-sonnet-4-6",
-                inputTokens: usage?.inputTokens ?? 0,
-                outputTokens: usage?.outputTokens ?? 0,
-                cachedInputTokens: usage?.cachedInputTokens,
-              });
           const directorCredits = computeCredits({
             modelId: "claude-haiku-4-5",
             inputTokens: directorUsage.inputTokens ?? 0,
             outputTokens: directorUsage.outputTokens ?? 0,
             cachedInputTokens: directorUsage.cachedInputTokens,
           });
-          const totalCredits = narratorCredits + directorCredits;
+          let narratorCredits = 0;
+          let backgroundCredits = 0;
+          if (!isRefusal) {
+            const fullTurnCredits = computeTurnCredits({
+              narrator: {
+                modelId: pt.llm_model ?? "claude-sonnet-4-6",
+                inputTokens: usage?.inputTokens ?? 0,
+                outputTokens: usage?.outputTokens ?? 0,
+                cachedInputTokens: usage?.cachedInputTokens,
+              },
+              director: {
+                modelId: "claude-haiku-4-5",
+                inputTokens: directorUsage.inputTokens ?? 0,
+                outputTokens: directorUsage.outputTokens ?? 0,
+                cachedInputTokens: directorUsage.cachedInputTokens,
+              },
+              // Estimated background work — these run via after() shortly
+              // after charge. Variance absorbed by 2× markup buffer.
+              lorebook: { inputTokens: 2000, outputTokens: 500 },
+              // Summarizer is amortized 1/20 turns (~250 in, 40 out per rollup)
+              summarizer: { inputTokens: 13, outputTokens: 2 },
+              embedTokens: 400,
+            });
+            // Back out narrator-only for the metadata log
+            narratorCredits = computeCredits({
+              modelId: pt.llm_model ?? "claude-sonnet-4-6",
+              inputTokens: usage?.inputTokens ?? 0,
+              outputTokens: usage?.outputTokens ?? 0,
+              cachedInputTokens: usage?.cachedInputTokens,
+            });
+            backgroundCredits = fullTurnCredits - narratorCredits - directorCredits;
+          }
+          const totalCredits = narratorCredits + directorCredits + backgroundCredits;
           if (totalCredits > 0) {
             const chargeResult = await chargeCredits(supabase, {
               userId: user.id,
@@ -753,6 +781,7 @@ export async function POST(
               metadata: {
                 narrator_credits: narratorCredits,
                 director_credits: directorCredits,
+                background_credits: backgroundCredits, // P3-COST-H-05 reserve
                 narrator_model: pt.llm_model ?? "claude-sonnet-4-6",
                 refusal: isRefusal,
               },
@@ -762,7 +791,7 @@ export async function POST(
               // folded into apply_credit_charge RPC (atomic with ledger
               // insert). No separate UPDATE needed here.
               console.log(
-                `[turn] charged ${totalCredits} credits (narrator=${narratorCredits}, director=${directorCredits}) — new balance: ${chargeResult.newBalance}`,
+                `[turn] charged ${totalCredits} credits (narrator=${narratorCredits}, director=${directorCredits}, background_reserve=${backgroundCredits}) — new balance: ${chargeResult.newBalance}`,
               );
             } else if (chargeResult.error === "insufficient_credits") {
               // Should NOT happen because pre-check passed, but defensive log.

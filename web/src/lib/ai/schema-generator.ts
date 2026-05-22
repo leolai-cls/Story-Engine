@@ -67,9 +67,22 @@ const StoryGenerationResultSchema = z.object({
   opening_narrative: z.string(),
 });
 
-export type StoryGenerationResult = z.infer<
-  typeof StoryGenerationResultSchema
->;
+type StoryGenerationBase = z.infer<typeof StoryGenerationResultSchema>;
+
+/**
+ * AUDIT FIX (P3-LOGIC-H-04 / P3-COST-M-06): return real token usage from
+ * the 4 parallel schema-gen calls so the caller can charge ACTUAL cost
+ * instead of a flat estimate (which was off by 30-50% on long prompts).
+ */
+export type StoryGenerationUsage = {
+  inputTokens: number;
+  outputTokens: number;
+  cachedInputTokens: number;
+};
+
+export type StoryGenerationResult = StoryGenerationBase & {
+  usage: StoryGenerationUsage;
+};
 
 export type GenerateStoryInput = {
   prompt: string;
@@ -332,5 +345,11 @@ export async function generateStory(
     state_schema: state.state_schema,
     story_bible: bible.story_bible,
     characters: characters.characters,
+    // AUDIT FIX (P3-LOGIC-H-04): return real usage for accurate charging.
+    usage: {
+      inputTokens: usageTotals.input,
+      outputTokens: usageTotals.output,
+      cachedInputTokens: usageTotals.cached,
+    },
   };
 }

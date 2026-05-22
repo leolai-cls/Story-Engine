@@ -11,6 +11,7 @@ import { revalidatePath } from "next/cache";
 import { DEFAULT_NARRATOR } from "@/lib/ai/models";
 import {
   chargeCredits,
+  computeCredits,
   estimateStoryCreationCredits,
   getBalanceAndCheck,
   userTierAllowsModel,
@@ -242,26 +243,41 @@ export async function createStoryFromPrompt(
     console.error("[createStory] opening turn insert failed", turnErr);
   }
 
-  // AUDIT FIX (AI-H-03): charge for story creation via atomic RPC.
-  // Schema-gen variance is small (4 parallel calls, predictable token sizes),
-  // so we charge the estimate without per-call usage tracking. If actual cost
-  // varies > 30%, switch to capturing usage from generateStory return value.
+  // AUDIT FIX (P3-LOGIC-H-04 / P3-COST-M-06): charge ACTUAL schema-gen
+  // cost using real token usage returned from generateStory. Previously
+  // charged a flat estimate that was 30-50% off depending on prompt
+  // complexity and retry behavior. Now: real input/output/cached tokens
+  // flow into computeCredits → fair charge to user, accurate margin to us.
+  const actualStoryCost = computeCredits({
+    modelId: "claude-sonnet-4-6",
+    inputTokens: generated.usage.inputTokens,
+    outputTokens: generated.usage.outputTokens,
+    cachedInputTokens: generated.usage.cachedInputTokens,
+  });
   const storyChargeResult = await chargeCredits(supabase, {
     userId: user.id,
-    delta: -estimatedCost,
+    delta: -actualStoryCost,
     reason: "story_charge",
     refType: "story",
     refId: story.id,
-    metadata: { prompt_length: parsed.data.prompt.length },
+    metadata: {
+      prompt_length: parsed.data.prompt.length,
+      input_tokens: generated.usage.inputTokens,
+      output_tokens: generated.usage.outputTokens,
+      cached_input_tokens: generated.usage.cachedInputTokens,
+      estimated_cost: estimatedCost,
+      actual_cost: actualStoryCost,
+    },
   });
   if (storyChargeResult.ok) {
     console.log(
-      `[createStory] charged ${estimatedCost} credits for story ${story.id} — new balance: ${storyChargeResult.newBalance}`,
+      `[createStory] charged ${actualStoryCost} credits (estimate was ${estimatedCost}) for story ${story.id} — new balance: ${storyChargeResult.newBalance}`,
     );
   } else if (storyChargeResult.error === "insufficient_credits") {
-    // Shouldn't happen — pre-check passed earlier. Defensive log + continue.
+    // Shouldn't happen — pre-check passed earlier and actualCost should be
+    // <= estimate. Defensive log + continue (story already created).
     console.error(
-      `[createStory] post-charge insufficient_credits despite pre-check pass — current=${storyChargeResult.currentBalance}, needed=${storyChargeResult.needed}`,
+      `[createStory] post-charge insufficient_credits — current=${storyChargeResult.currentBalance}, needed=${storyChargeResult.needed}`,
     );
   } else {
     console.error("[createStory] charge failed:", storyChargeResult.message);

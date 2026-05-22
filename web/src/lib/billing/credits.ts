@@ -90,19 +90,31 @@ export function computeCredits(params: {
 }): number {
   const pricing = MODEL_PRICING[params.modelId];
   if (!pricing) {
-    // Unknown model — log + return 0. Fail safe (don't charge) until pricing added.
-    console.warn(`[credits] no pricing for model "${params.modelId}", returning 0 credits`);
-    return 0;
+    // AUDIT FIX (P3-LOGIC-L-14): unknown model THROWS instead of silently
+    // returning 0. Previously a typo or missing pricing entry would have
+    // let users play free until someone noticed the warning. Now: hard
+    // failure surfaces the misconfiguration immediately.
+    throw new Error(
+      `computeCredits: no MODEL_PRICING entry for "${params.modelId}". ` +
+        `Add the model to MODEL_PRICING before using it in production.`,
+    );
   }
   const markup = params.markup ?? STORY_ENGINE_MARKUP;
-  const totalInput = params.inputTokens ?? 0;
-  const cachedInput = pricing.cachedInputPerMillion ? params.cachedInputTokens ?? 0 : 0;
-  const freshInput = Math.max(0, totalInput - cachedInput);
-  const outputTokens = params.outputTokens ?? 0;
+
+  // AUDIT FIX (P3-COST-M-07): inputTokens from Vercel AI SDK is ALREADY
+  // exclusive of cachedInputTokens (Anthropic's `usage.input_tokens` is
+  // fresh + cache_creation; `cache_read_input_tokens` is the cached
+  // count). Previously this function subtracted cached from input, which
+  // double-counted and undercharged ~10% on every cached turn. Fix:
+  // input = full input rate, cached = separate cached rate, no subtraction.
+  const freshInput = Math.max(0, params.inputTokens ?? 0);
+  const cachedInput = Math.max(0, params.cachedInputTokens ?? 0);
+  const outputTokens = Math.max(0, params.outputTokens ?? 0);
+  const cachedRate = pricing.cachedInputPerMillion ?? pricing.inputPerMillion;
 
   const usdCost =
     (freshInput * pricing.inputPerMillion +
-      cachedInput * (pricing.cachedInputPerMillion ?? pricing.inputPerMillion) +
+      cachedInput * cachedRate +
       outputTokens * pricing.outputPerMillion) /
     1_000_000;
 
