@@ -32,6 +32,13 @@ import { retrieveMemory } from "@/lib/ai/memory/retriever";
 import { maybeRunSummarization } from "@/lib/ai/memory/summarizer";
 import { runLorebookExtraction } from "@/lib/ai/memory/lorebook";
 import { embedTextSafe } from "@/lib/ai/embed";
+// ─── Phase 3 credits ─────────────────────────────────────────────────────
+import {
+  chargeCredits,
+  computeCredits,
+  estimateTurnCredits,
+  getBalanceAndCheck,
+} from "@/lib/billing/credits";
 
 /**
  * POST /api/playthroughs/[id]/turn
@@ -80,6 +87,34 @@ export async function POST(
     );
   }
   lastTurnAt.set(playthroughId, Date.now());
+
+  // 1.6 AUDIT FIX (AI-H-03): credit balance pre-check.
+  // Cheap UX gate before any LLM work — friendly error if balance can't
+  // cover an average turn. The atomic charge in onFinish is the source of
+  // truth (RPC will throw insufficient_credits if balance is below 0 after
+  // the actual cost is computed). Tiny race window where balance dips
+  // between pre-check and atomic charge is acceptable for MVP.
+  //
+  // Uses default Narrator model for estimate; actual playthrough model is
+  // read from pt.llm_model later — slight overestimate when player picked a
+  // cheaper model, slight underestimate for premium models (within markup
+  // buffer).
+  const estimatedTurnCost = estimateTurnCredits("claude-sonnet-4-6");
+  const balanceCheck = await getBalanceAndCheck(supabase, {
+    userId: user.id,
+    estimatedCost: estimatedTurnCost,
+  });
+  if (!balanceCheck.sufficient) {
+    return NextResponse.json(
+      {
+        error: "insufficient_credits",
+        message: `Credit 唔夠（剩 ${balanceCheck.balance}，需要約 ${estimatedTurnCost}）。Top-up 或 upgrade 之後再玩。`,
+        currentBalance: balanceCheck.balance,
+        estimatedCost: estimatedTurnCost,
+      },
+      { status: 402 }, // 402 Payment Required
+    );
+  }
 
   // 2. Parse body
   let action: string;
@@ -667,6 +702,65 @@ export async function POST(
           .from("playthroughs")
           .update(playthroughUpdate)
           .eq("id", playthroughId);
+
+        // ─── Phase 3: charge credits for Narrator + Director ──────────────
+        // AUDIT FIX (AI-H-03): post-charge via atomic RPC. Charges only the
+        // foreground LLM calls (Narrator + Director); background work
+        // (lorebook + summarizer + embed) is absorbed by the 2× markup —
+        // acceptable for MVP, granular per-call charging can come later.
+        //
+        // If isRefusal, only charge Director (we got nothing useful from
+        // Narrator and substituted canned fallback).
+        const aiTurnIdForCharge = aiTurnRow?.id ?? null;
+        if (aiTurnIdForCharge) {
+          const narratorCredits = isRefusal
+            ? 0
+            : computeCredits({
+                modelId: pt.llm_model ?? "claude-sonnet-4-6",
+                inputTokens: usage?.inputTokens ?? 0,
+                outputTokens: usage?.outputTokens ?? 0,
+                cachedInputTokens: usage?.cachedInputTokens,
+              });
+          const directorCredits = computeCredits({
+            modelId: "claude-haiku-4-5",
+            inputTokens: directorUsage.inputTokens ?? 0,
+            outputTokens: directorUsage.outputTokens ?? 0,
+            cachedInputTokens: directorUsage.cachedInputTokens,
+          });
+          const totalCredits = narratorCredits + directorCredits;
+          if (totalCredits > 0) {
+            const chargeResult = await chargeCredits(supabase, {
+              userId: user.id,
+              delta: -totalCredits,
+              reason: "turn_charge",
+              refType: "turn",
+              refId: aiTurnIdForCharge,
+              metadata: {
+                narrator_credits: narratorCredits,
+                director_credits: directorCredits,
+                narrator_model: pt.llm_model ?? "claude-sonnet-4-6",
+                refusal: isRefusal,
+              },
+            });
+            if (chargeResult.ok) {
+              // Update AI turn with actual credit_charged for ledger reference
+              await supabase
+                .from("turns")
+                .update({ credits_charged: totalCredits })
+                .eq("id", aiTurnIdForCharge);
+              console.log(
+                `[turn] charged ${totalCredits} credits (narrator=${narratorCredits}, director=${directorCredits}) — new balance: ${chargeResult.newBalance}`,
+              );
+            } else if (chargeResult.error === "insufficient_credits") {
+              // Should NOT happen because pre-check passed, but defensive log.
+              console.error(
+                `[turn] post-charge insufficient_credits (current=${chargeResult.currentBalance}, needed=${chargeResult.needed}) — turn already streamed; flagging for refund/review`,
+              );
+            } else {
+              console.error("[turn] credit charge failed:", chargeResult.message);
+            }
+          }
+        }
 
         // ─── Phase 2 background: embed AI turn + summarize + lorebook ──────
         // AUDIT FIX (P2-PERF-C-02): use `after()` from next/server so Vercel

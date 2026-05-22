@@ -14,6 +14,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      credit_ledger: {
+        Row: {
+          balance_after: number
+          created_at: string
+          delta: number
+          id: string
+          metadata: Json | null
+          reason: string
+          ref_id: string | null
+          ref_type: string | null
+          user_id: string
+        }
+        Insert: {
+          balance_after: number
+          created_at?: string
+          delta: number
+          id?: string
+          metadata?: Json | null
+          reason: string
+          ref_id?: string | null
+          ref_type?: string | null
+          user_id: string
+        }
+        Update: {
+          balance_after?: number
+          created_at?: string
+          delta?: number
+          id?: string
+          metadata?: Json | null
+          reason?: string
+          ref_id?: string | null
+          ref_type?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_ledger_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lorebook_entries: {
         Row: {
           always_on: boolean
@@ -66,6 +110,8 @@ export type Database = {
           created_at: string
           embedding: string
           id: string
+          input_tokens: number | null
+          output_tokens: number | null
           playthrough_id: string
           summary_text: string
           turn_range: unknown
@@ -74,6 +120,8 @@ export type Database = {
           created_at?: string
           embedding: string
           id?: string
+          input_tokens?: number | null
+          output_tokens?: number | null
           playthrough_id: string
           summary_text: string
           turn_range: unknown
@@ -82,6 +130,8 @@ export type Database = {
           created_at?: string
           embedding?: string
           id?: string
+          input_tokens?: number | null
+          output_tokens?: number | null
           playthrough_id?: string
           summary_text?: string
           turn_range?: unknown
@@ -382,6 +432,80 @@ export type Database = {
           },
         ]
       }
+      stripe_webhook_events: {
+        Row: {
+          event_id: string
+          event_type: string
+          payload: Json | null
+          processed_at: string | null
+          received_at: string
+        }
+        Insert: {
+          event_id: string
+          event_type: string
+          payload?: Json | null
+          processed_at?: string | null
+          received_at?: string
+        }
+        Update: {
+          event_id?: string
+          event_type?: string
+          payload?: Json | null
+          processed_at?: string | null
+          received_at?: string
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          cancel_at_period_end: boolean
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          status: string
+          stripe_customer_id: string
+          stripe_subscription_id: string | null
+          tier: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cancel_at_period_end?: boolean
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          status: string
+          stripe_customer_id: string
+          stripe_subscription_id?: string | null
+          tier: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cancel_at_period_end?: boolean
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          status?: string
+          stripe_customer_id?: string
+          stripe_subscription_id?: string | null
+          tier?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       turn_embeddings: {
         Row: {
           created_at: string
@@ -410,14 +534,18 @@ export type Database = {
       }
       turns: {
         Row: {
+          cached_input_tokens: number | null
           created_at: string
           credits_charged: number | null
           director_input_tokens: number | null
           director_output_tokens: number | null
           director_verdict: Json | null
+          embed_tokens: number | null
           id: string
           input_tokens: number | null
           llm_provider: string | null
+          lorebook_input_tokens: number | null
+          lorebook_output_tokens: number | null
           model: string | null
           output_tokens: number | null
           playthrough_id: string
@@ -428,14 +556,18 @@ export type Database = {
           turn_index: number
         }
         Insert: {
+          cached_input_tokens?: number | null
           created_at?: string
           credits_charged?: number | null
           director_input_tokens?: number | null
           director_output_tokens?: number | null
           director_verdict?: Json | null
+          embed_tokens?: number | null
           id?: string
           input_tokens?: number | null
           llm_provider?: string | null
+          lorebook_input_tokens?: number | null
+          lorebook_output_tokens?: number | null
           model?: string | null
           output_tokens?: number | null
           playthrough_id: string
@@ -446,14 +578,18 @@ export type Database = {
           turn_index: number
         }
         Update: {
+          cached_input_tokens?: number | null
           created_at?: string
           credits_charged?: number | null
           director_input_tokens?: number | null
           director_output_tokens?: number | null
           director_verdict?: Json | null
+          embed_tokens?: number | null
           id?: string
           input_tokens?: number | null
           llm_provider?: string | null
+          lorebook_input_tokens?: number | null
+          lorebook_output_tokens?: number | null
           model?: string | null
           output_tokens?: number | null
           playthrough_id?: string
@@ -483,6 +619,20 @@ export type Database = {
         Returns: {
           ai_idx: number
           user_idx: number
+        }[]
+      }
+      apply_credit_charge: {
+        Args: {
+          p_delta: number
+          p_metadata?: Json
+          p_reason: string
+          p_ref_id?: string
+          p_ref_type?: string
+          p_user_id: string
+        }
+        Returns: {
+          ledger_id: string
+          new_balance: number
         }[]
       }
       apply_turn_npc_changes: {

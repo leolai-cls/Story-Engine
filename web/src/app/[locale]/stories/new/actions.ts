@@ -9,6 +9,11 @@ import { redirect } from "@/i18n/navigation";
 import { getLocale } from "next-intl/server";
 import { revalidatePath } from "next/cache";
 import { DEFAULT_NARRATOR } from "@/lib/ai/models";
+import {
+  chargeCredits,
+  estimateStoryCreationCredits,
+  getBalanceAndCheck,
+} from "@/lib/billing/credits";
 
 const InputSchema = z.object({
   prompt: z.string().min(20).max(2000),
@@ -58,6 +63,20 @@ export async function createStoryFromPrompt(
   });
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Input invalid" };
+  }
+
+  // AUDIT FIX (AI-H-03): pre-check credit balance before burning ~$0.20 on
+  // 4 parallel Sonnet 4.6 calls. Friendly 402 UX if user can't afford.
+  const estimatedCost = estimateStoryCreationCredits();
+  const balance = await getBalanceAndCheck(supabase, {
+    userId: user.id,
+    estimatedCost,
+  });
+  if (!balance.sufficient) {
+    return {
+      ok: false,
+      error: `Credit 唔夠創作故事（剩 ${balance.balance}，需要約 ${estimatedCost}）。Top-up 或 upgrade 之後再試。`,
+    };
   }
 
   let generated;
@@ -195,10 +214,35 @@ export async function createStoryFromPrompt(
     text: generated.opening_narrative,
     llm_provider: "anthropic",
     model: DEFAULT_NARRATOR,
-    credits_charged: 0, // story creation was already charged via generator
+    credits_charged: 0, // story creation charged separately on stories ref below
   });
   if (turnErr) {
     console.error("[createStory] opening turn insert failed", turnErr);
+  }
+
+  // AUDIT FIX (AI-H-03): charge for story creation via atomic RPC.
+  // Schema-gen variance is small (4 parallel calls, predictable token sizes),
+  // so we charge the estimate without per-call usage tracking. If actual cost
+  // varies > 30%, switch to capturing usage from generateStory return value.
+  const storyChargeResult = await chargeCredits(supabase, {
+    userId: user.id,
+    delta: -estimatedCost,
+    reason: "story_charge",
+    refType: "story",
+    refId: story.id,
+    metadata: { prompt_length: parsed.data.prompt.length },
+  });
+  if (storyChargeResult.ok) {
+    console.log(
+      `[createStory] charged ${estimatedCost} credits for story ${story.id} — new balance: ${storyChargeResult.newBalance}`,
+    );
+  } else if (storyChargeResult.error === "insufficient_credits") {
+    // Shouldn't happen — pre-check passed earlier. Defensive log + continue.
+    console.error(
+      `[createStory] post-charge insufficient_credits despite pre-check pass — current=${storyChargeResult.currentBalance}, needed=${storyChargeResult.needed}`,
+    );
+  } else {
+    console.error("[createStory] charge failed:", storyChargeResult.message);
   }
 
   revalidatePath("/library");
