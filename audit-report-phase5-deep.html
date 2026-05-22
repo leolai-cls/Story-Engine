@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Story Engine — Phase 5 Deep Audit (Community)</title>
+<style>
+  :root { --primary: #4F46E5; --primary-soft: #EEF2FF; --accent: #F59E0B; --accent-soft: #FEF3C7; --bg: #FAFAF7; --card: #FFFFFF; --ink: #18181B; --ink-soft: #3F3F46; --muted: #71717A; --border: #E4E4E7; --green: #10B981; --rose: #E11D48; --amber: #D97706; --code-bg: #F4F4F5; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif; background: var(--bg); color: var(--ink); line-height: 1.65; font-size: 15px; -webkit-font-smoothing: antialiased; }
+  main { max-width: 1040px; margin: 0 auto; padding: 48px 32px 120px; }
+  .hero { text-align: center; margin-bottom: 36px; }
+  .eyebrow { display: inline-block; font-size: 11px; font-weight: 700; color: var(--primary); background: var(--primary-soft); padding: 5px 12px; border-radius: 999px; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 16px; }
+  h1 { font-size: 34px; font-weight: 800; letter-spacing: -0.025em; margin-bottom: 10px; }
+  .hero p { color: var(--muted); font-size: 16px; max-width: 720px; margin: 0 auto; }
+  .meta { color: var(--muted); font-size: 13px; margin-top: 14px; }
+  .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 32px 0 28px; }
+  .stat { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px; text-align: center; }
+  .stat-num { font-size: 36px; font-weight: 800; line-height: 1; }
+  .stat-label { font-size: 11px; color: var(--muted); margin-top: 8px; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700; }
+  .stat.crit .stat-num { color: var(--rose); }
+  .stat.high .stat-num { color: var(--amber); }
+  .stat.med .stat-num { color: var(--primary); }
+  .stat.low .stat-num { color: var(--muted); }
+  h2 { font-size: 24px; font-weight: 700; margin: 50px 0 14px; display: flex; align-items: center; gap: 10px; }
+  h2 .icon { font-size: 28px; }
+  .showstopper { background: linear-gradient(135deg, #fee2e2, #fef3c7); border: 3px solid var(--rose); padding: 26px 28px; border-radius: 16px; margin: 28px 0; box-shadow: 0 4px 20px rgba(225, 29, 72, 0.15); }
+  .showstopper-title { font-weight: 900; font-size: 20px; color: var(--rose); margin-bottom: 10px; letter-spacing: -0.01em; }
+  .showstopper-body { font-size: 15px; line-height: 1.7; }
+  .showstopper-body strong { color: var(--rose); }
+  .showstopper-body code { background: rgba(225, 29, 72, 0.1); }
+  .priority-list { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 24px; margin: 20px 0 36px; }
+  .priority-row { display: grid; grid-template-columns: 60px 1fr auto; gap: 14px; align-items: start; padding: 12px 0; border-bottom: 1px dashed var(--border); }
+  .priority-row:last-child { border-bottom: none; }
+  .priority-rank { font-size: 20px; font-weight: 800; color: var(--rose); }
+  .priority-content strong { font-weight: 700; font-size: 14.5px; display: block; margin-bottom: 4px; }
+  .priority-content small { font-size: 12.5px; color: var(--muted); }
+  .priority-refs { font-size: 11px; color: var(--primary); font-weight: 700; background: var(--primary-soft); padding: 4px 8px; border-radius: 6px; white-space: nowrap; }
+  details.dim-section { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 0; margin-bottom: 14px; overflow: hidden; }
+  details.dim-section[open] { box-shadow: 0 2px 12px rgba(0,0,0,0.04); }
+  details.dim-section summary { cursor: pointer; padding: 20px 24px; font-weight: 700; font-size: 17px; display: flex; align-items: center; gap: 12px; user-select: none; }
+  details.dim-section summary::-webkit-details-marker { display: none; }
+  details.dim-section summary::after { content: "▼"; margin-left: auto; color: var(--muted); font-size: 12px; transition: transform .2s; }
+  details.dim-section[open] summary::after { transform: rotate(180deg); }
+  .dim-content { padding: 0 24px 24px; }
+  .issue { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin-bottom: 10px; }
+  .issue.crit { border-left: 4px solid var(--rose); background: #fff5f6; }
+  .issue.high { border-left: 4px solid var(--amber); background: #fffbf4; }
+  .issue.med { border-left: 4px solid var(--primary); }
+  .issue.low { border-left: 4px solid var(--muted); }
+  .issue-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+  .issue-id { font-weight: 800; font-size: 12.5px; color: var(--primary); flex-shrink: 0; font-family: "SF Mono", Monaco, monospace; }
+  .issue-title { font-weight: 700; font-size: 14.5px; flex: 1; min-width: 220px; }
+  .sev-tag { font-size: 10px; padding: 2px 8px; border-radius: 999px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
+  .sev-crit { background: var(--rose); color: white; }
+  .sev-high { background: var(--amber); color: white; }
+  .sev-med { background: var(--primary-soft); color: var(--primary); }
+  .sev-low { background: var(--code-bg); color: var(--muted); }
+  .issue-loc { font-family: "SF Mono", Monaco, monospace; font-size: 11.5px; color: var(--muted); margin-bottom: 8px; word-break: break-all; }
+  .issue-symptom { font-size: 13.5px; color: var(--ink-soft); margin-bottom: 6px; }
+  .issue-symptom strong { color: var(--ink); }
+  .issue-fix { background: rgba(16, 185, 129, 0.06); border-left: 3px solid var(--green); padding: 8px 14px; border-radius: 6px; font-size: 13px; color: var(--ink-soft); margin-top: 8px; }
+  .issue-fix strong { color: var(--green); font-weight: 700; }
+  code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; font-family: "SF Mono", Monaco, monospace; font-size: 12px; }
+  .action-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 20px 0 30px; }
+  .action-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .action-card.now { border-top: 4px solid var(--rose); }
+  .action-card.next { border-top: 4px solid var(--amber); }
+  .action-card.later { border-top: 4px solid var(--muted); }
+  .action-title { font-weight: 800; font-size: 15px; margin-bottom: 4px; }
+  .action-subtitle { font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 12px; }
+  .action-list { list-style: none; padding: 0; }
+  .action-list li { font-size: 13px; color: var(--ink-soft); padding: 6px 0; border-bottom: 1px dashed var(--border); }
+  .action-list li:last-child { border-bottom: none; }
+  .back-link { display: inline-block; margin-top: 40px; color: var(--primary); text-decoration: none; font-size: 13px; font-weight: 700; padding: 8px 14px; background: var(--primary-soft); border-radius: 8px; }
+  .back-link:hover { background: var(--primary); color: white; }
+  @media (max-width: 768px) { .summary, .action-grid { grid-template-columns: 1fr 1fr; } main { padding: 24px 16px 80px; } }
+</style>
+</head>
+<body>
+<main>
+
+  <section class="hero">
+    <span class="eyebrow">🔍 Phase 5 Deep Audit · Community Library</span>
+    <h1>Sharing / Ratings / Comments / Fork / Moderation</h1>
+    <p>Phase 5 ship 出之後即刻 audit。揾到 4 個 critical 問題（包括 CLAUDE.md hard rule 違反），加 7 個 high — 主要係 launch-blocking 嘅 security 漏洞同 UX 死門。</p>
+    <div class="meta">2026-05-22 · Session 7 · <a href="pm-dashboard.html" style="color: var(--primary);">← Dashboard</a></div>
+  </section>
+
+  <section class="summary">
+    <div class="stat crit"><div class="stat-num">4</div><div class="stat-label">Critical</div></div>
+    <div class="stat high"><div class="stat-num">7</div><div class="stat-label">High</div></div>
+    <div class="stat med"><div class="stat-num">5</div><div class="stat-label">Medium</div></div>
+    <div class="stat low"><div class="stat-num">2</div><div class="stat-label">Low</div></div>
+  </section>
+
+  <!-- SHOWSTOPPER #1 -->
+  <section>
+    <div class="showstopper">
+      <div class="showstopper-title">🛑 SHOWSTOPPER #1 — CSAM / sexual-minor pre-filter 完全冇</div>
+      <div class="showstopper-body">
+        <strong>P5-SEC-C-01</strong>：Migration 0009 加咗 <code>'csam'</code> 同 <code>'sexual_minor'</code> 入 <code>moderation_flags.reason</code> enum — 暗示呢啲 vector 存在 — 但係<strong>故事創作冇任何 pre-filter</strong>。Prompt / opening narrative / story bible / red lines 全部冇 scan。
+        <br><br>
+        <strong>CLAUDE.md hard rule #6</strong>：「CSAM / 違法內容 pre-filter — 法律底線，唔可以 bypass」。違反咗。Vercel + Supabase + Stripe + Anthropic + OpenAI ToS 全部都禁，就算暫時 host 都唔可以。
+        <br><br>
+        <strong>Repro</strong>：登入 → 創作 explicit CSAM 主題故事 → 即時 published → FTS 入晒 → 玩到就 trending。
+        <br><br>
+        <strong>Fix</strong>：<code>createStoryFromPrompt</code> + <code>upsertComment</code> + <code>rateStory</code> 加 OpenAI Moderation API call (free per CLAUDE.md)。Block save on <code>categories.sexual/minors</code> or <code>hate</code> over threshold。<strong>Phase 5 launch 之前必須有</strong>。
+      </div>
+    </div>
+  </section>
+
+  <!-- SHOWSTOPPER #2 -->
+  <section>
+    <div class="showstopper">
+      <div class="showstopper-title">🛑 SHOWSTOPPER #2 — play_count 可以無限灌水</div>
+      <div class="showstopper-body">
+        <strong>P5-RACE-C-01</strong>：<code>bump_story_play_count</code> trigger 有 INSERT 路徑但<strong>冇 DELETE 路徑</strong>。RLS <code>playthroughs_own_delete</code> 容許用戶刪除自己嘅 playthrough。冇 rate limit on <code>forkStoryToPlaythrough</code>。
+        <br><br>
+        <strong>攻擊路徑</strong>：fork → delete → fork → delete 循環。每 fork +1 play_count，delete 唔減。Curl loop 數秒內可以將任何對手嘅 story play_count inflate 1000x。
+        <br><br>
+        <strong>影響</strong>：Trending 公式直接讀 <code>ln(play_count + 1) × decay × quality</code> → leaderboard 變 adversarial。Launch day 第一個 troll 就玩爆。
+        <br><br>
+        <strong>Fix</strong>：(a) 加 AFTER DELETE trigger decrement when deleter != owner。(b) <code>forkStoryToPlaythrough</code> rate limit (e.g., 1 fork / user / story / hour)。(c) Trending 改用 <code>COUNT(DISTINCT user_id)</code> 而唔係 raw row count — fork spam 唔可以 inflate distinct count。
+      </div>
+    </div>
+  </section>
+
+  <!-- SHOWSTOPPER #3 -->
+  <section>
+    <div class="showstopper">
+      <div class="showstopper-title">🛑 SHOWSTOPPER #3 — Owner 可以 5★ bomb 自己故事</div>
+      <div class="showstopper-body">
+        <strong>P5-SEC-C-02</strong>：<code>story_ratings_own_insert</code> RLS policy 要求 <code>auth.uid() = user_id AND story.visibility = 'public'</code> — 但係<strong>冇 require <code>user_id != stories.owner_id</code></strong>。Action layer 都唔 check。
+        <br><br>
+        <strong>結果</strong>：Owner publish 故事 → 自己 rate 5★ + 寫好評 → <code>rating_avg = 5.0, rating_count = 1</code>。配合 #2 嘅 play_count 灌水 → <strong>單人 takeover trending</strong>。Launch day attack vector。
+        <br><br>
+        <strong>Fix</strong>：RLS policy 加 <code>AND NOT EXISTS (SELECT 1 FROM stories WHERE id = story_id AND owner_id = auth.uid())</code>。Action mirror 同個 check 做友好 error。
+      </div>
+    </div>
+  </section>
+
+  <!-- SHOWSTOPPER #4 -->
+  <section>
+    <div class="showstopper">
+      <div class="showstopper-title">🛑 SHOWSTOPPER #4 — Comment UPDATE policy 開晒，可以 bait-and-switch</div>
+      <div class="showstopper-body">
+        <strong>P5-SEC-H-02</strong>（其實係 critical 嚴重程度，列 high 因為要 multi-step）：<code>story_comments_own_update</code> 用 <code>using (auth.uid()=user_id) with check (auth.uid()=user_id)</code> — <strong>冇限制邊個 column 可以改</strong>。
+        <br><br>
+        <strong>攻擊</strong>：用戶可以(1) <strong>un-delete</strong> 自己 comment (deleted=true→false)，(2) <strong>悄悄編輯</strong> body 冇 audit trail，(3) <strong>re-parent</strong> 自己 comment 指向另一個 story 嘅 parent，(4) <strong>改 story_id</strong> 將 comment 搬去其他 story。
+        <br><br>
+        <strong>Bait-and-switch</strong>：友善留言 → 累積 likes → 改 body 做侮辱性內容 → 但仍喺原 thread。Cross-story parent_id 破壞 thread invariant。
+        <br><br>
+        <strong>Fix</strong>：Trigger 喺 UPDATE 時 revert 所有 column changes except <code>deleted</code>（false→true only）。或者 split 做 separate "edit body" action with explicit <code>edited_at</code> column。
+      </div>
+    </div>
+  </section>
+
+  <!-- Top 8 fix list -->
+  <h2><span class="icon">🚨</span>Top 8 Must-Fix（按 launch impact 排）</h2>
+  <div class="priority-list">
+    <div class="priority-row">
+      <div class="priority-rank">1</div>
+      <div class="priority-content">
+        <strong>CSAM / sexual-minor pre-filter (OpenAI Moderation API)</strong>
+        <small>3 個 site 加 filter：story create · comment insert · rating review text。Block on categories.sexual/minors === true。Free API, 1 行 wire-up。</small>
+      </div>
+      <div class="priority-refs">P5-SEC-C-01</div>
+    </div>
+    <div class="priority-row">
+      <div class="priority-rank">2</div>
+      <div class="priority-content">
+        <strong>play_count 灌水保護</strong>
+        <small>Migration 0010：AFTER DELETE trigger on playthroughs（mirror counts when deleter != owner）+ UNIQUE constraint on (user_id, story_id) for non-owner playthroughs OR rate-limit in action。</small>
+      </div>
+      <div class="priority-refs">P5-RACE-C-01</div>
+    </div>
+    <div class="priority-row">
+      <div class="priority-rank">3</div>
+      <div class="priority-content">
+        <strong>Self-rating block</strong>
+        <small>Migration 0010：RLS policy 加 <code>AND NOT EXISTS owner_id = auth.uid()</code>。Action 加 friendly check。Trigger 已 normal — owner ratings 從未進去就 OK。</small>
+      </div>
+      <div class="priority-refs">P5-SEC-C-02</div>
+    </div>
+    <div class="priority-row">
+      <div class="priority-rank">4</div>
+      <div class="priority-content">
+        <strong>Comment UPDATE 收緊</strong>
+        <small>Trigger revert 任何非 deleted column 嘅改動。Phase 5 唔做 edit feature，鎖死 schema 邊界。</small>
+      </div>
+      <div class="priority-refs">P5-SEC-H-02</div>
+    </div>
+    <div class="priority-row">
+      <div class="priority-rank">5</div>
+      <div class="priority-content">
+        <strong>FTS Chinese tokenization</strong>
+        <small>'simple' config 對中文 = 整 title 變一個 token。「校園戀愛」搵唔到「TW 大學校園戀愛故事」。Fix：trigger 改用 manual bigram tokenization for CJK text。launch market 係 HK + TW，破壞晒 library search。</small>
+      </div>
+      <div class="priority-refs">P5-LOGIC-H-03</div>
+    </div>
+    <div class="priority-row">
+      <div class="priority-rank">6</div>
+      <div class="priority-content">
+        <strong>Trending cold-start</strong>
+        <small>新 story play_count=0 → trending_score=0 → 永遠唔出現。加「newcomer boost」term：<code>+ exp(-age_days/3)</code> 比 3-day 半衰期。Launch 唔會空 library。</small>
+      </div>
+      <div class="priority-refs">P5-LOGIC-H-02</div>
+    </div>
+    <div class="priority-row">
+      <div class="priority-rank">7</div>
+      <div class="priority-content">
+        <strong>Report rate limit + UNIQUE(reporter, content, reason)</strong>
+        <small>而家可以 spam 10K reports。加 UNIQUE 一個用戶一個 content 一個 reason 一次 + app-level 20/hour cap。</small>
+      </div>
+      <div class="priority-refs">P5-SEC-H-01</div>
+    </div>
+    <div class="priority-row">
+      <div class="priority-rank">8</div>
+      <div class="priority-content">
+        <strong>Comment author display name + null opening_narrative</strong>
+        <small>UI tier 嘅 critical：comment 而家顯示用戶 UUID 前綴。Join profiles.display_name。Fork RPC 喺 opening_narrative IS NULL 時 raise，避免空 turn 0。</small>
+      </div>
+      <div class="priority-refs">P5-EDGE-M-03 · P5-LOGIC-H-01</div>
+    </div>
+  </div>
+
+  <!-- Action plan -->
+  <h2><span class="icon">🎯</span>建議行動順序</h2>
+  <div class="action-grid">
+    <div class="action-card now">
+      <div class="action-subtitle">第 1 浪 · URGENT</div>
+      <div class="action-title">SHOWSTOPPER + critical</div>
+      <ul class="action-list">
+        <li>Migration 0010：UPDATE policy 鎖緊 · self-rating block · play_count DELETE mirror · report UNIQUE</li>
+        <li>OpenAI Moderation wire-up (story / comment / review)</li>
+        <li>Action mirrors for friendly UX</li>
+      </ul>
+    </div>
+    <div class="action-card next">
+      <div class="action-subtitle">第 2 浪 · 1 session</div>
+      <div class="action-title">Launch-critical UX</div>
+      <ul class="action-list">
+        <li>FTS Chinese bigram tokenization (trigger update)</li>
+        <li>Trending cold-start boost (RPC update)</li>
+        <li>Fork RPC reject when opening_narrative NULL</li>
+        <li>Fork RPC adult content tier gate</li>
+        <li>Comments join profiles.display_name</li>
+      </ul>
+    </div>
+    <div class="action-card later">
+      <div class="action-subtitle">第 3 浪 · polish</div>
+      <div class="action-title">Defense in depth</div>
+      <ul class="action-list">
+        <li>Parent_id RLS check (cross-story prevention)</li>
+        <li>Rating aggregate row-lock</li>
+        <li>Reply depth cap (5 levels)</li>
+        <li>Private story FTS opt-out</li>
+        <li>Moderation content_id existence check</li>
+        <li>Unlisted story fork path (or remove enum)</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Findings drilldown -->
+  <h2><span class="icon">📋</span>Full findings</h2>
+  <details class="dim-section" open>
+    <summary>Security + Correctness + Race + Edge cases · 18 findings</summary>
+    <div class="dim-content">
+      <div class="issue crit"><div class="issue-head"><span class="issue-id">P5-SEC-C-01</span><span class="issue-title">🛑 CSAM pre-filter 完全冇 — Hard Rule #6 違反</span><span class="sev-tag sev-crit">Critical</span></div><div class="issue-loc">migrations/0009 line 84 + stories/new/actions.ts (missing)</div><div class="issue-symptom">moderation_flags 加咗 csam / sexual_minor enum 但 createStoryFromPrompt / upsertComment / rateStory 全部冇 pre-filter。Reactive 唔係 proactive — 用戶報告之前任何 user 可 publish CSAM 故事。法律 + ToS 雙重風險。</div><div class="issue-fix"><strong>Fix:</strong> 3 個 site 加 OpenAI Moderation API call。Block on categories.sexual/minors / hate threshold。Free tier。Launch BLOCKER。</div></div>
+
+      <div class="issue crit"><div class="issue-head"><span class="issue-id">P5-RACE-C-01</span><span class="issue-title">🛑 play_count 可以 fork+delete 灌水</span><span class="sev-tag sev-crit">Critical</span></div><div class="issue-loc">migrations/0009:193-217 + lib/community/actions.ts:298-337</div><div class="issue-symptom">bump_story_play_count trigger 只有 INSERT 路徑，delete 唔減。冇 rate limit on fork。Loop fork → delete → 無限 inflate。Trending leaderboard 變 adversarial。</div><div class="issue-fix"><strong>Fix:</strong> AFTER DELETE mirror trigger + rate-limit fork action 1/hour/user/story OR 改 trending 用 distinct user count。</div></div>
+
+      <div class="issue crit"><div class="issue-head"><span class="issue-id">P5-SEC-C-02</span><span class="issue-title">🛑 Owner 可以 self-rate 5★ bomb 自己故事</span><span class="sev-tag sev-crit">Critical</span></div><div class="issue-loc">migrations/0009:464-472 + lib/community/actions.ts:108-157</div><div class="issue-symptom">story_ratings_own_insert policy 冇 require user_id != owner_id。Action layer 都唔 check。Owner publish → self-rate 5★ + glowing review → rating_avg=5.0。Trust killer。</div><div class="issue-fix"><strong>Fix:</strong> RLS policy 加 AND NOT EXISTS owner_id = auth.uid() · action mirror。</div></div>
+
+      <div class="issue crit"><div class="issue-head"><span class="issue-id">P5-SEC-H-02</span><span class="issue-title">🛑 Comment UPDATE policy 開晒</span><span class="sev-tag sev-crit">Critical</span></div><div class="issue-loc">migrations/0009:511-515</div><div class="issue-symptom">story_comments_own_update 容許用戶改任何 column。可以 un-delete、靜悄悄改 body、re-parent 跨 story、改 story_id。Bait-and-switch attack。Cross-story parent_id 破壞 thread invariant。</div><div class="issue-fix"><strong>Fix:</strong> Trigger revert 任何非 deleted column 嘅 changes (false→true only)。Phase 5 暫不支援 edit。</div></div>
+
+      <div class="issue high"><div class="issue-head"><span class="issue-id">P5-SEC-H-01</span><span class="issue-title">Reporter spam — 冇 rate limit</span><span class="sev-tag sev-high">High</span></div><div class="issue-loc">lib/community/actions.ts:255-288 + migrations/0009:522-527</div><div class="issue-symptom">同一 user 可以 10K reports against 一個 story。冇 UNIQUE。Mod queue flooded。Auto-action on N reports 變成 auto-unpublish weapon。</div><div class="issue-fix"><strong>Fix:</strong> UNIQUE (reporter_id, content_type, content_id) + app rate 20/hour/user。</div></div>
+
+      <div class="issue high"><div class="issue-head"><span class="issue-id">P5-SEC-H-03</span><span class="issue-title">Parent_id cross-story RLS gap</span><span class="sev-tag sev-high">High</span></div><div class="issue-loc">lib/community/actions.ts:181-190 + migrations/0009:500-509</div><div class="issue-symptom">upsertComment action validate parent.story_id app-side，但 RLS INSERT policy 唔 enforce。Direct PostgREST call 可以 insert comment with parent_id 跨 story。</div><div class="issue-fix"><strong>Fix:</strong> Policy 加 (parent_id IS NULL OR EXISTS parent WHERE parent.id = parent_id AND parent.story_id = story_id)。</div></div>
+
+      <div class="issue high"><div class="issue-head"><span class="issue-id">P5-LOGIC-H-01</span><span class="issue-title">Fork RPC NULL opening_narrative → 0 turn playthrough</span><span class="sev-tag sev-high">High</span></div><div class="issue-loc">migrations/0009:426-433</div><div class="issue-symptom">RPC INSERT ... SELECT WHERE opening_narrative IS NOT NULL — NULL 嘅話零 row inserted。Playthrough turn_count=1 但 turn 0 唔存在。UI 顯示空白。Player 以為 broken。</div><div class="issue-fix"><strong>Fix:</strong> RPC raise exception 'story_missing_opening_narrative' if NULL。Action surface friendly。</div></div>
+
+      <div class="issue high"><div class="issue-head"><span class="issue-id">P5-LOGIC-H-02</span><span class="issue-title">Trending cold-start — 新 story 永遠唔上榜</span><span class="sev-tag sev-high">High</span></div><div class="issue-loc">migrations/0009:259</div><div class="issue-symptom">play_count=0 → ln(1)=0 → trending_score=0。Brand new story 永遠 score 0，never appears 喺 trending top 12。Community bootstrap 死。</div><div class="issue-fix"><strong>Fix:</strong> 加 newcomer boost term: + exp(-age_days/3)。或 union "freshly published" carousel with WHERE play_count < 5 ORDER BY created_at。</div></div>
+
+      <div class="issue high"><div class="issue-head"><span class="issue-id">P5-LOGIC-H-03</span><span class="issue-title">FTS 'simple' config 中文 broken</span><span class="sev-tag sev-high">High</span></div><div class="issue-loc">migrations/0009:122, 312, 315</div><div class="issue-symptom">'simple' config 用 whitespace tokenize。中文冇 whitespace → 整 title 變一個 token。「校園戀愛」搵唔到「TW 大學校園戀愛故事」。HK + TW launch market 嘅 #1 query pattern 完全壞。</div><div class="issue-fix"><strong>Fix:</strong> Trigger update — manual bigram for CJK text。或者用 pg_trgm trigram extension (Supabase 支援)。</div></div>
+
+      <div class="issue high"><div class="issue-head"><span class="issue-id">P5-RACE-H-01</span><span class="issue-title">Rating aggregate trigger race</span><span class="sev-tag sev-high">High</span></div><div class="issue-loc">migrations/0009:154-184</div><div class="issue-symptom">Concurrent ratings → SELECT avg() inside trigger 可能 miss concurrent row commit (READ COMMITTED)。rating_count + rating_avg drift over time。</div><div class="issue-fix"><strong>Fix:</strong> SELECT FROM stories WHERE id=v_story_id FOR UPDATE 喺 trigger 內 serialize per-story。</div></div>
+
+      <div class="issue high"><div class="issue-head"><span class="issue-id">P5-EDGE-H-01</span><span class="issue-title">Reply depth 無限 — spam / render-tree blowup</span><span class="sev-tag sev-high">High</span></div><div class="issue-loc">migrations/0009:51-69 + queries.ts:174-210</div><div class="issue-symptom">parent_id self-FK 冇 depth limit。10K self-reply chain 可以 stuff DB + 將來 admin 全 thread load 爆 stack。</div><div class="issue-fix"><strong>Fix:</strong> 加 depth integer column + BEFORE INSERT trigger compute from parent.depth + 1。CHECK depth <= 5。</div></div>
+
+      <div class="issue med"><div class="issue-head"><span class="issue-id">P5-SEC-M-01</span><span class="issue-title">Fork RPC 唔 gate adult content</span><span class="sev-tag sev-med">Medium</span></div><div class="issue-loc">migrations/0009:335-440</div><div class="issue-symptom">Fork RPC 只 check visibility。冇 check user adult_mode_enabled + is_age_verified vs story.content_rating='adult'。Phase 5 出但 Phase 6 KYC 未到 → 中間期 minor 可以 fork adult。</div><div class="issue-fix"><strong>Fix:</strong> RPC 加 content_rating check + is_age_verified + adult_mode_enabled。</div></div>
+
+      <div class="issue med"><div class="issue-head"><span class="issue-id">P5-EDGE-M-01</span><span class="issue-title">Private story FTS tokens leak via index</span><span class="sev-tag sev-med">Medium</span></div><div class="issue-loc">migrations/0009:116-148</div><div class="issue-symptom">search_text trigger 對所有 stories fire 不論 visibility。Private stories 都 indexed → admin direct SQL / future ranking experiments 可意外暴露。</div><div class="issue-fix"><strong>Fix:</strong> Trigger 加 IF visibility = 'public' 條件。Partial index WHERE search_text IS NOT NULL。</div></div>
+
+      <div class="issue med"><div class="issue-head"><span class="issue-id">P5-EDGE-M-02</span><span class="issue-title">Report against non-existent content_id 允許</span><span class="sev-tag sev-med">Medium</span></div><div class="issue-loc">lib/community/actions.ts:255-288 + migrations/0009:79-94</div><div class="issue-fix"><strong>Fix:</strong> Action switch on contentType + verify existence。Don't enforce polymorphic FK at DB layer。</div></div>
+
+      <div class="issue med"><div class="issue-head"><span class="issue-id">P5-EDGE-M-03</span><span class="issue-title">Comment author 顯示 user UUID 前綴</span><span class="sev-tag sev-med">Medium</span></div><div class="issue-loc">app/[locale]/library/[storyId]/page.tsx:205</div><div class="issue-symptom">{c.user_id.slice(0, 8)}… 暴露 UUID 前綴。Privacy + UX issue (兩個用戶可以同樣 8-char prefix)。</div><div class="issue-fix"><strong>Fix:</strong> Query join profiles.display_name。Display "Anonymous" if NULL。</div></div>
+
+      <div class="issue med"><div class="issue-head"><span class="issue-id">P5-LOGIC-M-01</span><span class="issue-title">getMyPlaythroughs join 用 unverified FK name</span><span class="sev-tag sev-med">Medium</span></div><div class="issue-loc">lib/community/queries.ts:243</div><div class="issue-symptom">用 !playthroughs_story_id_fkey hint。0001 冇 explicit constraint name — 萬一 Supabase rename，silent join null。</div><div class="issue-fix"><strong>Fix:</strong> 移除 !hint (auto-detect)，或 ALTER 加 explicit constraint name。</div></div>
+
+      <div class="issue low"><div class="issue-head"><span class="issue-id">P5-EDGE-L-01</span><span class="issue-title">FTS backfill WHERE clause 漏 stale rows</span><span class="sev-tag sev-low">Low</span></div><div class="issue-loc">migrations/0009:139-146</div><div class="issue-fix"><strong>Fix:</strong> 移除 WHERE search_text IS NULL — overwrite。</div></div>
+
+      <div class="issue low"><div class="issue-head"><span class="issue-id">P5-LOGIC-L-01</span><span class="issue-title">Unlisted stories 完全死門</span><span class="sev-tag sev-low">Low</span></div><div class="issue-loc">migrations/0009:367-369</div><div class="issue-symptom">Fork RPC block visibility != 'public'。Migration 0002 同樣 drop 'unlisted' from public_read。Unlisted enum 仍存在但完全 unreachable。</div><div class="issue-fix"><strong>Fix:</strong> 揀 — restore unlisted-with-link path OR drop 'unlisted' from check constraint。</div></div>
+    </div>
+  </details>
+
+  <a href="pm-dashboard.html" class="back-link">← 返 Dashboard</a>
+
+</main>
+</body>
+</html>
