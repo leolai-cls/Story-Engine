@@ -1,8 +1,9 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { revalidatePath } from "next/cache";
-import { moderateText } from "@/lib/moderation/openai-moderation";
+import { ModerationConfigError, moderateText } from "@/lib/moderation/openai-moderation";
 
 /**
  * Phase 5 Community — server actions.
@@ -132,9 +133,9 @@ export async function rateStory(params: {
     return { ok: false, error: "review_too_long" };
   }
 
-  // P5-SEC-C-02 defense-in-depth — RLS in Migration 0010 also blocks owner
-  // self-rating, but checking here gives a clear 繁中 error instead of the
-  // generic "violates row-level security" mapping below.
+  // P5-SEC-C-02 defense-in-depth — Wave 1.5 Migration 0011 RPC also blocks
+  // owner self-rating, but checking here gives a clear 繁中 error instead
+  // of the generic RPC exception mapping below.
   const { data: storyOwner } = await supabase
     .from("stories")
     .select("owner_id, content_rating")
@@ -147,38 +148,59 @@ export async function rateStory(params: {
     return { ok: false, error: "唔可以俾自己嘅故事評分。" };
   }
 
-  // P5-SEC-C-01 — moderate review text before persist (CSAM / illegal pre-filter).
+  // P5-SEC-C-01 + W1-MOD-C-02 — moderate review text before persist with
+  // failClosed:true so OpenAI outage doesn't silently bypass CSAM filter.
+  // ModerationConfigError (missing API key) propagates → surfaced as 500
+  // deployment error below.
   if (params.reviewText && params.reviewText.trim().length > 0) {
-    const verdict = await moderateText(
-      params.reviewText,
-      (storyOwner.content_rating as "sfw" | "soft" | "adult") ?? "sfw",
-    );
-    if (!verdict.allowed) {
-      console.warn(
-        `[rateStory] moderation blocked review on story ${params.storyId} for user ${user.id}: ${verdict.categories.join(", ")}`,
+    try {
+      const verdict = await moderateText(
+        params.reviewText,
+        (storyOwner.content_rating as "sfw" | "soft" | "adult") ?? "sfw",
+        { failClosed: true },
       );
-      return { ok: false, error: verdict.reason };
+      if (!verdict.allowed) {
+        console.warn(
+          `[rateStory] moderation blocked review on story ${params.storyId} for user ${user.id}: ${verdict.categories.join(", ")}`,
+        );
+        return { ok: false, error: verdict.reason };
+      }
+    } catch (e) {
+      if (e instanceof ModerationConfigError) {
+        console.error("[rateStory] moderation config error:", e.message);
+        return { ok: false, error: "內容審核系統設定問題，請稍後再試。" };
+      }
+      throw e;
     }
   }
 
-  const { error } = await supabase
-    .from("story_ratings")
-    .upsert(
-      {
-        story_id: params.storyId,
-        user_id: user.id,
-        score: params.score,
-        review_text: params.reviewText ?? null,
-      },
-      { onConflict: "story_id,user_id" },
-    );
+  // W1-MOD-C-01 fix: direct supabase.from("story_ratings").upsert() is now
+  // REVOKEd from authenticated. Use service-role client to call the new
+  // SECURITY DEFINER RPC. Browser users cannot call this RPC (granted to
+  // service_role only) → moderation above is mandatory enforcement.
+  const serviceClient = createServiceRoleClient();
+  const { error } = await serviceClient.rpc("upsert_story_rating_secure", {
+    p_story_id: params.storyId,
+    p_user_id: user.id,
+    p_score: params.score,
+    p_review_text: params.reviewText ?? null,
+  });
 
   if (error) {
-    console.error("[rateStory] upsert failed:", error.message);
-    // Most likely RLS reject (story not public + not owner)
-    if (/violates row-level security/i.test(error.message)) {
+    const msg = error.message ?? "";
+    if (/cannot_rate_own_story/i.test(msg)) {
+      return { ok: false, error: "唔可以俾自己嘅故事評分。" };
+    }
+    if (/story_not_public/i.test(msg)) {
       return { ok: false, error: "story_not_public" };
     }
+    if (/story_not_found/i.test(msg)) {
+      return { ok: false, error: "story_not_found" };
+    }
+    if (/invalid_score|review_too_long/i.test(msg)) {
+      return { ok: false, error: "invalid_input" };
+    }
+    console.error("[rateStory] RPC failed:", msg);
     return { ok: false, error: "rate_failed" };
   }
 
@@ -230,36 +252,55 @@ export async function upsertComment(params: {
     }
   }
 
-  // P5-SEC-C-01 — moderate comment body before persist (CSAM / illegal pre-filter).
-  const verdict = await moderateText(
-    trimmed,
-    (story.content_rating as "sfw" | "soft" | "adult") ?? "sfw",
-  );
-  if (!verdict.allowed) {
-    console.warn(
-      `[upsertComment] moderation blocked comment on story ${params.storyId} for user ${user.id}: ${verdict.categories.join(", ")}`,
+  // P5-SEC-C-01 + W1-MOD-C-02 — moderate body fail-closed.
+  try {
+    const verdict = await moderateText(
+      trimmed,
+      (story.content_rating as "sfw" | "soft" | "adult") ?? "sfw",
+      { failClosed: true },
     );
-    return { ok: false, error: verdict.reason };
+    if (!verdict.allowed) {
+      console.warn(
+        `[upsertComment] moderation blocked comment on story ${params.storyId} for user ${user.id}: ${verdict.categories.join(", ")}`,
+      );
+      return { ok: false, error: verdict.reason };
+    }
+  } catch (e) {
+    if (e instanceof ModerationConfigError) {
+      console.error("[upsertComment] moderation config error:", e.message);
+      return { ok: false, error: "內容審核系統設定問題，請稍後再試。" };
+    }
+    throw e;
   }
 
-  const { data, error } = await supabase
-    .from("story_comments")
-    .insert({
-      story_id: params.storyId,
-      user_id: user.id,
-      body: trimmed,
-      parent_id: params.parentId ?? null,
-    })
-    .select("id")
-    .single();
+  // W1-MOD-C-01 fix: direct INSERT REVOKEd from authenticated. Use
+  // service-role RPC.
+  const serviceClient = createServiceRoleClient();
+  const { data, error } = await serviceClient.rpc("insert_story_comment_secure", {
+    p_story_id: params.storyId,
+    p_user_id: user.id,
+    p_body: trimmed,
+    p_parent_id: params.parentId ?? null,
+  });
 
-  if (error || !data) {
-    console.error("[upsertComment] insert failed:", error?.message);
+  if (error) {
+    const msg = error.message ?? "";
+    if (/story_not_found/i.test(msg)) return { ok: false, error: "story_not_found" };
+    if (/story_not_accessible/i.test(msg)) return { ok: false, error: "story_not_public" };
+    if (/parent_mismatch/i.test(msg)) return { ok: false, error: "parent_mismatch" };
+    if (/body_invalid_length/i.test(msg)) return { ok: false, error: "body_invalid_length" };
+    console.error("[upsertComment] RPC failed:", msg);
+    return { ok: false, error: "comment_failed" };
+  }
+
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row?.comment_id) {
+    console.error("[upsertComment] RPC returned no comment_id");
     return { ok: false, error: "comment_failed" };
   }
 
   revalidatePath(`/library/${params.storyId}` as never);
-  return { ok: true, data: { commentId: data.id } };
+  return { ok: true, data: { commentId: row.comment_id as string } };
 }
 
 /**
@@ -275,14 +316,23 @@ export async function softDeleteComment(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "unauthorized" };
 
-  const { error } = await supabase
-    .from("story_comments")
-    .update({ deleted: true })
-    .eq("id", commentId)
-    .eq("user_id", user.id); // RLS double-checks; extra app filter for safety
+  // W1-MOD-C-01 fix: direct UPDATE REVOKEd from authenticated. Use
+  // service-role RPC which verifies caller owns the comment.
+  const serviceClient = createServiceRoleClient();
+  const { error } = await serviceClient.rpc("soft_delete_comment_secure", {
+    p_comment_id: commentId,
+    p_user_id: user.id,
+  });
 
   if (error) {
-    console.error("[softDeleteComment] update failed:", error.message);
+    const msg = error.message ?? "";
+    if (/not_comment_owner/i.test(msg)) {
+      return { ok: false, error: "not_comment_owner" };
+    }
+    if (/comment_not_found/i.test(msg)) {
+      return { ok: false, error: "comment_not_found" };
+    }
+    console.error("[softDeleteComment] RPC failed:", msg);
     return { ok: false, error: "delete_failed" };
   }
   return { ok: true, data: undefined };

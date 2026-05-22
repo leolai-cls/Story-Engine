@@ -16,7 +16,7 @@ import {
   getBalanceAndCheck,
   userTierAllowsModel,
 } from "@/lib/billing/credits";
-import { moderateText } from "@/lib/moderation/openai-moderation";
+import { ModerationConfigError, moderateText } from "@/lib/moderation/openai-moderation";
 
 const InputSchema = z.object({
   prompt: z.string().min(20).max(2000),
@@ -68,35 +68,43 @@ export async function createStoryFromPrompt(
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Input invalid" };
   }
 
-  // P5-SEC-C-01 — moderate prompt + protagonist hint BEFORE burning ~$0.20
-  // on schema generation. CLAUDE.md hard rule #6: CSAM / illegal pre-filter
-  // is law-line, never bypass. Moderation runs on the user-provided seeds
-  // (prompt + protagonist_hint) — the AI-generated continuation is filtered
-  // separately by the model's own RLHF + Director red lines.
+  // Wave 1.5 W1-COST-C-01 reorder: cheap checks first (DB ~20ms each),
+  // moderation in parallel with model lookup, then the expensive schema-gen.
+  // Previously moderation ran before balance check — broke users waited
+  // ~2-10s for moderation just to see "you have no credits".
+  //
+  // Sequence:
+  //   1. Auth (already done above)
+  //   2. Input parse (already done above)
+  //   3. PARALLEL: balance check + tier check + moderation
+  //   4. If any reject → return early
+  //   5. schema-gen (expensive, ~30-60s, ~$0.20)
+
   const seedText = [parsed.data.prompt, parsed.data.protagonist_hint]
     .filter((t): t is string => !!t && t.trim().length > 0)
     .join("\n\n");
-  const seedVerdict = await moderateText(seedText, parsed.data.content_rating);
-  if (!seedVerdict.allowed) {
-    console.warn(
-      `[createStory] moderation blocked seed for user ${user.id}: ${seedVerdict.categories.join(", ")}`,
-    );
-    return { ok: false, error: seedVerdict.reason };
-  }
 
-  // Load user's preferred narrator model (Phase 3 — wired through Settings).
-  // Falls back to DEFAULT_NARRATOR if not set or no longer allowed for tier.
-  //
-  // AUDIT FIX (P3-SEC-H-02 / P3-LOGIC-H-06): re-validate tier here in case
-  // user downgraded after setting a premium model. setDefaultModel blocks
-  // future writes but stale default_model values can persist; revalidate
-  // at every consumption point.
-  const { data: prefProfile } = await supabase
-    .from("profiles")
-    .select("default_model")
-    .eq("id", user.id)
-    .single();
-  const requestedModel = prefProfile?.default_model ?? DEFAULT_NARRATOR;
+  // Pre-resolve all the cheap checks in parallel.
+  const [prefProfileResult, balanceResult, seedVerdictResult] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("default_model")
+      .eq("id", user.id)
+      .single(),
+    getBalanceAndCheck(supabase, {
+      userId: user.id,
+      estimatedCost: estimateStoryCreationCredits(),
+    }),
+    // W1-MOD-C-02 + W1-FP-* — failClosed:true + tuned thresholds (sexual/minors
+    // floor 0.5, no general violence, threatening categories require ≥0.7 score).
+    // ModerationConfigError caught below as 500-class.
+    moderateText(seedText, parsed.data.content_rating, { failClosed: true })
+      .then((verdict) => ({ ok: true as const, verdict }))
+      .catch((e: unknown) => ({ ok: false as const, error: e })),
+  ]);
+
+  // Tier resolution (uses prefProfile result; same DB hit otherwise).
+  const requestedModel = prefProfileResult.data?.default_model ?? DEFAULT_NARRATOR;
   const tierCheck = await userTierAllowsModel(supabase, user.id, requestedModel);
   const userNarratorModel = tierCheck.allowed ? requestedModel : DEFAULT_NARRATOR;
   if (!tierCheck.allowed) {
@@ -105,19 +113,32 @@ export async function createStoryFromPrompt(
     );
   }
 
-  // AUDIT FIX (AI-H-03): pre-check credit balance before burning ~$0.20 on
-  // 4 parallel Sonnet 4.6 calls. Friendly 402 UX if user can't afford.
-  const estimatedCost = estimateStoryCreationCredits();
-  const balance = await getBalanceAndCheck(supabase, {
-    userId: user.id,
-    estimatedCost,
-  });
-  if (!balance.sufficient) {
+  // Balance check — fail-fast if broke (cheap, do this even if moderation passed).
+  if (!balanceResult.sufficient) {
     return {
       ok: false,
-      error: `Credit 唔夠創作故事（剩 ${balance.balance}，需要約 ${estimatedCost}）。Top-up 或 upgrade 之後再試。`,
+      error: `Credit 唔夠創作故事（剩 ${balanceResult.balance}，需要約 ${estimateStoryCreationCredits()}）。Top-up 或 upgrade 之後再試。`,
     };
   }
+
+  // Moderation result handling.
+  if (!seedVerdictResult.ok) {
+    const err = seedVerdictResult.error;
+    if (err instanceof ModerationConfigError) {
+      console.error("[createStory] moderation config error:", err.message);
+      return { ok: false, error: "內容審核系統設定問題，請稍後再試。" };
+    }
+    // Unexpected throw — log + treat as block (defensive).
+    console.error("[createStory] moderation threw unexpected:", err);
+    return { ok: false, error: "內容審核暫時無法使用，請稍後再試。" };
+  }
+  if (!seedVerdictResult.verdict.allowed) {
+    console.warn(
+      `[createStory] moderation blocked seed for user ${user.id}: ${seedVerdictResult.verdict.categories.join(", ")}`,
+    );
+    return { ok: false, error: seedVerdictResult.verdict.reason };
+  }
+  const estimatedCost = estimateStoryCreationCredits();
 
   let generated;
   try {

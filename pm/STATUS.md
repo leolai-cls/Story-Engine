@@ -7,9 +7,9 @@
 
 ## 🎯 而家狀態
 
-**Phase**: **Phase 5 Wave 1 shipped + 即 audit → 6 個 new ship blocker (2 CRIT + 4 HIGH) · Wave 1.5 patch 入 Wave 2 之前必修**
+**Phase**: **Phase 5 Wave 1.5 全部 6 ship blocker 修咗 ✅ · Migration 0011 applied + 8/8 sanity pass · 落 Wave 2 multi-board library**
 **Live URL**: https://story-engine-drab.vercel.app
-**Last updated**: 2026-05-22 (Session 8 cont. — Wave 1 audit · Wave 1.5 必修)
+**Last updated**: 2026-05-22 (Session 8 cont. — Wave 1.5 closed · Wave 2 next)
 
 ## 🎯 Founder priority rule（鎖死）
 
@@ -23,8 +23,7 @@
 
 | 排 | Plan item | Tier | Time | Why |
 |---|---|---|---|---|
-| 🛑 | **Wave 1.5 patch — 6 ship blockers from Wave 1 audit** — Migration 0011 (REVOKE INSERT/UPDATE on 3 表 + SECURITY DEFINER RPCs · aggregate trigger fix · stories.title BEFORE UPDATE lock) + failClosed default + moderation threshold tune（violence out of SFW + sexual/minors 0.15→0.5 + threatening 加 floor） | 🟢 FUNCTION | ~1 session | CLAUDE.md hard rule #6 + reminder #22 pattern repeating · 我哋自己 example prompt 古惑仔 / TW 校園戀愛 會被 false-positive 攔截 |
-| 🥇 | **Phase 5 Wave 2 — Multi-board library + 中文搜尋 + cold-start** — Genre carousels（熱門/最新/戀愛/冒險/校園/奇幻/運動/懸疑/編輯精選）· FTS Chinese bigram tokenization · trending cold-start boost (newcomer term) · fork null check · adult tier gate · profiles.display_name join in comments · smart-hide empty genre boards · fold-in 7 個 audit HIGH/MEDIUM (turn route moderation · UI loading hint · timeout · details moderate · UPDATE visibility consistency · 429 retry · trigger raise exception) | 🟢 FUNCTION | ~1 session | Solves discovery + HK/TW market #1 search + community bootstrap dead-end 一氣呵成 |
+| 🥇 | **Phase 5 Wave 2 — Multi-board library + 中文搜尋 + cold-start** — Genre carousels（熱門/最新/戀愛/冒險/校園/奇幻/運動/懸疑/編輯精選）· FTS Chinese bigram tokenization · trending cold-start boost (newcomer term) · fork null check · adult tier gate · profiles.display_name join in comments · smart-hide empty genre boards · fold-in 7 個 audit HIGH/MEDIUM (turn route moderation · UI loading hint · reportContent details moderate · UPDATE visibility consistency · 429 retry · trigger raise exception · Unicode NFKC normalize) | 🟢 FUNCTION | ~1 session | Solves discovery + HK/TW market #1 search + community bootstrap dead-end 一氣呵成 |
 | 🥈 | **Phase 1.5/2 polish** — NPC name fuzzy match · 4-axis disposition init · always_on demote · refusal embed flow · audit deferred | 🟢 FUNCTION | ~1 session | Audit backlog cleanup |
 | 🥉 | **Phase 6 function bits** — adult mode toggle · content rating filter · provider gating（唔包 KYC） | 🟢 FUNCTION | ~1 session | Adult flow narrative gating |
 | 4 | **Phase 5 Wave 3 polish** — parent_id RLS · rating row-lock · depth cap · private FTS opt-out · moderation content_id check · unlisted decision | 🟢 FUNCTION | ~30 分鐘 | Defense in depth |
@@ -36,7 +35,23 @@
 
 ## 🚧 Blockers
 
-**🛑 Wave 1.5 必修先入 Wave 2**：Wave 1 fix 修咗原 4 個 P5 SHOWSTOPPER surface-level，但 即時 audit 揾到 fix 本身留 6 個 ship blocker（2 CRIT + 4 HIGH）。CLAUDE.md hard rule #6 「無論咩模式都要 CSAM filter」+ reminder #22 「加 enum 認 vector 但唔 implement defense」**pattern repeating** — schema-level admit 比 action-level enforce 走漏 RLS layer + fail-open env drift + threshold mis-calibration（我哋自己 example prompt 都會被 false-positive 攔截）。詳見 [audit-report-phase5-wave1.html](audit-report-phase5-wave1.html)。
+**冇 launch blocker**。Wave 1.5 全部 6 個 ship blocker 修咗（Migration 0011 applied · 8/8 sanity pass）。Wave 2 multi-board library 唔係 launch blocker — 係 discovery + 中文 search UX 提升。可以照計劃進 Wave 2。
+
+## ✅ Just completed (Session 8 cont. — Phase 5 Wave 1.5)
+
+### Migration 0011 — 6 ship blocker fixes applied on prod
+- **W1-MOD-C-01 (CRIT) CSAM bypass via direct browser INSERT** — REVOKE INSERT/UPDATE on story_comments + story_ratings from authenticated + anon · 3 SECURITY DEFINER RPCs granted to service_role only · action layer creates service-role client to call (browser can't, no JWT)
+- **W1-AGG-H-02 rating UPDATE story_id swap** — aggregate trigger recomputes BOTH sides when story_id changes · belt-and-suspenders `story_ratings_lock_immutable_columns` BEFORE UPDATE trigger
+- **W1-RLS-H-01 post-publish CSAM title mutation** — `stories_lock_content_columns` BEFORE UPDATE trigger locks title/description/prompt_seed/story_bible/opening_narrative/state_schema/tags/language/content_rating/genre/origin. visibility / counters / cover_image_url / updated_at remain mutable so publishStory still works
+- **W1-MOD-C-02 fail-open on missing key** — `ModerationConfigError` always throws (deployment misconfig surfaces loudly) · 3 actions pass `failClosed:true` (transient API errors block) · OPENAI_API_KEY missing now hard-fails
+- **W1-FP-H-03 sexual/minors 0.15 floor too aggressive** — raised to 0.5 (TW 校園戀愛 false-positive resolved)
+- **W1-FP-H-04 general violence blocks 古惑仔** — removed from SFW_ADDITIONAL_BLOCK · keep violence/graphic in HARD with 0.6 floor
+- **W1-FP-M-09 threatening categories block villain dialogue** — moved out of HARD_BLOCK · added 0.7 score floor (boolean flag still triggers genuine abuse)
+- **W1-COST-C-01 moderation before credit check** — reorder: auth → Promise.all(balance + tier + moderation) → schema-gen · broke users fail fast
+- **W1-COST-H-02 10s timeout** — 10s → 3s · worst-case story create ~63s instead of ~70s
+- **New file**: `web/src/lib/supabase/service-role.ts` (service-role client helper)
+- 8/8 sanity pass on prod (oivhvdfjmthydxqpcncp via Management API)
+- TypeScript clean (npx tsc --noEmit exit 0)
 
 ## ✅ Just completed (Session 8 cont. — Phase 5 Wave 1)
 
