@@ -1,5 +1,5 @@
 import { setRequestLocale, getLocale } from "next-intl/server";
-import { redirect } from "@/i18n/navigation";
+import { redirect, Link } from "@/i18n/navigation";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -57,9 +57,23 @@ export default async function SettingsPage({
   const ledger = ledgerRes.data ?? [];
   const subscription = subRes.data;
 
-  const tier = ((subscription?.tier ?? profile?.subscription_tier) ?? "free") as Tier;
+  // AUDIT FIX (P3-LOGIC-H-06): canceled subs lose tier. Only 'active' or
+  // 'trialing' subscription rows count; otherwise fall back to profile
+  // tier — but if profile says paid + sub canceled, force free.
+  const subLive =
+    subscription?.status === "active" || subscription?.status === "trialing";
+  const tier = (
+    subLive
+      ? subscription?.tier ?? "free"
+      : ((profile?.subscription_tier as Tier | undefined) ?? "free") === "free"
+      ? "free"
+      : "free"
+  ) as Tier;
   const tierConfig = TIER_CONFIG[tier];
   const balance = profile?.credit_balance ?? 0;
+  // AUDIT FIX (P3-UX-L-17): anon claim CTA. is_anonymous flag is
+  // populated by Supabase Auth on anonymous sign-ins.
+  const isAnonymous = (user as unknown as { is_anonymous?: boolean }).is_anonymous === true;
 
   return (
     <>
@@ -69,6 +83,27 @@ export default async function SettingsPage({
         <p className="text-muted-foreground mb-8">
           帳戶、訂閱、模型偏好。
         </p>
+
+        {/* AUDIT FIX (P3-UX-L-17): anon claim CTA — convert guest to permanent */}
+        {isAnonymous && (
+          <div className="mb-6 rounded-lg border border-primary/30 bg-primary/5 p-4">
+            <div className="flex items-start gap-3">
+              <UserIcon className="h-5 w-5 flex-shrink-0 text-primary" />
+              <div className="flex-1">
+                <div className="font-semibold text-sm">你而家係訪客模式</div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  連結 email 鎖定進度同 credit 餘額 — 唔連結，清 browser cookies 之後故事會失去。
+                </p>
+                <Link
+                  href={"/login" as never}
+                  className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90"
+                >
+                  立即註冊 / 連結 email
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="grid gap-6">
           {/* ─── Profile ──────────────────────────────────────────────── */}

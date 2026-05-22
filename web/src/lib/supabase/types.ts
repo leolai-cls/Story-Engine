@@ -735,6 +735,13 @@ export type Database = {
               turn_index: number
             }[]
           }
+      refresh_free_tier_credits: {
+        Args: { p_target_balance?: number }
+        Returns: {
+          refreshed_count: number
+          total_credits_granted: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

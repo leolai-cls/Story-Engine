@@ -6,8 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Loader2, AlertCircle } from "lucide-react";
+import { Sparkles, Loader2, AlertCircle, Coins } from "lucide-react";
 import { createStoryFromPrompt } from "./actions";
+import { estimateStoryCreationCredits } from "@/lib/billing/credits";
+
+// AUDIT FIX (P3-UX-L-16): pre-display cost so user knows what threshold
+// to hit before clicking. Previously they only learned via 402 error.
+const ESTIMATED_STORY_COST = estimateStoryCreationCredits();
 
 const EXAMPLE_PROMPTS = [
   "1980 年代香港古惑仔故事，我做新仔，幫師兄做嘢搵錢，順便照顧屋企人。江湖險惡，要 navigate 兄弟情同利益。",
@@ -126,6 +131,14 @@ export function CreationForm() {
               </>
             )}
           </Button>
+
+          {/* AUDIT FIX (P3-UX-L-16): pre-display cost */}
+          {!isPending && (
+            <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+              <Coins className="h-3 w-3" />
+              估計成本 ~{ESTIMATED_STORY_COST} credits
+            </div>
+          )}
 
           {isPending && (
             <div className="text-xs text-muted-foreground text-center space-y-1">

@@ -3,9 +3,69 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Send, Loader2, ArrowLeft } from "lucide-react";
+import { Sparkles, Send, Loader2, ArrowLeft, Coins, Lock } from "lucide-react";
 import { DynamicStatePanel } from "@/components/state-panel";
 import type { StateSchema } from "@/schemas/state-schema";
+
+/**
+ * AUDIT FIX (P3-UX-M-13): friendly UX for credit / tier errors.
+ * Parses prefixed error strings into actionable cards with Settings link.
+ */
+function PlayErrorCard({ error }: { error: string }) {
+  if (error.startsWith("INSUFFICIENT_CREDITS:")) {
+    return (
+      <div className="rounded-md border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950/40">
+        <div className="flex items-start gap-3">
+          <Coins className="h-5 w-5 flex-shrink-0 text-amber-600 dark:text-amber-300" />
+          <div className="flex-1 text-sm">
+            <div className="font-semibold text-amber-900 dark:text-amber-100">
+              Credit 唔夠
+            </div>
+            <div className="mt-1 text-xs text-amber-800 dark:text-amber-200">
+              {error.replace("INSUFFICIENT_CREDITS:", "")}
+            </div>
+            <Link
+              href={"/settings" as never}
+              className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700"
+            >
+              <Coins className="h-3.5 w-3.5" />
+              去 Settings 升級 / Top-up
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  if (error.startsWith("MODEL_TIER:")) {
+    return (
+      <div className="rounded-md border border-rose-200 bg-rose-50 p-4 dark:border-rose-900 dark:bg-rose-950/40">
+        <div className="flex items-start gap-3">
+          <Lock className="h-5 w-5 flex-shrink-0 text-rose-600 dark:text-rose-300" />
+          <div className="flex-1 text-sm">
+            <div className="font-semibold text-rose-900 dark:text-rose-100">
+              Model 需要升級 tier
+            </div>
+            <div className="mt-1 text-xs text-rose-800 dark:text-rose-200">
+              {error.replace("MODEL_TIER:", "")}
+            </div>
+            <Link
+              href={"/settings" as never}
+              className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-rose-700"
+            >
+              去 Settings
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  // Default error display
+  return (
+    <div className="rounded-md border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300">
+      {error}
+    </div>
+  );
+}
 
 type Turn = {
   role: "user" | "ai";
@@ -83,6 +143,24 @@ export function PlayClient({
         });
 
         if (!res.ok) {
+          // AUDIT FIX (P3-UX-M-13): friendly UX for credit / tier errors.
+          // Previously threw raw JSON / HTTP text into the error box.
+          if (res.status === 402) {
+            const body = await res.json().catch(() => null);
+            const currentBalance = body?.currentBalance ?? "?";
+            const estimatedCost = body?.estimatedCost ?? "?";
+            throw new Error(
+              `INSUFFICIENT_CREDITS:Credit 唔夠（剩 ${currentBalance}，需要約 ${estimatedCost}）。去 Settings 升級或 top-up。`,
+            );
+          }
+          if (res.status === 403) {
+            const body = await res.json().catch(() => null);
+            if (body?.error === "model_tier_required") {
+              throw new Error(
+                `MODEL_TIER:你嘅 tier (${body.currentTier ?? "?"}) 唔可以用 ${body.modelId ?? "呢個 model"}。去 Settings 揀其他 model 或升級。`,
+              );
+            }
+          }
           const errBody = await res.text();
           throw new Error(errBody || `HTTP ${res.status}`);
         }
@@ -218,9 +296,7 @@ export function PlayClient({
             )}
 
             {error && (
-              <div className="rounded-md border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300">
-                {error}
-              </div>
+              <PlayErrorCard error={error} />
             )}
           </div>
 
