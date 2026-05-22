@@ -16,6 +16,7 @@ import {
   getBalanceAndCheck,
   userTierAllowsModel,
 } from "@/lib/billing/credits";
+import { moderateText } from "@/lib/moderation/openai-moderation";
 
 const InputSchema = z.object({
   prompt: z.string().min(20).max(2000),
@@ -65,6 +66,22 @@ export async function createStoryFromPrompt(
   });
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Input invalid" };
+  }
+
+  // P5-SEC-C-01 — moderate prompt + protagonist hint BEFORE burning ~$0.20
+  // on schema generation. CLAUDE.md hard rule #6: CSAM / illegal pre-filter
+  // is law-line, never bypass. Moderation runs on the user-provided seeds
+  // (prompt + protagonist_hint) — the AI-generated continuation is filtered
+  // separately by the model's own RLHF + Director red lines.
+  const seedText = [parsed.data.prompt, parsed.data.protagonist_hint]
+    .filter((t): t is string => !!t && t.trim().length > 0)
+    .join("\n\n");
+  const seedVerdict = await moderateText(seedText, parsed.data.content_rating);
+  if (!seedVerdict.allowed) {
+    console.warn(
+      `[createStory] moderation blocked seed for user ${user.id}: ${seedVerdict.categories.join(", ")}`,
+    );
+    return { ok: false, error: seedVerdict.reason };
   }
 
   // Load user's preferred narrator model (Phase 3 — wired through Settings).

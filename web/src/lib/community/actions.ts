@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { moderateText } from "@/lib/moderation/openai-moderation";
 
 /**
  * Phase 5 Community — server actions.
@@ -131,6 +132,35 @@ export async function rateStory(params: {
     return { ok: false, error: "review_too_long" };
   }
 
+  // P5-SEC-C-02 defense-in-depth — RLS in Migration 0010 also blocks owner
+  // self-rating, but checking here gives a clear 繁中 error instead of the
+  // generic "violates row-level security" mapping below.
+  const { data: storyOwner } = await supabase
+    .from("stories")
+    .select("owner_id, content_rating")
+    .eq("id", params.storyId)
+    .single();
+  if (!storyOwner) {
+    return { ok: false, error: "story_not_found" };
+  }
+  if (storyOwner.owner_id === user.id) {
+    return { ok: false, error: "唔可以俾自己嘅故事評分。" };
+  }
+
+  // P5-SEC-C-01 — moderate review text before persist (CSAM / illegal pre-filter).
+  if (params.reviewText && params.reviewText.trim().length > 0) {
+    const verdict = await moderateText(
+      params.reviewText,
+      (storyOwner.content_rating as "sfw" | "soft" | "adult") ?? "sfw",
+    );
+    if (!verdict.allowed) {
+      console.warn(
+        `[rateStory] moderation blocked review on story ${params.storyId} for user ${user.id}: ${verdict.categories.join(", ")}`,
+      );
+      return { ok: false, error: verdict.reason };
+    }
+  }
+
   const { error } = await supabase
     .from("story_ratings")
     .upsert(
@@ -176,6 +206,17 @@ export async function upsertComment(params: {
     return { ok: false, error: "body_invalid_length" };
   }
 
+  // Load story for content_rating context (moderation block thresholds vary
+  // by tier) + parent verification.
+  const { data: story } = await supabase
+    .from("stories")
+    .select("content_rating")
+    .eq("id", params.storyId)
+    .single();
+  if (!story) {
+    return { ok: false, error: "story_not_found" };
+  }
+
   // If reply: verify parent belongs to same story (defense in depth — RLS
   // would catch but app-level error message is clearer)
   if (params.parentId) {
@@ -187,6 +228,18 @@ export async function upsertComment(params: {
     if (!parent || parent.story_id !== params.storyId) {
       return { ok: false, error: "parent_mismatch" };
     }
+  }
+
+  // P5-SEC-C-01 — moderate comment body before persist (CSAM / illegal pre-filter).
+  const verdict = await moderateText(
+    trimmed,
+    (story.content_rating as "sfw" | "soft" | "adult") ?? "sfw",
+  );
+  if (!verdict.allowed) {
+    console.warn(
+      `[upsertComment] moderation blocked comment on story ${params.storyId} for user ${user.id}: ${verdict.categories.join(", ")}`,
+    );
+    return { ok: false, error: verdict.reason };
   }
 
   const { data, error } = await supabase
@@ -281,7 +334,13 @@ export async function reportContent(params: {
     .single();
 
   if (error || !data) {
-    console.error("[reportContent] insert failed:", error?.message);
+    const msg = error?.message ?? "";
+    // P5-LOGIC-H-04 — Migration 0010 adds UNIQUE(reporter, content_type, content_id).
+    // Duplicate report = friendly "already reported" message instead of generic fail.
+    if (error?.code === "23505" || /duplicate key|unique/i.test(msg)) {
+      return { ok: false, error: "你之前已經 report 過呢個內容了。Moderation team 會 review。" };
+    }
+    console.error("[reportContent] insert failed:", msg);
     return { ok: false, error: "report_failed" };
   }
   return { ok: true, data: { flagId: data.id } };

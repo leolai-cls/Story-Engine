@@ -565,16 +565,16 @@
       <p class="section-sub">每次新 session 開始，由呢度睇起。</p>
 
       <div class="top-meta">
-        <div><strong>Last updated</strong> 2026-05-22 · Session 8 (Phase 5 ship + audit · 4 SHOWSTOPPERS pending fix)</div>
-        <div><strong>Phase</strong> Phase 0/1/1.5/2/3 backend ✅ · Phase 5 backend ✅ · Wave 1 fix URGENT 之後先入下個 function</div>
+        <div><strong>Last updated</strong> 2026-05-22 · Session 8 cont. (Wave 1 SHOWSTOPPERS closed · Multi-board library next)</div>
+        <div><strong>Phase</strong> Phase 0/1/1.5/2/3 backend ✅ · Phase 5 backend ✅ · Wave 1 fix ✅ · Wave 2 multi-board next</div>
         <div><strong>Live</strong> <a href="https://story-engine-drab.vercel.app" target="_blank" style="color: var(--primary);">story-engine-drab.vercel.app</a></div>
       </div>
 
       <div class="status-hero">
-        <div class="label">🛑 Phase 5 Community shipped + audited · 4 SHOWSTOPPERS — launch blocker level</div>
-        <div class="phase">CSAM filter missing · play_count 灌水 · self-rating bomb · comment UPDATE 開晒 · FTS 中文壞 · trending cold-start dead</div>
+        <div class="label">✅ Phase 5 Wave 1 SHOWSTOPPERS 全部關閉 · Migration 0010 applied · 5/5 sanity pass</div>
+        <div class="phase">CSAM filter wired · play_count DELETE mirror · self-rating RLS block · comment column lockdown · report UNIQUE</div>
         <div class="focus">
-          Session 8 ship 完 Phase 5 (community library) backend + UI minimal — Migration 0009 (ratings + comments + moderation_flags + FTS + 3 RPCs + triggers) · server actions + queries + library page + story detail page。即刻 audit — <strong>18 findings · 4 SHOWSTOPPERS</strong>: (1) CSAM pre-filter 完全冇（CLAUDE.md hard rule #6 違反） · (2) play_count 可以 fork+delete 灌水 → trending adversarial · (3) Owner 可以 self-rate 5★ → trust killer · (4) Comment UPDATE policy 開晒 → bait-and-switch + 跨 story 搬 comment。<strong>仲未 fix — Phase 5 launch 之前必須做 Wave 1 URGENT</strong>，跟住先入 Phase 6 / 1.5 polish。
+          Session 8 cont. ship Migration 0010 + OpenAI Moderation API wrapper —（1）<strong>CSAM pre-filter</strong> 喺 createStoryFromPrompt / upsertComment / rateStory 3 個 user-input site wired，content-rating-aware + 繁中 verdict（CLAUDE.md hard rule #6 closed）（2）<strong>play_count DELETE trigger</strong> 對稱 INSERT bump，fork+delete loop attack 失效（3）<strong>story_ratings RLS</strong> 加 owner_id &lt;&gt; auth.uid() guard + action mirror，self-rating 5★ bomb 失效（4）<strong>story_comments BEFORE UPDATE trigger</strong> revert immutable columns，bait-and-switch attack 失效（5）<strong>moderation_flags UNIQUE</strong>(reporter, content_type, content_id) 防 report spam。<strong>下一步：Wave 2 = multi-board library + FTS Chinese bigram + trending cold-start boost</strong> — discovery + HK/TW search 一齊修。
         </div>
       </div>
 
@@ -590,15 +590,25 @@
             <li><strong>Phase 5 Deep Audit</strong>（commit a57b557）— 18 findings · 4 SHOWSTOPPERS + 7 High + 5 Medium + 2 Low</li>
           </ul>
         </div>
-        <div class="status-card warn">
-          <div class="status-card-title">🛑 Wave 1 URGENT — Phase 5 launch 之前必做</div>
+        <div class="status-card good">
+          <div class="status-card-title">✅ Wave 1 SHOWSTOPPERS 全部關閉 — Migration 0010 + Moderation wire-up</div>
           <ul>
-            <li>🛑 <strong>P5-SEC-C-01 CSAM pre-filter</strong> — story create / comment / review 3 個 site 加 OpenAI Moderation API（hard rule #6 violation）</li>
-            <li>🛑 <strong>P5-RACE-C-01 play_count 灌水</strong> — Migration 0010 加 DELETE trigger mirror + fork rate limit</li>
-            <li>🛑 <strong>P5-SEC-C-02 self-rating</strong> — RLS policy 加 NOT EXISTS owner_id check + action mirror</li>
-            <li>🛑 <strong>P5-SEC-H-02 comment UPDATE</strong> — trigger revert 任何非 deleted column 改動</li>
-            <li>之後 Wave 2：FTS 中文 bigram · trending cold-start boost · fork null check · adult tier gate · profiles display_name join</li>
-            <li>跟住先繼續 function tier：Phase 1.5/2 polish · Phase 6 non-money · Phase 7 content</li>
+            <li>✅ <strong>P5-SEC-C-01 CSAM pre-filter</strong> — 新 <code>web/src/lib/moderation/openai-moderation.ts</code>（omni-moderation-latest, fail-open, content-rating-aware, 繁中 verdict, score-floor recall boost）wired into createStoryFromPrompt / upsertComment / rateStory</li>
+            <li>✅ <strong>P5-RACE-C-01 play_count 灌水</strong> — AFTER DELETE trigger <code>playthroughs_decrement_play_count</code> 對稱 INSERT bump，<code>greatest(... - 1, 0)</code> underflow guard</li>
+            <li>✅ <strong>P5-SEC-C-02 self-rating</strong> — story_ratings_own_insert + own_update 政策加 <code>s.owner_id &lt;&gt; auth.uid()</code> + action 加 owner check defense-in-depth</li>
+            <li>✅ <strong>P5-SEC-H-02 comment UPDATE</strong> — BEFORE UPDATE trigger <code>story_comments_lock_immutable_columns</code> revert body/parent_id/story_id/user_id/created_at + 禁止 un-delete，service_role bypass for admin</li>
+            <li>🎁 <strong>Bonus P5-LOGIC-H-04 report spam</strong> — UNIQUE(reporter_id, content_type, content_id) + 23505 friendly mapping</li>
+            <li>Sanity 5/5 pass on prod (oivhvdfjmthydxqpcncp via Management API)</li>
+          </ul>
+        </div>
+        <div class="status-card good">
+          <div class="status-card-title">🎨 下一步：Wave 2 Multi-board Library</div>
+          <ul>
+            <li>多榜架構：🔥 熱門 · 🆕 最新 · 💕 戀愛 · ⚔️ 冒險 · 🎓 校園 · 🔮 奇幻 · 🏀 運動 · 🕵️ 懸疑 · 👑 編輯精選</li>
+            <li>解決 P5-LOGIC-H-02 trending cold-start dead-end — 新故事可以喺「最新」榜出現</li>
+            <li>解決 P5-LOGIC-H-03 FTS 中文壞 — bigram tokenization in update trigger 或者 pg_trgm fallback</li>
+            <li>順手修：fork null check · adult tier gate · profiles.display_name join in comments · smart-hide empty genre boards</li>
+            <li>之後：Phase 1.5/2 audit deferred polish → Phase 6 non-money function → Phase 7 official content（順手填空蕩 genre 榜）</li>
           </ul>
         </div>
       </div>
@@ -610,8 +620,8 @@
           <div class="quick-link-desc">Login → Guest button → /stories/new → 玩夠 5+ turns 試 act transition</div>
         </a>
         <a href="audit-report-phase5-deep.html" class="quick-link">
-          <div class="quick-link-title">🔍 Phase 5 Deep Audit (latest · ⚠️ 4 SHOWSTOPPERS)</div>
-          <div class="quick-link-desc">18 finding · 4 Critical · CSAM filter missing · play_count inflation · self-rating · comment UPDATE open</div>
+          <div class="quick-link-title">🔍 Phase 5 Deep Audit (✅ 4 SHOWSTOPPERS closed)</div>
+          <div class="quick-link-desc">18 finding · 4 Critical 全部 fixed via Migration 0010 + Moderation wrapper · 14 Wave 2/3 pending</div>
         </a>
         <a href="audit-report-phase3-deep.html" class="quick-link">
           <div class="quick-link-title">🔍 Phase 3 Deep Audit (🛑 SHOWSTOPPER fixed)</div>

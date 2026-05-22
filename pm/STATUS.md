@@ -7,9 +7,9 @@
 
 ## 🎯 而家狀態
 
-**Phase**: **Phase 5 Community backend shipped + audited · Wave 1 URGENT 修補必做 (4 SHOWSTOPPERS) · 然後繼續 function tier**
+**Phase**: **Phase 5 Wave 1 SHOWSTOPPERS 全部修咗 ✅ · Migration 0010 applied + 5/5 sanity pass · 落 Wave 2（multi-board library + FTS 中文 + trending cold-start）**
 **Live URL**: https://story-engine-drab.vercel.app
-**Last updated**: 2026-05-22 (Session 8 — Phase 5 ship + audit · 4 SHOWSTOPPERS pending fix)
+**Last updated**: 2026-05-22 (Session 8 cont. — Wave 1 closed · Multi-board library next)
 
 ## 🎯 Founder priority rule（鎖死）
 
@@ -19,16 +19,15 @@
 - 🟣 **UI（function 完之後）**：Library / Memory Journal / Locale switcher / Settings i18n / audit deferred UX
 - 🟡 **MONEY（最後）**：Phase 4 Stripe · Phase 6 KYC · Phase 3 deferred items (refund saga / OpenRouter pricing)
 
-## 📍 What's next（按 function-first priority + Phase 5 audit fix）
+## 📍 What's next（按 function-first priority）
 
 | 排 | Plan item | Tier | Time | Why |
 |---|---|---|---|---|
-| 🛑 | **Phase 5 Wave 1 URGENT** — Migration 0010 (UPDATE lockdown · self-rating block · play_count DELETE mirror · report UNIQUE) + OpenAI Moderation API wire-up (3 sites) | 🟢 FUNCTION | ~1 session | CLAUDE.md hard rule #6 違反 + launch-day attack vectors |
-| 🥇 | **Phase 5 Wave 2** — FTS Chinese bigram tokenization · trending cold-start boost · fork null check · adult tier gate · profiles.display_name join in comments | 🟢 FUNCTION | ~1 session | HK + TW market 嘅 search broken + community bootstrap dead-end |
+| 🥇 | **Phase 5 Wave 2 — Multi-board library + 中文搜尋 + cold-start** — Genre carousels（熱門/最新/戀愛/冒險/校園/奇幻/運動/懸疑/編輯精選）· FTS Chinese bigram tokenization · trending cold-start boost (newcomer term) · fork null check · adult tier gate · profiles.display_name join in comments · smart-hide empty genre boards | 🟢 FUNCTION | ~1 session | Solves discovery + HK/TW market #1 search + community bootstrap dead-end 一氣呵成 |
 | 🥈 | **Phase 1.5/2 polish** — NPC name fuzzy match · 4-axis disposition init · always_on demote · refusal embed flow · audit deferred | 🟢 FUNCTION | ~1 session | Audit backlog cleanup |
 | 🥉 | **Phase 6 function bits** — adult mode toggle · content rating filter · provider gating（唔包 KYC） | 🟢 FUNCTION | ~1 session | Adult flow narrative gating |
 | 4 | **Phase 5 Wave 3 polish** — parent_id RLS · rating row-lock · depth cap · private FTS opt-out · moderation content_id check · unlisted decision | 🟢 FUNCTION | ~30 分鐘 | Defense in depth |
-| 5 | **Phase 7 content** — Founder + Claude 寫 5 條 launch-ready 官方故事 | 🟢 FUNCTION | 多 session slow-burn | 官方故事支撐 public launch |
+| 5 | **Phase 7 content** — Founder + Claude 寫 5 條 launch-ready 官方故事（亦填 multi-board library） | 🟢 FUNCTION | 多 session slow-burn | 官方故事支撐 public launch + 填空蕩 genre 榜 |
 | ↓ | _function 完晒_ |  |  |  |
 | 6 | **UI design wave** — Library page polish · Memory Journal · Locale switcher · Settings i18n · 全部 UX-C-01..04 + audit deferred UX | 🟣 UI | ~2 sessions | 玩家可見嘅嘢 |
 | ↓ | _UI 完晒_ |  |  |  |
@@ -36,7 +35,27 @@
 
 ## 🚧 Blockers
 
-**🛑 Phase 5 launch blocker**: 4 SHOWSTOPPERS 未 fix（CSAM filter · play_count 灌水 · self-rating · comment UPDATE 開晒）— Migration 0010 + OpenAI Moderation 必做。**Phase 5 Community 唔可以對外開放 unless Wave 1 done**。
+**冇 launch blocker**。4 個 Phase 5 SHOWSTOPPERS 全部修咗（Migration 0010 applied · 5/5 sanity pass）。Wave 2 multi-board library 唔係 launch blocker — 係 discovery + 中文 search UX 提升。可以照計劃進 Wave 2。
+
+## ✅ Just completed (Session 8 cont. — Phase 5 Wave 1)
+
+### Migration 0010 — 4 SHOWSTOPPER fixes applied on prod
+- **P5-RACE-C-01 (play_count inflation)** — `playthroughs_decrement_play_count` AFTER DELETE trigger mirrors INSERT bump with same owner-skip logic + `greatest(... - 1, 0)` underflow guard
+- **P5-SEC-C-02 (owner self-rating)** — `story_ratings_own_insert` + `story_ratings_own_update` policies gained `s.owner_id <> auth.uid()` guard. Self-rating now RLS-rejected
+- **P5-SEC-H-02 (comment UPDATE column-wide open)** — new `story_comments_lock_immutable_columns` BEFORE UPDATE trigger reverts changes to body / parent_id / story_id / user_id / created_at / un-delete. Only false→true on `deleted` permitted for end users. Service role bypasses for admin moderation
+- **P5-LOGIC-H-04 (report spam)** — UNIQUE index `moderation_flags_one_per_reporter_content` on `(reporter_id, content_type, content_id)` partial WHERE reporter_id not null
+
+### OpenAI Moderation API wired into 3 user-input sites (CLAUDE.md hard rule #6)
+- **New `web/src/lib/moderation/openai-moderation.ts`** — fetch-based wrapper for `omni-moderation-latest` model · 13 categories · HARD_BLOCK list (csam, hate/threatening, violence/graphic, illicit/violent, self-harm/intent, harassment/threatening) + SFW additional list (sexual, violence, self-harm) · score-floor recall boost for sexual/minors (0.15) and violence/graphic (0.6) · 繁中 verdict messages · 10s timeout · fail-open default
+- **createStoryFromPrompt** — moderates `prompt + protagonist_hint` BEFORE burning ~$0.20 on schema-gen
+- **upsertComment** — moderates body, content-rating-aware via story lookup
+- **rateStory** — moderates `review_text` if present + defense-in-depth owner check before upsert
+- **reportContent** — 23505 unique violation now maps to friendly "you already reported this" message
+
+### TypeScript: clean (npx tsc --noEmit exit 0)
+### Sanity SQL: 5/5 verify pass on prod via Management API
+
+## ✅ Recently completed (Session 6 — Phase 2 ship + audit + 3 fix waves)
 
 ## ✅ Recently completed (Session 6 — Phase 2 ship + audit + 3 fix waves)
 
