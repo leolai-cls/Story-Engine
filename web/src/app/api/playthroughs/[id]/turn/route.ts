@@ -41,6 +41,8 @@ import {
   getBalanceAndCheck,
   userTierAllowsModel,
 } from "@/lib/billing/credits";
+// ─── Phase 5 Wave 2 moderation (W1-MOD-H-03 audit fix) ──────────────────
+import { ModerationConfigError, moderateText } from "@/lib/moderation/openai-moderation";
 
 /**
  * POST /api/playthroughs/[id]/turn
@@ -165,11 +167,44 @@ export async function POST(
 
   const { data: story, error: storyErr } = await supabase
     .from("stories")
-    .select("title, description, state_schema, story_bible")
+    .select("title, description, state_schema, story_bible, content_rating")
     .eq("id", pt.story_id)
     .single();
   if (storyErr || !story) {
     return NextResponse.json({ error: "story not found" }, { status: 404 });
+  }
+
+  // 3.6 W1-MOD-H-03 (Phase 5 Wave 2 audit fix) — moderate user action input
+  // BEFORE Director / Narrator pipeline. CLAUDE.md hard rule #6 covers all
+  // user-input surfaces including private playthrough action text — the
+  // turn text persists to the turns table even on Narrator refusal, so
+  // CSAM / illegal action descriptions need to be blocked at submit time.
+  // failClosed:true: transient API errors block (no silent bypass on the
+  // hottest input surface).
+  try {
+    const verdict = await moderateText(
+      action,
+      (story.content_rating as "sfw" | "soft" | "adult") ?? "sfw",
+      { failClosed: true },
+    );
+    if (!verdict.allowed) {
+      console.warn(
+        `[turn] moderation blocked action on pt ${playthroughId} user ${user.id}: ${verdict.categories.join(", ")}`,
+      );
+      return NextResponse.json(
+        { error: "action_blocked", message: verdict.reason },
+        { status: 400 },
+      );
+    }
+  } catch (e) {
+    if (e instanceof ModerationConfigError) {
+      console.error("[turn] moderation config error:", e.message);
+      return NextResponse.json(
+        { error: "moderation_misconfigured", message: "內容審核系統設定問題，請稍後再試。" },
+        { status: 503 },
+      );
+    }
+    throw e;
   }
 
   const { data: characters } = await supabase

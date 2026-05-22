@@ -36,7 +36,9 @@ export type StoryComment = {
   deleted: boolean;
   created_at: string;
   updated_at: string;
-  // display_name + avatar fetched via separate join in serializer
+  /** Joined from profiles. Null when profile row missing or display_name unset. */
+  display_name: string | null;
+  avatar_url: string | null;
 };
 
 export type StoryRating = {
@@ -44,6 +46,9 @@ export type StoryRating = {
   score: number;
   review_text: string | null;
   created_at: string;
+  /** Joined from profiles. */
+  display_name: string | null;
+  avatar_url: string | null;
 };
 
 export type MyPlaythroughRow = {
@@ -81,6 +86,63 @@ export async function getTrendingStories(
   });
   if (error) {
     console.warn("[community] trending_stories failed:", error.message);
+    return [];
+  }
+  return (data ?? []) as LibraryStory[];
+}
+
+/**
+ * Get latest public stories (pure recency, no scoring). Used by the 🆕 最新
+ * carousel — gives new stories a "always visible" surface that bypasses
+ * trending cold-start.
+ */
+export async function getLatestStories(
+  supabase: SupabaseClient,
+  params: { limit?: number; language?: string; contentRating?: string } = {},
+): Promise<LibraryStory[]> {
+  const { data, error } = await supabase.rpc("latest_stories", {
+    p_limit: params.limit ?? 12,
+    p_language: params.language ?? null,
+    p_content_rating: params.contentRating ?? null,
+  });
+  if (error) {
+    console.warn("[community] latest_stories failed:", error.message);
+    return [];
+  }
+  return (data ?? []) as LibraryStory[];
+}
+
+/**
+ * Get public stories matching a genre (matches stories.genre column OR
+ * any tag equal to the genre string, case-insensitive). Used by genre
+ * carousels — 💕 戀愛 / ⚔️ 冒險 / 🎓 校園 / 🔮 奇幻 / 🏀 運動 / 🕵️ 懸疑.
+ *
+ * The genre value should be either an English code ("romance") or the
+ * CJK term ("戀愛") — the RPC matches both. This lets the official
+ * taxonomy use English codes while user-uploaded stories tag in 中文.
+ */
+export async function getStoriesByGenre(
+  supabase: SupabaseClient,
+  params: {
+    genre: string;
+    limit?: number;
+    offset?: number;
+    language?: string;
+    contentRating?: string;
+  },
+): Promise<LibraryStory[]> {
+  const { data, error } = await supabase.rpc("stories_by_genre", {
+    p_genre: params.genre,
+    p_limit: params.limit ?? 12,
+    p_offset: params.offset ?? 0,
+    p_language: params.language ?? null,
+    p_content_rating: params.contentRating ?? null,
+  });
+  if (error) {
+    console.warn(
+      `[community] stories_by_genre(${params.genre}) failed:`,
+      error.message,
+    );
     return [];
   }
   return (data ?? []) as LibraryStory[];
@@ -155,7 +217,9 @@ export async function getStoryRatings(
 ): Promise<StoryRating[]> {
   let q = supabase
     .from("story_ratings")
-    .select("user_id, score, review_text, created_at")
+    .select(
+      "user_id, score, review_text, created_at, profile:profiles!story_ratings_user_id_fkey(display_name, avatar_url)",
+    )
     .eq("story_id", params.storyId);
   if (params.onlyWithReview ?? true) {
     q = q.not("review_text", "is", null);
@@ -164,7 +228,17 @@ export async function getStoryRatings(
     .order("created_at", { ascending: false })
     .limit(params.limit ?? 10);
   if (error || !data) return [];
-  return data as StoryRating[];
+  return data.map((r) => {
+    const profile = (r as { profile?: { display_name?: string | null; avatar_url?: string | null } | null }).profile;
+    return {
+      user_id: r.user_id as string,
+      score: r.score as number,
+      review_text: r.review_text as string | null,
+      created_at: r.created_at as string,
+      display_name: profile?.display_name ?? null,
+      avatar_url: profile?.avatar_url ?? null,
+    };
+  });
 }
 
 /**
@@ -177,7 +251,9 @@ export async function getTopLevelComments(
 ): Promise<StoryComment[]> {
   const { data, error } = await supabase
     .from("story_comments")
-    .select("id, user_id, body, parent_id, deleted, created_at, updated_at")
+    .select(
+      "id, user_id, body, parent_id, deleted, created_at, updated_at, profile:profiles!story_comments_user_id_fkey(display_name, avatar_url)",
+    )
     .eq("story_id", params.storyId)
     .is("parent_id", null)
     .eq("deleted", false)
@@ -187,7 +263,20 @@ export async function getTopLevelComments(
       (params.offset ?? 0) + (params.limit ?? 20) - 1,
     );
   if (error || !data) return [];
-  return data as StoryComment[];
+  return data.map((c) => {
+    const profile = (c as { profile?: { display_name?: string | null; avatar_url?: string | null } | null }).profile;
+    return {
+      id: c.id as string,
+      user_id: c.user_id as string,
+      body: c.body as string,
+      parent_id: c.parent_id as string | null,
+      deleted: c.deleted as boolean,
+      created_at: c.created_at as string,
+      updated_at: c.updated_at as string,
+      display_name: profile?.display_name ?? null,
+      avatar_url: profile?.avatar_url ?? null,
+    };
+  });
 }
 
 /**
@@ -200,13 +289,28 @@ export async function getCommentReplies(
 ): Promise<StoryComment[]> {
   const { data, error } = await supabase
     .from("story_comments")
-    .select("id, user_id, body, parent_id, deleted, created_at, updated_at")
+    .select(
+      "id, user_id, body, parent_id, deleted, created_at, updated_at, profile:profiles!story_comments_user_id_fkey(display_name, avatar_url)",
+    )
     .eq("parent_id", params.parentId)
     .eq("deleted", false)
     .order("created_at", { ascending: true })
     .limit(params.limit ?? 50);
   if (error || !data) return [];
-  return data as StoryComment[];
+  return data.map((c) => {
+    const profile = (c as { profile?: { display_name?: string | null; avatar_url?: string | null } | null }).profile;
+    return {
+      id: c.id as string,
+      user_id: c.user_id as string,
+      body: c.body as string,
+      parent_id: c.parent_id as string | null,
+      deleted: c.deleted as boolean,
+      created_at: c.created_at as string,
+      updated_at: c.updated_at as string,
+      display_name: profile?.display_name ?? null,
+      avatar_url: profile?.avatar_url ?? null,
+    };
+  });
 }
 
 /**
@@ -219,12 +323,22 @@ export async function getMyRating(
 ): Promise<StoryRating | null> {
   const { data, error } = await supabase
     .from("story_ratings")
-    .select("user_id, score, review_text, created_at")
+    .select(
+      "user_id, score, review_text, created_at, profile:profiles!story_ratings_user_id_fkey(display_name, avatar_url)",
+    )
     .eq("story_id", params.storyId)
     .eq("user_id", params.userId)
     .maybeSingle();
   if (error || !data) return null;
-  return data as StoryRating;
+  const profile = (data as { profile?: { display_name?: string | null; avatar_url?: string | null } | null }).profile;
+  return {
+    user_id: data.user_id as string,
+    score: data.score as number,
+    review_text: data.review_text as string | null,
+    created_at: data.created_at as string,
+    display_name: profile?.display_name ?? null,
+    avatar_url: profile?.avatar_url ?? null,
+  };
 }
 
 // ─── My library (caller's own playthroughs) ────────────────────────────

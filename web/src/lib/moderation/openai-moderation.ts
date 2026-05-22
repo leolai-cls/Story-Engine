@@ -151,13 +151,41 @@ export class ModerationConfigError extends Error {
 }
 
 /**
+ * Wave 2 audit fix W1-MOD-M-02: input normalization before sending to API.
+ *
+ * - NFKC normalize: collapses confusables / compatibility forms (e.g., fullwidth
+ *   `ＡＢＣ` → `ABC`, ligatures `ﬁ` → `fi`). Closes Unicode-confusable bypass
+ *   where attacker mixes scripts to evade the classifier.
+ * - Strip zero-width / formatting chars (U+200B, U+200C, U+200D, U+FEFF,
+ *   U+2060): these are invisible separators inserted between letters to
+ *   defeat substring detection.
+ * - Strip combining marks (U+0300-U+036F): zalgo-style stacking is a classic
+ *   moderation bypass — looks normal to user, scrambles to classifier.
+ */
+// Compile once at module load — safer than embedding non-ASCII regex literals.
+//   U+200B-U+200D: zero-width space / non-joiner / joiner
+//   U+2060: word joiner
+//   U+FEFF: BOM / zero-width no-break space
+const ZERO_WIDTH_RE = new RegExp("[\\u200B-\\u200D\\u2060\\uFEFF]", "g");
+//   U+0300-U+036F: combining diacritical marks (Zalgo / stacking defense)
+const COMBINING_MARK_RE = new RegExp("[\\u0300-\\u036F]", "g");
+
+function normalizeInput(input: string): string {
+  return input
+    .normalize("NFKC")
+    .replace(ZERO_WIDTH_RE, "")
+    .replace(COMBINING_MARK_RE, "");
+}
+
+/**
  * Call OpenAI Moderation API.
  *
  * - Throws `ModerationConfigError` when OPENAI_API_KEY is missing. This is
  *   a deployment bug, never transient — callers must hard-fail (no allowed
  *   "allow on env misconfig" path; that's the bypass we close in W1-MOD-C-02).
- * - Returns null on transient errors (non-2xx response, timeout, parse fail).
- *   Callers decide fail-open vs fail-closed per call site.
+ * - Returns null on transient errors after retry (non-2xx response other
+ *   than 429, timeout, parse fail). Callers decide fail-open vs fail-closed.
+ * - Wave 2 W1-INFO-14: retry with exponential backoff on 429 / 5xx.
  *
  * Implementation note: direct fetch instead of OpenAI SDK to avoid pulling
  * an extra dependency. Endpoint + response shape stable per OpenAI docs (v1).
@@ -175,45 +203,81 @@ async function callModerationAPI(
     );
   }
 
-  // Hard cap input length — Moderation API accepts up to ~32K tokens but
-  // we limit to keep latency predictable. For story prompts (max 2000
-  // chars in InputSchema) this never triggers; for review_text (max 2000)
-  // same. Comments max 2000. So 32000 ceiling is paranoid only.
-  const trimmed = input.length > 32_000 ? input.slice(0, 32_000) : input;
+  // W1-MOD-M-02: normalize before sending — NFKC + strip zero-width + combining.
+  const normalized = normalizeInput(input);
+  const trimmed = normalized.length > 32_000 ? normalized.slice(0, 32_000) : normalized;
 
-  try {
-    const res = await fetch("https://api.openai.com/v1/moderations", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "omni-moderation-latest",
-        input: trimmed,
-      }),
-      // Wave 1.5 W1-COST-H-02: 10s → 3s. Moderation should be sub-second;
-      // 3s gives generous headroom on slow OpenAI minutes without making
-      // user wait. Fail-open (if failClosed off) catches the long tail.
-      signal: AbortSignal.timeout(3_000),
-    });
+  // Wave 2 W1-INFO-14: exponential backoff retry on 429 / 5xx. Same pattern
+  // as embed.ts withRateLimitRetry. Total budget: 500ms + 2s + first call =
+  // up to ~5.5s worst case under retry (vs single 3s call). Action layer
+  // failClosed:true means worst case is still bounded.
+  const BACKOFFS_MS = [500, 2000];
+  for (let attempt = 0; attempt <= BACKOFFS_MS.length; attempt++) {
+    try {
+      const res = await fetch("https://api.openai.com/v1/moderations", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "omni-moderation-latest",
+          input: trimmed,
+        }),
+        // Wave 1.5 W1-COST-H-02: 10s → 3s per attempt.
+        signal: AbortSignal.timeout(3_000),
+      });
 
-    if (!res.ok) {
-      const errBody = await res.text().catch(() => "");
-      console.error(
-        `[moderation] API ${res.status}: ${errBody.slice(0, 500)}`,
-      );
+      // Retryable errors: 429 + 5xx. Other 4xx are caller bugs; bail.
+      if (res.status === 429 || res.status >= 500) {
+        const errBody = await res.text().catch(() => "");
+        if (attempt < BACKOFFS_MS.length) {
+          // Parse Retry-After header if present
+          const retryAfter = res.headers.get("retry-after");
+          const retryAfterMs = retryAfter
+            ? Math.min(parseFloat(retryAfter) * 1000, 5000)
+            : BACKOFFS_MS[attempt];
+          console.warn(
+            `[moderation] API ${res.status} attempt ${attempt + 1}, backing off ${retryAfterMs}ms`,
+          );
+          await new Promise((r) => setTimeout(r, retryAfterMs));
+          continue;
+        }
+        console.error(
+          `[moderation] API ${res.status} after ${BACKOFFS_MS.length + 1} attempts: ${errBody.slice(0, 500)}`,
+        );
+        return null;
+      }
+
+      if (!res.ok) {
+        // 4xx other than 429 — bail without retry
+        const errBody = await res.text().catch(() => "");
+        console.error(
+          `[moderation] API ${res.status}: ${errBody.slice(0, 500)}`,
+        );
+        return null;
+      }
+      return (await res.json()) as ModerationResponse;
+    } catch (e) {
+      // Re-throw config errors so they reach the caller (action layer turns
+      // them into 500-class deployment errors, surfaced loudly).
+      if (e instanceof ModerationConfigError) throw e;
+      const msg = e instanceof Error ? e.message : String(e);
+      // AbortSignal timeout → retry (transient).
+      if (/abort/i.test(msg) || /timeout/i.test(msg)) {
+        if (attempt < BACKOFFS_MS.length) {
+          console.warn(
+            `[moderation] timeout attempt ${attempt + 1}, backing off ${BACKOFFS_MS[attempt]}ms`,
+          );
+          await new Promise((r) => setTimeout(r, BACKOFFS_MS[attempt]));
+          continue;
+        }
+      }
+      console.error(`[moderation] fetch failed: ${msg}`);
       return null;
     }
-    return (await res.json()) as ModerationResponse;
-  } catch (e) {
-    // Re-throw config errors so they reach the caller (action layer turns
-    // them into 500-class deployment errors, surfaced loudly).
-    if (e instanceof ModerationConfigError) throw e;
-    const msg = e instanceof Error ? e.message : String(e);
-    console.error(`[moderation] fetch failed: ${msg}`);
-    return null;
   }
+  return null;
 }
 
 /**

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Play, Star, Flag, Globe, Lock, MessageSquare } from "lucide-react";
+import { Play, Star, Flag, Globe, Lock, MessageSquare, Shield } from "lucide-react";
 import {
   forkStoryToPlaythrough,
   publishStory,
@@ -50,6 +50,25 @@ export function StoryDetailActions({
     "spam" | "hate" | "csam" | "illegal" | "harassment" | "sexual_minor" | "other"
   >("spam");
   const [reportDetails, setReportDetails] = useState("");
+
+  // W1-UX-H-01 (Wave 2 audit fix): show "AI 內容審核中..." hint after 800ms
+  // of pending state. Comment / review submission adds ~200-500ms of
+  // moderation latency that confuses users when the button just says "發送中".
+  // 800ms threshold = doesn't flash for fast paths but catches slow ones.
+  const [showModerationHint, setShowModerationHint] = useState(false);
+  const hintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (pending) {
+      if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
+      hintTimerRef.current = setTimeout(() => setShowModerationHint(true), 800);
+    } else {
+      if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
+      setShowModerationHint(false);
+    }
+    return () => {
+      if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
+    };
+  }, [pending]);
 
   function handleFork() {
     setError(null);
@@ -103,8 +122,10 @@ export function StoryDetailActions({
     });
   }
 
+  const [reportSuccess, setReportSuccess] = useState(false);
   function handleReport() {
     setError(null);
+    setReportSuccess(false);
     startTransition(async () => {
       const result = await reportContent({
         contentType: "story",
@@ -115,7 +136,9 @@ export function StoryDetailActions({
       if (result.ok) {
         setOpenPanel(null);
         setReportDetails("");
-        alert("已 report — moderation team 會 review。");
+        setReportSuccess(true);
+        // Auto-dismiss confirmation after 6s
+        setTimeout(() => setReportSuccess(false), 6000);
       } else {
         setError(`Report 失敗：${result.error}`);
       }
@@ -195,6 +218,12 @@ export function StoryDetailActions({
       {error && (
         <div className="text-xs text-rose-600 dark:text-rose-300">{error}</div>
       )}
+      {reportSuccess && (
+        <div className="rounded-md border border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/40 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-300 flex items-center gap-2">
+          <Shield className="h-3.5 w-3.5" />
+          已 report — moderation team 會 review。
+        </div>
+      )}
 
       {/* Rate panel */}
       {openPanel === "rate" && (
@@ -228,9 +257,9 @@ export function StoryDetailActions({
             <button
               onClick={handleRate}
               disabled={pending}
-              className="rounded-md bg-amber-600 text-white px-3 py-1.5 text-sm font-semibold hover:bg-amber-700"
+              className="rounded-md bg-amber-600 text-white px-3 py-1.5 text-sm font-semibold hover:bg-amber-700 inline-flex items-center gap-1.5"
             >
-              {pending ? "儲存中..." : "提交評分"}
+              {pending ? (showModerationHint ? (<><Shield className="h-3.5 w-3.5" />AI 審核中...</>) : "儲存中...") : "提交評分"}
             </button>
             <button
               onClick={() => setOpenPanel(null)}
@@ -258,9 +287,9 @@ export function StoryDetailActions({
             <button
               onClick={handleComment}
               disabled={pending || !commentBody.trim()}
-              className="rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-sm font-semibold hover:opacity-90 disabled:opacity-50"
+              className="rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-sm font-semibold hover:opacity-90 disabled:opacity-50 inline-flex items-center gap-1.5"
             >
-              {pending ? "發送中..." : "發送"}
+              {pending ? (showModerationHint ? (<><Shield className="h-3.5 w-3.5" />AI 審核中...</>) : "發送中...") : "發送"}
             </button>
             <button
               onClick={() => setOpenPanel(null)}
@@ -301,9 +330,9 @@ export function StoryDetailActions({
             <button
               onClick={handleReport}
               disabled={pending}
-              className="rounded-md bg-rose-600 text-white px-3 py-1.5 text-sm font-semibold hover:bg-rose-700"
+              className="rounded-md bg-rose-600 text-white px-3 py-1.5 text-sm font-semibold hover:bg-rose-700 inline-flex items-center gap-1.5"
             >
-              {pending ? "提交中..." : "提交 Report"}
+              {pending ? (showModerationHint ? (<><Shield className="h-3.5 w-3.5" />AI 審核中...</>) : "提交中...") : "提交 Report"}
             </button>
             <button
               onClick={() => setOpenPanel(null)}

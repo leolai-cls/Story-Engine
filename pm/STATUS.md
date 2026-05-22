@@ -7,9 +7,9 @@
 
 ## 🎯 而家狀態
 
-**Phase**: **Phase 5 Wave 1.5 全部 6 ship blocker 修咗 ✅ · Migration 0011 applied + 8/8 sanity pass · 落 Wave 2 multi-board library**
+**Phase**: **Phase 5 Wave 2 shipped ✅ · Migration 0012 applied + 8/8 sanity pass · Multi-board library live · 落 Phase 1.5/2 polish 或 Phase 6 / Phase 7 content**
 **Live URL**: https://story-engine-drab.vercel.app
-**Last updated**: 2026-05-22 (Session 8 cont. — Wave 1.5 closed · Wave 2 next)
+**Last updated**: 2026-05-22 (Session 8 cont. — Wave 2 closed · Library multi-board live)
 
 ## 🎯 Founder priority rule（鎖死）
 
@@ -23,7 +23,9 @@
 
 | 排 | Plan item | Tier | Time | Why |
 |---|---|---|---|---|
-| 🥇 | **Phase 5 Wave 2 — Multi-board library + 中文搜尋 + cold-start** — Genre carousels（熱門/最新/戀愛/冒險/校園/奇幻/運動/懸疑/編輯精選）· FTS Chinese bigram tokenization · trending cold-start boost (newcomer term) · fork null check · adult tier gate · profiles.display_name join in comments · smart-hide empty genre boards · fold-in 7 個 audit HIGH/MEDIUM (turn route moderation · UI loading hint · reportContent details moderate · UPDATE visibility consistency · 429 retry · trigger raise exception · Unicode NFKC normalize) | 🟢 FUNCTION | ~1 session | Solves discovery + HK/TW market #1 search + community bootstrap dead-end 一氣呵成 |
+| 🥇 | **Phase 1.5/2 polish (audit deferred)** — NPC name fuzzy match (M-02) · 4-axis disposition init · always_on lorebook demote pathway (Phase 2 P2-UX-H-05) · refusal embed flow · recent turns cache breakpoint reshape · Memory Journal UI backend prep | 🟢 FUNCTION | ~1 session | Audit backlog cleanup before launch |
+| 🥈 | **Phase 6 non-money function bits** — adult mode toggle setting · content rating filter logic · provider gating (Anthropic vs OpenRouter)（唔包 KYC）| 🟢 FUNCTION | ~1 session | Adult flow narrative gating + LLM provider isolation |
+| 🥉 | **Phase 7 content** — Founder + Claude 寫 5 條 launch-ready 官方故事（HK + TW cultural diversity · 順手填空蕩 genre 榜） | 🟢 FUNCTION | 多 session slow-burn | 官方故事支撐 public launch + 多 board library 有真內容 |
 | 🥈 | **Phase 1.5/2 polish** — NPC name fuzzy match · 4-axis disposition init · always_on demote · refusal embed flow · audit deferred | 🟢 FUNCTION | ~1 session | Audit backlog cleanup |
 | 🥉 | **Phase 6 function bits** — adult mode toggle · content rating filter · provider gating（唔包 KYC） | 🟢 FUNCTION | ~1 session | Adult flow narrative gating |
 | 4 | **Phase 5 Wave 3 polish** — parent_id RLS · rating row-lock · depth cap · private FTS opt-out · moderation content_id check · unlisted decision | 🟢 FUNCTION | ~30 分鐘 | Defense in depth |
@@ -35,7 +37,35 @@
 
 ## 🚧 Blockers
 
-**冇 launch blocker**。Wave 1.5 全部 6 個 ship blocker 修咗（Migration 0011 applied · 8/8 sanity pass）。Wave 2 multi-board library 唔係 launch blocker — 係 discovery + 中文 search UX 提升。可以照計劃進 Wave 2。
+**冇 launch blocker**。Phase 5 全部 wave 收工：原 SHOWSTOPPERS (Wave 1) + post-fix audit (Wave 1.5 · 6 blockers) + multi-board UI + CJK search + audit polish (Wave 2 · 7 HIGH/MEDIUM fold-in)。Library page 而家有 8 個 carousel (🔥 熱門 / 🆕 最新 / 💕 戀愛 / ⚔️ 冒險 / 🎓 校園 / 🔮 奇幻 / 🏀 運動 / 🕵️ 懸疑) + search overlay + smart-hide 空 boards。CJK FTS bigram tokenize works (verified roundtrip)。Trending cold-start newcomer boost active。可以入下個 function tier 工作。
+
+## ✅ Just completed (Session 8 cont. — Phase 5 Wave 2)
+
+### Migration 0012 — multi-board library + CJK FTS + audit polish
+- **P5-LOGIC-H-03 FTS CJK** — new `cjk_bigram_tokenize()` PL/pgSQL function emits sliding 2-char bigrams for CJK + lowercase tokens for Latin. `stories_update_search_text` trigger + `search_stories` RPC both use it symmetrically. Backfilled existing rows. Roundtrip verified: `'校園戀愛'` query matches `'TW 大學校園戀愛故事'` ✓ · `'古惑仔'` matches `'1980 年代香港古惑仔故事'` ✓
+- **P5-LOGIC-H-02 trending cold-start** — `trending_stories` RPC adds newcomer boost `exp(-age_days / 3)`. New 0-play story scores ~1.0 at hour 0 · ~0.5 at day 3 · popularity dominates after ~10 days
+- **New RPCs `latest_stories` + `stories_by_genre`** — separate carousels for 🆕 最新 + 6 genre boards
+- **W1-REGRESS-H-05** — `story_comments_lock_immutable_columns` RAISE EXCEPTION instead of silent revert (Phase 5 UI tier zombie-success bug closed)
+- **W1-RLS-M-04** — `story_ratings_own_update` policy adds visibility=public for INSERT/UPDATE consistency
+
+### Library page rewrite (`/library`)
+- Multi-board layout: 🔥 熱門 · 🆕 最新 · 💕 戀愛 · ⚔️ 冒險 · 🎓 校園 · 🔮 奇幻 · 🏀 運動 · 🕵️ 懸疑
+- Smart-hide empty genre carousels (only show when story exists)
+- 我嘅故事 + 繼續玩 sections on top for returning users
+- Search overlay mode when `?q=` URL param (uses CJK-aware search_stories RPC)
+- New `StoryCarousel` shared component
+- Parallel fetch of all 8 boards via Promise.all for SSR speed
+
+### Audit fold-ins
+- **W1-MOD-H-03** Turn route user action moderation — moderateText before Director pipeline · failClosed:true · 503 deployment error mapping
+- **W1-UX-H-01** Loading hint — after 800ms pending, button text becomes "AI 審核中..." with Shield icon (Rate / Comment / Report all 3)
+- **W1-MOD-M-05/M-08** reportContent details moderation — failClosed:true · block → null fallback (file report without abuse payload)
+- **W1-MOD-M-02** Moderation wrapper Unicode NFKC normalize + zero-width strip (U+200B-U+200D, U+2060, U+FEFF) + combining marks strip (U+0300-U+036F Zalgo defense)
+- **W1-INFO-14** OpenAI 429/5xx retry with exponential backoff (500ms/2s) + Retry-After header parsing
+- **W1-UX-L-11** Report success uses inline emerald banner instead of alert()
+- **profiles join in comments + ratings** — `display_name` + `avatar_url` joined via FK; UI can render real names (next UI tier picks up)
+
+### TypeScript clean · 8/8 prod sanity pass · 7 commits total since Phase 5 ship
 
 ## ✅ Just completed (Session 8 cont. — Phase 5 Wave 1.5)
 

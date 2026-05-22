@@ -5,26 +5,59 @@ import { SiteFooter } from "@/components/site-footer";
 import { createClient } from "@/lib/supabase/server";
 import {
   getTrendingStories,
+  getLatestStories,
+  getStoriesByGenre,
   searchStories,
   getMyPlaythroughs,
   getMyStories,
 } from "@/lib/community/queries";
-import { Sparkles, Globe, BookOpen, PlayCircle, Star, Users, Plus } from "lucide-react";
+import {
+  Sparkles,
+  PlayCircle,
+  Star,
+  Users,
+  Plus,
+  Search,
+} from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { StoryCarousel } from "./story-carousel";
 
 export const dynamic = "force-dynamic";
 
 /**
- * Library page — Phase 5 function tier.
+ * Library page — Phase 5 Wave 2 (multi-board comic-app style).
  *
- * Functional minimal UI (not polished — UI tier work later). Sections:
- *   1. My playthroughs (resume in-progress stories)
- *   2. My stories (created by me, any visibility)
- *   3. Trending public stories (FTS search if ?q= query param)
+ * Layout:
+ *   1. Header + search bar
+ *   2. (logged-in) 繼續玩 — resume in-progress playthroughs
+ *   3. (logged-in) 我嘅故事 — own stories of any visibility
+ *   4. Search overlay (if ?q= query param)
+ *      OR multi-board genre carousels (default browse view):
+ *        🔥 熱門 (trending with cold-start boost)
+ *        🆕 最新 (pure recency)
+ *        💕 戀愛 · ⚔️ 冒險 · 🎓 校園 · 🔮 奇幻 · 🏀 運動 · 🕵️ 懸疑
+ *        👑 編輯精選 (TODO: official picks tag — Phase 7 content tier)
+ *      Empty boards auto-hide (smart-hide rule).
  *
- * Search is server-rendered via ?q= URL param so SSR + bookmarkable.
+ * Phase 5 Wave 2 audit fix folds: P5-LOGIC-H-02 trending cold-start (newcomer
+ * boost in trending RPC) + P5-LOGIC-H-03 FTS CJK (bigram tokenizer in
+ * Migration 0012).
  */
+
+const GENRE_BOARDS: Array<{
+  key: string;
+  title: string;
+  icon: string;
+}> = [
+  { key: "romance", title: "戀愛", icon: "💕" },
+  { key: "adventure", title: "冒險", icon: "⚔️" },
+  { key: "school", title: "校園", icon: "🎓" },
+  { key: "fantasy", title: "奇幻", icon: "🔮" },
+  { key: "sports", title: "運動", icon: "🏀" },
+  { key: "mystery", title: "懸疑", icon: "🕵️" },
+];
+
 export default async function LibraryPage({
   params,
   searchParams,
@@ -41,21 +74,46 @@ export default async function LibraryPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Always render trending (for anon visitors too)
-  const stories = sp.q
+  const searchMode = !!sp.q;
+
+  // Search mode → single result list; browse mode → multi-board.
+  // All queries fetched in parallel for SSR speed.
+  const browseFetches = searchMode
+    ? Promise.resolve(null)
+    : Promise.all([
+        getTrendingStories(supabase, {
+          language: sp.language,
+          contentRating: sp.rating,
+          limit: 8,
+        }),
+        getLatestStories(supabase, {
+          language: sp.language,
+          contentRating: sp.rating,
+          limit: 8,
+        }),
+        ...GENRE_BOARDS.map((g) =>
+          getStoriesByGenre(supabase, {
+            genre: g.key,
+            language: sp.language,
+            contentRating: sp.rating,
+            limit: 8,
+          }),
+        ),
+      ]);
+
+  const searchResults = searchMode
     ? await searchStories(supabase, {
-        query: sp.q,
+        query: sp.q ?? "",
         language: sp.language,
         contentRating: sp.rating,
         limit: 24,
       })
-    : await getTrendingStories(supabase, {
-        language: sp.language,
-        contentRating: sp.rating,
-        limit: 12,
-      });
+    : null;
 
-  // User-specific sections
+  const browseResults = await browseFetches;
+  const [trending, latest, ...genreResults] = browseResults ?? [];
+
+  // User-specific sections (parallel with browse fetch)
   const [myPlaythroughs, myStories] = user
     ? await Promise.all([
         getMyPlaythroughs(supabase, { userId: user.id, limit: 6 }),
@@ -70,8 +128,8 @@ export default async function LibraryPage({
         <div className="mb-8 flex items-center justify-between gap-4 flex-wrap">
           <div>
             <h1 className="text-3xl font-bold tracking-tight mb-2 flex items-center gap-2">
-              <BookOpen className="h-7 w-7" />
-              Library
+              <Sparkles className="h-7 w-7 text-primary" />
+              故事圖書館
             </h1>
             <p className="text-muted-foreground text-sm">
               繼續舊故事 · 探索社群分享 · 創作新故事
@@ -86,16 +144,19 @@ export default async function LibraryPage({
           </Link>
         </div>
 
-        {/* Search */}
+        {/* Search bar */}
         <form className="mb-8" method="get">
           <div className="flex gap-2 flex-wrap">
-            <input
-              type="text"
-              name="q"
-              defaultValue={sp.q ?? ""}
-              placeholder="搵故事（標題 / 描述 / 標籤）..."
-              className="flex-1 min-w-[200px] rounded-md border px-3 py-2 text-sm bg-background"
-            />
+            <div className="flex-1 min-w-[200px] relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <input
+                type="text"
+                name="q"
+                defaultValue={sp.q ?? ""}
+                placeholder="搵故事（標題 / 描述 / 標籤 / 中文都得）..."
+                className="w-full rounded-md border pl-10 pr-3 py-2 text-sm bg-background"
+              />
+            </div>
             <select
               name="language"
               defaultValue={sp.language ?? ""}
@@ -122,12 +183,20 @@ export default async function LibraryPage({
             >
               搜尋
             </button>
+            {searchMode && (
+              <Link
+                href={"/library" as never}
+                className="inline-flex items-center rounded-md border border-input px-3 py-2 text-sm hover:bg-accent"
+              >
+                清除
+              </Link>
+            )}
           </div>
         </form>
 
-        {/* My playthroughs */}
+        {/* My playthroughs (always above the fold for returning users) */}
         {user && myPlaythroughs.length > 0 && (
-          <section className="mb-12">
+          <section className="mb-10">
             <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
               <PlayCircle className="h-5 w-5 text-primary" />
               繼續玩
@@ -161,7 +230,7 @@ export default async function LibraryPage({
 
         {/* My stories */}
         {user && myStories.length > 0 && (
-          <section className="mb-12">
+          <section className="mb-10">
             <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-primary" />
               我嘅故事
@@ -212,77 +281,112 @@ export default async function LibraryPage({
           </section>
         )}
 
-        {/* Trending / search results */}
-        <section>
-          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-            <Globe className="h-5 w-5 text-primary" />
-            {sp.q ? `搜尋結果：${sp.q}` : "Trending 公開故事"}
-          </h2>
-          {stories.length === 0 ? (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <p className="text-sm text-muted-foreground">
-                  {sp.q
-                    ? "搵唔到符合嘅故事 — 試下其他關鍵字"
-                    : "仲冇公開故事 — 你嘅故事可以做第一個 publish 嘅嘢"}
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {stories.map((s) => (
-                <Link
-                  key={s.id}
-                  href={`/library/${s.id}` as never}
-                  className="block"
-                >
-                  <Card className="hover:border-primary transition-colors h-full">
-                    <CardHeader>
-                      <CardTitle className="text-base">{s.title}</CardTitle>
-                      {s.description && (
-                        <CardDescription className="text-xs line-clamp-2">
-                          {s.description}
-                        </CardDescription>
-                      )}
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
-                        {s.genre && <Badge variant="outline" className="text-[10px]">{s.genre}</Badge>}
-                        {s.content_rating !== "sfw" && (
-                          <Badge variant="outline" className="text-[10px] border-rose-300 text-rose-600 dark:text-rose-300">
-                            {s.content_rating}
-                          </Badge>
+        {/* Search mode: single result list */}
+        {searchMode && searchResults !== null && (
+          <section>
+            <h2 className="text-xl font-bold mb-4">
+              搜尋結果：「{sp.q}」 ({searchResults.length})
+            </h2>
+            {searchResults.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <p className="text-sm text-muted-foreground">
+                    搵唔到符合嘅故事 — 試下其他關鍵字。提示：搜尋會 match 標題 + 描述 + 標籤，支援中文片段搜索。
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {searchResults.map((s) => (
+                  <Link
+                    key={s.id}
+                    href={`/library/${s.id}` as never}
+                    className="block"
+                  >
+                    <Card className="hover:border-primary transition-colors h-full">
+                      <CardHeader>
+                        <CardTitle className="text-base">{s.title}</CardTitle>
+                        {s.description && (
+                          <CardDescription className="text-xs line-clamp-2">
+                            {s.description}
+                          </CardDescription>
                         )}
-                        <span className="ml-auto flex items-center gap-1">
-                          <Users className="h-3 w-3" />
-                          {s.play_count}
-                        </span>
-                        {s.rating_count > 0 && (
-                          <span className="flex items-center gap-1">
-                            <Star className="h-3 w-3" />
-                            {s.rating_avg?.toFixed(1)}
-                          </span>
-                        )}
-                      </div>
-                      {s.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                          {s.tags.slice(0, 4).map((tag) => (
-                            <span
-                              key={tag}
-                              className="text-[10px] rounded bg-muted px-1.5 py-0.5 text-muted-foreground"
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
+                          {s.genre && (
+                            <Badge variant="outline" className="text-[10px]">
+                              {s.genre}
+                            </Badge>
+                          )}
+                          {s.content_rating !== "sfw" && (
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] border-rose-300 text-rose-600 dark:text-rose-300"
                             >
-                              {tag}
+                              {s.content_rating}
+                            </Badge>
+                          )}
+                          <span className="ml-auto flex items-center gap-1">
+                            <Users className="h-3 w-3" />
+                            {s.play_count}
+                          </span>
+                          {s.rating_count > 0 && (
+                            <span className="flex items-center gap-1">
+                              <Star className="h-3 w-3" />
+                              {s.rating_avg?.toFixed(1)}
                             </span>
-                          ))}
+                          )}
                         </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
-            </div>
-          )}
-        </section>
+                        {s.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {s.tags.slice(0, 4).map((tag) => (
+                              <span
+                                key={tag}
+                                className="text-[10px] rounded bg-muted px-1.5 py-0.5 text-muted-foreground"
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* Browse mode: multi-board carousels */}
+        {!searchMode && (
+          <>
+            <StoryCarousel
+              title="熱門"
+              icon="🔥"
+              stories={trending ?? []}
+              emptyMessage={
+                "仲冇 trending 故事 — 平台 launching!  創作一個成為先驅。"
+              }
+            />
+            <StoryCarousel
+              title="最新"
+              icon="🆕"
+              stories={latest ?? []}
+            />
+            {GENRE_BOARDS.map((g, i) => (
+              <StoryCarousel
+                key={g.key}
+                title={g.title}
+                icon={g.icon}
+                stories={genreResults[i] ?? []}
+                /* Smart-hide: don't show empty genre carousels until there's content */
+                emptyMessage={undefined}
+              />
+            ))}
+          </>
+        )}
       </main>
       <SiteFooter />
     </>

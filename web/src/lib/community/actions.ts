@@ -371,6 +371,35 @@ export async function reportContent(params: {
     return { ok: false, error: "details_too_long" };
   }
 
+  // W1-MOD-M-05 / W1-COST-M-08 (Wave 2 audit fix) — moderate details text
+  // if non-empty. Admin moderation queue should NOT collect CSAM-flavored
+  // payloads inside report bodies; that's both a queue-poisoning attack
+  // vector and a legal-retention hazard. failClosed:true ensures we don't
+  // silently accept abuse text on transient API errors.
+  // Block fallback: file the report without details rather than reject the
+  // whole report (legitimate reports shouldn't be denied because details
+  // tripped the filter — keep the spam/harassment flag, drop the payload).
+  let detailsForInsert: string | null = params.details?.trim() || null;
+  if (detailsForInsert && detailsForInsert.length > 0) {
+    try {
+      const verdict = await moderateText(detailsForInsert, "sfw", { failClosed: true });
+      if (!verdict.allowed) {
+        console.warn(
+          `[reportContent] moderation dropped details from user ${user.id} on ${params.contentType}/${params.contentId}: ${verdict.categories.join(", ")}`,
+        );
+        // Drop details, keep report — moderation team sees the flag without abuse payload.
+        detailsForInsert = null;
+      }
+    } catch (e) {
+      if (e instanceof ModerationConfigError) {
+        console.error("[reportContent] moderation config error:", e.message);
+        // Deployment misconfig — block to surface loudly.
+        return { ok: false, error: "內容審核系統設定問題，請稍後再試。" };
+      }
+      throw e;
+    }
+  }
+
   const { data, error } = await supabase
     .from("moderation_flags")
     .insert({
@@ -378,7 +407,7 @@ export async function reportContent(params: {
       content_id: params.contentId,
       reporter_id: user.id,
       reason: params.reason,
-      details: params.details ?? null,
+      details: detailsForInsert,
     })
     .select("id")
     .single();

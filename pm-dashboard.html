@@ -565,16 +565,16 @@
       <p class="section-sub">每次新 session 開始，由呢度睇起。</p>
 
       <div class="top-meta">
-        <div><strong>Last updated</strong> 2026-05-22 · Session 8 cont. (Wave 1.5 全部 6 ship blocker 修咗 · Wave 2 multi-board next)</div>
-        <div><strong>Phase</strong> Phase 0/1/1.5/2/3 backend ✅ · Phase 5 backend ✅ · Wave 1 ✅ · Wave 1.5 ✅ · Wave 2 multi-board next</div>
+        <div><strong>Last updated</strong> 2026-05-22 · Session 8 cont. (Phase 5 Wave 2 shipped · Multi-board library live · CJK search works)</div>
+        <div><strong>Phase</strong> Phase 0/1/1.5/2/3 backend ✅ · Phase 5 backend ✅ · Wave 1 ✅ · Wave 1.5 ✅ · Wave 2 ✅ · 落 1.5/2 polish / Phase 6 non-money / Phase 7 content</div>
         <div><strong>Live</strong> <a href="https://story-engine-drab.vercel.app" target="_blank" style="color: var(--primary);">story-engine-drab.vercel.app</a></div>
       </div>
 
       <div class="status-hero">
-        <div class="label">✅ Phase 5 Wave 1.5 全部 6 ship blocker 修咗 · Migration 0011 applied · 8/8 sanity pass · CLAUDE.md hard rule #6 真正 close</div>
-        <div class="phase">REVOKE + service-role RPC + ModerationConfigError + threshold tune + stories content lock + aggregate trigger fix</div>
+        <div class="label">✅ Phase 5 Wave 2 完成 · Multi-board library 上線 · CJK 搜尋通 · Trending cold-start 解 · 7 audit fold-in 全部 land</div>
+        <div class="phase">8-board carousel layout · cjk_bigram_tokenize · newcomer boost · turn moderation · report details moderate · NFKC normalize · 429 retry · loading hint</div>
         <div class="focus">
-          Session 8 cont. ship Migration 0011 (REVOKE INSERT/UPDATE on story_comments + story_ratings from authenticated · 3 SECURITY DEFINER RPCs granted to service_role only · aggregate trigger recompute BOTH on UPDATE · 2 BEFORE UPDATE triggers for story_id lock + stories content lock) + service-role client helper + 3 actions refactor。<strong>CSAM hard rule #6 真正 close 三重防線</strong>：action layer moderation (failClosed:true) + RLS revoke (browser cannot INSERT) + RPC granted to service_role only (browser cannot RPC)。Moderation threshold tune：sexual/minors 0.15→0.5 · general violence 移出 SFW · threatening 移出 HARD 加 0.7 floor — 古惑仔 / 武俠 / TW 校園戀愛 / villain dialogue 全部過。createStoryFromPrompt reorder：auth → Promise.all(balance + tier + moderation) → schema-gen — 冇錢用戶 ~20ms fail-fast。<strong>下一步：Wave 2 = multi-board library + FTS Chinese bigram + trending cold-start boost + 7 個 audit HIGH/MEDIUM fold-in</strong>。
+          Session 8 cont. ship Migration 0012 (cjk_bigram_tokenize PL/pgSQL function · trending_stories RPC newcomer boost exp(-age/3) · latest_stories + stories_by_genre RPCs · comment lock trigger RAISE EXCEPTION · story_ratings UPDATE policy visibility check) + Library page rewrite (8 genre carousels + search overlay + smart-hide empty boards) + 7 audit fold-ins (W1-MOD-H-03 turn route moderation · W1-UX-H-01 loading hint · W1-MOD-M-05/M-08 reportContent details · W1-MOD-M-02 NFKC + zero-width strip · W1-INFO-14 429 retry with backoff · W1-UX-L-11 inline emerald banner · profile join in comments/ratings)。<strong>HK + TW market search 解</strong>：CJK FTS roundtrip verified — 「校園戀愛」query 真係 match「TW 大學校園戀愛故事」title · 「古惑仔」match「1980 年代香港古惑仔故事」。<strong>Trending cold-start 解</strong>：新故事即使 0 plays 都會喺榜（3-day half-life freshness boost），~10 日後 popularity 接手。<strong>下一步：Phase 1.5/2 polish (audit deferred) · Phase 6 non-money (adult toggle / content rating filter / provider gating) · Phase 7 官方故事 5 條</strong>。
         </div>
       </div>
 
@@ -591,26 +591,28 @@
           </ul>
         </div>
         <div class="status-card good">
-          <div class="status-card-title">✅ Wave 1.5 全部 6 ship blocker 修咗 (Migration 0011 + service-role RPC + threshold tune)</div>
+          <div class="status-card-title">✅ Wave 2 Multi-board Library 上線 · 8 carousel + CJK 搜尋 + trending boost</div>
           <ul>
-            <li>✅ <strong>W1-MOD-C-01 CRIT</strong> — REVOKE INSERT/UPDATE on story_comments + story_ratings from authenticated · 3 SECURITY DEFINER RPCs (insert_story_comment_secure · upsert_story_rating_secure · soft_delete_comment_secure) granted to service_role only · action layer call via createServiceRoleClient · browser 完全冇 path</li>
-            <li>✅ <strong>W1-MOD-C-02 CRIT</strong> — ModerationConfigError class · missing OPENAI_API_KEY 永遠 hard-fail · 3 actions failClosed:true · transient API error 永遠 block + Sentry log</li>
-            <li>✅ <strong>W1-FP-H-04 HIGH</strong> — 移 general violence 出 SFW_ADDITIONAL_BLOCK · violence/graphic 留 HARD + 0.6 floor · 古惑仔 / 武俠 / 江湖 example 通過</li>
-            <li>✅ <strong>W1-FP-H-03 HIGH</strong> — sexual/minors floor 0.15→0.5 · TW 校園戀愛 / 細路 false-positive 解</li>
-            <li>✅ <strong>W1-AGG-H-02 HIGH</strong> — aggregate trigger UPDATE recompute BOTH sides · story_ratings BEFORE UPDATE trigger force story_id immutable</li>
-            <li>✅ <strong>W1-RLS-H-01 HIGH</strong> — stories BEFORE UPDATE trigger lock 10 個 content columns (title/desc/prompt_seed/bible/state_schema/etc) · publishStory 仍 work (visibility 仍可變)</li>
-            <li>🎁 Bonus: <strong>W1-FP-M-09</strong> threatening 出 HARD 加 0.7 floor · <strong>W1-COST-C-01</strong> reorder Promise.all · <strong>W1-COST-H-02</strong> timeout 10s→3s</li>
-            <li>Migration 0011 applied · 8/8 sanity pass · TypeScript clean</li>
+            <li><strong>Multi-board UI</strong>：🔥 熱門 · 🆕 最新 · 💕 戀愛 · ⚔️ 冒險 · 🎓 校園 · 🔮 奇幻 · 🏀 運動 · 🕵️ 懸疑 · smart-hide empty boards · search overlay mode 用 ?q= URL param</li>
+            <li><strong>P5-LOGIC-H-03 CJK FTS</strong> — `cjk_bigram_tokenize` PL/pgSQL · bigram rolling window for CJK · lowercase tokens for Latin · 兩邊 (index + query) 對稱 · roundtrip verified「校園戀愛」query 真係 match「TW 大學校園戀愛故事」title</li>
+            <li><strong>P5-LOGIC-H-02 trending cold-start</strong> — `exp(-age_days / 3)` newcomer boost term · 新 0-play 故事 score ~1.0 at hour 0 · ~0.5 at day 3 · popularity dominates after ~10 days</li>
+            <li><strong>2 new RPCs</strong>：latest_stories (pure recency) · stories_by_genre (genre column OR tag match + trending formula)</li>
+            <li><strong>W1-REGRESS-H-05 comment lock</strong> — silent revert 改 RAISE EXCEPTION · Phase 5 UI tier zombie-success bug 死路</li>
+            <li><strong>W1-RLS-M-04 ratings UPDATE</strong> — WITH CHECK 加 visibility=public 一致性</li>
+            <li>Migration 0012 applied · 8/8 sanity pass · TypeScript clean</li>
           </ul>
         </div>
         <div class="status-card good">
-          <div class="status-card-title">🎨 下一步：Wave 2 Multi-board Library + 7 個 HIGH/MEDIUM fold-in</div>
+          <div class="status-card-title">✅ 7 個 audit HIGH/MEDIUM fold-in (post-Wave-1.5)</div>
           <ul>
-            <li>多榜架構：🔥 熱門 · 🆕 最新 · 💕 戀愛 · ⚔️ 冒險 · 🎓 校園 · 🔮 奇幻 · 🏀 運動 · 🕵️ 懸疑 · 👑 編輯精選 · smart-hide empty</li>
-            <li>解決 P5-LOGIC-H-02 trending cold-start dead-end + P5-LOGIC-H-03 FTS 中文壞（bigram tokenization）</li>
-            <li>Fold-in audit findings：W1-MOD-H-03 turn route moderation · W1-UX-H-01 「AI 內容審核中...」 hint · W1-MOD-M-05 reportContent details moderate · W1-MOD-M-02 Unicode NFKC normalize · W1-REGRESS-H-05 trigger raise exception · W1-RLS-M-04 UPDATE visibility consistency · W1-INFO-14 429 retry + PostHog metric</li>
-            <li>順手修：fork null check · adult tier gate · profiles.display_name join in comments</li>
-            <li>之後：Phase 1.5/2 audit deferred polish → Phase 6 non-money function → Phase 7 official content（順手填空蕩 genre 榜）</li>
+            <li><strong>W1-MOD-H-03</strong> Turn route user action moderation — moderateText before Director pipeline · failClosed:true · 503 mapping</li>
+            <li><strong>W1-UX-H-01</strong> Loading hint — 800ms 之後 button 變「AI 審核中...」+ Shield icon · 3 個 button 全部 (Rate / Comment / Report)</li>
+            <li><strong>W1-MOD-M-05/M-08</strong> reportContent details moderation — failClosed:true · block → null fallback (file report without abuse payload)</li>
+            <li><strong>W1-MOD-M-02</strong> Unicode NFKC normalize + zero-width strip (U+200B-U+200D, U+2060, U+FEFF) + combining marks strip (U+0300-U+036F Zalgo)</li>
+            <li><strong>W1-INFO-14</strong> 429/5xx exponential backoff retry (500ms / 2s) + Retry-After header parsing</li>
+            <li><strong>W1-UX-L-11</strong> Report success → inline emerald banner，alert() killed</li>
+            <li><strong>Profile join</strong> — comments + ratings join profiles.display_name + avatar_url via FK · UI tier picks up real names later</li>
+            <li>下一步：Phase 1.5/2 polish · Phase 6 non-money (adult toggle / content rating filter / provider gating) · Phase 7 官方故事 5 條</li>
           </ul>
         </div>
       </div>
