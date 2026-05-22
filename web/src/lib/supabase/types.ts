@@ -146,6 +146,63 @@ export type Database = {
           },
         ]
       }
+      moderation_flags: {
+        Row: {
+          content_id: string
+          content_type: string
+          created_at: string
+          details: string | null
+          id: string
+          reason: string
+          reporter_id: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+        }
+        Insert: {
+          content_id: string
+          content_type: string
+          created_at?: string
+          details?: string | null
+          id?: string
+          reason: string
+          reporter_id?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+        }
+        Update: {
+          content_id?: string
+          content_type?: string
+          created_at?: string
+          details?: string | null
+          id?: string
+          reason?: string
+          reporter_id?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moderation_flags_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moderation_flags_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       playthrough_character_states: {
         Row: {
           character_id: string
@@ -314,6 +371,7 @@ export type Database = {
           prompt_seed: string
           rating_avg: number | null
           rating_count: number
+          search_text: unknown
           state_schema: Json
           story_bible: Json
           tags: string[]
@@ -338,6 +396,7 @@ export type Database = {
           prompt_seed: string
           rating_avg?: number | null
           rating_count?: number
+          search_text?: unknown
           state_schema?: Json
           story_bible?: Json
           tags?: string[]
@@ -362,6 +421,7 @@ export type Database = {
           prompt_seed?: string
           rating_avg?: number | null
           rating_count?: number
+          search_text?: unknown
           state_schema?: Json
           story_bible?: Json
           tags?: string[]
@@ -428,6 +488,103 @@ export type Database = {
             columns: ["story_id"]
             isOneToOne: false
             referencedRelation: "stories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      story_comments: {
+        Row: {
+          body: string
+          created_at: string
+          deleted: boolean
+          id: string
+          parent_id: string | null
+          story_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          deleted?: boolean
+          id?: string
+          parent_id?: string | null
+          story_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          deleted?: boolean
+          id?: string
+          parent_id?: string | null
+          story_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "story_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "story_comments_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "story_comments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      story_ratings: {
+        Row: {
+          created_at: string
+          review_text: string | null
+          score: number
+          story_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          review_text?: string | null
+          score: number
+          story_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          review_text?: string | null
+          score?: number
+          story_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_ratings_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "story_ratings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -645,6 +802,16 @@ export type Database = {
         }
         Returns: undefined
       }
+      fork_story_to_playthrough: {
+        Args: {
+          p_character_name?: string
+          p_llm_model?: string
+          p_story_id: string
+        }
+        Returns: {
+          playthrough_id: string
+        }[]
+      }
       match_lorebook_entries:
         | {
             Args: {
@@ -740,6 +907,54 @@ export type Database = {
         Returns: {
           refreshed_count: number
           total_credits_granted: number
+        }[]
+      }
+      search_stories: {
+        Args: {
+          p_content_rating?: string
+          p_language?: string
+          p_limit?: number
+          p_offset?: number
+          p_query: string
+        }
+        Returns: {
+          content_rating: string
+          cover_image_url: string
+          created_at: string
+          description: string
+          fts_rank: number
+          genre: string
+          id: string
+          language: string
+          play_count: number
+          rating_avg: number
+          rating_count: number
+          tags: string[]
+          title: string
+        }[]
+      }
+      trending_stories: {
+        Args: {
+          p_content_rating?: string
+          p_language?: string
+          p_limit?: number
+          p_min_rating?: number
+          p_offset?: number
+        }
+        Returns: {
+          content_rating: string
+          cover_image_url: string
+          created_at: string
+          description: string
+          genre: string
+          id: string
+          language: string
+          play_count: number
+          rating_avg: number
+          rating_count: number
+          tags: string[]
+          title: string
+          trending_score: number
         }[]
       }
     }
