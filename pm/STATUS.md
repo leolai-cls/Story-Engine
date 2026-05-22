@@ -7,9 +7,9 @@
 
 ## 🎯 而家狀態
 
-**Phase**: **Phase 5 Wave 1 SHOWSTOPPERS 全部修咗 ✅ · Migration 0010 applied + 5/5 sanity pass · 落 Wave 2（multi-board library + FTS 中文 + trending cold-start）**
+**Phase**: **Phase 5 Wave 1 shipped + 即 audit → 6 個 new ship blocker (2 CRIT + 4 HIGH) · Wave 1.5 patch 入 Wave 2 之前必修**
 **Live URL**: https://story-engine-drab.vercel.app
-**Last updated**: 2026-05-22 (Session 8 cont. — Wave 1 closed · Multi-board library next)
+**Last updated**: 2026-05-22 (Session 8 cont. — Wave 1 audit · Wave 1.5 必修)
 
 ## 🎯 Founder priority rule（鎖死）
 
@@ -23,7 +23,8 @@
 
 | 排 | Plan item | Tier | Time | Why |
 |---|---|---|---|---|
-| 🥇 | **Phase 5 Wave 2 — Multi-board library + 中文搜尋 + cold-start** — Genre carousels（熱門/最新/戀愛/冒險/校園/奇幻/運動/懸疑/編輯精選）· FTS Chinese bigram tokenization · trending cold-start boost (newcomer term) · fork null check · adult tier gate · profiles.display_name join in comments · smart-hide empty genre boards | 🟢 FUNCTION | ~1 session | Solves discovery + HK/TW market #1 search + community bootstrap dead-end 一氣呵成 |
+| 🛑 | **Wave 1.5 patch — 6 ship blockers from Wave 1 audit** — Migration 0011 (REVOKE INSERT/UPDATE on 3 表 + SECURITY DEFINER RPCs · aggregate trigger fix · stories.title BEFORE UPDATE lock) + failClosed default + moderation threshold tune（violence out of SFW + sexual/minors 0.15→0.5 + threatening 加 floor） | 🟢 FUNCTION | ~1 session | CLAUDE.md hard rule #6 + reminder #22 pattern repeating · 我哋自己 example prompt 古惑仔 / TW 校園戀愛 會被 false-positive 攔截 |
+| 🥇 | **Phase 5 Wave 2 — Multi-board library + 中文搜尋 + cold-start** — Genre carousels（熱門/最新/戀愛/冒險/校園/奇幻/運動/懸疑/編輯精選）· FTS Chinese bigram tokenization · trending cold-start boost (newcomer term) · fork null check · adult tier gate · profiles.display_name join in comments · smart-hide empty genre boards · fold-in 7 個 audit HIGH/MEDIUM (turn route moderation · UI loading hint · timeout · details moderate · UPDATE visibility consistency · 429 retry · trigger raise exception) | 🟢 FUNCTION | ~1 session | Solves discovery + HK/TW market #1 search + community bootstrap dead-end 一氣呵成 |
 | 🥈 | **Phase 1.5/2 polish** — NPC name fuzzy match · 4-axis disposition init · always_on demote · refusal embed flow · audit deferred | 🟢 FUNCTION | ~1 session | Audit backlog cleanup |
 | 🥉 | **Phase 6 function bits** — adult mode toggle · content rating filter · provider gating（唔包 KYC） | 🟢 FUNCTION | ~1 session | Adult flow narrative gating |
 | 4 | **Phase 5 Wave 3 polish** — parent_id RLS · rating row-lock · depth cap · private FTS opt-out · moderation content_id check · unlisted decision | 🟢 FUNCTION | ~30 分鐘 | Defense in depth |
@@ -35,7 +36,7 @@
 
 ## 🚧 Blockers
 
-**冇 launch blocker**。4 個 Phase 5 SHOWSTOPPERS 全部修咗（Migration 0010 applied · 5/5 sanity pass）。Wave 2 multi-board library 唔係 launch blocker — 係 discovery + 中文 search UX 提升。可以照計劃進 Wave 2。
+**🛑 Wave 1.5 必修先入 Wave 2**：Wave 1 fix 修咗原 4 個 P5 SHOWSTOPPER surface-level，但 即時 audit 揾到 fix 本身留 6 個 ship blocker（2 CRIT + 4 HIGH）。CLAUDE.md hard rule #6 「無論咩模式都要 CSAM filter」+ reminder #22 「加 enum 認 vector 但唔 implement defense」**pattern repeating** — schema-level admit 比 action-level enforce 走漏 RLS layer + fail-open env drift + threshold mis-calibration（我哋自己 example prompt 都會被 false-positive 攔截）。詳見 [audit-report-phase5-wave1.html](audit-report-phase5-wave1.html)。
 
 ## ✅ Just completed (Session 8 cont. — Phase 5 Wave 1)
 
