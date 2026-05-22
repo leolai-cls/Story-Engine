@@ -565,40 +565,42 @@
       <p class="section-sub">每次新 session 開始，由呢度睇起。</p>
 
       <div class="top-meta">
-        <div><strong>Last updated</strong> 2026-05-22 · Session 6 (Phase 2 + Deep Audit + 3 fix waves)</div>
-        <div><strong>Phase</strong> Phase 2 (Memory) shipped + audited · 4 migrations pending</div>
+        <div><strong>Last updated</strong> 2026-05-22 · Session 7 (Phase 3 ship + audit + 3 fix waves + priority re-org)</div>
+        <div><strong>Phase</strong> Phase 0/1/1.5/2 + Phase 3 backend ✅ · 重新 prioritize：function → UI → money</div>
         <div><strong>Live</strong> <a href="https://story-engine-drab.vercel.app" target="_blank" style="color: var(--primary);">story-engine-drab.vercel.app</a></div>
       </div>
 
       <div class="status-hero">
-        <div class="label">🧠 Phase 2 4-layer Memory shipped · 43 audit findings catalogued · SHOWSTOPPER fixed · 18 fixes shipped</div>
-        <div class="phase">Embed + Retriever + Summarizer + Lorebook · waitUntil/after() fix · similarity floors · i18n · sentence-truncate</div>
+        <div class="label">🎯 重新對齊 — Founder rule：先完成所有 function · 再 UI design · 最後 money</div>
+        <div class="phase">真正剩低嘅 function：Phase 5 Community · Phase 6 non-money 部分 · Phase 1.5/2 polish · Phase 7 content</div>
         <div class="focus">
-          Session 6: Phase 2 全 4-layer 記憶系統 ship 上 prod (embed.ts · retriever.ts · summarizer.ts · lorebook.ts · turn route wired)。3 agent parallel deep audit 出 43 finding，發現 1 個 SHOWSTOPPER — Vercel 殺 <code>void (async)</code> 即係 Phase 2 大部分 tier 喺 prod 默默死晒。3 浪 fix shipped — 18 個 finding 修咗。<strong>4 個 migration (0002+0003+0004+0005) 等用戶 apply 落 prod 先真正運作。</strong>
+          Session 7 完成 Phase 3 backend (credit ledger + atomic RPC + tier gate + model picker) + 1 SHOWSTOPPER fix（任何 user drain 任何人 balance 嘅 RPC 漏洞）+ 3 fix waves (17 audit finding 修咗)。**但 founder 提醒：credits / Stripe / KYC 全部係 money/UX 層，唔屬 function。Phase 3 排錯 priority — 應該擺低後做。**而家 pivot：先 ship Phase 5 Community (最大 function gap) → Phase 1.5/2 polish → Phase 6 non-money function → Phase 7 content。<strong>UI design 同 money (Phase 4 Stripe / Phase 6 KYC / Phase 3 deferred) 全部排到 function 完之後</strong>。
         </div>
       </div>
 
       <div class="status-grid">
         <div class="status-card good">
-          <div class="status-card-title">✅ Session 6 全部完成 — Phase 2 ship + audit + 3 fix waves</div>
+          <div class="status-card-title">✅ Session 7 完成（Phase 3 backend，雖然 priority 排錯）</div>
           <ul>
-            <li><strong>🧠 Phase 2 ship</strong> (commit 0f650c7) — Migration 0004 (turn_embeddings · memory_summaries · lorebook_entries + 3 match RPCs) · <code>embed.ts</code> (OpenAI text-embedding-3-small) · <code>memory/retriever.ts</code> · <code>memory/summarizer.ts</code> · <code>memory/lorebook.ts</code> · turn route wired</li>
-            <li><strong>🔍 Phase 2 Deep Audit</strong> (3 agents · 43 finding · 7C/17H/14M/5L) → <code>audit-report-phase2-deep.html</code></li>
-            <li><strong>🛑 SHOWSTOPPER discovered + fixed</strong>: Vercel kills <code>void (async)</code> background tasks → Phase 2 tiers 2/3/4 silently dead in prod until <code>after()</code> from <code>next/server</code> wrap</li>
-            <li><strong>Wave 1</strong> (ab51c34): SHOWSTOPPER fix + Migration 0005 (UNIQUE memory_summaries · UNIQUE btrim() lorebook · vector dim CHECK · similarity threshold + overprovision in match RPCs) · lorebook recency-wins · client trim</li>
-            <li><strong>Wave 2</strong> (7a716c7): OpenAI 429 retry+backoff · lorebook batched embed (5→1 API call) · summarizer emotional texture + i18n · lorebook extractor i18n · Director teaches memory use</li>
-            <li><strong>Wave 3</strong> (d9f6c8d): First summary at turn 10 (not 20) · RAG truncate-to-sentence keeps resolution · Stronger anti-quote · top similarity telemetry</li>
-            <li><strong>18 of 43 findings fixed</strong>. Cost reality check: ~$0.023/turn (memory +35% overhead, not 2%)</li>
+            <li><strong>Migration 0006/0007/0008</strong>（applied + verified prod）— credit_ledger · subscriptions · stripe_webhook_events · apply_credit_charge RPC（with auth.uid guard 防 cross-user drain）· refresh_free_tier_credits daily cron</li>
+            <li><strong>🛑 Phase 3 SHOWSTOPPER fixed</strong>：任何 logged-in user 之前可以 drain / mint 任何人 balance。Migration 0007 加 auth.uid() guard + credits_charged fold into RPC（atomic）</li>
+            <li><strong>credit meter + pricing</strong>：MODEL_PRICING constants · computeCredits with cached-input math fix · computeTurnCredits 包 background reserve · BASE 1000 credits/$1 · STORY_ENGINE_MARKUP 2.0</li>
+            <li><strong>Model picker + Settings page real</strong>（不再 'Coming Soon'）· anon claim CTA · 友好 UX for 402/403 errors</li>
+            <li><strong>Vercel cron</strong>：/api/cron/refresh-free-credits 每日 UTC 0:00 跑（vercel.json schedule）</li>
+            <li><strong>Phase 3 deep audit</strong>（2 agents · 33 finding）+ <strong>17 fixes shipped</strong> across 3 waves（SHOWSTOPPER + cost accounting + lifecycle + UX）</li>
           </ul>
         </div>
         <div class="status-card warn">
-          <div class="status-card-title">🟡 用戶 1 個 step + 之後路線</div>
+          <div class="status-card-title">🎯 Function-first priority — 重新排嘅順序</div>
           <ul>
-            <li>🚨 <strong>Apply 4 migrations 落 prod</strong> — <code>0002</code> (RLS + pgvector) · <code>0003</code> (atomic RPCs) · <code>0004</code> (memory tables) · <code>0005</code> (Phase 2 audit fixes)。Code 有 graceful fallback 但係 Phase 2 memory layer 喺 prod 等於零 until apply</li>
-            <li>🧪 <strong>E2E test long-play 30+ turns</strong> — verify summary fires at turn 10, lorebook populates, RAG retrieves</li>
-            <li><strong>Phase 3 — Multi-LLM + Credits</strong> (~2 sessions): DB-backed model registry · picker UI · credit ledger · per-model rate cards</li>
-            <li><strong>Memory Journal UI</strong> (P2-UX-C-03 — explicit deferred from Wave 3): "AI 真係記得" 嘅 player-visibility differentiator — NovelAI 都有，玩家見唔到就唔買單</li>
-            <li><strong>Foundation audit UX-C-01..04</strong> + Phase 2 deferred items (always_on demote · dimensions 1024 · cost capture)</li>
+            <li>🥇 <strong>Phase 5 Community</strong>（最大 function gap）— sharing / library / ratings / comments / fork / moderation</li>
+            <li>🥈 <strong>Phase 1.5.3 + Phase 2 polish</strong> — NPC name fuzzy match · 4-axis disposition init · always_on lorebook demote · 其他 audit deferred 細嘢</li>
+            <li>🥉 <strong>Phase 6 function bits</strong> — adult mode toggle · content rating filter · provider gating（唔包 KYC，KYC = money）</li>
+            <li>4️⃣ <strong>Phase 7 content</strong> — Founder + Claude 一齊寫 5 條 launch-ready 官方故事（多 session 慢慢做）</li>
+            <li>↓ <em>function 完晒之後</em> ↓</li>
+            <li>💄 <strong>UI design wave</strong> — Library page · Memory Journal · Locale switcher · Settings i18n · 全部 UX-C-01..04 + audit deferred UX</li>
+            <li>↓ <em>UI 完晒之後</em> ↓</li>
+            <li>💰 <strong>Money</strong> — Phase 4 Stripe · Phase 6 KYC · Phase 3 deferred (refund saga / OpenRouter pricing pin)</li>
           </ul>
         </div>
       </div>
@@ -609,9 +611,13 @@
           <div class="quick-link-title">🎮 試玩 (Guest mode)</div>
           <div class="quick-link-desc">Login → Guest button → /stories/new → 玩夠 5+ turns 試 act transition</div>
         </a>
+        <a href="audit-report-phase3-deep.html" class="quick-link">
+          <div class="quick-link-title">🔍 Phase 3 Deep Audit (latest · 🛑 SHOWSTOPPER fixed)</div>
+          <div class="quick-link-desc">2-agent parallel · 33 finding · 1 SHOWSTOPPER · 17 fixes shipped (3 waves)</div>
+        </a>
         <a href="audit-report-phase2-deep.html" class="quick-link">
-          <div class="quick-link-title">🔍 Phase 2 Deep Audit (latest · 🛑 SHOWSTOPPER)</div>
-          <div class="quick-link-desc">3-agent parallel · 43 finding · 7 Critical · Phase 2 fire-and-forget killed by Vercel</div>
+          <div class="quick-link-title">🔍 Phase 2 Deep Audit</div>
+          <div class="quick-link-desc">3-agent parallel · 43 finding · 7 Critical · 18 fixes shipped</div>
         </a>
         <a href="audit-report-foundation-deep.html" class="quick-link">
           <div class="quick-link-title">🔍 Foundation Deep Audit</div>
@@ -621,10 +627,6 @@
           <div class="quick-link-title">🔍 Phase 1.5.3 Audit</div>
           <div class="quick-link-desc">1 critical fixed (C-01) · 4 medium follow-ups</div>
         </a>
-        <a href="audit-report-phase1-ux.html" class="quick-link">
-          <div class="quick-link-title">🔍 Phase 1 UX Audit</div>
-          <div class="quick-link-desc">18 finding · 2 critical UX deferred · 10 backend → A/B/C</div>
-        </a>
         <a href="plan.html" class="quick-link">
           <div class="quick-link-title">📘 Business plan</div>
           <div class="quick-link-desc">Re-scan 完整 product vision</div>
@@ -633,6 +635,22 @@
 
       <h3>📓 Session Log</h3>
       <div class="session-log">
+        <div class="session-entry">
+          <div class="session-date">2026-05-22 · Session 7（Phase 3 ship + audit + 3 fix waves + priority re-org）</div>
+          <div class="session-title">💳 Credits foundation 上線 · 🛑 SHOWSTOPPER 修補 · 🎯 Founder priority 重排</div>
+          <div class="session-body">
+            <p><strong>主要成果</strong>：Phase 3 (Multi-LLM + Credits) backend 完整上線（Migration 0006/0007/0008、credit ledger、apply_credit_charge RPC with security guard、credit meter、Settings page real、Model picker、daily refresh cron）。Phase 3 deep audit 揾出 33 finding 包括 1 個 SHOWSTOPPER（任何 logged-in user 可以 drain/mint 任何人 balance），3 浪 fix shipped 修咗 17 條。</p>
+            <p><strong>🛑 Phase 3 SHOWSTOPPER</strong>（commit 5211434）：<code>apply_credit_charge</code> RPC SECURITY DEFINER + GRANT 比 authenticated，但無 verify <code>auth.uid() = p_user_id</code>。Migration 0007 加 caller guard + fold <code>credits_charged</code> update 入 RPC（atomic）。Smoke test 確認直接 PAT call 都被 reject。</p>
+            <p><strong>Wave 1</strong>（5211434）：SHOWSTOPPER fix + Migration 0007 + pre-check use real model + tier gate setDefaultModel + turn route + chargeCredits errcode branching + getBalanceAndCheck fail-open。<strong>Wave 2</strong>（b8bf170）：generateStory return real usage · turn route charges full TurnUsage with background reserve · cachedInputTokens math fix · unknown model throws。<strong>Wave 3</strong>（8152696）：Migration 0008 (initial grant ledger + daily refresh cron) · 402/403 friendly UX in play-client · creation cost pre-display · anon claim CTA in Settings · canceled sub degrades tier。</p>
+            <p><strong>🎯 Founder priority re-org（最重要 outcome）：</strong>Founder 提醒「credits = money = UX，唔屬 function」。意味我 Phase 3 排錯時序 — 應該擺低 last。<strong>新嘅 priority tier</strong>：<br><br>
+            🟢 <strong>FUNCTION（先做晒）</strong>：Phase 5 Community · Phase 1.5/2 polish · Phase 6 function bits (toggle + content rating filter) · Phase 7 content (5 官方故事)<br>
+            🟣 <strong>UI（function 之後）</strong>：Library page · Memory Journal · Locale switcher · Settings i18n · audit deferred UX<br>
+            🟡 <strong>MONEY（最後）</strong>：Phase 4 Stripe · Phase 6 KYC · Phase 3 deferred (refund saga / OpenRouter pricing)</p>
+            <p><strong>下次 session：</strong>入 Phase 5 Community — 最大 function gap，sharing / library / ratings / comments / fork / moderation。</p>
+            <p><strong>新 insight 寫入 CLAUDE.md：</strong>Founder 嘅 priority axis 唔係 phase number，係 <strong>function-first → UI → money</strong>。Phase 排序作為 reference，但執行優先按 tier。</p>
+          </div>
+        </div>
+
         <div class="session-entry">
           <div class="session-date">2026-05-22 · Session 6（Phase 2 上線 + 深度 audit + 3 浪修補）</div>
           <div class="session-title">🧠 4 層記憶系統上線 · 🛑 SHOWSTOPPER 揪到即修 · 修咗 18 條 finding</div>
@@ -779,7 +797,26 @@
     <section id="roadmap">
       <span class="eyebrow">🗺️ Roadmap</span>
       <h2><span class="icon">🗺️</span>開發路線圖</h2>
-      <p class="section-sub">8 個 phase。每個 phase 完成 verify 之後先 move on。</p>
+      <p class="section-sub">8 個 phase，按 founder priority 重新分 tier：先完成 function → 再 UI design → 最後 money。Phase number 反映原計劃，<strong>但執行順序按下面 tier badge</strong>。</p>
+
+      <!-- Priority tier legend -->
+      <div style="background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; margin-bottom: 24px; font-size: 13px;">
+        <div style="font-weight: 700; margin-bottom: 8px;">🎯 Founder 排嘅 priority tier</div>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+          <div>
+            <span style="display: inline-block; background: #d1fae5; color: #047857; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700;">🟢 FUNCTION</span>
+            <span style="color: var(--muted); margin-left: 6px;">先做晒</span>
+          </div>
+          <div>
+            <span style="display: inline-block; background: #ede9fe; color: #6d28d9; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700;">🟣 UI</span>
+            <span style="color: var(--muted); margin-left: 6px;">function 完之後</span>
+          </div>
+          <div>
+            <span style="display: inline-block; background: #fef3c7; color: #b45309; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700;">🟡 MONEY</span>
+            <span style="color: var(--muted); margin-left: 6px;">最後先做</span>
+          </div>
+        </div>
+      </div>
 
       <div class="phase-card">
         <div class="phase-header">
@@ -914,24 +951,27 @@
         <div class="phase-header">
           <div class="phase-badge">3</div>
           <div class="phase-info">
-            <div class="phase-title">多 Model + Credits</div>
-            <div class="phase-done-def">Done when: 用戶可揀 model，每 model 按比例扣 credits</div>
+            <div class="phase-title">多 Model + Credits <span style="display: inline-block; background: #fef3c7; color: #b45309; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; margin-left: 6px;">🟡 MONEY</span></div>
+            <div class="phase-done-def">⚠️ 排錯 priority — credits 屬 money/UX tier，本應 last。但 backend 已 ship，code prod live。Stripe 部分（Phase 4）defer。</div>
           </div>
-          <span class="phase-status ps-not-started">Not started</span>
+          <span class="phase-status ps-done">DONE backend · UI/Stripe defer</span>
         </div>
-        <div class="progress-bar"><div class="progress-fill" style="width: 0%"></div></div>
+        <div class="progress-bar"><div class="progress-fill" style="width: 100%; background: #fef3c7;"></div></div>
         <details>
-          <summary>展開 checklist</summary>
+          <summary>展開 checklist — backend done, audit + 17 fixes shipped</summary>
           <ul class="checklist">
-            <li>Migration 0005_credits.sql（ledger + model registry）</li>
-            <li>LLM model registry（seed initial models）</li>
-            <li>Vercel AI SDK 接所有 provider</li>
-            <li>Credit-meter service（token → credit）</li>
-            <li>Credit ledger writes（append-only）</li>
-            <li>Model picker UI（with credit estimate）</li>
-            <li>Per-tier model gating</li>
-            <li>Free-tier daily credit refresh cron</li>
+            <li class="done">Migration 0006/0007/0008（credit_ledger + subscriptions + atomic apply_credit_charge RPC with auth.uid guard）</li>
+            <li class="done">credit-meter service（<code>lib/billing/credits.ts</code>）— pricing constants, computeCredits, computeTurnCredits with cached input math fix</li>
+            <li class="done">Model picker UI（Settings page）+ per-tier gating</li>
+            <li class="done">Credit ledger append-only writes via SECURITY DEFINER RPC</li>
+            <li class="done">Pre-check + post-charge wired into turn route + story creation</li>
+            <li class="done">Free-tier daily refresh cron（<code>/api/cron/refresh-free-credits</code> + vercel.json schedule）</li>
+            <li class="done">Phase 3 deep audit（2 agents · 33 finding · 17 fixes shipped）+ SHOWSTOPPER closed</li>
+            <li>Refund saga for partial onFinish fail（deferred — bigger refactor）</li>
+            <li>Credit expiry / fungibility design（single-balance MVP works for now）</li>
+            <li>OpenRouter Llama pricing pin（Phase 6 prereq）</li>
           </ul>
+          <p style="margin-top: 12px; font-size: 13px; color: var(--muted);"><strong>Audit:</strong> <a href="audit-report-phase3-deep.html">audit-report-phase3-deep.html</a> — 33 finding · 17 fixed · 16 deferred (largely UI / money tier)</p>
         </details>
       </div>
 
@@ -939,22 +979,22 @@
         <div class="phase-header">
           <div class="phase-badge">4</div>
           <div class="phase-info">
-            <div class="phase-title">訂閱付費</div>
-            <div class="phase-done-def">Done when: 用戶可訂閱、credits 入賬、自動續訂</div>
+            <div class="phase-title">訂閱付費 <span style="display: inline-block; background: #fef3c7; color: #b45309; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; margin-left: 6px;">🟡 MONEY</span></div>
+            <div class="phase-done-def">Done when: 用戶可訂閱、credits 入賬、自動續訂 — <strong>defer until function + UI complete</strong></div>
           </div>
-          <span class="phase-status ps-not-started">Not started</span>
+          <span class="phase-status ps-not-started">Defer — money tier</span>
         </div>
         <div class="progress-bar"><div class="progress-fill" style="width: 0%"></div></div>
         <details>
-          <summary>展開 checklist</summary>
+          <summary>展開 checklist (DEFER until all function + UI done)</summary>
           <ul class="checklist">
-            <li>Migration 0006_subscriptions.sql</li>
-            <li>Stripe Customer + Product + Price setup</li>
+            <li>Stripe account strategy decision（new account vs tweenr.ai sub-brand vs Connect）</li>
+            <li>Stripe Customer + Product + Price setup（3 sub tiers + 3 top-up packages）</li>
             <li>Stripe Checkout（訂閱 + top-up）</li>
             <li>Customer Portal</li>
-            <li>Webhook handler + idempotency</li>
-            <li>Credit grant on subscription event</li>
-            <li>Billing settings page</li>
+            <li>Webhook handler + idempotency（stripe_webhook_events table 已 ready）</li>
+            <li>Credit grant on subscription event（via apply_credit_charge RPC）</li>
+            <li>Billing settings page UI</li>
           </ul>
         </details>
       </div>
@@ -963,24 +1003,25 @@
         <div class="phase-header">
           <div class="phase-badge">5</div>
           <div class="phase-info">
-            <div class="phase-title">社群</div>
+            <div class="phase-title">社群 <span style="display: inline-block; background: #d1fae5; color: #047857; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; margin-left: 6px;">🟢 FUNCTION</span> <span style="display: inline-block; background: var(--primary); color: white; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; margin-left: 6px;">★ NEXT</span></div>
             <div class="phase-done-def">Done when: 用戶可分享故事，其他人玩到，獨立進度</div>
           </div>
-          <span class="phase-status ps-not-started">Not started</span>
+          <span class="phase-status ps-not-started">🎯 Next priority</span>
         </div>
         <div class="progress-bar"><div class="progress-fill" style="width: 0%"></div></div>
-        <details>
-          <summary>展開 checklist</summary>
+        <details open>
+          <summary>展開 checklist — 最大 function gap，最高 priority</summary>
           <ul class="checklist">
-            <li>Migration 0007_community.sql</li>
-            <li>Story visibility（private / unlisted / public）</li>
-            <li>Library page + filter + search</li>
-            <li>Postgres FTS index</li>
-            <li>"Play this story" 流程</li>
-            <li>Rating UI</li>
-            <li>Comment thread</li>
-            <li>Report → moderation queue</li>
-            <li>"Trending" 排序算法</li>
+            <li>Migration 0009_community.sql（ratings + comments + moderation_flags）</li>
+            <li>Story visibility logic（private / unlisted / public + share-link RLS）</li>
+            <li>Library page backend（query + filter + search）</li>
+            <li>Postgres FTS index on title + description</li>
+            <li>"Play this story" fork-to-playthrough 流程</li>
+            <li>Rating system（store_id + user_id unique + 5-star + optional review）</li>
+            <li>Comment thread（nested replies + soft-delete）</li>
+            <li>Report → moderation queue（admin-side later）</li>
+            <li>"Trending" 排序算法（play_count × recency-decay）</li>
+            <li>Story author profile attribution</li>
           </ul>
         </details>
       </div>
@@ -989,23 +1030,26 @@
         <div class="phase-header">
           <div class="phase-badge">6</div>
           <div class="phase-info">
-            <div class="phase-title">成人模式</div>
-            <div class="phase-done-def">Done when: Storyteller+ 用戶通過 KYC 可開，model picker 限 OpenRouter</div>
+            <div class="phase-title">成人模式
+              <span style="display: inline-block; background: #d1fae5; color: #047857; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; margin-left: 6px;">🟢 FUNCTION</span>
+              <span style="display: inline-block; background: #fef3c7; color: #b45309; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; margin-left: 6px;">🟡 + MONEY (KYC)</span>
+            </div>
+            <div class="phase-done-def">Function 部分（toggle + provider gating）做埋 Phase 5 一齊；KYC defer 到 money tier</div>
           </div>
-          <span class="phase-status ps-not-started">Not started</span>
+          <span class="phase-status ps-not-started">Function bits next · KYC defer</span>
         </div>
         <div class="progress-bar"><div class="progress-fill" style="width: 0%"></div></div>
         <details>
-          <summary>展開 checklist</summary>
+          <summary>展開 checklist — split function vs money</summary>
           <ul class="checklist">
-            <li>Stripe Identity 整合</li>
-            <li>Age verification 頁面</li>
-            <li>Adult mode toggle 喺 profile</li>
-            <li>OpenRouter API 接入</li>
-            <li>LLM picker filtering by allows_nsfw</li>
-            <li>Content rating filter 喺 library</li>
-            <li>CSAM / 違法 pre-filter（永遠 on）</li>
-            <li>Adult mode UI watermark</li>
+            <li>🟢 Adult mode toggle 喺 profile + UI gate</li>
+            <li>🟢 OpenRouter API 接入（Wave 2 已 wired createOpenAI）</li>
+            <li>🟢 LLM picker filtering by allows_nsfw（已喺 ModelPicker 入面 — Phase 3 done）</li>
+            <li>🟢 Content rating filter 喺 library</li>
+            <li>🟢 CSAM / 違法 pre-filter（永遠 on，獨立於 adult mode）</li>
+            <li>🟢 Adult mode UI watermark</li>
+            <li>🟡 Stripe Identity 整合（KYC — money tier defer）</li>
+            <li>🟡 Age verification 頁面（money tier defer）</li>
           </ul>
         </details>
       </div>
@@ -1014,10 +1058,10 @@
         <div class="phase-header">
           <div class="phase-badge">7</div>
           <div class="phase-info">
-            <div class="phase-title">上線打磨</div>
+            <div class="phase-title">上線打磨 <span style="display: inline-block; background: #d1fae5; color: #047857; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; margin-left: 6px;">🟢 FUNCTION (content)</span></div>
             <div class="phase-done-def">Done when: 5 條官方故事 + onboarding 流暢 + performance 達標 + 準備 public launch</div>
           </div>
-          <span class="phase-status ps-not-started">Not started</span>
+          <span class="phase-status ps-not-started">Content tier · slow-burn</span>
         </div>
         <div class="progress-bar"><div class="progress-fill" style="width: 0%"></div></div>
         <details>

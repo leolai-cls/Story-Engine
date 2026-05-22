@@ -7,25 +7,34 @@
 
 ## 🎯 而家狀態
 
-**Phase**: **Phase 2 (Memory) shipped · Deep audit done · 3 fix waves shipped · 4 migrations awaiting apply**
+**Phase**: **Phase 3 backend shipped + audited (但屬 money tier，priority 排錯) · Pivot to function-first**
 **Live URL**: https://story-engine-drab.vercel.app
-**Last updated**: 2026-05-22 (Session 6 — Phase 2 ship + Phase 2 Deep Audit + 3 fix waves)
+**Last updated**: 2026-05-22 (Session 7 — Phase 3 ship + audit + 3 fix waves + priority re-org)
 
-## 📍 What's next
+## 🎯 Founder priority rule（鎖死）
 
-**Code-wise Phase 2 完整 ship + audit-cleaned。But Phase 2 memory layer 喺 prod 等於零 until 用戶 apply 4 migrations**：
+**Function → UI → Money**。Phase number 唔等於 priority — 按下面 tier 排：
 
-| | Plan item | Time | Why |
-|---|---|---|---|
-| 🚨 **Apply 4 migrations to prod** | `0002` (RLS+pgvector) · `0003` (atomic RPCs) · `0004` (memory tables+RPCs) · `0005` (Phase 2 audit fixes) | 5-10 分鐘 | **Code 已 ship 晒，但 memory tables 唔存在 = 4 層架構等於 0 層**。Migrations apply 之後 fallback path 自動升級 |
-| 🧪 **E2E test long-play 30+ turns** | Verify memory engagement (first summary at turn 10) · lorebook entries populate · RAG retrieves relevant past · top similarity score in console logs | 15-20 分鐘 | Audit fixes only validated by real playthrough |
-| 🥇 | **Phase 3 — Multi-LLM + Credits** (DB-backed model registry · picker UI · credit ledger · per-model rate cards) | ~2 sessions | Monetization foundation |
-| 🥈 | **UI/UX polish + Memory Journal** (UX-C-01..04 foundation audit · P2-UX-C-03 Memory Journal UI — the player-visibility differentiator) | ~2 sessions | "AI 真係記得" only verifiable when player can SEE the lorebook |
-| 🥉 | **Phase 2 deferred items** (always_on demote · dimensions 1024 decision · recent turns cache breakpoint · cost capture for billing) | ~1 session | Polish, not blocking |
+- 🟢 **FUNCTION（先做晒）**：Phase 5 Community · Phase 1.5/2 audit deferred polish · Phase 6 non-money bits · Phase 7 content
+- 🟣 **UI（function 完之後）**：Library / Memory Journal / Locale switcher / Settings i18n / audit deferred UX
+- 🟡 **MONEY（最後）**：Phase 4 Stripe · Phase 6 KYC · Phase 3 deferred items (refund saga / OpenRouter pricing)
+
+## 📍 What's next（按 function-first priority）
+
+| 排 | Plan item | Tier | Time | Why |
+|---|---|---|---|---|
+| 🥇 | **Phase 5 Community** — sharing / library / ratings / comments / fork-to-play / moderation reports | 🟢 FUNCTION | ~2 sessions | 最大剩低 function gap |
+| 🥈 | **Phase 1.5/2 polish** — NPC name fuzzy match · 4-axis disposition init · always_on demote · refusal embed flow · audit deferred 細嘢 | 🟢 FUNCTION | ~1 session | Audit backlog cleanup |
+| 🥉 | **Phase 6 function bits** — adult mode toggle + content rating filter + provider gating logic（唔包 KYC） | 🟢 FUNCTION | ~1 session | Adult flow 嘅 narrative gating |
+| 4 | **Phase 7 content** — Founder + Claude 一齊寫 5 條 launch-ready 官方故事 | 🟢 FUNCTION | 多 session slow-burn | 官方故事支撐 public launch |
+| ↓ | _function 完晒_ |  |  |  |
+| 5 | **UI design wave** — Library page · Memory Journal · Locale switcher · Settings i18n · 全部 UX-C-01..04 + audit deferred UX | 🟣 UI | ~2 sessions | 玩家可見嘅嘢 |
+| ↓ | _UI 完晒_ |  |  |  |
+| 6 | **Phase 4 Stripe + Phase 6 KYC + Phase 3 deferred** | 🟡 MONEY | ~2 sessions | 收錢 |
 
 ## 🚧 Blockers
 
-**僅 1 個**：User to apply migrations 0002 + 0003 + 0004 + 0005 (4 SQL files in `supabase/migrations/`). Code has graceful fallback so prod still works, but Phase 2 memory + Phase 1.5 RLS hardening etc all dormant until apply.
+**冇 hard blocker**。Phase 3 backend prod-live 但 credits 設定 50/day — 早 E2E test 可能會經常見到 402（"Credit 唔夠"）— 如果擾住 testing，可以 bump default 到 5000 暫時。Phase 5 Community work 唔受 credit limit 阻礙。
 
 ## ✅ Recently completed (Session 6 — Phase 2 ship + audit + 3 fix waves)
 
