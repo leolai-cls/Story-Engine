@@ -7,9 +7,9 @@
 
 ## 🎯 而家狀態
 
-**Phase**: **Phase 3 backend shipped + audited (但屬 money tier，priority 排錯) · Pivot to function-first**
+**Phase**: **Phase 5 Community backend shipped + audited · Wave 1 URGENT 修補必做 (4 SHOWSTOPPERS) · 然後繼續 function tier**
 **Live URL**: https://story-engine-drab.vercel.app
-**Last updated**: 2026-05-22 (Session 7 — Phase 3 ship + audit + 3 fix waves + priority re-org)
+**Last updated**: 2026-05-22 (Session 8 — Phase 5 ship + audit · 4 SHOWSTOPPERS pending fix)
 
 ## 🎯 Founder priority rule（鎖死）
 
@@ -19,22 +19,24 @@
 - 🟣 **UI（function 完之後）**：Library / Memory Journal / Locale switcher / Settings i18n / audit deferred UX
 - 🟡 **MONEY（最後）**：Phase 4 Stripe · Phase 6 KYC · Phase 3 deferred items (refund saga / OpenRouter pricing)
 
-## 📍 What's next（按 function-first priority）
+## 📍 What's next（按 function-first priority + Phase 5 audit fix）
 
 | 排 | Plan item | Tier | Time | Why |
 |---|---|---|---|---|
-| 🥇 | **Phase 5 Community** — sharing / library / ratings / comments / fork-to-play / moderation reports | 🟢 FUNCTION | ~2 sessions | 最大剩低 function gap |
-| 🥈 | **Phase 1.5/2 polish** — NPC name fuzzy match · 4-axis disposition init · always_on demote · refusal embed flow · audit deferred 細嘢 | 🟢 FUNCTION | ~1 session | Audit backlog cleanup |
-| 🥉 | **Phase 6 function bits** — adult mode toggle + content rating filter + provider gating logic（唔包 KYC） | 🟢 FUNCTION | ~1 session | Adult flow 嘅 narrative gating |
-| 4 | **Phase 7 content** — Founder + Claude 一齊寫 5 條 launch-ready 官方故事 | 🟢 FUNCTION | 多 session slow-burn | 官方故事支撐 public launch |
+| 🛑 | **Phase 5 Wave 1 URGENT** — Migration 0010 (UPDATE lockdown · self-rating block · play_count DELETE mirror · report UNIQUE) + OpenAI Moderation API wire-up (3 sites) | 🟢 FUNCTION | ~1 session | CLAUDE.md hard rule #6 違反 + launch-day attack vectors |
+| 🥇 | **Phase 5 Wave 2** — FTS Chinese bigram tokenization · trending cold-start boost · fork null check · adult tier gate · profiles.display_name join in comments | 🟢 FUNCTION | ~1 session | HK + TW market 嘅 search broken + community bootstrap dead-end |
+| 🥈 | **Phase 1.5/2 polish** — NPC name fuzzy match · 4-axis disposition init · always_on demote · refusal embed flow · audit deferred | 🟢 FUNCTION | ~1 session | Audit backlog cleanup |
+| 🥉 | **Phase 6 function bits** — adult mode toggle · content rating filter · provider gating（唔包 KYC） | 🟢 FUNCTION | ~1 session | Adult flow narrative gating |
+| 4 | **Phase 5 Wave 3 polish** — parent_id RLS · rating row-lock · depth cap · private FTS opt-out · moderation content_id check · unlisted decision | 🟢 FUNCTION | ~30 分鐘 | Defense in depth |
+| 5 | **Phase 7 content** — Founder + Claude 寫 5 條 launch-ready 官方故事 | 🟢 FUNCTION | 多 session slow-burn | 官方故事支撐 public launch |
 | ↓ | _function 完晒_ |  |  |  |
-| 5 | **UI design wave** — Library page · Memory Journal · Locale switcher · Settings i18n · 全部 UX-C-01..04 + audit deferred UX | 🟣 UI | ~2 sessions | 玩家可見嘅嘢 |
+| 6 | **UI design wave** — Library page polish · Memory Journal · Locale switcher · Settings i18n · 全部 UX-C-01..04 + audit deferred UX | 🟣 UI | ~2 sessions | 玩家可見嘅嘢 |
 | ↓ | _UI 完晒_ |  |  |  |
-| 6 | **Phase 4 Stripe + Phase 6 KYC + Phase 3 deferred** | 🟡 MONEY | ~2 sessions | 收錢 |
+| 7 | **Phase 4 Stripe + Phase 6 KYC + Phase 3 deferred** | 🟡 MONEY | ~2 sessions | 收錢 |
 
 ## 🚧 Blockers
 
-**冇 hard blocker**。Phase 3 backend prod-live 但 credits 設定 50/day — 早 E2E test 可能會經常見到 402（"Credit 唔夠"）— 如果擾住 testing，可以 bump default 到 5000 暫時。Phase 5 Community work 唔受 credit limit 阻礙。
+**🛑 Phase 5 launch blocker**: 4 SHOWSTOPPERS 未 fix（CSAM filter · play_count 灌水 · self-rating · comment UPDATE 開晒）— Migration 0010 + OpenAI Moderation 必做。**Phase 5 Community 唔可以對外開放 unless Wave 1 done**。
 
 ## ✅ Recently completed (Session 6 — Phase 2 ship + audit + 3 fix waves)
 

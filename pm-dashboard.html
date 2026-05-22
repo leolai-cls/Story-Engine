@@ -565,42 +565,40 @@
       <p class="section-sub">每次新 session 開始，由呢度睇起。</p>
 
       <div class="top-meta">
-        <div><strong>Last updated</strong> 2026-05-22 · Session 7 (Phase 3 ship + audit + 3 fix waves + priority re-org)</div>
-        <div><strong>Phase</strong> Phase 0/1/1.5/2 + Phase 3 backend ✅ · 重新 prioritize：function → UI → money</div>
+        <div><strong>Last updated</strong> 2026-05-22 · Session 8 (Phase 5 ship + audit · 4 SHOWSTOPPERS pending fix)</div>
+        <div><strong>Phase</strong> Phase 0/1/1.5/2/3 backend ✅ · Phase 5 backend ✅ · Wave 1 fix URGENT 之後先入下個 function</div>
         <div><strong>Live</strong> <a href="https://story-engine-drab.vercel.app" target="_blank" style="color: var(--primary);">story-engine-drab.vercel.app</a></div>
       </div>
 
       <div class="status-hero">
-        <div class="label">🎯 重新對齊 — Founder rule：先完成所有 function · 再 UI design · 最後 money</div>
-        <div class="phase">真正剩低嘅 function：Phase 5 Community · Phase 6 non-money 部分 · Phase 1.5/2 polish · Phase 7 content</div>
+        <div class="label">🛑 Phase 5 Community shipped + audited · 4 SHOWSTOPPERS — launch blocker level</div>
+        <div class="phase">CSAM filter missing · play_count 灌水 · self-rating bomb · comment UPDATE 開晒 · FTS 中文壞 · trending cold-start dead</div>
         <div class="focus">
-          Session 7 完成 Phase 3 backend (credit ledger + atomic RPC + tier gate + model picker) + 1 SHOWSTOPPER fix（任何 user drain 任何人 balance 嘅 RPC 漏洞）+ 3 fix waves (17 audit finding 修咗)。**但 founder 提醒：credits / Stripe / KYC 全部係 money/UX 層，唔屬 function。Phase 3 排錯 priority — 應該擺低後做。**而家 pivot：先 ship Phase 5 Community (最大 function gap) → Phase 1.5/2 polish → Phase 6 non-money function → Phase 7 content。<strong>UI design 同 money (Phase 4 Stripe / Phase 6 KYC / Phase 3 deferred) 全部排到 function 完之後</strong>。
+          Session 8 ship 完 Phase 5 (community library) backend + UI minimal — Migration 0009 (ratings + comments + moderation_flags + FTS + 3 RPCs + triggers) · server actions + queries + library page + story detail page。即刻 audit — <strong>18 findings · 4 SHOWSTOPPERS</strong>: (1) CSAM pre-filter 完全冇（CLAUDE.md hard rule #6 違反） · (2) play_count 可以 fork+delete 灌水 → trending adversarial · (3) Owner 可以 self-rate 5★ → trust killer · (4) Comment UPDATE policy 開晒 → bait-and-switch + 跨 story 搬 comment。<strong>仲未 fix — Phase 5 launch 之前必須做 Wave 1 URGENT</strong>，跟住先入 Phase 6 / 1.5 polish。
         </div>
       </div>
 
       <div class="status-grid">
         <div class="status-card good">
-          <div class="status-card-title">✅ Session 7 完成（Phase 3 backend，雖然 priority 排錯）</div>
+          <div class="status-card-title">✅ Session 8 完成 — Phase 5 Community ship + audit</div>
           <ul>
-            <li><strong>Migration 0006/0007/0008</strong>（applied + verified prod）— credit_ledger · subscriptions · stripe_webhook_events · apply_credit_charge RPC（with auth.uid guard 防 cross-user drain）· refresh_free_tier_credits daily cron</li>
-            <li><strong>🛑 Phase 3 SHOWSTOPPER fixed</strong>：任何 logged-in user 之前可以 drain / mint 任何人 balance。Migration 0007 加 auth.uid() guard + credits_charged fold into RPC（atomic）</li>
-            <li><strong>credit meter + pricing</strong>：MODEL_PRICING constants · computeCredits with cached-input math fix · computeTurnCredits 包 background reserve · BASE 1000 credits/$1 · STORY_ENGINE_MARKUP 2.0</li>
-            <li><strong>Model picker + Settings page real</strong>（不再 'Coming Soon'）· anon claim CTA · 友好 UX for 402/403 errors</li>
-            <li><strong>Vercel cron</strong>：/api/cron/refresh-free-credits 每日 UTC 0:00 跑（vercel.json schedule）</li>
-            <li><strong>Phase 3 deep audit</strong>（2 agents · 33 finding）+ <strong>17 fixes shipped</strong> across 3 waves（SHOWSTOPPER + cost accounting + lifecycle + UX）</li>
+            <li><strong>Migration 0009</strong> applied + 10/10 sanity pass — story_ratings · story_comments (nested + soft-delete) · moderation_flags · stories.search_text (tsvector + GIN + trigger) · rating aggregate trigger · play_count bump trigger</li>
+            <li><strong>3 community RPCs</strong>：trending_stories (hybrid score popularity × recency × quality) · search_stories (FTS) · fork_story_to_playthrough (atomic playthrough + NPC init + opening narrative copy)</li>
+            <li><strong>6 server actions</strong>（每個 auth-checked）：publishStory · unpublishStory · rateStory · upsertComment · softDeleteComment · reportContent · forkStoryToPlaythrough</li>
+            <li><strong>8 query helpers</strong>：trending / search / story detail / ratings / comments / replies / myRating / myPlaythroughs / myStories</li>
+            <li><strong>Library page real</strong>（不再 placeholder）+ story detail page + StoryDetailActions client component（function tier minimal UI）</li>
+            <li><strong>Phase 5 Deep Audit</strong>（commit a57b557）— 18 findings · 4 SHOWSTOPPERS + 7 High + 5 Medium + 2 Low</li>
           </ul>
         </div>
         <div class="status-card warn">
-          <div class="status-card-title">🎯 Function-first priority — 重新排嘅順序</div>
+          <div class="status-card-title">🛑 Wave 1 URGENT — Phase 5 launch 之前必做</div>
           <ul>
-            <li>🥇 <strong>Phase 5 Community</strong>（最大 function gap）— sharing / library / ratings / comments / fork / moderation</li>
-            <li>🥈 <strong>Phase 1.5.3 + Phase 2 polish</strong> — NPC name fuzzy match · 4-axis disposition init · always_on lorebook demote · 其他 audit deferred 細嘢</li>
-            <li>🥉 <strong>Phase 6 function bits</strong> — adult mode toggle · content rating filter · provider gating（唔包 KYC，KYC = money）</li>
-            <li>4️⃣ <strong>Phase 7 content</strong> — Founder + Claude 一齊寫 5 條 launch-ready 官方故事（多 session 慢慢做）</li>
-            <li>↓ <em>function 完晒之後</em> ↓</li>
-            <li>💄 <strong>UI design wave</strong> — Library page · Memory Journal · Locale switcher · Settings i18n · 全部 UX-C-01..04 + audit deferred UX</li>
-            <li>↓ <em>UI 完晒之後</em> ↓</li>
-            <li>💰 <strong>Money</strong> — Phase 4 Stripe · Phase 6 KYC · Phase 3 deferred (refund saga / OpenRouter pricing pin)</li>
+            <li>🛑 <strong>P5-SEC-C-01 CSAM pre-filter</strong> — story create / comment / review 3 個 site 加 OpenAI Moderation API（hard rule #6 violation）</li>
+            <li>🛑 <strong>P5-RACE-C-01 play_count 灌水</strong> — Migration 0010 加 DELETE trigger mirror + fork rate limit</li>
+            <li>🛑 <strong>P5-SEC-C-02 self-rating</strong> — RLS policy 加 NOT EXISTS owner_id check + action mirror</li>
+            <li>🛑 <strong>P5-SEC-H-02 comment UPDATE</strong> — trigger revert 任何非 deleted column 改動</li>
+            <li>之後 Wave 2：FTS 中文 bigram · trending cold-start boost · fork null check · adult tier gate · profiles display_name join</li>
+            <li>跟住先繼續 function tier：Phase 1.5/2 polish · Phase 6 non-money · Phase 7 content</li>
           </ul>
         </div>
       </div>
@@ -639,6 +637,17 @@
 
       <h3>📓 Session Log</h3>
       <div class="session-log">
+        <div class="session-entry">
+          <div class="session-date">2026-05-22 · Session 8（Phase 5 Community ship + audit · 4 SHOWSTOPPERS pending）</div>
+          <div class="session-title">🏛️ Community library backend live · 🛑 audit 揾到 4 個 launch-blocker</div>
+          <div class="session-body">
+            <p><strong>主要成果</strong>：Phase 5 Community ship 上 prod backend + 即刻 audit。Migration 0009 (story_ratings + story_comments + moderation_flags + FTS + 3 RPCs + 2 triggers) applied with 10/10 sanity。Library page real（不再 placeholder）+ story detail + StoryDetailActions component。6 server actions + 8 query helpers。Audit catch 到 18 findings 包括 4 SHOWSTOPPERS — launch 之前 Wave 1 必修。</p>
+            <p><strong>🛑 4 SHOWSTOPPERS</strong>：(1) <strong>CSAM pre-filter 完全冇</strong> — moderation_flags 加咗 csam / sexual_minor enum 但 createStoryFromPrompt / upsertComment / rateStory 全部冇 filter，CLAUDE.md hard rule #6 violated。(2) <strong>play_count 可以 fork+delete 灌水</strong> — bump_story_play_count trigger 冇 DELETE mirror + 冇 fork rate limit，curl loop 將對手 story play_count inflate 1000x。(3) <strong>Owner self-rating 5★ bomb</strong> — RLS policy 冇 require user_id != owner_id。(4) <strong>Comment UPDATE policy 開晒</strong> — 可以 un-delete、改 body、re-parent 跨 story → bait-and-switch attack。</p>
+            <p><strong>限制嚴重影響玩家體驗</strong>：兩個 launch market killer — (a) <strong>FTS 'simple' config 對中文壞</strong>，整 title 變一個 token，「校園戀愛」搵唔到「TW 大學校園戀愛故事」。HK + TW 市場 #1 query pattern 失效。(b) <strong>Trending cold-start dead end</strong> — ln(0+1)=0，新 story 永遠唔上榜。Community bootstrap 死路。</p>
+            <p><strong>下次 session</strong>：Wave 1 URGENT fix (Migration 0010 + OpenAI Moderation API wire-up)。然後 Wave 2 (FTS 中文 bigram + trending cold-start boost + fork null check + adult gate + display_name join)。然後繼續 function tier（Phase 1.5/2 polish · Phase 6 non-money · Phase 7 content）。</p>
+          </div>
+        </div>
+
         <div class="session-entry">
           <div class="session-date">2026-05-22 · Session 7（Phase 3 ship + audit + 3 fix waves + priority re-org）</div>
           <div class="session-title">💳 Credits foundation 上線 · 🛑 SHOWSTOPPER 修補 · 🎯 Founder priority 重排</div>
@@ -1007,26 +1016,32 @@
         <div class="phase-header">
           <div class="phase-badge">5</div>
           <div class="phase-info">
-            <div class="phase-title">社群 <span style="display: inline-block; background: #d1fae5; color: #047857; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; margin-left: 6px;">🟢 FUNCTION</span> <span style="display: inline-block; background: var(--primary); color: white; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; margin-left: 6px;">★ NEXT</span></div>
-            <div class="phase-done-def">Done when: 用戶可分享故事，其他人玩到，獨立進度</div>
+            <div class="phase-title">社群 <span style="display: inline-block; background: #d1fae5; color: #047857; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; margin-left: 6px;">🟢 FUNCTION</span> <span style="display: inline-block; background: var(--rose); color: white; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; margin-left: 6px;">🛑 4 SHOWSTOPPERS</span></div>
+            <div class="phase-done-def">Backend shipped + audited · launch 之前必修 Wave 1 (CSAM filter / play_count / self-rating / comment UPDATE)</div>
           </div>
-          <span class="phase-status ps-not-started">🎯 Next priority</span>
+          <span class="phase-status ps-done">DONE backend · Wave 1 fix URGENT</span>
         </div>
-        <div class="progress-bar"><div class="progress-fill" style="width: 0%"></div></div>
+        <div class="progress-bar"><div class="progress-fill" style="width: 75%;"></div></div>
         <details open>
-          <summary>展開 checklist — 最大 function gap，最高 priority</summary>
+          <summary>展開 checklist — 13 ticked · Wave 1/2/3 fix pending · audit-report-phase5-deep.html</summary>
           <ul class="checklist">
-            <li>Migration 0009_community.sql（ratings + comments + moderation_flags）</li>
-            <li>Story visibility logic（private / unlisted / public + share-link RLS）</li>
-            <li>Library page backend（query + filter + search）</li>
-            <li>Postgres FTS index on title + description</li>
-            <li>"Play this story" fork-to-playthrough 流程</li>
-            <li>Rating system（store_id + user_id unique + 5-star + optional review）</li>
-            <li>Comment thread（nested replies + soft-delete）</li>
-            <li>Report → moderation queue（admin-side later）</li>
-            <li>"Trending" 排序算法（play_count × recency-decay）</li>
-            <li>Story author profile attribution</li>
+            <li class="done"><strong>Migration 0009</strong>（applied + 10/10 sanity）— story_ratings · story_comments · moderation_flags · stories.search_text + GIN · rating aggregate trigger · play_count bump trigger</li>
+            <li class="done">Story visibility logic（private / public — unlisted broken end-to-end, see P5-LOGIC-L-01）</li>
+            <li class="done">Library page backend（filters: language + content_rating + search ?q=）</li>
+            <li class="done">Postgres FTS index on title + description + tags</li>
+            <li class="done">"Play this story" fork-to-playthrough RPC + server action</li>
+            <li class="done">Rating system（UPSERT score 1-5 + optional review · aggregate trigger）</li>
+            <li class="done">Comment thread（nested via parent_id · soft-delete · backend complete · UI minimal）</li>
+            <li class="done">Report → moderation queue（7 reason enum · INSERT-only RLS · admin reads via service_role）</li>
+            <li class="done">Trending algorithm（hybrid: ln(play_count+1) × decay × quality_boost）</li>
+            <li class="done">Library page real + story detail page + StoryDetailActions component</li>
+            <li class="done"><strong>🔍 Phase 5 Deep Audit</strong>（18 finding · 4 SHOWSTOPPERS）— <a href="audit-report-phase5-deep.html">audit-report-phase5-deep.html</a></li>
+            <li>🛑 <strong>Wave 1 URGENT</strong>：CSAM Moderation API filter · play_count DELETE trigger + rate limit · self-rating block · comment UPDATE lockdown</li>
+            <li>Wave 2：FTS Chinese bigram · trending cold-start boost · fork null check · adult tier gate · profiles.display_name join</li>
+            <li>Wave 3 polish：parent_id RLS · rating row-lock · depth cap · private FTS opt-out · moderation content_id check · unlisted decision</li>
+            <li>Story author profile attribution（part of Wave 2 display_name join）</li>
           </ul>
+          <p style="margin-top: 12px; font-size: 13px; color: var(--muted);"><strong>限制嚴重影響玩家體驗</strong>：FTS 中文搜尋實際壞（HK + TW launch market #1 query pattern 失效）· trending cold-start dead end（新 story 永遠唔出榜）— Wave 2 fix。</p>
         </details>
       </div>
 

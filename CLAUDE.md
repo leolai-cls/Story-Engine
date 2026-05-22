@@ -206,6 +206,11 @@ DB：`story_characters` (模板) + `playthrough_character_states` (per-playthrou
 19. **Memory / 後台 feature differentiator 一定要 UI surface** — 即使 backend 100% work，user 見唔到就 unfalsifiable。NovelAI lorebook UI 係佢哋 #1 retention driver。"AI 真係記得" claim 冇 Memory Journal 等於 marketing 喺空氣度。Plan UI 同 backend 一齊 ship，唔係留到「之後」。
 20. **Audit cost projections 永遠 underestimate** — Phase 2 原本估 ~2% memory overhead，實際係 ~35% on Narrator baseline。每次 add LLM call 都要 re-baseline 真實 per-turn cost vs subscription tier pricing。Adventurer $9.99/mo 200-turn = $4.60 = 46% COGS。
 21. **Founder priority rule — Function → UI → Money** — Phase number 唔等於 execution order。Founder explicit 講：先完成所有 product **function**（story engine / memory / community / adult mode logic / official content），再 **UI** design（library / Memory Journal / locale switcher / Settings polish / Library UI），最後先做 **money**（credits UX / Stripe / KYC / refund saga）。Session 7 嗰陣 Phase 3 credits 順序排錯 — 屬於 money tier 但做咗喺 function 完成之前。**任何時候建議 next move 之前 check：佢屬邊個 tier？高 tier 嘅 deferred work 唔該先做晒**。
+22. **加 enum 但唔 implement filter = documented missing safeguard** — Phase 5 嘅 `moderation_flags` 加咗 `'csam'` 同 `'sexual_minor'` enum 表示呢類 vector 存在，但 createStoryFromPrompt / upsertComment / rateStory 全部冇 pre-filter。CLAUDE.md hard rule #6 violation。**每次加 enum 認 acknowledge attack vector 嘅同時必須 implement 對應 defense**。否則就係 schema-level admission without code-level enforcement。
+23. **`bump_X_count` triggers need symmetric INSERT + DELETE handlers** — counter-without-decrement 係常見 race vector。Phase 5 嘅 play_count 只有 INSERT trigger，加 user 可以 fork→delete loop 將 count inflate。每次寫 trigger 增 counter 都諗：「邊個情況會減？」如果有 DELETE 路徑能 affect count，就需要 mirror trigger。
+24. **`auth.uid() = user_id` UPDATE policy 唔夠 — 要 column restriction** — Phase 5 嘅 story_comments_own_update 用 bare `using/with check auth.uid()=user_id` — 但冇限制邊個 column 可以改。用戶可以 un-delete · edit body · re-parent 跨 story · 改 story_id。**任何 UPDATE policy 都要諗：用戶可以改邊個 column？哪個 column 變化會 break invariant？** 解法：trigger BEFORE UPDATE 比 RLS column-list 更穩。
+25. **Postgres FTS `'simple'` config 對 CJK 完全壞** — 用 whitespace tokenize，中文冇 whitespace → 整 title / paragraph 變一個 token。`'校園戀愛'` query 唔會 match `'TW 大學校園戀愛故事'` title。Story Engine launch market 係 HK + TW，呢個影響 #1 query pattern。每次 add FTS to Chinese-market product 必須 verify tokenization works。MVP path：trigger 入面 manual bigram tokenize CJK chars；或者用 pg_trgm extension。
+26. **Trending formulas with `ln(plays + 1)` give 0 for new content** — cold-start blocker。`ln(0+1) = 0` → 新 story trending_score = 0 → 永遠唔上榜 → 永遠冇 plays → 永遠 0。Phase 5 嘅 trending 公式發生呢個 bug。解法：加 newcomer boost term `+ exp(-age_days/3)` 比 3-day 半衰期 OR union 一個 "freshly published" carousel WHERE play_count < N ORDER BY created_at desc。任何 trending / discovery 公式都要 think about cold-start path。
 
 ---
 
@@ -219,4 +224,4 @@ DB：`story_characters` (模板) + `playthrough_character_states` (per-playthrou
 
 ---
 
-_Last updated: 2026-05-22 (Session 7 — Phase 3 backend ship + Phase 3 Deep Audit + 3 fix waves + founder priority re-org)_
+_Last updated: 2026-05-22 (Session 8 — Phase 5 Community ship + Phase 5 Deep Audit · 4 SHOWSTOPPERS pending Wave 1 fix)_
