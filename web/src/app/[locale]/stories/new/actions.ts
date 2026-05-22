@@ -65,6 +65,15 @@ export async function createStoryFromPrompt(
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Input invalid" };
   }
 
+  // Load user's preferred narrator model (Phase 3 — wired through Settings).
+  // Falls back to DEFAULT_NARRATOR if not set or invalid.
+  const { data: prefProfile } = await supabase
+    .from("profiles")
+    .select("default_model")
+    .eq("id", user.id)
+    .single();
+  const userNarratorModel = prefProfile?.default_model ?? DEFAULT_NARRATOR;
+
   // AUDIT FIX (AI-H-03): pre-check credit balance before burning ~$0.20 on
   // 4 parallel Sonnet 4.6 calls. Friendly 402 UX if user can't afford.
   const estimatedCost = estimateStoryCreationCredits();
@@ -175,7 +184,7 @@ export async function createStoryFromPrompt(
       character_name: parsed.data.protagonist_hint?.slice(0, 40) ?? "主角",
       current_state: initialState,
       llm_provider: "anthropic",
-      llm_model: DEFAULT_NARRATOR,
+      llm_model: userNarratorModel,
       turn_count: 1, // opening narrative counts as turn 0 below
       status: "active",
     })
@@ -213,7 +222,7 @@ export async function createStoryFromPrompt(
     role: "ai",
     text: generated.opening_narrative,
     llm_provider: "anthropic",
-    model: DEFAULT_NARRATOR,
+    model: userNarratorModel,
     credits_charged: 0, // story creation charged separately on stories ref below
   });
   if (turnErr) {
