@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Story Engine — Phase 3 Deep Audit (Credits Foundation)</title>
+<style>
+  :root {
+    --primary: #4F46E5; --primary-soft: #EEF2FF;
+    --accent: #F59E0B; --accent-soft: #FEF3C7;
+    --bg: #FAFAF7; --card: #FFFFFF; --ink: #18181B;
+    --ink-soft: #3F3F46; --muted: #71717A; --border: #E4E4E7;
+    --green: #10B981; --rose: #E11D48; --amber: #D97706;
+    --code-bg: #F4F4F5;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif; background: var(--bg); color: var(--ink); line-height: 1.65; font-size: 15px; -webkit-font-smoothing: antialiased; }
+  main { max-width: 1040px; margin: 0 auto; padding: 48px 32px 120px; }
+  .hero { text-align: center; margin-bottom: 36px; }
+  .eyebrow { display: inline-block; font-size: 11px; font-weight: 700; color: var(--primary); background: var(--primary-soft); padding: 5px 12px; border-radius: 999px; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 16px; }
+  h1 { font-size: 34px; font-weight: 800; letter-spacing: -0.025em; margin-bottom: 10px; }
+  .hero p { color: var(--muted); font-size: 16px; max-width: 720px; margin: 0 auto; }
+  .meta { color: var(--muted); font-size: 13px; margin-top: 14px; }
+  .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 32px 0 28px; }
+  .stat { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px; text-align: center; }
+  .stat-num { font-size: 36px; font-weight: 800; line-height: 1; }
+  .stat-label { font-size: 11px; color: var(--muted); margin-top: 8px; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700; }
+  .stat.crit .stat-num { color: var(--rose); }
+  .stat.high .stat-num { color: var(--amber); }
+  .stat.med .stat-num { color: var(--primary); }
+  .stat.low .stat-num { color: var(--muted); }
+  .dim-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 20px 0 36px; }
+  .dim-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px 14px; text-align: center; }
+  .dim-icon { font-size: 24px; } .dim-name { font-size: 11px; color: var(--muted); margin-top: 4px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; } .dim-count { font-size: 18px; font-weight: 800; margin-top: 6px; }
+  h2 { font-size: 24px; font-weight: 700; margin: 50px 0 14px; display: flex; align-items: center; gap: 10px; }
+  h2 .icon { font-size: 28px; }
+  h3 { font-size: 17px; font-weight: 700; margin: 24px 0 10px; }
+  .showstopper { background: linear-gradient(135deg, #fee2e2, #fef3c7); border: 3px solid var(--rose); padding: 26px 28px; border-radius: 16px; margin: 28px 0; box-shadow: 0 4px 20px rgba(225, 29, 72, 0.15); }
+  .showstopper-title { font-weight: 900; font-size: 20px; color: var(--rose); margin-bottom: 10px; letter-spacing: -0.01em; }
+  .showstopper-body { font-size: 15px; line-height: 1.7; }
+  .showstopper-body strong { color: var(--rose); }
+  .showstopper-body code { background: rgba(225, 29, 72, 0.1); }
+  .priority-list { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 24px; margin: 20px 0 36px; }
+  .priority-row { display: grid; grid-template-columns: 60px 1fr auto; gap: 14px; align-items: start; padding: 12px 0; border-bottom: 1px dashed var(--border); }
+  .priority-row:last-child { border-bottom: none; }
+  .priority-rank { font-size: 20px; font-weight: 800; color: var(--rose); }
+  .priority-content strong { font-weight: 700; font-size: 14.5px; display: block; margin-bottom: 4px; }
+  .priority-content small { font-size: 12.5px; color: var(--muted); }
+  .priority-refs { font-size: 11px; color: var(--primary); font-weight: 700; background: var(--primary-soft); padding: 4px 8px; border-radius: 6px; white-space: nowrap; }
+  details.dim-section { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 0; margin-bottom: 14px; overflow: hidden; }
+  details.dim-section[open] { box-shadow: 0 2px 12px rgba(0,0,0,0.04); }
+  details.dim-section summary { cursor: pointer; padding: 20px 24px; font-weight: 700; font-size: 17px; display: flex; align-items: center; gap: 12px; user-select: none; }
+  details.dim-section summary::-webkit-details-marker { display: none; }
+  details.dim-section summary::after { content: "▼"; margin-left: auto; color: var(--muted); font-size: 12px; transition: transform .2s; }
+  details.dim-section[open] summary::after { transform: rotate(180deg); }
+  .dim-summary-text { color: var(--muted); font-size: 13px; font-weight: 500; margin-left: 8px; }
+  .dim-content { padding: 0 24px 24px; }
+  .issue { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin-bottom: 10px; }
+  .issue.crit { border-left: 4px solid var(--rose); background: #fff5f6; }
+  .issue.high { border-left: 4px solid var(--amber); background: #fffbf4; }
+  .issue.med { border-left: 4px solid var(--primary); }
+  .issue.low { border-left: 4px solid var(--muted); }
+  .issue-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+  .issue-id { font-weight: 800; font-size: 12.5px; color: var(--primary); flex-shrink: 0; font-family: "SF Mono", Monaco, monospace; }
+  .issue-title { font-weight: 700; font-size: 14.5px; flex: 1; min-width: 220px; }
+  .sev-tag { font-size: 10px; padding: 2px 8px; border-radius: 999px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
+  .sev-crit { background: var(--rose); color: white; }
+  .sev-high { background: var(--amber); color: white; }
+  .sev-med { background: var(--primary-soft); color: var(--primary); }
+  .sev-low { background: var(--code-bg); color: var(--muted); }
+  .issue-loc { font-family: "SF Mono", Monaco, monospace; font-size: 11.5px; color: var(--muted); margin-bottom: 8px; word-break: break-all; }
+  .issue-symptom { font-size: 13.5px; color: var(--ink-soft); margin-bottom: 6px; }
+  .issue-symptom strong { color: var(--ink); }
+  .issue-fix { background: rgba(16, 185, 129, 0.06); border-left: 3px solid var(--green); padding: 8px 14px; border-radius: 6px; font-size: 13px; color: var(--ink-soft); margin-top: 8px; }
+  .issue-fix strong { color: var(--green); font-weight: 700; }
+  code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; font-family: "SF Mono", Monaco, monospace; font-size: 12px; }
+  .action-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 20px 0 30px; }
+  .action-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .action-card.now { border-top: 4px solid var(--rose); }
+  .action-card.next { border-top: 4px solid var(--amber); }
+  .action-card.later { border-top: 4px solid var(--muted); }
+  .action-title { font-weight: 800; font-size: 15px; margin-bottom: 4px; }
+  .action-subtitle { font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 12px; }
+  .action-list { list-style: none; padding: 0; }
+  .action-list li { font-size: 13px; color: var(--ink-soft); padding: 6px 0; border-bottom: 1px dashed var(--border); }
+  .action-list li:last-child { border-bottom: none; }
+  .note { background: var(--accent-soft); border-left: 4px solid var(--accent); padding: 14px 18px; border-radius: 10px; margin: 16px 0; font-size: 13.5px; color: var(--ink-soft); }
+  .note strong { color: var(--amber); }
+  .back-link { display: inline-block; margin-top: 40px; color: var(--primary); text-decoration: none; font-size: 13px; font-weight: 700; padding: 8px 14px; background: var(--primary-soft); border-radius: 8px; }
+  .back-link:hover { background: var(--primary); color: white; }
+  @media (max-width: 768px) { .summary, .dim-grid, .action-grid { grid-template-columns: 1fr 1fr; } main { padding: 24px 16px 80px; } }
+</style>
+</head>
+<body>
+<main>
+
+  <section class="hero">
+    <span class="eyebrow">🔍 Phase 3 Deep Audit · Credits Foundation</span>
+    <h1>Multi-LLM Credits — Logic / Security / Cost / UX</h1>
+    <p>2 個 dimension agent 並行 audit Phase 3.1-3.4 嘅 credits 系統（commits 8edc1c8 + 3a49533）。揾到 1 個 prod-killing SHOWSTOPPER + 多個其他 critical 級。Phase 4 (Stripe) 暫緩未 ship — 唔包入呢個 audit。</p>
+    <div class="meta">2026-05-22 · Session 6 · <a href="pm-dashboard.html" style="color: var(--primary);">← Dashboard</a></div>
+  </section>
+
+  <section class="summary">
+    <div class="stat crit"><div class="stat-num">1</div><div class="stat-label">SHOWSTOPPER</div></div>
+    <div class="stat high"><div class="stat-num">10</div><div class="stat-label">High</div></div>
+    <div class="stat med"><div class="stat-num">12</div><div class="stat-label">Medium</div></div>
+    <div class="stat low"><div class="stat-num">10</div><div class="stat-label">Low</div></div>
+  </section>
+
+  <section class="dim-grid">
+    <div class="dim-card"><div class="dim-icon">⚙️</div><div class="dim-name">Logic + Correctness</div><div class="dim-count">16</div></div>
+    <div class="dim-card"><div class="dim-icon">🔐</div><div class="dim-name">Security + Cost + UX</div><div class="dim-count">17</div></div>
+  </section>
+
+  <!-- SHOWSTOPPER -->
+  <section>
+    <div class="showstopper">
+      <div class="showstopper-title">🛑 SHOWSTOPPER · 任何 user 可以 drain 或 mint 任何人嘅 credit balance</div>
+      <div class="showstopper-body">
+        <strong>P3-SEC-C-01</strong>：<code>apply_credit_charge</code> RPC 係 <strong>SECURITY DEFINER</strong>（bypass RLS）並 GRANT 比 authenticated role，但係 <strong>function 入面冇 verify <code>auth.uid() = p_user_id</code></strong>。任何 logged-in user 可以打：
+        <br><br>
+        <code>supabase.rpc('apply_credit_charge', { p_user_id: '&lt;victim-uuid&gt;', p_delta: -999999, p_reason: 'turn_charge' })</code>
+        <br><br>
+        → drain 受害者 balance；或者：
+        <br><br>
+        <code>supabase.rpc('apply_credit_charge', { p_user_id: '&lt;self-uuid&gt;', p_delta: +999999, p_reason: 'topup' })</code>
+        <br><br>
+        → mint 無限免費 credits。<code>credit_ledger</code> 嘅 SELECT policy 只 filter own row，所以受害者見唔到非法 entry，淨係見 balance 變咗。
+        <br><br>
+        <strong>影響</strong>：違反 CLAUDE.md hard rule #4 「Credits 計算邏輯要絕對啱」。一個 attacker 可以 wipe 晒所有 paid customer 嘅 balance OR 自己 mint 無限 credit。Phase 4 Stripe 一上線即時 bypass。<strong>呢個 bug 喺 prod 真係 active 嘅（migration 已 apply）— 即係而家就可以被人 exploit</strong>。
+        <br><br>
+        <strong>必須即時 fix</strong>：喺 RPC 內加 <code>if auth.uid() &lt;&gt; p_user_id and current_setting('request.jwt.claims', true)::jsonb-&gt;&gt;'role' &lt;&gt; 'service_role' then raise exception 'forbidden'</code>。
+      </div>
+    </div>
+  </section>
+
+  <!-- Top High-priority fix list -->
+  <h2><span class="icon">🚨</span>Top 10 Must-Fix（按 risk × ease 排）</h2>
+
+  <div class="priority-list">
+    <div class="priority-row">
+      <div class="priority-rank">🛑</div>
+      <div class="priority-content">
+        <strong>apply_credit_charge auth.uid() guard</strong>
+        <small>勁急。3 行 SQL 加入 RPC 入面。Migration 0007。一上線即時 close exploit。</small>
+      </div>
+      <div class="priority-refs">P3-SEC-C-01</div>
+    </div>
+    <div class="priority-row">
+      <div class="priority-rank">1</div>
+      <div class="priority-content">
+        <strong>Pre-check 用真實 model 而非 hardcoded Sonnet</strong>
+        <small>Reorder — playthrough load 移到 pre-check 之前。Opus user 唔再 bypass 落 free turn。同時 fix LOGIC-H-02 + SEC-H-03。</small>
+      </div>
+      <div class="priority-refs">P3-LOGIC-H-02 · SEC-H-03</div>
+    </div>
+    <div class="priority-row">
+      <div class="priority-rank">2</div>
+      <div class="priority-content">
+        <strong>Tier gate 喺 setDefaultModel + turn route 兩邊都查</strong>
+        <small>setDefaultModel 加 modelsForTier check；turn route 讀 pt.llm_model 前 verify tier。Free user 唔再可以攞 Opus。</small>
+      </div>
+      <div class="priority-refs">P3-SEC-H-02</div>
+    </div>
+    <div class="priority-row">
+      <div class="priority-rank">3</div>
+      <div class="priority-content">
+        <strong>Stream abort + onFinish partial fail → refund flow</strong>
+        <small>onFinish 拆 saga：charge + state-update 任一失敗，emit refund ledger entry。停止「console.error + continue」pattern。</small>
+      </div>
+      <div class="priority-refs">P3-LOGIC-H-01 · BILL-H-10</div>
+    </div>
+    <div class="priority-row">
+      <div class="priority-rank">4</div>
+      <div class="priority-content">
+        <strong>generateStory return real usage → real charge</strong>
+        <small>schema-generator 已經 compute usageTotals，但唔 return。改 return shape，createStoryFromPrompt charge actual cost not estimate。Story creation 30-50% 嘅 systematic 蝕價即時解決。</small>
+      </div>
+      <div class="priority-refs">P3-LOGIC-H-04 · COST-M-06</div>
+    </div>
+    <div class="priority-row">
+      <div class="priority-rank">5</div>
+      <div class="priority-content">
+        <strong>credits_charged 寫入 fold into apply_credit_charge RPC</strong>
+        <small>RPC 加 update turns set credits_charged = abs(p_delta) where id = p_ref_id and p_ref_type = 'turn'。Turn row + ledger 永遠對得返。</small>
+      </div>
+      <div class="priority-refs">P3-LOGIC-H-03</div>
+    </div>
+    <div class="priority-row">
+      <div class="priority-rank">6</div>
+      <div class="priority-content">
+        <strong>Canceled subscription → degrade tier UI + access</strong>
+        <small>Settings page tier 計算只認 status in ('active', 'trialing')；ModelPicker tier filter 跟住生效。Phase 4 webhook 同時 flip profile.subscription_tier on cancel。</small>
+      </div>
+      <div class="priority-refs">P3-LOGIC-H-06</div>
+    </div>
+    <div class="priority-row">
+      <div class="priority-rank">7</div>
+      <div class="priority-content">
+        <strong>Markup 同 background work 對賬清楚</strong>
+        <small>2× markup 實際係 1.62× 因為 lorebook + summarizer 唔 charge。3 條路揀：(a) charge 背景 work (b) bump markup 到 2.5× (c) document gap 喺 DECISIONS.md + update tier pricing。<strong>Phase 4 鎖 Stripe price 之前必須揀</strong>。</small>
+      </div>
+      <div class="priority-refs">P3-COST-H-05 · LOGIC-M-07</div>
+    </div>
+    <div class="priority-row">
+      <div class="priority-rank">8</div>
+      <div class="priority-content">
+        <strong>Free tier daily refresh 機制</strong>
+        <small>而家 50 credits 寫死 column default，冇 ledger entry，冇 daily reset。Cron / Edge Function + initial grant via apply_credit_charge。Phase 4 prereq。</small>
+      </div>
+      <div class="priority-refs">P3-BILL-H-11</div>
+    </div>
+    <div class="priority-row">
+      <div class="priority-rank">9</div>
+      <div class="priority-content">
+        <strong>Credit fungibility decision — free vs sub vs topup expiry</strong>
+        <small>需要 ADR：free credits 何時 expire？sub credits 月底 wipe 定 roll over？Topup 永遠唔 expire？Phase 4 鎖 Stripe 之前必須決定。Block Phase 4 ship on this。</small>
+      </div>
+      <div class="priority-refs">P3-BILL-M-12</div>
+    </div>
+    <div class="priority-row">
+      <div class="priority-rank">10</div>
+      <div class="priority-content">
+        <strong>402 / story creation error friendly UX</strong>
+        <small>play-client.tsx 入面 402 response 不 throw raw JSON — display "Credit 唔夠（X / Y）" + Top-up 按鈕。creation-form 同樣處理。整個 Settings page 補返 i18n。</small>
+      </div>
+      <div class="priority-refs">P3-UX-M-13 · M-14</div>
+    </div>
+  </div>
+
+  <h2><span class="icon">🎯</span>建議行動順序</h2>
+
+  <div class="action-grid">
+    <div class="action-card now">
+      <div class="action-subtitle">第 1 浪 · 30 分鐘 (URGENT)</div>
+      <div class="action-title">SHOWSTOPPER + 即時關門</div>
+      <ul class="action-list">
+        <li>🛑 Migration 0007: apply_credit_charge auth.uid() guard (SEC-C-01)</li>
+        <li>Pre-check reorder for real model (LOGIC-H-02)</li>
+        <li>Tier gate 兩邊都查 (SEC-H-02)</li>
+        <li>Type-check + ship + verify in prod</li>
+      </ul>
+    </div>
+    <div class="action-card next">
+      <div class="action-subtitle">第 2 浪 · 1 session</div>
+      <div class="action-title">Logic + Cost-accounting</div>
+      <ul class="action-list">
+        <li>credits_charged fold into RPC (LOGIC-H-03)</li>
+        <li>generateStory return usage + real charge (LOGIC-H-04)</li>
+        <li>onFinish refund saga (LOGIC-H-01 + BILL-H-10)</li>
+        <li>Canceled sub degrades tier (LOGIC-H-06)</li>
+        <li>Background work 對賬決定 (COST-H-05)</li>
+      </ul>
+    </div>
+    <div class="action-card later">
+      <div class="action-subtitle">第 3 浪 · Phase 4 prereq</div>
+      <div class="action-title">Billing-completeness + UX</div>
+      <ul class="action-list">
+        <li>Free tier daily refresh cron (BILL-H-11)</li>
+        <li>Credit fungibility ADR + expires_at (BILL-M-12)</li>
+        <li>402 friendly UX in play-client (UX-M-13)</li>
+        <li>Settings page i18n (UX-M-14)</li>
+        <li>Other M / L items per appetite</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="note">
+    <strong>⚠️ Phase 4 (Stripe) 鎖死 price 之前必須決定 3 件事：</strong>
+    <br>1. Markup 策略（2.0× 加 charge 背景 OR 2.5× 不變 charge OR document 1.62×）
+    <br>2. Credit fungibility（free / sub / topup 點 expire + roll over）
+    <br>3. Sub cancellation 流程（period end 自動 downgrade tier + 點 handle 剩餘 credit）
+  </div>
+
+  <!-- Findings drilldown -->
+  <h2><span class="icon">📋</span>分層 findings</h2>
+
+  <!-- Logic + Correctness -->
+  <details class="dim-section">
+    <summary>⚙️ Logic / Correctness / Race conditions <span class="dim-summary-text">16 findings · 4 High · 7 Medium · 5 Low</span></summary>
+    <div class="dim-content">
+
+      <div class="issue high">
+        <div class="issue-head"><span class="issue-id">P3-LOGIC-H-01</span><span class="issue-title">Stream abort 唔 charge — 用戶得到全 AI 輸出但唔扣費</span><span class="sev-tag sev-high">High</span></div>
+        <div class="issue-loc">turn/route.ts:441-855 (onFinish)</div>
+        <div class="issue-symptom">chargeCredits 喺 streamText 嘅 onFinish 入面跑。用戶 abort（close tab / 斷網），onFinish 可能唔 fire。但 LLM call 已經發出（我哋 charge 咗 Anthropic），tokens 已 stream 落 client。Net: <code>credit_ledger</code> 冇 charge row，user balance 不變。Repeat abort = free play。</div>
+        <div class="issue-fix"><strong>Fix:</strong> 用 <code>onError</code> + <code>onAbort</code> charge tokens-emitted-so-far；或 try/finally 用 <code>after()</code> charge estimated 如果 onFinish 冇完。Document 喺 CLAUDE.md。</div>
+      </div>
+
+      <div class="issue high">
+        <div class="issue-head"><span class="issue-id">P3-LOGIC-H-02</span><span class="issue-title">estimateTurnCredits 寫死 Sonnet — Opus user 低 balance 過 pre-check</span><span class="sev-tag sev-high">High</span></div>
+        <div class="issue-loc">turn/route.ts:102</div>
+        <div class="issue-symptom">Pre-check 永遠用 Sonnet 估價（~22 credits）。Opus 4.7 user (5× 貴) 喺 25 credits balance 過 check，stream 跑完，post-charge 100 credits 失敗，但 stream 已 deliver。pt.llm_model 之後先 load (line 138)，pre-check 時 unknown。</div>
+        <div class="issue-fix"><strong>Fix:</strong> Reorder — playthrough load 上移到 pre-check 之前，然後 estimateTurnCredits(pt.llm_model)。Trivial change。</div>
+      </div>
+
+      <div class="issue high">
+        <div class="issue-head"><span class="issue-id">P3-LOGIC-H-03</span><span class="issue-title">credits_charged 寫入唔 atomic — turn row 同 ledger 可能 desync</span><span class="sev-tag sev-high">High</span></div>
+        <div class="issue-loc">turn/route.ts:747-750</div>
+        <div class="issue-symptom">Sequence: (1) RPC charge balance + write ledger; (2) 另外 UPDATE turns.credits_charged = totalCredits。Step 2 失敗（網絡 hiccup / statement timeout），ledger 有 truth 但 turn row 顯示 0 credits。CLAUDE.md #4 「any off-by-one = trust collapse」嗰種 bug。</div>
+        <div class="issue-fix"><strong>Fix:</strong> 擴展 apply_credit_charge RPC，喺同一 transaction 入面 also <code>update turns set credits_charged = abs(p_delta) where id = p_ref_id and p_ref_type='turn'</code>。Drop client-side UPDATE。</div>
+      </div>
+
+      <div class="issue high">
+        <div class="issue-head"><span class="issue-id">P3-LOGIC-H-04</span><span class="issue-title">Story creation 計算到 real usage 但 discard — 永遠 charge estimate</span><span class="sev-tag sev-high">High</span></div>
+        <div class="issue-loc">stories/new/actions.ts:236-243 + schema-generator.ts:262-318</div>
+        <div class="issue-symptom">generateStory 已 sum 真實 token usage (usageTotals)，log 落 console，但<strong>唔 return</strong>。createStoryFromPrompt 用 flat estimateStoryCreationCredits charge。retry 帶 8 calls 但 charge 4。Trivial prompt overcharge，complex prompt undercharge。Variance 可以 50%+。</div>
+        <div class="issue-fix"><strong>Fix:</strong> generateStory return {...result, usage: usageTotals}。Charge realCost via computeCredits with real input/output/cached tokens。Estimate 只用 for pre-check。</div>
+      </div>
+
+      <div class="issue high">
+        <div class="issue-head"><span class="issue-id">P3-LOGIC-H-05</span><span class="issue-title">getBalanceAndCheck fail-closed on transient errors — 錯誤 402</span><span class="sev-tag sev-high">High</span></div>
+        <div class="issue-loc">credits.ts:312-313</div>
+        <div class="issue-symptom">Supabase select 任何 error（network / lock timeout / RLS deny）返 {balance: 0, sufficient: false}。User 50,000 credits 都見「Credit 唔夠（剩 0）」嘅 402。</div>
+        <div class="issue-fix"><strong>Fix:</strong> 失敗 fail-open — return {balance: -1, sufficient: true} + log。Atomic RPC 仍係 true gate。或者 surface "balance lookup failed, retry" 嘅 UX state。</div>
+      </div>
+
+      <div class="issue high">
+        <div class="issue-head"><span class="issue-id">P3-LOGIC-H-06</span><span class="issue-title">subscription_tier source confusion — canceled sub 仍授權服務</span><span class="sev-tag sev-high">High</span></div>
+        <div class="issue-loc">settings/page.tsx:60</div>
+        <div class="issue-symptom">tier = subscription?.tier ?? profile?.subscription_tier ?? 'free'。Subscription cancel 後 webhook 更新 status='canceled' 但唔 flip profile.subscription_tier，UI 永遠顯示原 tier。ModelPicker 跟住信，user 可以 pick Opus 雖然冇付月費。下個 turn balance debit。</div>
+        <div class="issue-fix"><strong>Fix:</strong> 只當 status in ('active', 'trialing') 算 live sub。Phase 4 webhook 同時 flip profile.subscription_tier on cancel。</div>
+      </div>
+
+      <div class="issue med">
+        <div class="issue-head"><span class="issue-id">P3-LOGIC-M-07</span><span class="issue-title">背景工作 NOT 由 2× markup absorb — 20% systematic 蝕價</span><span class="sev-tag sev-med">Medium</span></div>
+        <div class="issue-loc">turn/route.ts:706-763 + COST-H-05</div>
+        <div class="issue-symptom">Comment claim 2× markup absorb 晒。實際每 turn：Narrator + Director charged ~40 credits；Lorebook + Summarizer + Embed unbilled ~8 credits。20% margin loss。Adventurer $9.99/120 turns × $0.96 unbilled = ~9.6% revenue。</div>
+        <div class="issue-fix"><strong>Fix:</strong> 三條路揀（charge 背景 / bump markup / honest document）。決定鎖到 DECISIONS.md。</div>
+      </div>
+
+      <div class="issue med">
+        <div class="issue-head"><span class="issue-id">P3-LOGIC-M-08</span><span class="issue-title">apply_credit_charge OUT param + assignment-then-RETURN 易破壞</span><span class="sev-tag sev-med">Medium</span></div>
+        <div class="issue-loc">migrations/0006_phase3_credits.sql:155-200</div>
+        <div class="issue-symptom">Function returns table(new_balance, ledger_id) 同時 declare 同名 local var。今日 work 因為 plpgsql 識 synthesize OUT params 同名 assignment，但未來 maintainer refactor 易 break。</div>
+        <div class="issue-fix"><strong>Fix:</strong> 改用 <code>return query select v_new_balance::integer, v_ledger_id::uuid;</code> 或者 rename OUT to out_new_balance/out_ledger_id + update TS unpacking.</div>
+      </div>
+
+      <div class="issue med">
+        <div class="issue-head"><span class="issue-id">P3-LOGIC-M-09</span><span class="issue-title">chargeCredits error parsing fragile</span><span class="sev-tag sev-med">Medium</span></div>
+        <div class="issue-loc">credits.ts:271-281</div>
+        <div class="issue-fix"><strong>Fix:</strong> 用 <code>error.code === 'P0001'</code> branch (explicit errcode)；balance 用 separate query。Future-proof against SQL message format change。</div>
+      </div>
+
+      <div class="issue med">
+        <div class="issue-head"><span class="issue-id">P3-LOGIC-M-10</span><span class="issue-title">兩個 parallel turns 跨 playthroughs race past pre-check</span><span class="sev-tag sev-med">Medium</span></div>
+        <div class="issue-loc">turn/route.ts:74-82 (cooldown is per-playthrough)</div>
+        <div class="issue-symptom">User 兩個 tab + 兩個 playthroughs，同時 click submit。兩個 pre-check 都過 (balance 50, est 22 each)。兩個 streams 跑。第一 charge 50→28。第二 charge fails insufficient_credits — 但 stream 已 deliver。Free turn。</div>
+        <div class="issue-fix"><strong>Fix:</strong> 同 H-01 同 root cause — onFinish 拆 saga + refund flow。或 per-user reservation lock。</div>
+      </div>
+
+      <div class="issue med">
+        <div class="issue-head"><span class="issue-id">P3-LOGIC-M-11</span><span class="issue-title">profile not found → fall through to 'other' silently</span><span class="sev-tag sev-med">Medium</span></div>
+        <div class="issue-loc">0006_phase3_credits.sql:175-177 + credits.ts:271-281</div>
+        <div class="issue-fix"><strong>Fix:</strong> 加 profile_not_found branch + 500 error surface to client. handle_new_user trigger 必須 fire 全部 signup paths。</div>
+      </div>
+
+      <div class="issue med">
+        <div class="issue-head"><span class="issue-id">P3-LOGIC-M-12</span><span class="issue-title">ModelPicker stale model handling — pricing 變 free</span><span class="sev-tag sev-med">Medium</span></div>
+        <div class="issue-loc">model-picker.tsx:18 + settings/page.tsx:217</div>
+        <div class="issue-fix"><strong>Fix:</strong> Migration / startup check 將 stale default_model reset。Turn route 用 pt.llm_model 前 validate exists in MODELS。</div>
+      </div>
+
+      <div class="issue med">
+        <div class="issue-head"><span class="issue-id">P3-LOGIC-M-13</span><span class="issue-title">ChargeReason TS union vs SQL CHECK 易 drift</span><span class="sev-tag sev-med">Medium</span></div>
+        <div class="issue-loc">credits.ts:226-236 vs 0006:29-33</div>
+        <div class="issue-fix"><strong>Fix:</strong> Either auto-generate TS from SQL，或 Vitest snapshot lint，或 comment cross-reference。</div>
+      </div>
+
+      <div class="issue low">
+        <div class="issue-head"><span class="issue-id">P3-LOGIC-L-14</span><span class="issue-title">Unknown model → 0 credits silently — free service if mis-config</span><span class="sev-tag sev-low">Low</span></div>
+        <div class="issue-loc">credits.ts:91-96</div>
+        <div class="issue-fix"><strong>Fix:</strong> Throw typed error 而非 return 0。Startup assertion that MODELS ⊂ MODEL_PRICING。</div>
+      </div>
+
+      <div class="issue low">
+        <div class="issue-head"><span class="issue-id">P3-LOGIC-L-15</span><span class="issue-title">Pre-check 喺 body parse 之前 — invalid body 浪費 1 個 DB call</span><span class="sev-tag sev-low">Low</span></div>
+        <div class="issue-loc">turn/route.ts:91-117</div>
+        <div class="issue-fix"><strong>Fix:</strong> Reorder — body parse 先。</div>
+      </div>
+
+      <div class="issue low">
+        <div class="issue-head"><span class="issue-id">P3-LOGIC-L-16</span><span class="issue-title">credit_ledger.ref_type CHECK 'null' literal 誤導</span><span class="sev-tag sev-low">Low</span></div>
+        <div class="issue-loc">0006_phase3_credits.sql:34</div>
+        <div class="issue-fix"><strong>Fix:</strong> 改 <code>check (ref_type is null or ref_type in (...))</code>. Postgres CHECK 已經 accept NULL by tristate logic; 移除 in-list 嘅 null 避免誤導。</div>
+      </div>
+
+    </div>
+  </details>
+
+  <!-- Security + Cost + UX -->
+  <details class="dim-section">
+    <summary>🔐 Security + Cost + UX <span class="dim-summary-text">17 findings · 1 Critical · 5 High · 6 Medium · 5 Low</span></summary>
+    <div class="dim-content">
+
+      <div class="issue crit">
+        <div class="issue-head"><span class="issue-id">P3-SEC-C-01</span><span class="issue-title">🛑 apply_credit_charge 任何人 charge 任何人</span><span class="sev-tag sev-crit">Critical</span></div>
+        <div class="issue-loc">0006_phase3_credits.sql:147-200</div>
+        <div class="issue-symptom">SECURITY DEFINER + GRANT to authenticated，function 內冇 auth.uid() vs p_user_id check。任何 logged-in user 可以 drain 別人 balance 或 mint 自己無限 credit。</div>
+        <div class="issue-fix"><strong>Fix:</strong> 加 caller validation：<code>if auth.uid() &lt;&gt; p_user_id and current_setting('request.jwt.claims', true)::jsonb-&gt;&gt;'role' &lt;&gt; 'service_role' then raise exception 'forbidden'</code>。或 drop p_user_id param + always use auth.uid()，separate _admin variant only for service_role。</div>
+      </div>
+
+      <div class="issue high">
+        <div class="issue-head"><span class="issue-id">P3-SEC-H-02</span><span class="issue-title">Tier gate bypass — setDefaultModel 唔 check tier</span><span class="sev-tag sev-high">High</span></div>
+        <div class="issue-loc">settings/actions.ts:12-43</div>
+        <div class="issue-symptom">Free user POST setDefaultModel('claude-opus-4-7')（要 storyteller tier）成功 → 創作 playthrough → 永遠 burn Opus 5× rate。Turn route 唔 verify tier on pt.llm_model read。</div>
+        <div class="issue-fix"><strong>Fix:</strong> setDefaultModel 加 modelsForTier check。Story create 同 turn route 兩邊 read default_model / pt.llm_model 之前 verify tier。</div>
+      </div>
+
+      <div class="issue high">
+        <div class="issue-head"><span class="issue-id">P3-SEC-H-03</span><span class="issue-title">Pre-check undercharges Opus（同 LOGIC-H-02）</span><span class="sev-tag sev-high">High</span></div>
+        <div class="issue-loc">turn/route.ts:91-117</div>
+        <div class="issue-fix"><strong>Fix:</strong> 同 LOGIC-H-02 — pre-check 用 pt.llm_model。</div>
+      </div>
+
+      <div class="issue high">
+        <div class="issue-head"><span class="issue-id">P3-COST-H-05</span><span class="issue-title">Claim 2× markup 實際係 1.63×</span><span class="sev-tag sev-high">High</span></div>
+        <div class="issue-loc">credits.ts:14-25 + route.ts:706-763</div>
+        <div class="issue-symptom">Lorebook + summarizer + embed 三層 background work 唔 charge user。實際 markup effective ~1.62×。Adventurer 5000 credits = ~135 turns，COGS $6.17，gross profit $3.82 = 38% margin pre-Stripe fee，~32% post fee。</div>
+        <div class="issue-fix"><strong>Fix:</strong> (a) 加 BACKGROUND_OVERHEAD_CREDITS = 4 per turn (b) bump markup 2.5× (c) Document 1.62× + adjust tier credits。鎖 Stripe price 前必須揀。</div>
+      </div>
+
+      <div class="issue high">
+        <div class="issue-head"><span class="issue-id">P3-BILL-H-10</span><span class="issue-title">onFinish partial fail 冇 refund flow</span><span class="sev-tag sev-high">High</span></div>
+        <div class="issue-loc">turn/route.ts:441-847</div>
+        <div class="issue-symptom">Charge 成功 + state update 失敗 = user 扣咗 credit 但 turn 不存在。Inverse = 免費 turn。Catch 只係 console.error。CLAUDE.md hard rule #4 violated。</div>
+        <div class="issue-fix"><strong>Fix:</strong> onFinish 結構 saga。Collect rollback intent (charge ledger_id, turn row id)，任何後續失敗 emit refund ledger entry + admin queue。</div>
+      </div>
+
+      <div class="issue high">
+        <div class="issue-head"><span class="issue-id">P3-BILL-H-11</span><span class="issue-title">Free tier daily refresh 唔存在</span><span class="sev-tag sev-high">High</span></div>
+        <div class="issue-loc">0001_initial.sql:35 + credits.ts:332-341</div>
+        <div class="issue-symptom">profiles.credit_balance default 50，無 ledger entry。dailyCredits 50/day 寫喺 TIER_CONFIG 但無 cron reset。User 用完 50 永遠 stuck 0。Pricing page 寫「50 credits 每日」係 misleading。</div>
+        <div class="issue-fix"><strong>Fix:</strong> (a) profile-creation trigger 經 apply_credit_charge grant +50 (b) pg_cron / Vercel cron daily refresh (c) daily_grant_at column throttle。Phase 4 prereq。</div>
+      </div>
+
+      <div class="issue med">
+        <div class="issue-head"><span class="issue-id">P3-SEC-M-04</span><span class="issue-title">credit_ledger ref_type CHECK 'null' literal（同 LOGIC-L-16）</span><span class="sev-tag sev-med">Medium</span></div>
+        <div class="issue-loc">0006:34</div>
+        <div class="issue-fix"><strong>Fix:</strong> 同 LOGIC-L-16。</div>
+      </div>
+
+      <div class="issue med">
+        <div class="issue-head"><span class="issue-id">P3-COST-M-06</span><span class="issue-title">Story creation estimate 30-50% off real cost（同 LOGIC-H-04）</span><span class="sev-tag sev-med">Medium</span></div>
+        <div class="issue-loc">credits.ts:211-222 + schema-generator.ts:248-324</div>
+        <div class="issue-fix"><strong>Fix:</strong> 同 LOGIC-H-04 — generateStory return usage, real charge。</div>
+      </div>
+
+      <div class="issue med">
+        <div class="issue-head"><span class="issue-id">P3-COST-M-07</span><span class="issue-title">cachedInputTokens math 可能 double-count</span><span class="sev-tag sev-med">Medium</span></div>
+        <div class="issue-loc">credits.ts:99-110</div>
+        <div class="issue-symptom">需要 verify Anthropic SDK contract — 係 inputTokens 已 exclude cached 定 still include？如已 exclude，<code>freshInput = totalInput - cached</code> 雙重扣減 — systematically overcharge 10% per cached turn。</div>
+        <div class="issue-fix"><strong>Fix:</strong> 讀 @ai-sdk/anthropic source 確認 normalizer，定有 change 公式。</div>
+      </div>
+
+      <div class="issue med">
+        <div class="issue-head"><span class="issue-id">P3-COST-M-08</span><span class="issue-title">OpenRouter Llama pricing 可能 3× off</span><span class="sev-tag sev-med">Medium</span></div>
+        <div class="issue-loc">credits.ts:68-72</div>
+        <div class="issue-fix"><strong>Fix:</strong> Phase 6 launch 之前 pin 具體 OpenRouter provider + 真實 pricing。考慮 OpenRouter models allowlist。</div>
+      </div>
+
+      <div class="issue med">
+        <div class="issue-head"><span class="issue-id">P3-BILL-M-12</span><span class="issue-title">Credit balance 冇 expiry / fungibility — Phase 4 prereq blocker</span><span class="sev-tag sev-med">Medium</span></div>
+        <div class="issue-loc">credits.ts + 0006</div>
+        <div class="issue-symptom">Spec gap：free credits 何時 expire？sub 月底 wipe 定 roll over？Topup 永遠唔 expire？冇 expires_at column。Phase 4 唔可以 ship correctly。</div>
+        <div class="issue-fix"><strong>Fix:</strong> ADR-016 之前 Phase 4 — credit_ledger 加 expires_at column + FIFO consumption pointer。Decision goes to DECISIONS.md。<strong>Block Phase 4 ship</strong>。</div>
+      </div>
+
+      <div class="issue med">
+        <div class="issue-head"><span class="issue-id">P3-UX-M-13</span><span class="issue-title">Turn 402 response 喺 play-client 顯示 raw JSON</span><span class="sev-tag sev-med">Medium</span></div>
+        <div class="issue-loc">play-client.tsx:79-145</div>
+        <div class="issue-fix"><strong>Fix:</strong> Branch on res.status === 402: parse JSON, render friendly card with Top-up CTA → /settings。</div>
+      </div>
+
+      <div class="issue med">
+        <div class="issue-head"><span class="issue-id">P3-UX-M-14</span><span class="issue-title">Settings page 全 hardcode 繁中 — i18n broken for 簡中 + EN</span><span class="sev-tag sev-med">Medium</span></div>
+        <div class="issue-loc">settings/page.tsx + model-picker.tsx + messages/*.json</div>
+        <div class="issue-symptom">CLAUDE.md commit「繁中 default + 簡中 + EN day-1 ready」violated on the page that gates revenue。</div>
+        <div class="issue-fix"><strong>Fix:</strong> useTranslations / getTranslations wrap 全部 literals。Update 3 messages files + creditReasons namespace。</div>
+      </div>
+
+      <div class="issue low">
+        <div class="issue-head"><span class="issue-id">P3-COST-L-09</span><span class="issue-title">Anthropic cached pricing 10% flat 不準（vs 5min/1h TTL tier）</span><span class="sev-tag sev-low">Low</span></div>
+        <div class="issue-loc">credits.ts:50,55,60</div>
+        <div class="issue-fix"><strong>Fix:</strong> Phase 5 optimization。Track cache_create vs cache_read tokens 分別 price。</div>
+      </div>
+
+      <div class="issue low">
+        <div class="issue-head"><span class="issue-id">P3-UX-L-15</span><span class="issue-title">無 live balance refresh — user 要 reload 先見</span><span class="sev-tag sev-low">Low</span></div>
+        <div class="issue-loc">play-client.tsx + site-header.tsx</div>
+        <div class="issue-fix"><strong>Fix:</strong> Phase 3.5 polish — SSE balance-update event + header pill component。</div>
+      </div>
+
+      <div class="issue low">
+        <div class="issue-head"><span class="issue-id">P3-UX-L-16</span><span class="issue-title">creation-form 唔 pre-display story cost</span><span class="sev-tag sev-low">Low</span></div>
+        <div class="issue-loc">creation-form.tsx:111-128</div>
+        <div class="issue-fix"><strong>Fix:</strong> Button 下加「↳ 估 ~216 credits」line。</div>
+      </div>
+
+      <div class="issue low">
+        <div class="issue-head"><span class="issue-id">P3-UX-L-17</span><span class="issue-title">Anon user Settings 多個 "—" 但冇 claim CTA</span><span class="sev-tag sev-low">Low</span></div>
+        <div class="issue-loc">settings/page.tsx:91-110</div>
+        <div class="issue-fix"><strong>Fix:</strong> Detect user.is_anonymous，加 conversion banner「連結 email 鎖定進度同 credit」。</div>
+      </div>
+
+    </div>
+  </details>
+
+  <a href="pm-dashboard.html" class="back-link">← 返 Dashboard</a>
+
+</main>
+</body>
+</html>

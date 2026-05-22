@@ -13,6 +13,7 @@ import {
   chargeCredits,
   estimateStoryCreationCredits,
   getBalanceAndCheck,
+  userTierAllowsModel,
 } from "@/lib/billing/credits";
 
 const InputSchema = z.object({
@@ -66,13 +67,25 @@ export async function createStoryFromPrompt(
   }
 
   // Load user's preferred narrator model (Phase 3 — wired through Settings).
-  // Falls back to DEFAULT_NARRATOR if not set or invalid.
+  // Falls back to DEFAULT_NARRATOR if not set or no longer allowed for tier.
+  //
+  // AUDIT FIX (P3-SEC-H-02 / P3-LOGIC-H-06): re-validate tier here in case
+  // user downgraded after setting a premium model. setDefaultModel blocks
+  // future writes but stale default_model values can persist; revalidate
+  // at every consumption point.
   const { data: prefProfile } = await supabase
     .from("profiles")
     .select("default_model")
     .eq("id", user.id)
     .single();
-  const userNarratorModel = prefProfile?.default_model ?? DEFAULT_NARRATOR;
+  const requestedModel = prefProfile?.default_model ?? DEFAULT_NARRATOR;
+  const tierCheck = await userTierAllowsModel(supabase, user.id, requestedModel);
+  const userNarratorModel = tierCheck.allowed ? requestedModel : DEFAULT_NARRATOR;
+  if (!tierCheck.allowed) {
+    console.log(
+      `[createStory] user ${user.id} default_model ${requestedModel} not allowed for tier ${tierCheck.tier} — falling back to ${DEFAULT_NARRATOR}`,
+    );
+  }
 
   // AUDIT FIX (AI-H-03): pre-check credit balance before burning ~$0.20 on
   // 4 parallel Sonnet 4.6 calls. Friendly 402 UX if user can't afford.

@@ -38,6 +38,7 @@ import {
   computeCredits,
   estimateTurnCredits,
   getBalanceAndCheck,
+  userTierAllowsModel,
 } from "@/lib/billing/credits";
 
 /**
@@ -88,34 +89,6 @@ export async function POST(
   }
   lastTurnAt.set(playthroughId, Date.now());
 
-  // 1.6 AUDIT FIX (AI-H-03): credit balance pre-check.
-  // Cheap UX gate before any LLM work — friendly error if balance can't
-  // cover an average turn. The atomic charge in onFinish is the source of
-  // truth (RPC will throw insufficient_credits if balance is below 0 after
-  // the actual cost is computed). Tiny race window where balance dips
-  // between pre-check and atomic charge is acceptable for MVP.
-  //
-  // Uses default Narrator model for estimate; actual playthrough model is
-  // read from pt.llm_model later — slight overestimate when player picked a
-  // cheaper model, slight underestimate for premium models (within markup
-  // buffer).
-  const estimatedTurnCost = estimateTurnCredits("claude-sonnet-4-6");
-  const balanceCheck = await getBalanceAndCheck(supabase, {
-    userId: user.id,
-    estimatedCost: estimatedTurnCost,
-  });
-  if (!balanceCheck.sufficient) {
-    return NextResponse.json(
-      {
-        error: "insufficient_credits",
-        message: `Credit 唔夠（剩 ${balanceCheck.balance}，需要約 ${estimatedTurnCost}）。Top-up 或 upgrade 之後再玩。`,
-        currentBalance: balanceCheck.balance,
-        estimatedCost: estimatedTurnCost,
-      },
-      { status: 402 }, // 402 Payment Required
-    );
-  }
-
   // 2. Parse body
   let action: string;
   try {
@@ -145,6 +118,48 @@ export async function POST(
   }
   if (pt.user_id !== user.id) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  }
+
+  // 3.5 AUDIT FIX (P3-LOGIC-H-02 / P3-SEC-H-02 / P3-SEC-H-03):
+  // Tier gate + credit pre-check using the REAL model (not hardcoded Sonnet).
+  // Previously pre-check ran before pt was loaded, so it always estimated
+  // Sonnet cost (~22 credits). Opus user (5× cost) could pass pre-check at
+  // 25 credits balance, stream a turn, then post-charge would fail silently
+  // → free turn. Now: load pt first, then estimate using pt.llm_model.
+  //
+  // Also blocks tier downgrade exploits: a user who upgraded → set Opus
+  // → downgraded should NOT keep using Opus. userTierAllowsModel checks
+  // both profile.subscription_tier AND active subscription row.
+  const playthroughModel = pt.llm_model ?? "claude-sonnet-4-6";
+  const tierCheck = await userTierAllowsModel(supabase, user.id, playthroughModel);
+  if (!tierCheck.allowed) {
+    return NextResponse.json(
+      {
+        error: "model_tier_required",
+        message: `你嘅 tier (${tierCheck.tier}) 唔可以用 ${playthroughModel}。請去 Settings 揀其他 model 或升級。`,
+        currentTier: tierCheck.tier,
+        modelId: playthroughModel,
+        reason: tierCheck.reason,
+      },
+      { status: 403 },
+    );
+  }
+
+  const estimatedTurnCost = estimateTurnCredits(playthroughModel);
+  const balanceCheck = await getBalanceAndCheck(supabase, {
+    userId: user.id,
+    estimatedCost: estimatedTurnCost,
+  });
+  if (!balanceCheck.sufficient) {
+    return NextResponse.json(
+      {
+        error: "insufficient_credits",
+        message: `Credit 唔夠（剩 ${balanceCheck.balance}，需要約 ${estimatedTurnCost}）。Top-up 或 upgrade 之後再玩。`,
+        currentBalance: balanceCheck.balance,
+        estimatedCost: estimatedTurnCost,
+      },
+      { status: 402 }, // 402 Payment Required
+    );
   }
 
   const { data: story, error: storyErr } = await supabase
@@ -743,19 +758,24 @@ export async function POST(
               },
             });
             if (chargeResult.ok) {
-              // Update AI turn with actual credit_charged for ledger reference
-              await supabase
-                .from("turns")
-                .update({ credits_charged: totalCredits })
-                .eq("id", aiTurnIdForCharge);
+              // AUDIT FIX (P3-LOGIC-H-03): credits_charged UPDATE is now
+              // folded into apply_credit_charge RPC (atomic with ledger
+              // insert). No separate UPDATE needed here.
               console.log(
                 `[turn] charged ${totalCredits} credits (narrator=${narratorCredits}, director=${directorCredits}) — new balance: ${chargeResult.newBalance}`,
               );
             } else if (chargeResult.error === "insufficient_credits") {
               // Should NOT happen because pre-check passed, but defensive log.
+              // Phase 3 Wave 2 will add refund saga; for now flag for admin review.
               console.error(
                 `[turn] post-charge insufficient_credits (current=${chargeResult.currentBalance}, needed=${chargeResult.needed}) — turn already streamed; flagging for refund/review`,
               );
+            } else if (chargeResult.error === "forbidden") {
+              // Should be impossible because RPC checks auth.uid() = p_user_id
+              // and we pass user.id from getUser() — but log loudly if it ever fires.
+              console.error("[turn] charge forbidden — RPC auth guard rejected:", chargeResult.message);
+            } else if (chargeResult.error === "profile_not_found") {
+              console.error("[turn] charge failed — profile not found:", chargeResult.message);
             } else {
               console.error("[turn] credit charge failed:", chargeResult.message);
             }

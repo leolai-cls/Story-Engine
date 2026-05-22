@@ -240,6 +240,8 @@ export type ChargeRefType = "turn" | "story" | "subscription" | "topup" | "admin
 export type ChargeResult =
   | { ok: true; newBalance: number; ledgerId: string }
   | { ok: false; error: "insufficient_credits"; currentBalance: number; needed: number }
+  | { ok: false; error: "profile_not_found"; message: string }
+  | { ok: false; error: "forbidden"; message: string }
   | { ok: false; error: "other"; message: string };
 
 /**
@@ -247,6 +249,15 @@ export type ChargeResult =
  *
  * `delta` is signed: negative for charges, positive for grants/refunds.
  * Returns structured result so caller can branch on insufficient_credits.
+ *
+ * AUDIT FIX (P3-LOGIC-M-09): now uses Postgres errcode for branching
+ * instead of regex-matching error message. RPC raises:
+ *   - 'P0001' on insufficient_credits (with detail "current=X delta=Y...")
+ *   - 'P0002' on profile_not_found
+ *   - '42501' on forbidden (caller not allowed to charge target)
+ *
+ * AUDIT FIX (P3-LOGIC-M-11): explicit profile_not_found branch surfaces
+ * the case where signup trigger didn't fire (rare but possible).
  */
 export async function chargeCredits(
   supabase: SupabaseClient,
@@ -269,13 +280,25 @@ export async function chargeCredits(
   });
 
   if (error) {
+    // Postgres error code branching (preferred over message regex)
+    const code = (error as { code?: string }).code ?? "";
     const msg = error.message ?? "";
-    if (/insufficient_credits/i.test(msg)) {
-      // Best-effort parse of "current=X delta=Y would_be=Z" detail
-      const m = msg.match(/current=(-?\d+)\s+delta=(-?\d+)/);
+    const details = (error as { details?: string }).details ?? "";
+
+    if (code === "P0001" || /insufficient_credits/i.test(msg)) {
+      // Parse detail "current=X delta=Y would_be=Z" — sits on error.details
+      // when the RPC raises with `USING DETAIL`, not on error.message.
+      const haystack = `${details} ${msg}`;
+      const m = haystack.match(/current=(-?\d+)\s+delta=(-?\d+)/);
       const currentBalance = m ? parseInt(m[1], 10) : 0;
       const needed = m ? Math.abs(parseInt(m[2], 10)) : Math.abs(params.delta);
       return { ok: false, error: "insufficient_credits", currentBalance, needed };
+    }
+    if (code === "P0002" || /profile_not_found/i.test(msg)) {
+      return { ok: false, error: "profile_not_found", message: msg };
+    }
+    if (code === "42501" || /forbidden/i.test(msg)) {
+      return { ok: false, error: "forbidden", message: msg };
     }
     return { ok: false, error: "other", message: msg };
   }
@@ -298,6 +321,13 @@ export async function chargeCredits(
  * the row — final atomic check is in the post-call charge.
  *
  * Pattern: pre-check (cheap, friendly UX error) + post-charge (atomic, source of truth).
+ *
+ * AUDIT FIX (P3-LOGIC-H-05): on transient errors (network blip, RLS deny,
+ * lock timeout), this used to return {balance:0, sufficient:false} —
+ * showing the user "Credit 唔夠（剩 0）" even when they had 50k credits.
+ * Now: fail-open. We log + return {balance:-1, sufficient:true} so the
+ * atomic RPC remains the true gate. If RPC then fails for the same
+ * underlying reason, user sees the real error.
  */
 export async function getBalanceAndCheck(
   supabase: SupabaseClient,
@@ -310,10 +340,78 @@ export async function getBalanceAndCheck(
     .single();
 
   if (error || !data) {
-    return { balance: 0, sufficient: false };
+    console.warn(
+      `[credits] getBalanceAndCheck transient failure (fail-open): ${error?.message ?? "no data"}`,
+    );
+    return { balance: -1, sufficient: true };
   }
   const balance = data.credit_balance as number;
   return { balance, sufficient: balance >= params.estimatedCost };
+}
+
+/**
+ * Tier gate helper — does the user's tier allow them to use this model?
+ *
+ * AUDIT FIX (P3-SEC-H-02): without this check, a Free user could call
+ * setDefaultModel('claude-opus-4-7') (Legend-only) then run Opus turns
+ * forever. Used by setDefaultModel server action + turn route at the
+ * pt.llm_model boundary.
+ */
+export async function userTierAllowsModel(
+  supabase: SupabaseClient,
+  userId: string,
+  modelId: string,
+): Promise<{ allowed: boolean; tier: Tier; reason?: string }> {
+  // Read profile.subscription_tier AND active subscription row.
+  // AUDIT FIX (P3-LOGIC-H-06): canceled subs lose tier access. Only
+  // 'active' or 'trialing' subscription rows count as live tier;
+  // otherwise fall back to profile.subscription_tier (which may still
+  // say 'storyteller' from before cancellation, but we override to free).
+  const [profileRes, subRes] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("subscription_tier")
+      .eq("id", userId)
+      .single(),
+    supabase
+      .from("subscriptions")
+      .select("tier, status")
+      .eq("user_id", userId)
+      .maybeSingle(),
+  ]);
+
+  let tier: Tier;
+  if (subRes.data && (subRes.data.status === "active" || subRes.data.status === "trialing")) {
+    tier = subRes.data.tier as Tier;
+  } else if (profileRes.data?.subscription_tier && (profileRes.data.subscription_tier as Tier) === "free") {
+    tier = "free";
+  } else if (!subRes.data && profileRes.data?.subscription_tier) {
+    // No subscription row at all but profile says paid tier — treat as
+    // misconfiguration; fall back to free.
+    tier = (profileRes.data.subscription_tier as Tier) === "free"
+      ? "free"
+      : "free"; // defensive
+  } else {
+    tier = "free";
+  }
+
+  // Look up the model in MODELS catalog via dynamic import to avoid a
+  // circular-import edge case.
+  const { MODELS } = await import("@/lib/ai/models");
+  const model = MODELS[modelId];
+  if (!model) {
+    return { allowed: false, tier, reason: "unknown_model" };
+  }
+  if (!model.min_tier) {
+    return { allowed: true, tier };
+  }
+  const order = ["free", "adventurer", "storyteller", "legend"] as const;
+  const userIdx = order.indexOf(tier);
+  const modelIdx = order.indexOf(model.min_tier);
+  if (userIdx < modelIdx) {
+    return { allowed: false, tier, reason: "tier_too_low" };
+  }
+  return { allowed: true, tier };
 }
 
 // ─── Tier definitions (Phase 4 will move these to DB) ───────────────────
