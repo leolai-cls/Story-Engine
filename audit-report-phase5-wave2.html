@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Story Engine — Phase 5 Wave 2 Audit (multi-board library)</title>
+<style>
+  :root { --primary: #4F46E5; --primary-soft: #EEF2FF; --accent: #F59E0B; --accent-soft: #FEF3C7; --bg: #FAFAF7; --card: #FFFFFF; --ink: #18181B; --ink-soft: #3F3F46; --muted: #71717A; --border: #E4E4E7; --green: #10B981; --rose: #E11D48; --amber: #D97706; --code-bg: #F4F4F5; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif; background: var(--bg); color: var(--ink); line-height: 1.65; font-size: 15px; -webkit-font-smoothing: antialiased; }
+  main { max-width: 1040px; margin: 0 auto; padding: 48px 32px 120px; }
+  .hero { text-align: center; margin-bottom: 36px; }
+  .eyebrow { display: inline-block; font-size: 11px; font-weight: 700; color: var(--primary); background: var(--primary-soft); padding: 5px 12px; border-radius: 999px; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 16px; }
+  h1 { font-size: 34px; font-weight: 800; letter-spacing: -0.025em; margin-bottom: 10px; }
+  .hero p { color: var(--muted); font-size: 16px; max-width: 720px; margin: 0 auto; }
+  .meta { color: var(--muted); font-size: 13px; margin-top: 14px; }
+  .summary { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin: 32px 0 28px; }
+  .stat { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px; text-align: center; }
+  .stat-num { font-size: 36px; font-weight: 800; line-height: 1; }
+  .stat-label { font-size: 11px; color: var(--muted); margin-top: 8px; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700; }
+  .stat.crit .stat-num { color: var(--rose); }
+  .stat.high .stat-num { color: var(--amber); }
+  .stat.med .stat-num { color: var(--primary); }
+  .stat.low .stat-num { color: var(--muted); }
+  .stat.info .stat-num { color: var(--green); }
+  h2 { font-size: 24px; font-weight: 700; margin: 50px 0 14px; display: flex; align-items: center; gap: 10px; }
+  h2 .icon { font-size: 28px; }
+  .showstopper { background: linear-gradient(135deg, #fee2e2, #fef3c7); border: 3px solid var(--rose); padding: 26px 28px; border-radius: 16px; margin: 28px 0; box-shadow: 0 4px 20px rgba(225, 29, 72, 0.15); }
+  .showstopper-title { font-weight: 900; font-size: 20px; color: var(--rose); margin-bottom: 10px; letter-spacing: -0.01em; }
+  .showstopper-body { font-size: 15px; line-height: 1.7; }
+  .showstopper-body strong { color: var(--rose); }
+  .showstopper-body code { background: rgba(225, 29, 72, 0.1); }
+  .priority-list { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 24px; margin: 20px 0 36px; }
+  .priority-row { display: grid; grid-template-columns: 60px 1fr auto; gap: 14px; align-items: start; padding: 12px 0; border-bottom: 1px dashed var(--border); }
+  .priority-row:last-child { border-bottom: none; }
+  .priority-rank { font-size: 20px; font-weight: 800; color: var(--rose); }
+  .priority-content strong { font-weight: 700; font-size: 14.5px; display: block; margin-bottom: 4px; }
+  .priority-content small { font-size: 12.5px; color: var(--muted); }
+  .priority-refs { font-size: 11px; color: var(--primary); font-weight: 700; background: var(--primary-soft); padding: 4px 8px; border-radius: 6px; white-space: nowrap; }
+  details.dim-section { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 0; margin-bottom: 14px; overflow: hidden; }
+  details.dim-section[open] { box-shadow: 0 2px 12px rgba(0,0,0,0.04); }
+  details.dim-section summary { cursor: pointer; padding: 20px 24px; font-weight: 700; font-size: 17px; display: flex; align-items: center; gap: 12px; user-select: none; }
+  details.dim-section summary::-webkit-details-marker { display: none; }
+  details.dim-section summary::after { content: "▼"; margin-left: auto; color: var(--muted); font-size: 12px; transition: transform .2s; }
+  details.dim-section[open] summary::after { transform: rotate(180deg); }
+  .dim-content { padding: 0 24px 24px; }
+  .issue { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin-bottom: 10px; }
+  .issue.crit { border-left: 4px solid var(--rose); background: #fff5f6; }
+  .issue.high { border-left: 4px solid var(--amber); background: #fffbf4; }
+  .issue.med { border-left: 4px solid var(--primary); }
+  .issue.low { border-left: 4px solid var(--muted); }
+  .issue.info { border-left: 4px solid var(--green); background: #f0fdf4; }
+  .issue-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+  .issue-id { font-weight: 800; font-size: 12.5px; color: var(--primary); flex-shrink: 0; font-family: "SF Mono", Monaco, monospace; }
+  .issue-title { font-weight: 700; font-size: 14.5px; flex: 1; min-width: 220px; }
+  .sev-tag { font-size: 10px; padding: 2px 8px; border-radius: 999px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
+  .sev-crit { background: var(--rose); color: white; }
+  .sev-high { background: var(--amber); color: white; }
+  .sev-med { background: var(--primary-soft); color: var(--primary); }
+  .sev-low { background: var(--code-bg); color: var(--muted); }
+  .sev-info { background: rgba(16, 185, 129, 0.15); color: var(--green); }
+  .issue-loc { font-family: "SF Mono", Monaco, monospace; font-size: 11.5px; color: var(--muted); margin-bottom: 8px; word-break: break-all; }
+  .issue-symptom { font-size: 13.5px; color: var(--ink-soft); margin-bottom: 6px; }
+  .issue-symptom strong { color: var(--ink); }
+  .issue-fix { background: rgba(16, 185, 129, 0.06); border-left: 3px solid var(--green); padding: 8px 14px; border-radius: 6px; font-size: 13px; color: var(--ink-soft); margin-top: 8px; }
+  .issue-fix strong { color: var(--green); font-weight: 700; }
+  code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; font-family: "SF Mono", Monaco, monospace; font-size: 12px; }
+  .action-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 20px 0 30px; }
+  .action-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .action-card.now { border-top: 4px solid var(--rose); }
+  .action-card.next { border-top: 4px solid var(--amber); }
+  .action-card.later { border-top: 4px solid var(--muted); }
+  .action-title { font-weight: 800; font-size: 15px; margin-bottom: 4px; }
+  .action-subtitle { font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 12px; }
+  .action-list { list-style: none; padding: 0; }
+  .action-list li { font-size: 13px; color: var(--ink-soft); padding: 6px 0; border-bottom: 1px dashed var(--border); }
+  .action-list li:last-child { border-bottom: none; }
+  .back-link { display: inline-block; margin-top: 40px; color: var(--primary); text-decoration: none; font-size: 13px; font-weight: 700; padding: 8px 14px; background: var(--primary-soft); border-radius: 8px; }
+  .back-link:hover { background: var(--primary); color: white; }
+  .verdict { background: #fff5f6; border: 2px solid var(--rose); padding: 22px 26px; border-radius: 14px; margin: 18px 0 36px; }
+  .verdict h3 { color: var(--rose); font-size: 18px; font-weight: 800; margin-bottom: 10px; }
+  .verdict p { font-size: 14.5px; line-height: 1.75; }
+  @media (max-width: 768px) { .summary { grid-template-columns: repeat(2, 1fr); } .action-grid { grid-template-columns: 1fr; } main { padding: 24px 16px 80px; } }
+</style>
+</head>
+<body>
+<main>
+
+<div class="hero">
+  <span class="eyebrow">🔍 Wave 2 Post-Ship Audit · 2-agent parallel</span>
+  <h1>Phase 5 Wave 2 — multi-board library shipped → audit 揾到 launch blocker</h1>
+  <p>Wave 2 加咗 8-board library + CJK FTS + trending boost + 7 audit fold-in。Audit 揾到 <strong>1 CRITICAL bug 殺死 6 個 genre carousel</strong>（English key vs CJK output mismatch）+ 4 個 HIGH（search form 提交即空 · 玩家 turn block 見原始 JSON · 8 RPC per visit 冇 cache · empty library first impression）+ trending exploit。Wave 2.5 patch 必修 5 條先入下個 phase。</p>
+  <div class="meta">Audit date: 2026-05-22 (Session 8 cont.) · Agent A: Security/Correctness · Agent B: UX/Cost/Regression · Files: Migration 0012 + library page + StoryCarousel + turn route + queries.ts + moderation wrapper</div>
+</div>
+
+<div class="summary">
+  <div class="stat crit"><div class="stat-num">1</div><div class="stat-label">Critical (genre boards dead)</div></div>
+  <div class="stat high"><div class="stat-num">5</div><div class="stat-label">High</div></div>
+  <div class="stat med"><div class="stat-num">7</div><div class="stat-label">Medium</div></div>
+  <div class="stat low"><div class="stat-num">7</div><div class="stat-label">Low</div></div>
+  <div class="stat info"><div class="stat-num">4</div><div class="stat-label">Info</div></div>
+</div>
+
+<div class="verdict">
+  <h3>🛑 Verdict: 唔可以 ship Wave 2 上市場 · Wave 2.5 必修 5 條（同 Wave 1.5 一樣 pattern）</h3>
+  <p>Wave 2 嘅 multi-board library + CJK FTS + trending newcomer boost + 7 個 audit fold-in 都 land 咗，<strong>但 audit 揾到 5 個 launch-blocker</strong>：</p>
+  <p>（1）<strong>W2-GENRE-C-01 CRITICAL</strong> — Library page 嘅 6 個 genre carousel key 用英文（'romance', 'adventure', 'school', 'fantasy', 'sports', 'mystery'），但 <code>schema-generator.ts:112</code> 個 prompt 教 AI 出 CJK genre（「戀愛校園」、「古惑仔」、「玄幻冒險」）。<strong>永遠唔會 match。</strong>6 個 carousel 通通永久空白。Multi-board library 嘅核心功能 dead-on-arrival。</p>
+  <p>（2）<strong>W2-FILTER-H-02 HIGH</strong> — Search form select default value="" · `params.language ?? null` 唔 catch empty string · RPC 收到 <code>where s.language = ''</code> 永遠 0 結果。任何 user 按一次「搜尋」即見「冇結果」假象，library 表面壞晒。</p>
+  <p>（3）<strong>W2-UX-H-03 HIGH</strong> — Turn route 加咗 moderation block 返 400 JSON。Play-client 嘅 if-not-ok branch 唔 special-case 400，raw JSON 直接 render 落 ErrorCard。玩家見到 <code>{"error":"action_blocked","message":"..."}</code> 而唔係友善繁中。新安全 surface 第一次見人就 looks broken。</p>
+  <p>（4）<strong>W2-TREND-H-01 HIGH</strong> — Trending 公式新 newcomer boost <code>exp(-age_days/3)</code> 冇 clamp。Stories INSERT RLS 冇 column-list restriction（pre-existing）— 用戶可以 browser console 直 INSERT story 設 <code>created_at='2099-01-01'</code>，<code>now() - created_at</code> 變負，<code>exp(positive)</code> 爆炸到 e^120，trending 永久被霸佔。</p>
+  <p>（5）<strong>W2-LAUNCH-H-05 HIGH</strong> — 配合 W2-GENRE-C-01：launch 時 library 顯示 = 1 個 熱門 row（1-3 個故事）+ 6 個空 genre 自動隱藏 + 1 個 最新（如有）。Compare 之前嘅 single-list UX 至少 feel populated。新 UX 反而 "wow this place is empty"。</p>
+  <p><strong>Wave 1.5 嗰個 pattern 重演</strong>：fix shipped 但 audit 揾到新問題。今次焦點唔係 security 而係 UX completeness — Wave 2 嘅 features land 咗，但部分 land 喺 wrong place（English vs CJK key）/ wrong missing piece（empty string handling）。修嘅 LoC 細，但唔修就 launch demo dead。</p>
+</div>
+
+<h2><span class="icon">🛑</span>SHIP BLOCKERS — Wave 2.5 必修（5 條，&lt; 100 LoC 總計）</h2>
+
+<div class="priority-list">
+  <div class="priority-row">
+    <div class="priority-rank">1</div>
+    <div class="priority-content">
+      <strong>W2-GENRE-C-01 — 6 個 genre carousel 永久空白（English key vs CJK output mismatch）</strong>
+      <small>Library 嘅 GENRE_BOARDS keys 全部係英文 ('romance', 'adventure', 'school', 'fantasy', 'sports', 'mystery')，但 schema-generator prompt 教 Claude 出 CJK genre ("戀愛校園", "古惑仔", "玄幻冒險")。stories_by_genre RPC 只 match exact (case-insensitive) — 永遠唔會 match。Solution: 改 GENRE_BOARDS keys 做 CJK 詞，或者 RPC 入面加 CJK→English synonym table</small>
+    </div>
+    <div class="priority-refs">CRITICAL</div>
+  </div>
+  <div class="priority-row">
+    <div class="priority-rank">2</div>
+    <div class="priority-content">
+      <strong>W2-FILTER-H-02 — Search form 提交 default filters → 全部 carousel 空</strong>
+      <small><code>&lt;option value=""&gt;</code> default · `params.language ?? null` 唔 catch empty string · RPC where 變 `s.language = ''` · 0 results everywhere。Solution: library/page.tsx 入面 `language: sp.language || undefined`（OR 而唔係 nullish）</small>
+    </div>
+    <div class="priority-refs">HIGH</div>
+  </div>
+  <div class="priority-row">
+    <div class="priority-rank">3</div>
+    <div class="priority-content">
+      <strong>W2-UX-H-03 — Turn moderation block 顯示原始 JSON 俾玩家睇</strong>
+      <small>play-client.tsx 嘅 if-not-ok 只 special-case 402/403。400 fall through 變 raw JSON。Solution: 加 400 case 解 action_blocked，PlayErrorCard render shield + 繁中 message</small>
+    </div>
+    <div class="priority-refs">HIGH</div>
+  </div>
+  <div class="priority-row">
+    <div class="priority-rank">4</div>
+    <div class="priority-content">
+      <strong>W2-TREND-H-01 — Trending board 被 future created_at INSERT 永久霸佔</strong>
+      <small>新 newcomer boost <code>exp(-age/3)</code> 冇 clamp。Stories INSERT RLS 冇 column-list restriction。用戶 browser console 直接 INSERT 設 created_at 未來 → exp 爆炸。Solution: 公式入面 <code>greatest(0, now() - created_at)</code> clamp · 加 stories BEFORE INSERT trigger 鎖 created_at / visibility / play_count / rating columns</small>
+    </div>
+    <div class="priority-refs">HIGH</div>
+  </div>
+  <div class="priority-row">
+    <div class="priority-rank">5</div>
+    <div class="priority-content">
+      <strong>W2-LAUNCH-H-05 — Empty library first impression killer</strong>
+      <small>結合 W2-GENRE-C-01 + 真實 platform 內容稀疏，新訪客見到 library 等於空。Solution: launch fallback — 如果 trending count &lt; 8 AND 所有 genre boards count = 0，render 單一「公開故事」list 替代 multi-board。Threshold cross 之後自動 enable multi-board</small>
+    </div>
+    <div class="priority-refs">HIGH</div>
+  </div>
+</div>
+
+<h2><span class="icon">🟧</span>另外 HIGH/MEDIUM — Wave 2.5 強烈建議 fold-in 或 backlog</h2>
+
+<div class="priority-list">
+  <div class="priority-row">
+    <div class="priority-rank">6</div>
+    <div class="priority-content">
+      <strong>W2-COST-H-04 — 8 RPCs per anon library visit · 冇 cache</strong>
+      <small>force-dynamic + Promise.all(8) per request。Anon visitor cost 8 Supabase round-trip。1000/day = 8k RPCs/day 喺 browse-only。Solution: anon browse path 用 ISR `revalidate: 300` · 5min 內 cache · authenticated path 維持 dynamic</small>
+    </div>
+    <div class="priority-refs">HIGH (cost)</div>
+  </div>
+  <div class="priority-row">
+    <div class="priority-rank">7</div>
+    <div class="priority-content">
+      <strong>W2-PERF-M-06 — Turn moderation serialized · 浪費 ~0.5-2s per turn</strong>
+      <small>Turn route 順序：load story → moderate action → load chars → ... 但 chars/charStates/recentTurns 唔 depend on moderation verdict。Wrap 4 個 query 入 Promise.all 慳 moderation wall-time。Solution: moderation 同 chars/charStates/recentTurns 一齊 Promise.all 跑</small>
+    </div>
+    <div class="priority-refs">MEDIUM (perf)</div>
+  </div>
+  <div class="priority-row">
+    <div class="priority-rank">8</div>
+    <div class="priority-content">
+      <strong>W2-UX-M-07 — Turn route 冇 「AI 審核中...」 hint（同 Rate/Comment 不一致）</strong>
+      <small>Comment/Rate/Report 有 800ms 後 「AI 審核中...」 hint。Turn route ~500-2000ms moderation 期間 play-client 靜默。Solution: play-client setStreaming(true) 之後 600ms 加 hint 「正在審核 + 思考...」</small>
+    </div>
+    <div class="priority-refs">MEDIUM</div>
+  </div>
+  <div class="priority-row">
+    <div class="priority-rank">9</div>
+    <div class="priority-content">
+      <strong>W2-FTS-M-10 — 中文常用字 query 太 noisy（'的' / '是' / '我' match 任何 title）</strong>
+      <small>'simple' tsearch config 冇 stop-word list + tokenizer 出單字 unigram。Solution: tokenizer 改只出 bigram（CJK 字唔出單字 unigram），或者 hard-code Chinese stop-list 過濾 `的/是/我/了/就/也/都/而/又/和`</small>
+    </div>
+    <div class="priority-refs">MEDIUM</div>
+  </div>
+</div>
+
+<h2><span class="icon">📋</span>詳細 findings 按 dimension 分組</h2>
+
+<details class="dim-section" open>
+  <summary>🔐 Dimension A — Security/Correctness (Agent A · 16 findings)</summary>
+  <div class="dim-content">
+
+    <div class="issue high">
+      <div class="issue-head"><span class="issue-id">W2-TREND-H-01</span><span class="issue-title">Trending exploitable via direct INSERT with future created_at</span><span class="sev-tag sev-high">High</span></div>
+      <div class="issue-loc">supabase/migrations/0002_audit_hardening.sql:268 (INSERT policy no column restriction) + 0012:241 (newcomer boost no clamp)</div>
+      <div class="issue-symptom">RLS for stories INSERT 只 check <code>auth.uid() = owner_id</code> · 冇 column-list restriction。用戶 browser console 直接 <code>supabase.from('stories').insert({owner_id: self, title:'...', visibility:'public', created_at:'2099-01-01'})</code> · 0011 嘅 lock trigger 只 BEFORE UPDATE 唔 catch INSERT · 0012 newcomer boost <code>exp(-extract(epoch from (now() - s.created_at)) / (86400*3))</code> 冇 clamp · future created_at 令 exponent positive · 結果爆炸到 e^120 · trending 永久被霸佔 + 順手 bypass moderation。</div>
+      <div class="issue-fix"><strong>Fix</strong>：兩條 — (a) trending 公式入面用 <code>greatest(0, extract(epoch from (now() - s.created_at)))</code> clamp；(b) 加 stories BEFORE INSERT trigger 鎖 client-supplied <code>created_at</code> / <code>visibility</code> / <code>play_count</code> / <code>rating_*</code> / <code>search_text</code>。長線：考慮 createStory 改 SECURITY DEFINER RPC（同 comment/rating 嘅 Wave 1.5 pattern）。</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-head"><span class="issue-id">W2-RLS-H-02</span><span class="issue-title">Comment lock trigger ordering 依賴 alphabetical</span><span class="sev-tag sev-med">Medium</span></div>
+      <div class="issue-loc">Migration 0012:364-402 (lock_columns) + 0009:67 (set_updated_at)</div>
+      <div class="issue-symptom">Postgres 同表多 trigger fire alphabetical name。<code>set_updated_at</code> &lt; <code>story_comments_lock_immutable_columns</code> → updated_at 先 set，跟住 lock check body。OK。但如果未來改 trigger name 或者加新 trigger，order 可能 break。</div>
+      <div class="issue-fix"><strong>Fix</strong>：Migration 0012 加 comment 註明 ordering dependency。或者用 Postgres `ALTER TRIGGER ... DEPENDS ON` syntax 顯式定 order（13+ 支持）。</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-head"><span class="issue-id">W2-SEARCH-M-03</span><span class="issue-title">Bigram tokenizer 對 Latin/CJK 交界 emit 唔出邊界 bigram</span><span class="sev-tag sev-med">Medium</span></div>
+      <div class="issue-loc">Migration 0012:48-110</div>
+      <div class="issue-symptom"><code>'校A園'</code> tokenize 做 ['校', 'a', '園'] · query <code>'校園'</code> tokenize 做 ['校園', '校', '園']。Bigram '校園' 唔喺 index 度 · ts_rank 低 · 但 '校' '園' 兩個 unigram 都 hit · plainto_tsquery AND 兩個 → match。比較弱嘅 match 但 work。Edge case 喺 quality of ranking 而唔係 match recall。</div>
+      <div class="issue-fix"><strong>Fix</strong>：Optional — 加 head/tail token (e.g., '^校', '園$') 對 boundary 強化 ranking。可以 backlog。</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-head"><span class="issue-id">W2-FTS-M-04</span><span class="issue-title">Bigram tokenizer regex 漏 Bopomofo / CJK Extension B / CJK Compatibility</span><span class="sev-tag sev-med">Medium</span></div>
+      <div class="issue-loc">Migration 0012:60 — <code>'[぀-ヿ㐀-䶿一-鿿가-힯]'</code></div>
+      <div class="issue-symptom">缺：Bopomofo (U+3100-U+312F) — TW 注音 like 「ㄅㄆㄇㄈ 起源」title · CJK Extension B/C/D/E/F (U+20000+) — 罕有 HK 姓 like 𠮷 · CJK Compatibility Ideographs (U+F900-U+FAFF)。其中 Bopomofo 對 TW 市場有用。</div>
+      <div class="issue-fix"><strong>Fix</strong>：regex extend 加 Bopomofo + CJK Compat range：<code>'[぀-ヿ㐀-䶿一-鿿가-힯ㄅ-ㄯ豈-﫿]'</code>。Extension B (4-byte) 要 ICU regex 或者 UTF-32 awareness — 罕有 case，可以 backlog。</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-head"><span class="issue-id">W2-PERF-M-05</span><span class="issue-title">stories_by_genre tags ILIKE arm 強制 seqscan · 大 table 慢</span><span class="sev-tag sev-med">Medium</span></div>
+      <div class="issue-loc">Migration 0012:340-344</div>
+      <div class="issue-symptom">3rd match arm <code>lower(p_genre) = any(array(select lower(unnest(s.tags))))</code> 係 correlated subquery + per-row materialize array · Postgres 用唔到 GIN tag index → seqscan public.stories filtered by visibility='public'。Launch &lt; 100 stories OK · 10k+ stories 變慢（per-call 全表 scan，library 並行 call 6 次）。</div>
+      <div class="issue-fix"><strong>Fix</strong>：Option A — drop 第 3 arm（要求 tags case-sensitive match）；Option B — 0011 trigger 加 tag normalization to lowercase at INSERT time；Option C — backlog 至 1000+ stories。建議 Option B 配合 W2-GENRE-C-01 嘅 fix。</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-head"><span class="issue-id">W2-MOD-M-06</span><span class="issue-title">Combining mark strip 過嚴 · 越南文 / pinyin tone marks 受影響</span><span class="sev-tag sev-med">Medium</span></div>
+      <div class="issue-loc">web/src/lib/moderation/openai-moderation.ts:171</div>
+      <div class="issue-symptom"><code>COMBINING_MARK_RE = [U+0300-U+036F]</code> 過 NFKC 之後 strip。NFKC compose 大部分 Latin accents → 大部分 Vietnamese / pinyin / Polytonic Greek 保留 precomposed。但 decomposed form 嘅 archaic input（PDF copy-paste / IPA / older Vietnamese typewriting）會被 strip。HK + TW 市場罕有，但 海外華人 input 可能撞到。</div>
+      <div class="issue-fix"><strong>Fix</strong>：縮窄 regex 至 known Zalgo chars（e.g., U+0300-U+0303 + U+035C-U+036F），或者改做 "detect ≥3 stacked marks then strip"。Backlog — 真用戶投訴先做。</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-head"><span class="issue-id">W2-MOD-M-07</span><span class="issue-title">Moderation retry timeout 文檔說 ~5.5s 但實際 worst ~11.5s</span><span class="sev-tag sev-med">Medium</span></div>
+      <div class="issue-loc">openai-moderation.ts:210-213 (comment)</div>
+      <div class="issue-symptom">Code comment 講「~5.5s 最壞」但 3 attempts × 3s timeout + 2 backoffs (500ms + 2s) = 11.5s · Retry-After upper bound 5000ms 每次 → 19s。Vercel maxDuration 60s OK · 但 future capacity planning 嘅 budget 可能被誤導。</div>
+      <div class="issue-fix"><strong>Fix</strong>：Update comment to「up to ~11.5s worst case (3 × 3s + 0.5s + 2s); 19s if Retry-After upper-bounded」。純 doc fix。</div>
+    </div>
+
+    <div class="issue low">
+      <div class="issue-head"><span class="issue-id">W2-LIB-L-08</span><span class="issue-title">Library page 8 RPC 冇 cache（同 Agent B W2-COST-H-04 dup · upgraded to HIGH 喺 ship blockers）</span><span class="sev-tag sev-low">Low (dup)</span></div>
+      <div class="issue-loc">library/page.tsx:82-102</div>
+      <div class="issue-symptom">同 Agent B 嘅 W2-COST-H-04 — merged。</div>
+      <div class="issue-fix">參考 W2-COST-H-04 fix。</div>
+    </div>
+
+    <div class="issue low">
+      <div class="issue-head"><span class="issue-id">W2-LIB-L-09</span><span class="issue-title">Duplicate stories 出現喺多個 carousel</span><span class="sev-tag sev-low">Low</span></div>
+      <div class="issue-loc">library/page.tsx:363-388</div>
+      <div class="issue-symptom">同一 story 可能喺 熱門 + 最新 + 戀愛 + 校園 都出現。UX impression: "platform 只有 5 個 story repeat"。Compound with empty-board (W2-LAUNCH-H-05)。</div>
+      <div class="issue-fix"><strong>Fix</strong>：Launch OK（signals breadth）· UI tier 可以做 client-side dedup（story 只 surface 喺 highest-score carousel）。或者 design intent 接受 dup (Netflix Action + Top 10 都有 same titles)。</div>
+    </div>
+
+    <div class="issue low">
+      <div class="issue-head"><span class="issue-id">W2-PROFILE-L-10</span><span class="issue-title">Profile cascade delete 連 ratings/comments 都洗</span><span class="sev-tag sev-low">Low</span></div>
+      <div class="issue-loc">Migration 0001:28 + 0009:28,54 — cascade chains</div>
+      <div class="issue-symptom">User 刪 account → profiles cascade · story_ratings + story_comments 都 cascade 刪。「[deleted user]」placeholder 唔保留。Acceptable behavior 但 worth noting。</div>
+      <div class="issue-fix">無需 fix — defer to UI tier 如果用戶投訴失去 rating history。Future Phase 6 KYC bundle 可以 prompt 「轉做 anonymous」option。</div>
+    </div>
+
+    <div class="issue low">
+      <div class="issue-head"><span class="issue-id">W2-REPORT-L-11</span><span class="issue-title">reportContent 默默 drop blocked details · 用戶冇 feedback</span><span class="sev-tag sev-low">Low</span></div>
+      <div class="issue-loc">web/src/lib/community/actions.ts:386-401</div>
+      <div class="issue-symptom">Verdict.allowed=false → detailsForInsert=null + 報告繼續。用戶見成功，唔知 detailed explanation 已經被 drop。如果 user paste 違規內容做 evidence，moderation team 失去 context。</div>
+      <div class="issue-fix"><strong>Fix</strong>：return <code>{ok:true, data:{flagId, detailsDropped:true}}</code> · UI 顯示 soft warning「你嘅補充內容含有過濾文字 · report 已送出但補充內容唔保留」。Backlog item。</div>
+    </div>
+
+    <div class="issue low">
+      <div class="issue-head"><span class="issue-id">W2-LATEST-L-12</span><span class="issue-title">latest_stories RPC 冇 p_offset · 將來 pagination 要 extend</span><span class="sev-tag sev-low">Low</span></div>
+      <div class="issue-loc">Migration 0012:263</div>
+      <div class="issue-symptom">latest_stories 接 p_limit 但無 p_offset · 將來「show more 最新」要重 RPC 或者 query 直接 stories。</div>
+      <div class="issue-fix"><strong>Fix</strong>：Migration 0012.x 加 <code>p_offset integer default 0</code>。Backward-compatible。Backlog。</div>
+    </div>
+
+    <div class="issue info">
+      <div class="issue-head"><span class="issue-id">W2-OBSERVE-I-13</span><span class="issue-title">Emoji 正確 treated 做 non-CJK 不污染 FTS index</span><span class="sev-tag sev-info">Info</span></div>
+      <div class="issue-loc">Migration 0012:48-110</div>
+      <div class="issue-symptom">💕 (U+1F495) 唔喺 cjk_re range · 落 else branch 嘅 <code>[A-Za-z0-9]</code> check · false → flush。Emoji 喺 search_text 全部 dropped。搜 "💕" 0 results 但 emoji titles 都唔污染。</div>
+      <div class="issue-fix">無需 fix — 正確 behavior。</div>
+    </div>
+
+    <div class="issue info">
+      <div class="issue-head"><span class="issue-id">W2-OBSERVE-I-14</span><span class="issue-title">Newcomer boost vs popularity trade-off — popular old story 仍然 win</span><span class="sev-tag sev-info">Info</span></div>
+      <div class="issue-loc">Math model</div>
+      <div class="issue-symptom">Day 30 + 1000 plays + 4-star ≈ score 1.72 · Day 3 + 0 plays ≈ 1.0 · popular 仍 win。但 10 個 sock-puppet 同時 launch 10 條新 story → 各 ~1.0 · dominate top 10 trending 幾日。Mitigation: rating quality multiplier · 0-rating new story 喺 4-star established 下面。Acceptable 但 founder 要監察 early launch trending pattern。</div>
+      <div class="issue-fix">無需 fix — flag for monitoring。</div>
+    </div>
+
+    <div class="issue info">
+      <div class="issue-head"><span class="issue-id">W2-OBSERVE-I-15</span><span class="issue-title">Search RPC 兩邊 tokenize 對稱 (verified)</span><span class="sev-tag sev-info">Info</span></div>
+      <div class="issue-symptom">Migration 0012:177-181 - search_stories RPC apply cjk_bigram_tokenize 喺 query side · trigger apply 喺 index side · symmetric。Verified correct。</div>
+      <div class="issue-fix">無需 fix。</div>
+    </div>
+
+    <div class="issue info">
+      <div class="issue-head"><span class="issue-id">W2-OBSERVE-I-16</span><span class="issue-title">Lock trigger service_role bypass (verified)</span><span class="sev-tag sev-info">Info</span></div>
+      <div class="issue-symptom">Migration 0012:371 — service_role bypass。soft_delete_comment_secure (Migration 0011) 用 service-role client → 可以合法 UPDATE deleted=true。Admin moderation 都可以 bypass redact body。Confirmed working。</div>
+      <div class="issue-fix">無需 fix。</div>
+    </div>
+
+  </div>
+</details>
+
+<details class="dim-section" open>
+  <summary>🎨 Dimension B — UX/Cost/Regression (Agent B · 14 findings)</summary>
+  <div class="dim-content">
+
+    <div class="issue crit">
+      <div class="issue-head"><span class="issue-id">W2-GENRE-C-01</span><span class="issue-title">6 個 genre carousel 永久空白 — English keys vs CJK output mismatch</span><span class="sev-tag sev-crit">Critical</span></div>
+      <div class="issue-loc">library/page.tsx:48-59 (English keys) + schema-generator.ts:112 (CJK genre output) + Migration 0012:340-344 (exact match)</div>
+      <div class="issue-symptom">Library GENRE_BOARDS keys: <code>romance/adventure/school/fantasy/sports/mystery</code> (English)。Schema-generator prompt（行 112）教 Claude 出 CJK genre：<code>e.g. "戀愛校園", "古惑仔", "玄幻冒險"</code>。stories_by_genre RPC 只 match <code>lower(genre) = lower(p_genre)</code> exact 或者 tags array contains string。冇 alias/synonym mapping。<strong>結果：每一個 AI 創作嘅 story 嘅 genre 永遠唔會 match 任何 GENRE_BOARDS key</strong> · 6 個 carousel 通通 smart-hide · launch 時 library 嘅 multi-board 核心功能 dead-on-arrival。</div>
+      <div class="issue-fix"><strong>Fix（最少改動）</strong>：library/page.tsx 嘅 GENRE_BOARDS keys 改 CJK：「戀愛」、「冒險」、「校園」、「奇幻」、「運動」、「懸疑」。Schema-generator output 直接 hit。<strong>Better fix</strong>：RPC stories_by_genre 入面 build CJK→English synonym map（e.g., 'romance' aliases ['romance', '戀愛', '戀愛校園', '愛情']）· keep board keys 同 alias mapping decoupled。<strong>Long-term</strong>：post-process schema-gen output to normalize to controlled vocabulary。</div>
+    </div>
+
+    <div class="issue high">
+      <div class="issue-head"><span class="issue-id">W2-FILTER-H-02</span><span class="issue-title">Search form re-submit with default filters 即時 empty everything</span><span class="sev-tag sev-high">High</span></div>
+      <div class="issue-loc">library/page.tsx:160-179 + queries.ts:84,103,138,179 + Migration 0012:182</div>
+      <div class="issue-symptom">Form 嘅 <code>&lt;option value=""&gt;</code> default。Submit → URL 帶 <code>?language=&rating=</code>。`sp.language = ""` (empty string，唔係 undefined)。Query helpers 用 <code>params.language ?? null</code> — `??` 只 catch null/undefined，empty string 過 through。RPC 收到 `p_language = ""`，<code>where s.language = ''</code> match 0 rows。<strong>所有 carousel 同 search result 一齊變空</strong>。用戶 click 搜尋鈕一次，library 即似壞晒。</div>
+      <div class="issue-fix"><strong>Fix</strong>：library/page.tsx 入 sp.language 同 sp.rating 全部用 <code>|| undefined</code> 而唔係 nullish。或者 queries.ts boundary 統一：<code>params.language?.trim() || null</code>。</div>
+    </div>
+
+    <div class="issue high">
+      <div class="issue-head"><span class="issue-id">W2-UX-H-03</span><span class="issue-title">Turn route 加 moderation block 但 play-client 顯示 raw JSON 俾玩家睇</span><span class="sev-tag sev-high">High</span></div>
+      <div class="issue-loc">turn/route.ts:194-198 (returns JSON) + play-client.tsx:148-165 (no 400 branch) + PlayErrorCard default render</div>
+      <div class="issue-symptom">Wave 2 加 turn moderation 返 400 <code>{error:"action_blocked", message:"內容涉及..."}</code>。但 play-client 嘅 <code>if (!res.ok)</code> branch 只 special-case 402/403 · 400 fall through 變 raw JSON string。玩家見到 <code>{"error":"action_blocked","message":"內容涉及未成年人嘅性描寫..."}</code> 而唔係 friendly 繁中。<strong>新安全 surface 第一次見人即 looks broken</strong>。</div>
+      <div class="issue-fix"><strong>Fix</strong>：play-client.tsx 加 400 branch — <code>if (res.status === 400) {{ const body = await res.json(); throw new Error("ACTION_BLOCKED:" + body.message); }}</code>。PlayErrorCard 加 ACTION_BLOCKED prefix branch render Shield icon + 友善 framing。</div>
+    </div>
+
+    <div class="issue high">
+      <div class="issue-head"><span class="issue-id">W2-COST-H-04</span><span class="issue-title">Library = 8 uncached RPCs per anon visit</span><span class="sev-tag sev-high">High</span></div>
+      <div class="issue-loc">library/page.tsx:26 (force-dynamic) + 82-102 (8 parallel RPCs)</div>
+      <div class="issue-symptom"><code>force-dynamic</code> 殺死 ISR cache。每個 anon 訪問 = 8 RPCs。1000/day = 8k RPCs/day for browse-only traffic。Combined with W2-GENRE-C-01 — 6 個 RPC 返 0 rows pure cost。Vercel + Supabase free tier impact。</div>
+      <div class="issue-fix"><strong>Fix</strong>：Anon browse (no user, no ?q=) 用 ISR <code>revalidate: 300</code> (5min cache) · authenticated browse force-dynamic 維持（因 personalized sections）。或者 split routes（anon-cached vs authed-dynamic）。</div>
+    </div>
+
+    <div class="issue high">
+      <div class="issue-head"><span class="issue-id">W2-LAUNCH-H-05</span><span class="issue-title">Empty library first impression killer · regression vs single-board UX</span><span class="sev-tag sev-high">High</span></div>
+      <div class="issue-loc">library/page.tsx 全 file · story-carousel.tsx:30 (smart-hide null)</div>
+      <div class="issue-symptom">Combined W2-GENRE-C-01 + launch-time 公開故事稀疏：library 顯示 = 1 個 熱門 row (1-3 story) + 6 個空 genre 自動隱藏 + 最新 (auto-hide if empty)。<strong>Compare 之前 single-list UX 至少 feel populated</strong>。Wave 2 redesign 由「intentional curation」變「wow this place is empty」。</div>
+      <div class="issue-fix"><strong>Fix</strong>：Launch fallback — until 熱門 ≥ 8 stories 或者 any genre ≥ 4，render 單一「公開故事」list（all visibility='public' ordered by trending）取代 multi-board。Threshold cross 自動 engage multi-board。或者 hardcode 3-5 founder-written「編輯精選」demo stories (Phase 7 content tier)。</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-head"><span class="issue-id">W2-PERF-M-06</span><span class="issue-title">Turn moderation serialized · 浪費 ~0.5-2s per turn</span><span class="sev-tag sev-med">Medium</span></div>
+      <div class="issue-loc">turn/route.ts:168-225 (sequential chain)</div>
+      <div class="issue-symptom">Turn route 順序：load story → moderate action → load chars → load char_states → load recent_turns。但 chars / char_states / recent_turns 唔 depend on moderation verdict（只需 playthroughId / story_id）。Moderation latency (~500ms-2s) blocks 3 個 independent SELECT。</div>
+      <div class="issue-fix"><strong>Fix</strong>：moderation call + 3 個 supabase fetch 一齊 <code>Promise.all</code> · 處理 verdict 喺 promises settle 之後。慳 moderation wall-time per successful turn。</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-head"><span class="issue-id">W2-UX-M-07</span><span class="issue-title">Turn route 冇「AI 審核中...」 hint · 同 Rate/Comment panel 不一致</span><span class="sev-tag sev-med">Medium</span></div>
+      <div class="issue-loc">play-client.tsx:126-128 (setStreaming → fetch · no intermediate hint)</div>
+      <div class="issue-symptom">Wave 2 喺 Rate/Comment/Report 加 800ms 後「AI 審核中...」hint。但 turn route moderation 喺 LLM stream 之前 · play-client 期間靜默 ~500-2000ms。Inconsistent UX。用戶可能 double-click 以為 nothing 觸發（cooldown reject 第二次令 confusion 加深）。</div>
+      <div class="issue-fix"><strong>Fix</strong>：play-client setStreaming(true) 之後 600ms 加 indicator「正在審核 + 思考...」+ Shield icon。Hide once 第一個 stream byte 收到。</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-head"><span class="issue-id">W2-COMBO-M-08</span><span class="issue-title">NFKC + combining mark strip 過嚴 · 越南文 / IPA 受影響（同 Agent A W2-MOD-M-06 dup）</span><span class="sev-tag sev-med">Medium (dup)</span></div>
+      <div class="issue-loc">openai-moderation.ts:171,173-178</div>
+      <div class="issue-symptom">同 W2-MOD-M-06 — merged。</div>
+      <div class="issue-fix">參考 W2-MOD-M-06 fix。</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-head"><span class="issue-id">W2-FTS-M-09</span><span class="issue-title">Bigram tokenizer 唔 strip zero-width chars · indexed string 同 surface 不一致</span><span class="sev-tag sev-med">Medium</span></div>
+      <div class="issue-loc">Migration 0012:48-110 (no NFKC strip before tokenize) + queries.ts:175-186 (passes raw user query)</div>
+      <div class="issue-symptom">Adversarial title <code>校[U+200B]園戀愛</code> tokenize 唔出 '校園' bigram · indexed string 同 normal query 對唔上 · 真實感 result。Moderation API 已經 normalize 但 tokenizer 冇。</div>
+      <div class="issue-fix"><strong>Fix</strong>：tokenizer 第一行加 <code>input := regexp_replace(input, '[​-‍⁠﻿]', '', 'g');</code>。One-line fix。</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-head"><span class="issue-id">W2-FTS-M-10</span><span class="issue-title">中文常用字 query 太 noisy ('的' / '是' / '我' match 任何 title)</span><span class="sev-tag sev-med">Medium</span></div>
+      <div class="issue-loc">Migration 0012:127 (no Chinese stop-word config) + 85-86 (unconditional CJK unigram emit)</div>
+      <div class="issue-symptom">'simple' tsearch 冇 stop-word list · tokenizer 出每個 CJK 字做 unigram。搜 '的' (最常見助詞) match 幾乎所有 title。同 '是' / '我' / '了' / '就'。</div>
+      <div class="issue-fix"><strong>Fix</strong>：(a) tokenizer 只出 bigram 唔出 single CJK unigram · 配合 UI hint「請輸入至少 2 字」 · (b) Hardcode Chinese stop-list 過濾 `的/是/我/了/就/也/都/而/又/和`。Wave 2.5 建議 fold-in。</div>
+    </div>
+
+    <div class="issue low">
+      <div class="issue-head"><span class="issue-id">W2-MOD-L-11</span><span class="issue-title">cjk_bigram_tokenize 有 dead variable `last_was_cjk`</span><span class="sev-tag sev-low">Low</span></div>
+      <div class="issue-loc">Migration 0012:65,87,99</div>
+      <div class="issue-symptom">變數 declared + 賦值但永遠 read 唔到。Cosmetic。</div>
+      <div class="issue-fix"><strong>Fix</strong>：移除 declaration + 兩個 assignment。</div>
+    </div>
+
+    <div class="issue low">
+      <div class="issue-head"><span class="issue-id">W2-UI-L-12</span><span class="issue-title">Profile join added but UI 仲未 render display_name / avatar</span><span class="sev-tag sev-low">Low</span></div>
+      <div class="issue-loc">queries.ts:221,255,293,327 (profile joins) + library/[storyId]/page.tsx:154-181,200-214 (UI 唔用)</div>
+      <div class="issue-symptom">Wave 2 加咗 profile join，types 返 display_name + avatar_url。但 story detail page 仍 render <code>{c.user_id.slice(0,8)}…</code>。Join 嘅成本付咗但無 benefit。</div>
+      <div class="issue-fix"><strong>Fix</strong>：一行 UI 改動 — story detail page render <code>{c.display_name ?? c.user_id.slice(0,8) + '...'}</code>。Wave 2.5 順手做。</div>
+    </div>
+
+    <div class="issue low">
+      <div class="issue-head"><span class="issue-id">W2-UX-L-13</span><span class="issue-title">Empty search result 冇 actionable fallback suggestion</span><span class="sev-tag sev-low">Low</span></div>
+      <div class="issue-loc">library/page.tsx:290-297</div>
+      <div class="issue-symptom">無結果 → 顯示 card「搵唔到符合嘅故事」· 冇 live suggestion / popular searches / link to trending。Dead-end UX。</div>
+      <div class="issue-fix"><strong>Fix</strong>：「搵唔到」之下 render「或者睇下這啲熱門故事」mini-carousel call getTrendingStories({limit:4})。Backlog。</div>
+    </div>
+
+    <div class="issue info">
+      <div class="issue-head"><span class="issue-id">W2-DEPLOY-I-14</span><span class="issue-title">Migration 0012 backfill single-tx UPDATE 全 stories table</span><span class="sev-tag sev-info">Info</span></div>
+      <div class="issue-loc">Migration 0012:133-141</div>
+      <div class="issue-symptom">Backfill 一個 UPDATE 統治 search_text。Launch 數據量小 instant · 100k+ rows 會 lock table + rebuild GIN in-transaction。</div>
+      <div class="issue-fix">無需 fix at scale。未來 tokenizer tweak 要 batched backfill (WHERE id BETWEEN ranges)。Note。</div>
+    </div>
+
+  </div>
+</details>
+
+<h2><span class="icon">🗺️</span>建議 Wave 2.5 patch 範圍</h2>
+
+<div class="action-grid">
+  <div class="action-card now">
+    <div class="action-title">🛑 NOW · Wave 2.5（5 ship blockers · ~100 LoC）</div>
+    <div class="action-subtitle">Before 落下個 function tier · UI tier · 任何嘢</div>
+    <ul class="action-list">
+      <li><strong>W2-GENRE-C-01</strong>：GENRE_BOARDS keys 改 CJK（「戀愛」、「冒險」、「校園」、「奇幻」、「運動」、「懸疑」）+ stories_by_genre RPC 加 CJK→aliases synonym map（最少 build-in 對應「戀愛校園」/「古惑仔」/「玄幻冒險」嘅 routing）</li>
+      <li><strong>W2-FILTER-H-02</strong>：library/page.tsx 入 <code>sp.language || undefined</code> + <code>sp.rating || undefined</code> · empty string 唔 propagate 落 RPC</li>
+      <li><strong>W2-UX-H-03</strong>：play-client.tsx 加 400 branch 解 action_blocked → friendly Shield UI · PlayErrorCard match prefix</li>
+      <li><strong>W2-TREND-H-01</strong>：Migration 0013 — trending RPC 加 <code>greatest(0, extract(epoch from (now() - s.created_at)))</code> clamp · 加 stories BEFORE INSERT trigger 鎖 created_at/visibility/counters columns</li>
+      <li><strong>W2-LAUNCH-H-05</strong>：library/page.tsx 加 fallback — if trending &lt; 8 AND no genre has stories → render single «公開故事» list 取代 multi-board (cross threshold 之後 auto-multi-board)</li>
+    </ul>
+  </div>
+  <div class="action-card next">
+    <div class="action-title">🟧 NEXT · 順手 fold-in (Wave 2.5 同一個 patch)</div>
+    <div class="action-subtitle">細修 high-ROI items · 5-10 LoC each</div>
+    <ul class="action-list">
+      <li><strong>W2-COST-H-04</strong>：library page anon path 改 ISR <code>revalidate: 300</code>（authenticated 維持 dynamic）</li>
+      <li><strong>W2-PERF-M-06</strong>：turn route moderation + chars/charStates/recentTurns Promise.all</li>
+      <li><strong>W2-UX-M-07</strong>：play-client 600ms 後 turn loading hint「正在審核 + 思考...」</li>
+      <li><strong>W2-FTS-M-09</strong>：cjk_bigram_tokenize 第一行加 zero-width strip</li>
+      <li><strong>W2-FTS-M-10</strong>：tokenizer 只出 bigram 唔出 CJK unigram · UI hint「至少 2 字」</li>
+      <li><strong>W2-UI-L-12</strong>：story detail page 用 display_name fallback to user_id slice</li>
+      <li><strong>W2-MOD-M-07</strong>：moderation retry 註釋更正 11.5s worst</li>
+      <li><strong>W2-MOD-L-11</strong>：cjk_bigram_tokenize 移除 dead variable</li>
+    </ul>
+  </div>
+  <div class="action-card later">
+    <div class="action-title">🔵 LATER · Backlog / 文檔</div>
+    <div class="action-subtitle">6 個 LOW / MEDIUM defer</div>
+    <ul class="action-list">
+      <li>W2-FTS-M-04 — Bopomofo + CJK Extension B regex extend（TW 注音 title rare）</li>
+      <li>W2-PERF-M-05 — stories_by_genre tags lower() seqscan（&lt; 1k stories 唔 hit）</li>
+      <li>W2-COMBO-M-08 — Combining mark strip narrowing（rare 越南文 / IPA input）</li>
+      <li>W2-LIB-L-09 — Duplicate story dedup across carousels（UI tier）</li>
+      <li>W2-REPORT-L-11 — reportContent details dropped UX warning（Phase 6 admin queue）</li>
+      <li>W2-LATEST-L-12 — latest_stories add p_offset for pagination</li>
+      <li>W2-UX-L-13 — Empty search 加 fallback suggestion mini-carousel</li>
+      <li>W2-RLS-H-02 — Trigger ordering comment 註明</li>
+      <li>W2-PROFILE-L-10 — Cascade delete 「[deleted user]」placeholder 由 Phase 6 KYC bundle 接手</li>
+      <li>W2-OBSERVE-I-14 — Founder 監察 launch trending pattern (sock-puppet abuse)</li>
+    </ul>
+  </div>
+</div>
+
+<h2><span class="icon">📌</span>結論</h2>
+
+<div class="verdict">
+  <h3>同 Wave 1.5 一樣 pattern — Wave 2 fix 修咗原 issue 但留 5 個 new ship blocker</h3>
+  <p>Phase 5 Wave 2 嘅技術 implementation 全部 correct — bigram tokenizer + newcomer boost + RAISE EXCEPTION + multi-board 全部按 spec work。<strong>但有 5 個 ship blocker 喺 implementation 同 product reality 之間嘅 gap</strong>：（1）library 用英文 key vs schema-generator 出 CJK genre — multi-board UX 死路；（2）search form default empty filter values 殺所有 carousel；（3）turn route 加 400 error response 但 play-client 唔識 render；（4）trending newcomer boost 公式 + stories INSERT RLS 漏 column restriction 配合產生 future-date attack；（5）真實 platform 內容稀疏令 multi-board 比之前 single-list UX 更空。<strong>同 Wave 1.5 嘅 pattern 一樣</strong>：fix shipped → audit → 揾到下一層 issue。今次 implementation 完美但 product integration 漏 — 例如 GENRE_BOARDS keys 喺 library/page.tsx 揀英文 (developer convention)、schema-generator prompt 教 CJK (founder UX intent)、兩邊冇人 cross-reference。Wave 2.5 ~100 LoC 修晒 5 條 ship blocker + 7-8 條順手 fold-in。完晒 Wave 2.5 audit 之後再 ship 之前都建議 quick verify 多一次 — Phase 5 community 才算真正 launch-ready。</p>
+</div>
+
+<a href="pm-dashboard.html" class="back-link">← 返 Dashboard</a>
+
+</main>
+</body>
+</html>

@@ -7,9 +7,9 @@
 
 ## 🎯 而家狀態
 
-**Phase**: **Phase 5 Wave 2 shipped ✅ · Migration 0012 applied + 8/8 sanity pass · Multi-board library live · 落 Phase 1.5/2 polish 或 Phase 6 / Phase 7 content**
+**Phase**: **Phase 5 Wave 2 shipped + 即 audit → 1 CRIT + 4 HIGH ship blocker · Wave 2.5 patch 入下個 phase 之前必修**
 **Live URL**: https://story-engine-drab.vercel.app
-**Last updated**: 2026-05-22 (Session 8 cont. — Wave 2 closed · Library multi-board live)
+**Last updated**: 2026-05-22 (Session 8 cont. — Wave 2 audit · Wave 2.5 必修)
 
 ## 🎯 Founder priority rule（鎖死）
 
@@ -23,9 +23,10 @@
 
 | 排 | Plan item | Tier | Time | Why |
 |---|---|---|---|---|
-| 🥇 | **Phase 1.5/2 polish (audit deferred)** — NPC name fuzzy match (M-02) · 4-axis disposition init · always_on lorebook demote pathway (Phase 2 P2-UX-H-05) · refusal embed flow · recent turns cache breakpoint reshape · Memory Journal UI backend prep | 🟢 FUNCTION | ~1 session | Audit backlog cleanup before launch |
-| 🥈 | **Phase 6 non-money function bits** — adult mode toggle setting · content rating filter logic · provider gating (Anthropic vs OpenRouter)（唔包 KYC）| 🟢 FUNCTION | ~1 session | Adult flow narrative gating + LLM provider isolation |
-| 🥉 | **Phase 7 content** — Founder + Claude 寫 5 條 launch-ready 官方故事（HK + TW cultural diversity · 順手填空蕩 genre 榜） | 🟢 FUNCTION | 多 session slow-burn | 官方故事支撐 public launch + 多 board library 有真內容 |
+| 🛑 | **Wave 2.5 patch** — 5 ship blocker fix: GENRE_BOARDS CJK keys + stories_by_genre RPC alias map (W2-GENRE-C-01) · library/page.tsx empty-string filter sanitize (W2-FILTER-H-02) · play-client 400 action_blocked branch + PlayErrorCard friendly render (W2-UX-H-03) · Migration 0013 trending clamp + stories INSERT trigger (W2-TREND-H-01) · launch fallback single-list mode (W2-LAUNCH-H-05) + 順手 fold-in 7-8 medium (anon ISR · turn moderation parallel · turn loading hint · ZWJ strip · CJK stop-list · profile display_name render · doc fix · dead var) | 🟢 FUNCTION | ~1 session | Wave 2 fix shipped 但 audit 揾到 5 個 launch blocker · 同 Wave 1.5 一樣 pattern |
+| 🥇 | **Phase 1.5/2 polish (audit deferred)** — NPC name fuzzy match · 4-axis disposition init · always_on demote · refusal embed flow · Memory Journal UI backend prep | 🟢 FUNCTION | ~1 session | Audit backlog cleanup before launch |
+| 🥈 | **Phase 6 non-money function bits** — adult mode toggle · content rating filter · provider gating（唔包 KYC）| 🟢 FUNCTION | ~1 session | Adult flow narrative gating |
+| 🥉 | **Phase 7 content** — Founder + Claude 寫 5 條 launch-ready 官方故事 | 🟢 FUNCTION | 多 session slow-burn | 官方故事支撐 launch + 填空蕩 genre 榜 |
 | 🥈 | **Phase 1.5/2 polish** — NPC name fuzzy match · 4-axis disposition init · always_on demote · refusal embed flow · audit deferred | 🟢 FUNCTION | ~1 session | Audit backlog cleanup |
 | 🥉 | **Phase 6 function bits** — adult mode toggle · content rating filter · provider gating（唔包 KYC） | 🟢 FUNCTION | ~1 session | Adult flow narrative gating |
 | 4 | **Phase 5 Wave 3 polish** — parent_id RLS · rating row-lock · depth cap · private FTS opt-out · moderation content_id check · unlisted decision | 🟢 FUNCTION | ~30 分鐘 | Defense in depth |
@@ -37,7 +38,7 @@
 
 ## 🚧 Blockers
 
-**冇 launch blocker**。Phase 5 全部 wave 收工：原 SHOWSTOPPERS (Wave 1) + post-fix audit (Wave 1.5 · 6 blockers) + multi-board UI + CJK search + audit polish (Wave 2 · 7 HIGH/MEDIUM fold-in)。Library page 而家有 8 個 carousel (🔥 熱門 / 🆕 最新 / 💕 戀愛 / ⚔️ 冒險 / 🎓 校園 / 🔮 奇幻 / 🏀 運動 / 🕵️ 懸疑) + search overlay + smart-hide 空 boards。CJK FTS bigram tokenize works (verified roundtrip)。Trending cold-start newcomer boost active。可以入下個 function tier 工作。
+**🛑 Wave 2.5 必修先入下個 phase**：Wave 2 ship 完即 2-agent parallel audit 揾到 1 CRITICAL + 4 HIGH ship blocker（24 finding total）：（1）W2-GENRE-C-01 6 個 genre carousel 永久空白 — library 用英文 key 但 schema-generator 出 CJK genre · multi-board UX dead-on-arrival；（2）W2-FILTER-H-02 search form default empty filter 殺所有 result；（3）W2-UX-H-03 turn moderation block 顯示 raw JSON 俾玩家；（4）W2-TREND-H-01 trending newcomer boost + INSERT RLS 漏 column restriction → future-date attack；（5）W2-LAUNCH-H-05 empty library 比 single-list 更空。詳見 [audit-report-phase5-wave2.html](audit-report-phase5-wave2.html)。同 Wave 1.5 一樣 pattern：fix shipped → audit → next-layer issue。Wave 2.5 ~100 LoC 修晒 5 條 + 順手 fold-in。
 
 ## ✅ Just completed (Session 8 cont. — Phase 5 Wave 2)
 
