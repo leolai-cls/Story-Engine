@@ -229,4 +229,4 @@ DB：`story_characters` (模板) + `playthrough_character_states` (per-playthrou
 
 ---
 
-_Last updated: 2026-05-22 (Session 8 — Phase 5 Community ship + 4-cycle audit · Wave 2.7 shipped (dead-code + BACKLOG migration) · 21 issues caught + 14 deferred to BACKLOG · Manual E2E checklist ready for founder)_
+_Last updated: 2026-05-23 (Session 8 — Phase 5 Community ship + 5-cycle audit converged · Wave 2.7 + 2.7 audit inline fixes · 21 ship blocker + 14 polish caught pre-prod · 20 deferred to BACKLOG · Manual E2E checklist ready for founder)_

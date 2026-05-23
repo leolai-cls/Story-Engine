@@ -565,16 +565,16 @@
       <p class="section-sub">每次新 session 開始，由呢度睇起。</p>
 
       <div class="top-meta">
-        <div><strong>Last updated</strong> 2026-05-22 · Session 8 cont. (Wave 2.7 shipped · 14 deferred items in BACKLOG · Manual E2E checklist ready)</div>
-        <div><strong>Phase</strong> Phase 0/1/1.5/2/3 backend ✅ · Phase 5 Wave 1 → 1.5 → 2 → 2.5 → 2.6 → 2.7 ✅ · <strong>4-cycle audit converged + 14 deferred items in BACKLOG</strong> · 落 Manual E2E (founder · ~30min) → Phase 6/7</div>
+        <div><strong>Last updated</strong> 2026-05-23 · Session 8 cont. (Wave 2.7 audit converged · 5-cycle final · E2E checklist inline-fixed)</div>
+        <div><strong>Phase</strong> Phase 0/1/1.5/2/3 backend ✅ · Phase 5 Wave 1 → 1.5 → 2 → 2.5 → 2.6 → 2.7 ✅ · <strong>5-cycle audit converged + 20 deferred items in BACKLOG</strong> · 落 Manual E2E (founder · ~30min) → Phase 6/7</div>
         <div><strong>Live</strong> <a href="https://story-engine-drab.vercel.app" target="_blank" style="color: var(--primary);">story-engine-drab.vercel.app</a></div>
       </div>
 
       <div class="status-hero">
-        <div class="label">✅ Phase 5 Wave 2.7 micro-patch shipped · 2 items closed · 14 deferred items moved to pm/BACKLOG.md · E2E checklist ready</div>
-        <div class="phase">Dead-code branch deleted · Phase 5 deferred polish 14 items 入 BACKLOG · Manual E2E HTML for founder</div>
+        <div class="label">🎯 Phase 5 Wave 2.7 audit (5th cycle · final) · 0 ship blocker · convergence final · E2E checklist fixed inline</div>
+        <div class="phase">12 finding · 1 HIGH inline-fixed (Check 6 SQL role context) + 2 MED inline-fixed (logout path + nav) · 20 deferred items in BACKLOG</div>
         <div class="focus">
-          Session 8 cont. ship Wave 2.7 micro-patch — 2 個 item close 埋。<strong>W2.6-CODE-M-01</strong>: library/page.tsx Stage 2 嗰條 logically unreachable inner condition (4 行 dead code) 刪咗 · 行為唔變 · empty carousel smart-hide 喺 render layer 已 covered · code 變 truthful。<strong>W2.6-INFO-01</strong>: 14 個 Phase 5 deferred polish item (W2.5-GENRE-M-02 alias gap + W2.5-FTS-L-03/L-04 tokenizer polish + W2.6-MIG-L-02 doc + W2.6-PLAY-L-03/L-04 defensive + 等等) 由 STATUS.md transient state migrate 入 pm/BACKLOG.md「Phase 5 deferred polish」section · 4 個 sub-bucket（Phase 7 content tier · UI polish wave · perf sprint · 技術 debt）· each 有 audit report file:line reference。<strong>新增 manual-e2e-phase5.html</strong>：founder 跑嘅 6-check E2E (3 happy + 2 negative + 1 SQL) · ~30 min · pass 之後 Phase 5 community 真正 closed。<strong>Phase 5 timeline 收工 summary</strong>：14 commits across 2 sessions · 6 migrations · 4 audit cycles · 21 issues caught & fixed pre-prod (11 ship blocker + 10 polish) · 14 deferred to BACKLOG。<strong>下一步：Manual E2E → 揀 Phase 6 non-money 或 Phase 7 content</strong>。
+          Session 8 cont. ship Wave 2.7 → 即時 2-agent parallel audit (5th cycle)。<strong>Convergence final</strong>: Wave 2.5 → 2.6 → 2.7 連續 3 個 zero-ship-blocker cycle · finding count declining (29 → 24 → 17 → 16 → 12)。產品 code (library/page.tsx dead-code 刪除 + BACKLOG migration) verifiably clean。<strong>Audit 揾到嘅 issue 100% 喺 wrap-up artifacts 本身</strong> — 影響 founder E2E 嘅 3 個 inline 修咗：(1) W2.7-E2E-H-01 Check #6 SQL role context（Dashboard 用 postgres role · 唔係 service_role · trigger fires correctly · owner_id=NULL 預期）· (2) W2.7-E2E-M-02 Check 1 logout path（去 /settings 或 incognito window）· (3) W2.7-E2E-INFO-06 Check 4 navigation（返 /library → 繼續玩 → /play/[id]）。STATUS.md「14 deferred items」count fix 做 20 IDs · 「pending Wave 2.7」stale language → past-tense · 「What's next」table dedupe + reorder。<strong>Phase 5 timeline 收工 summary</strong>：17 commits across 2 sessions · 6 migrations (0009-0014) · 5 audit cycles · 21 ship blocker + 14 polish issues caught & fixed pre-prod (35 total) · 20 deferred to BACKLOG。<strong>下一步：Founder run Manual E2E (~30 min · manual-e2e-phase5.html) → Phase 5 真正 closed → Phase 6 non-money function 或 Phase 7 content tier</strong>。Audit-as-gating discipline (CLAUDE.md rule #7 + #29) overshoot to 5 cycles — diminishing return 真實 · 6th cycle 唔需要做。
         </div>
       </div>
 
@@ -615,12 +615,25 @@
           </ul>
         </div>
         <div class="status-card good">
+          <div class="status-card-title">🎯 Wave 2.7 audit (5th cycle · FINAL) — 0 ship blocker · convergence final</div>
+          <ul>
+            <li>3 consecutive zero-ship-blocker cycles (Wave 2.5 → 2.6 → 2.7) · finding count declining trend (29 → 24 → 17 → 16 → 12)</li>
+            <li>Wave 2.7 audit 揾到 issues 100% 喺 wrap-up artifacts · 產品 code clean</li>
+            <li>✅ <strong>W2.7-E2E-H-01 inline-fixed</strong>: Check #6 SQL role context (postgres ≠ service_role · trigger fires · owner_id=NULL 預期) + debug paths</li>
+            <li>✅ <strong>W2.7-E2E-M-02 inline-fixed</strong>: Check 1 logout path (/settings or incognito)</li>
+            <li>✅ <strong>W2.7-E2E-INFO-06 inline-fixed</strong>: Check 4 navigation hint</li>
+            <li>✅ Count fix: 14 deferred items → 20 IDs (actual BACKLOG count)</li>
+            <li>✅ STATUS.md「pending Wave 2.7」stale language → past-tense · 「What's next」table deduped + reordered</li>
+            <li>6 doc-tier items defer to backlog (dashboard ROADMAP card refresh · BACKLOG mirror · date markers · archive policy)</li>
+          </ul>
+        </div>
+        <div class="status-card good">
           <div class="status-card-title">✅ Wave 2.7 micro-patch shipped — 2 items closed + Manual E2E checklist ready</div>
           <ul>
             <li>✅ <strong>W2.6-CODE-M-01</strong> Dead-code downgrade branch deleted (library/page.tsx Stage 2 · 4 lines · empty carousel smart-hide already in render layer)</li>
-            <li>✅ <strong>W2.6-INFO-01</strong> 14 Phase 5 deferred polish items migrated to pm/BACKLOG.md「Phase 5 deferred polish」section (4 sub-buckets · each ID has audit report ref)</li>
-            <li>🆕 <strong>manual-e2e-phase5.html</strong> — Founder runs 6-check E2E (3 happy + 2 negative + 1 SQL) · ~30 min · pass 之後 Phase 5 真正 closed</li>
-            <li>TypeScript clean · Phase 5 timeline收工 summary：14 commits · 6 migrations · 4 audit cycles · 21 issues caught + 14 deferred</li>
+            <li>✅ <strong>W2.6-INFO-01</strong> 20 IDs Phase 5 deferred polish items migrated to pm/BACKLOG.md「Phase 5 deferred polish」section (4 sub-buckets · each ID has audit report ref)</li>
+            <li>🆕 <strong>manual-e2e-phase5.html</strong> — Founder runs 6-check E2E (3 happy + 2 negative + 1 SQL) · ~30 min · inline-fixed by Wave 2.7 audit · pass 之後 Phase 5 真正 closed</li>
+            <li>TypeScript clean · Phase 5 timeline 收工 summary：17 commits · 6 migrations · 5 audit cycles · 35 total issues caught (21 ship blocker + 14 polish) · 20 deferred</li>
           </ul>
         </div>
         <div class="status-card good">
@@ -645,11 +658,15 @@
           <div class="quick-link-desc">Login → Guest button → /stories/new → 玩夠 5+ turns 試 act transition</div>
         </a>
         <a href="manual-e2e-phase5.html" class="quick-link">
-          <div class="quick-link-title">🧪 Phase 5 Manual E2E Checklist (founder runs · ~30 min)</div>
-          <div class="quick-link-desc">6 happy + negative paths to verify Phase 5 community function tier · pass 之後 Phase 5 真正 closed</div>
+          <div class="quick-link-title">🧪 Phase 5 Manual E2E Checklist (founder runs · ~30 min · inline-fixed Wave 2.7 audit)</div>
+          <div class="quick-link-desc">6 happy + negative paths · Check 6 SQL role context clarified · Check 1 logout path · Check 4 navigation hint · pass 之後 Phase 5 真正 closed</div>
+        </a>
+        <a href="audit-report-phase5-wave2.7.html" class="quick-link">
+          <div class="quick-link-title">🎯 Phase 5 Wave 2.7 Audit (latest · ✅ 5th cycle final convergence · 0 ship blocker)</div>
+          <div class="quick-link-desc">12 finding · 1 HIGH + 2 MED inline-fixed in E2E checklist · 6 doc-tier defer · convergence final after 3 zero-blocker cycles</div>
         </a>
         <a href="audit-report-phase5-wave2.6.html" class="quick-link">
-          <div class="quick-link-title">🎯 Phase 5 Wave 2.6 Audit (✅ convergence holds at 0 ship blocker · 4th cycle)</div>
+          <div class="quick-link-title">🎯 Phase 5 Wave 2.6 Audit (✅ convergence holds · 4th cycle)</div>
           <div class="quick-link-desc">16 finding · 0 CRIT + 0 HIGH · diminishing return signal clear · 14 deferred items moved to BACKLOG</div>
         </a>
         <a href="audit-report-phase5-wave2.5.html" class="quick-link">

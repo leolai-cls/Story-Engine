@@ -68,7 +68,7 @@
   <div class="step action">
     <div class="step-label">Action</div>
     <div class="step-content">
-      Logout（如果未 logout）· 然後 navigate to <code>/library</code>（無 login state）
+      Logout（如果之前 login 過）：去 <code>/settings</code> page · click 「登出」button。<strong>更快 tip</strong>：開 incognito / private browser window 直接 navigate to <code>/library</code> · 慳得就慳。
     </div>
   </div>
   <div class="step expect">
@@ -141,7 +141,7 @@
   <div class="step action">
     <div class="step-label">Action</div>
     <div class="step-content">
-      喺 Check 3 剛創作嘅故事 playthrough 入面 · 輸入一個 benign action 例如「我問師兄今晚去邊度食飯」· submit
+      <strong>導航返 playthrough</strong>：去 <code>/library</code> · 喺「繼續玩」carousel click 啱啱嘅 story → 入返 <code>/play/[id]</code>（or 直接 navigate to <code>/play/[playthrough_id]</code> 如果 URL 仲記得）。然後輸入一個 benign action 例如「我問師兄今晚去邊度食飯」· submit
     </div>
   </div>
   <div class="step expect">
@@ -193,15 +193,16 @@
     <div class="step-label">Action</div>
     <div class="step-content">
       Supabase Dashboard → SQL Editor (Story Engine project · ref <code>oivhvdfjmthydxqpcncp</code>) · run<br>
-      <pre>-- 用 authenticated role context 試 INSERT 設邪惡 values
+      <pre>-- Dashboard SQL Editor 跑做 postgres role · auth.role() returns NULL
+-- (NOT service_role) → 觸發 trigger normal path → clamps 應該 apply
+-- owner_id 會係 NULL (因為 auth.uid() 喺 dashboard context 返 NULL · 預期)
 insert into public.stories (
-  owner_id, title, prompt_seed,
+  title, prompt_seed,
   state_schema, story_bible, opening_narrative,
   play_count, rating_avg, rating_count,
   visibility, created_at
 )
 values (
-  auth.uid(),
   'E2E test story',
   'test prompt for inserter clamp test',
   '{"fields":[]}',
@@ -213,26 +214,31 @@ values (
   'public',        -- 應該 clamp 做 'private'
   '2099-01-01'     -- 應該 clamp 做 now()
 )
-returning id, play_count, rating_avg, rating_count, visibility, created_at, origin;</pre>
+returning id, owner_id, play_count, rating_avg, rating_count, visibility, created_at, origin;</pre>
     </div>
   </div>
   <div class="step expect">
     <div class="step-label">Expected</div>
     <div class="step-content">
       Returned row 顯示：<br>
+      • <code>owner_id = NULL</code>（dashboard context · auth.uid() 返 NULL · 預期 · 唔係 bug）<br>
       • <code>play_count = 0</code>（INSERT trigger clamped 99999 → 0）<br>
       • <code>rating_avg = null</code>（INSERT trigger clamped 5.0 → null）<br>
       • <code>rating_count = 0</code>（INSERT trigger clamped 1000 → 0）<br>
       • <code>visibility = 'private'</code>（INSERT trigger forced 'public' → 'private'）<br>
       • <code>created_at ≈ now()</code>（INSERT trigger overwrote '2099-01-01'）<br>
-      • <code>origin = 'user'</code>（Wave 2.6 + 2.7 Migration 0014 origin lock）<br>
+      • <code>origin = 'user'</code>（Migration 0014 origin lock）<br>
       <br>
-      然後 cleanup: <code>delete from public.stories where title = 'E2E test story';</code>
+      <strong>Cleanup</strong>（清走呢個 orphan test row）：<br>
+      <code>delete from public.stories where title = 'E2E test story';</code>
     </div>
   </div>
   <div class="step if-fail">
     <div class="step-label">⚠️ If fail</div>
-    <div class="step-content">如果 play_count 仲係 99999 / visibility 仲係 'public' / origin 唔係 'user' → trigger 冇 fire 或者 condition broken · 即刻 escalate</div>
+    <div class="step-content">
+      <strong>所有 5 個 clamped value 應該係 expected</strong>（owner_id=NULL 預期）。<br>
+      如果 play_count 仲係 99999 / visibility 仲係 'public' / origin 唔係 'user' / created_at = '2099-01-01' → trigger 冇 fire。可能性：(a) Dashboard 改用 service_role 跑 (auth.role() 變 'service_role' · trigger bypass) — 試吓 <code>set local role authenticated;</code> 喺 INSERT 之前；(b) Migration 0014 仲未 apply — 檢查 <code>select prosrc from pg_proc where proname='stories_lock_server_columns_on_insert';</code> 應該有 <code>new.origin := 'user';</code> 喺入面。
+    </div>
   </div>
 </div>
 

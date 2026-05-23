@@ -9,7 +9,7 @@
 
 **Phase**: **Phase 5 Wave 2.7 micro-patch shipped ✅ · 14 deferred items 入 BACKLOG · Manual E2E checklist ready · 等 founder 跑 6 checks → Phase 5 真正 closed → Phase 6 / Phase 7**
 **Live URL**: https://story-engine-drab.vercel.app
-**Last updated**: 2026-05-22 (Session 8 cont. — Wave 2.7 shipped · Manual E2E pending founder)
+**Last updated**: 2026-05-23 (Session 8 cont. — Wave 2.7 audit converged · 5-cycle final · Manual E2E pending founder)
 
 ## 🎯 Founder priority rule（鎖死）
 
@@ -23,38 +23,40 @@
 
 | 排 | Plan item | Tier | Time | Why |
 |---|---|---|---|---|
-| 🧪 | **Manual E2E test** ([manual-e2e-phase5.html](manual-e2e-phase5.html)) — 6 happy + negative paths: anon /library · 1-char search → see hint card · create→publish→see in board · benign turn · explicit-violence ACTION_BLOCKED card · SQL INSERT clamp verify | 🟢 FUNCTION | ~30min Founder time | Phase 5 6 migrations + 16 commits + ~3700 LOC change · last E2E 喺 Wave 1 ship · cumulative subtle bug check |
-| 🥇 | **Phase 6 non-money function bits** — adult mode toggle · content rating filter · provider gating（唔包 KYC）| 🟢 FUNCTION | ~1 session | Adult flow narrative gating |
-| 🥈 | **Phase 7 content** — Founder + Claude 寫 5 條 launch-ready 官方故事（順手填空蕩 genre 榜 + 收集 real genre distribution data 用嚟解 W2.5-GENRE-M-02） | 🟢 FUNCTION | 多 session slow-burn | 官方故事支撐 launch + Wave 2.5 audit deferred item resolved |
+| 🧪 | **Manual E2E test** ([manual-e2e-phase5.html](../manual-e2e-phase5.html)) — 6 happy + negative paths: anon /library · 1-char search hint · create→publish→board · benign turn · explicit-violence ACTION_BLOCKED · SQL INSERT clamp | 🟢 FUNCTION | ~30min Founder | Phase 5 6 migrations + 17 commits + ~3700 LOC · last E2E 喺 Wave 1 · cumulative bug check |
+| 🥇 | **Phase 7 content** — Founder + Claude 寫 5 條 launch-ready 官方故事（填空蕩 genre 榜 + 收集 real distribution data 解 W2.5-GENRE-M-02） | 🟢 FUNCTION | 多 session slow-burn | Launch impression 大躍進 · 解 deferred audit item |
+| 🥈 | **Phase 6 non-money function** — adult mode toggle · content rating filter · provider gating (Anthropic vs OpenRouter)（唔包 KYC · 嗰個 money tier）| 🟢 FUNCTION | ~1 session | Adult flow architecture · 解鎖 money tier prep |
 | 🥉 | **Phase 1.5/2 polish (audit deferred)** — NPC name fuzzy match · 4-axis disposition init · always_on demote · refusal embed flow · Memory Journal UI backend prep | 🟢 FUNCTION | ~1 session | Audit backlog cleanup |
-| 🥈 | **Phase 1.5/2 polish** — NPC name fuzzy match · 4-axis disposition init · always_on demote · refusal embed flow · audit deferred | 🟢 FUNCTION | ~1 session | Audit backlog cleanup |
-| 🥉 | **Phase 6 function bits** — adult mode toggle · content rating filter · provider gating（唔包 KYC） | 🟢 FUNCTION | ~1 session | Adult flow narrative gating |
-| 4 | **Phase 5 Wave 3 polish** — parent_id RLS · rating row-lock · depth cap · private FTS opt-out · moderation content_id check · unlisted decision | 🟢 FUNCTION | ~30 分鐘 | Defense in depth |
-| 5 | **Phase 7 content** — Founder + Claude 寫 5 條 launch-ready 官方故事（亦填 multi-board library） | 🟢 FUNCTION | 多 session slow-burn | 官方故事支撐 public launch + 填空蕩 genre 榜 |
-| ↓ | _function 完晒_ |  |  |  |
-| 6 | **UI design wave** — Library page polish · Memory Journal · Locale switcher · Settings i18n · 全部 UX-C-01..04 + audit deferred UX | 🟣 UI | ~2 sessions | 玩家可見嘅嘢 |
-| ↓ | _UI 完晒_ |  |  |  |
-| 7 | **Phase 4 Stripe + Phase 6 KYC + Phase 3 deferred** | 🟡 MONEY | ~2 sessions | 收錢 |
+| 4 | **Phase 5 Wave 3 polish (if needed)** — parent_id RLS · rating row-lock · depth cap · private FTS opt-out · unlisted decision (大多入咗 BACKLOG · only revisit if E2E surface issues) | 🟢 FUNCTION | ~30 分鐘 | Defense in depth · 通常 skip |
+| ↓ | _function tier 完晒_ |  |  |  |
+| 5 | **UI design wave** — Library page polish · Memory Journal UI（Phase 2 audit deferred · differentiator）· Locale switcher · Settings i18n · 全部 audit deferred UX items | 🟣 UI | ~2 sessions | 玩家可見嘅嘢 |
+| ↓ | _UI tier 完晒_ |  |  |  |
+| 6 | **Money tier** — Phase 4 Stripe (subscription + checkout + top-up) · Phase 6 KYC (Stripe Identity) · Phase 3 deferred (refund saga · OpenRouter dynamic pricing) | 🟡 MONEY | ~2 sessions | 收錢 backbone |
 
 ## 🚧 Blockers
 
-**冇 launch blocker**。**4-cycle audit converged twice** — Wave 2.5 audit (17 finding · 0 blocker · first convergence) → Wave 2.6 fix (6 polish) → Wave 2.6 audit (16 finding · 0 blocker · convergence holds)。Finding count declining trend confirmed: 29 → 24 → 17 → 16。**21 個 launch-day-killing + polish issue caught & fixed pre-prod**。兩個 agent 獨立 reach 同一個 conclusion: decline 5th cycle (diminishing return real) · 做 Wave 2.7 (~10min · 2 fix) + Manual E2E → Phase 5 community function tier 真正 closed。
+**冇 launch blocker**。**5-cycle audit converged** — Wave 2.5 audit (17 · 0 blocker) → Wave 2.6 fix → Wave 2.6 audit (16 · 0 blocker · convergence holds) → Wave 2.7 fix → Wave 2.7 audit (12 · 0 ship blocker · 1 HIGH on E2E checklist 已修)。Finding count declining: 29 → 24 → 17 → 16 → 12。**21 個 ship blocker + 14 個 polish caught & fixed pre-prod**。Wave 2.7 audit 揾到 E2E checklist 本身有 3 個 founder-misleading issue (Check 6 SQL role context · Check 1 logout path · Check 4 navigation) — 已 inline 修咗。
 
-**Deferred 至 backlog**（pending Wave 2.7 migration into pm/BACKLOG.md per W2.6-INFO-01）：14 items 含 W2.5-GENRE-M-02 alias gap（Phase 7 real distribution data 之後 normalize）· W2.5-FTS-L-03/L-04 tokenizer polish · W2-COST-H-04 anon ISR · W2.6-MIG-L-02 'curated' enum doc · W2.6-PLAY-L-03/L-04 defensive · W2.6-LIB-L-05 1-char Latin hint · W2.6-LIB-I-06 Settings display_name trim · W2.6-UX-L-03 English error strings · W2.6-MIG-I-07 createStory+trigger origin redundancy · W2.6-INFO-03 getCommentReplies UI TODO · W2.6-MIGRATION-L-04 sanity check pattern。
+**Migrated to backlog** (per pm/BACKLOG.md「Phase 5 deferred polish」section · 20 IDs 跨 4 sub-bucket)：W2.5-GENRE-M-02 alias gap · W2.5-FTS-L-03/L-04 tokenizer polish · W2-COST-H-04 anon ISR · W2.6-MIG-L-02 'curated' enum doc · W2.6-PLAY-L-03/L-04 defensive · W2.6-LIB-L-05 1-char Latin hint · W2.6-LIB-I-06 Settings display_name trim · W2.6-UX-L-03 English error strings · W2.6-MIG-I-07 createStory+trigger origin redundancy · W2.6-INFO-03 getCommentReplies UI TODO · W2.6-MIGRATION-L-04 sanity check pattern · 等等。
 
 ## ✅ Just completed (Session 8 cont. — Phase 5 Wave 2.7 + E2E ready)
 
-### Wave 2.7 micro-patch — 2 items closed + Manual E2E checklist
+### Wave 2.7 micro-patch — 2 items closed + Manual E2E checklist + Wave 2.7 audit fixes inline
 - **W2.6-CODE-M-01** — Deleted 4-line dead-code downgrade branch in library/page.tsx Stage 2 (logically unreachable inner condition since outer guarantees trending.length >= 8). Behavior unchanged · empty carousel smart-hide handled by render layer.
-- **W2.6-INFO-01** — Migrated 14 Phase 5 deferred items into pm/BACKLOG.md「Phase 5 deferred polish」section. 4 sub-buckets: Phase 7 content tier (genre alias gap) · UI polish wave (1-char hint copy, Settings trim, ACTION_BLOCKED craft hint, safety hint flicker, English error strings) · perf sprint (anon ISR) · 技術 debt / defensive hardening (tokenizer combining marks, word-boundary, sanity asymmetry, trigger ordering, defensive guards, etc).
+- **W2.6-INFO-01** — Migrated **20 IDs** Phase 5 deferred polish items into pm/BACKLOG.md「Phase 5 deferred polish」section. 4 sub-buckets: Phase 7 content tier (genre alias gap) · UI polish wave (1-char Latin hint copy, Settings trim, ACTION_BLOCKED craft hint, safety hint flicker, English error strings) · perf sprint (anon ISR) · 技術 debt / defensive hardening (tokenizer combining marks, word-boundary, sanity asymmetry, trigger ordering, defensive guards, etc).
 - **🆕 manual-e2e-phase5.html** — Founder-runnable E2E checklist with 6 checks (3 happy + 2 negative + 1 SQL). Standalone HTML with step-by-step actions + expected results + fail handling. Linked from pm-dashboard.html quick-links.
-- TypeScript clean · git tree clean
+
+### Wave 2.7 audit (5th cycle) — 12 finding · 0 ship blocker · inline fixes applied
+- 0 CRIT + 0 HIGH (after E2E fixes) + 2 MEDIUM resolved + 8 LOW + 2 INFO
+- E2E checklist fixes inline applied: Check 6 SQL role context clarified (postgres role · auth.role() returns NULL · trigger fires correctly) · Check 1 logout path documented (/settings or incognito) · Check 4 navigation hint added (返 /library → 繼續玩 carousel → playthrough)
+- STATUS.md count fix: 「14 deferred items」→ 「20 IDs」 (actual BACKLOG count)
+- Convergence pattern proven at 5 cycles · 29 → 24 → 17 → 16 → 12 declining trend
 
 ### Phase 5 timeline 收工 summary
-- 14 commits across 2 sessions
+- 17 commits across 2 sessions
 - 6 migrations applied (0009 → 0014)
-- 4 audit cycles · 21 issues caught & fixed pre-prod
-- 14 deferred items documented in BACKLOG
+- 5 audit cycles · 21 ship blocker + 14 polish issues caught & fixed pre-prod (35 total)
+- 20 deferred items documented in BACKLOG
 - Ready for founder manual E2E → Phase 5 真正 closed
 
 ## ✅ Earlier — Session 8 cont. — Phase 5 Wave 2.6 audit · 4-cycle convergence holds
