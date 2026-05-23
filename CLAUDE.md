@@ -216,6 +216,7 @@ DB：`story_characters` (模板) + `playthrough_character_states` (per-playthrou
 29. **3-cycle audit pattern converges to 0 ship blocker** — Phase 5 community proved「ship → audit → fix critical → ship → audit → fix critical → ship → audit converged」係 reliable pattern。Wave 1 audit 揾 6 ship blocker · Wave 2 audit 揾 5 · Wave 2.5 audit 揾 0。**每個 phase function 完成後 plan minimum 2-3 個 audit cycles · 唔好 ship → next phase 跳格**。CLAUDE.md hard rule #7 「audit-before-next-phase」喺 Phase 5 救咗 11 launch-day-killing issue 唔上 prod。每次 audit cycle 用 2 parallel agent (Security/Correctness + UX/Cost/Regression) — 5-agent 太重 only suit foundation-level audit。
 30. **Empty-string URL params vs nullish coalescing** — Phase 5 Wave 2 嘅 library search form `<select value="">` default 加 `params.language ?? null` 唔 catch empty string · RPC `where s.language = ''` → 0 results everywhere · user 按一次「搜尋」即 library 表面壞晒。**`??` 只 catch null / undefined，empty string passes through**。Form input + RPC filter pattern 兩邊都要 reconcile：UI sanitize `sp.x?.trim() || undefined` · OR RPC layer treat empty as "no filter"。任何 URL searchParams 落 RPC 都 check 呢個 path。
 31. **Fetch response single-consume gotcha in error handlers** — Phase 5 Wave 2.5 audit 揾到 play-client 嘅 400/403/503 inner handlers 各自 `await res.json()` · fall-through 到底嘅 `await res.text()` 會 throw "body stream already read"。**Fetch Response 嘅 body 只能 consume 一次**。Pattern: 讀 body 一次 at top of `if (!res.ok)` · 之後 key off body?.error per status。Drop 底嘅 fallback `res.text()`。
+32. **Manual E2E DEFERRED to post-UI tier · 唔逐 phase 測** — Founder rule (2026-05-23): 「實質測試個產品我係希望等完成咗UI之後先一次過測試,唔好再叫我測試喇依家」。Function tier ship + audit converged (3 consecutive zero-ship-blocker cycles per #29) = sufficient quality signal · don't gate next-phase progression on founder E2E。Per-phase E2E checklist (manual-e2e-phase*.html) 仍然 write 留住做 final comprehensive E2E suite 嘅 base — UI tier 完之後 expand 覆蓋 polished flows · 一次過測整個 final product。Never propose「Manual E2E next」之間 phase。Examples: ❌「Phase 5 audit converged · run E2E · Phase 6 next」 ✅「Phase 5 audit converged · 35 issues caught · proceed to Phase 7 / Phase 6 function tier」
 
 ---
 
@@ -229,4 +230,4 @@ DB：`story_characters` (模板) + `playthrough_character_states` (per-playthrou
 
 ---
 
-_Last updated: 2026-05-23 (Session 8 — Phase 5 Community ship + 5-cycle audit converged · Wave 2.7 + 2.7 audit inline fixes · 21 ship blocker + 14 polish caught pre-prod · 20 deferred to BACKLOG · Manual E2E checklist ready for founder)_
+_Last updated: 2026-05-23 (Session 8 — Phase 5 community 5-cycle audit done · 35 issues pre-prod · 20 deferred · **Manual E2E DEFERRED to post-UI tier per founder rule** · 落 Phase 7 content 或 Phase 6 non-money function)_
