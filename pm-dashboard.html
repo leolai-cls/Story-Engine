@@ -565,16 +565,16 @@
       <p class="section-sub">每次新 session 開始，由呢度睇起。</p>
 
       <div class="top-meta">
-        <div><strong>Last updated</strong> 2026-05-22 · Session 8 cont. (Wave 2.6 micro-patch shipped · 6 polish items closed · Manual E2E pending)</div>
-        <div><strong>Phase</strong> Phase 0/1/1.5/2/3 backend ✅ · Phase 5 Wave 1 → 1.5 → 2 → 2.5 → 2.6 ✅ (audit converged · 6 polish closed) · 落 Manual E2E → Phase 6 / Phase 7</div>
+        <div><strong>Last updated</strong> 2026-05-22 · Session 8 cont. (Wave 2.6 audit converged again · 4th cycle · diminishing return clear)</div>
+        <div><strong>Phase</strong> Phase 0/1/1.5/2/3 backend ✅ · Phase 5 Wave 1 → 1.5 → 2 → 2.5 → 2.6 ✅ · <strong>4 audit cycles converged</strong> · 落 Wave 2.7 micro-patch (~10min · 2 fixes) → Manual E2E → Phase 6/7</div>
         <div><strong>Live</strong> <a href="https://story-engine-drab.vercel.app" target="_blank" style="color: var(--primary);">story-engine-drab.vercel.app</a></div>
       </div>
 
       <div class="status-hero">
-        <div class="label">✅ Phase 5 Wave 2.6 micro-patch shipped · 6 polish items closed · Migration 0014 applied · Phase 5 真正 ship-ready</div>
-        <div class="phase">play-client body-stream fix · 2-stage library fetch · 1-char search hint · trendingCount=0 fallback · origin INSERT lock · display_name trim</div>
+        <div class="label">🎯 Phase 5 Wave 2.6 audit (4th cycle) · 0 ship blocker · convergence holds · diminishing return signal clear</div>
+        <div class="phase">16 finding · 1 MEDIUM dead-code fix · 8 LOW + 7 INFO defer · 兩個 agent 都建議 decline 5th cycle · go E2E</div>
         <div class="focus">
-          Session 8 cont. ship Wave 2.6 micro-patch — 6 個 polish item 全部 close。<strong>W2.5-UX-M-01</strong>: play-client 讀 body 一次 at top of <code>if (!res.ok)</code> · 唔再見「body stream already read」error leak。<strong>W2.5-PERF-M-02</strong>: library 2-stage fetch — stage 1 trending+latest · stage 2 genre boards 只當 multi-board mode engage 先 fetch · launch 慳 36 RPC。<strong>W2.5-DOC-M-01</strong>: 1-char search 顯示 amber hint card「請輸入至少 2 個字」+ phrase examples。<strong>W2.5-UX-L-07</strong>: drop <code>trendingCount &gt; 0</code> condition · zero-trending Day 0 visitor 都見 friendly single-list fallback。<strong>W2.5-SEC-L-04</strong>: Migration 0014 加 <code>new.origin := 'user'</code> 落 INSERT lock trigger · defense-in-depth for future Official badge feature。<strong>W2.5-UX-L-06</strong>: <code>display_name?.trim() ||</code> 取代 <code>display_name ||</code> · whitespace-only fallback 落 UUID prefix。<strong>下一步：Manual E2E (6 checks) → Phase 5 真正 closed → Phase 6 non-money function tier (adult mode toggle · content rating filter · provider gating) 或 Phase 7 content tier (5 條官方故事)</strong>。Defer to backlog: W2.5-GENRE-M-02 alias gap (Phase 7 real data) · W2.5-FTS-L-03 tokenizer combining mark · W2.5-CACHE-INFO-10 anon ISR (perf sprint)。
+          Session 8 cont. 完 Wave 2.6 micro-patch (6 polish closed) 之後即 2-agent parallel audit。<strong>Convergence holds across 2 cycles</strong>：Wave 2.5 audit 17 finding · 0 blocker → Wave 2.6 audit 16 finding · 0 blocker。Finding count declining trend (29 → 24 → 17 → 16) · 兩個 agent 獨立 reach 同一個 conclusion「diminishing return real · 2 個小 fix · go E2E」。<strong>建議 Wave 2.7 ~10min micro-patch (2 fix only)</strong>：(1) W2.6-CODE-M-01 — library/page.tsx Stage 2 有條 condition logically 永遠 false · 4 lines dead code · delete or relax to <code>!anyGenrePopulated</code>。(2) W2.6-INFO-01 — 8 個 W2.5-* deferred item 從 STATUS.md transient state migrate 入 pm/BACKLOG.md「Phase 5 deferred polish」section · 防 Phase 6/7 rotation 之後 disappear。<strong>之後 Manual E2E (6 checks) → Phase 5 community function tier 真正完整 closed → 入 Phase 6 non-money function (adult toggle · content rating · provider gating) 或 Phase 7 content (5 條官方故事)</strong>。21 個 launch-day-killing + polish issue 喺 prod 之前修咗 · 4-cycle audit discipline (CLAUDE.md #7 + #29) validated 對 solo dev。
         </div>
       </div>
 
@@ -635,9 +635,13 @@
           <div class="quick-link-title">🎮 試玩 (Guest mode)</div>
           <div class="quick-link-desc">Login → Guest button → /stories/new → 玩夠 5+ turns 試 act transition</div>
         </a>
+        <a href="audit-report-phase5-wave2.6.html" class="quick-link">
+          <div class="quick-link-title">🎯 Phase 5 Wave 2.6 Audit (latest · ✅ convergence holds at 0 ship blocker · 4th cycle)</div>
+          <div class="quick-link-desc">16 finding · 0 CRIT + 0 HIGH · 1 MEDIUM dead-code fix · diminishing return signal clear · decline 5th cycle</div>
+        </a>
         <a href="audit-report-phase5-wave2.5.html" class="quick-link">
-          <div class="quick-link-title">🎯 Phase 5 Wave 2.5 Audit (latest · ✅ converged at 0 ship blocker)</div>
-          <div class="quick-link-desc">17 finding · 0 CRIT + 0 HIGH · 4 MEDIUM polish (~30min Wave 2.6) · Convergence proven after 3 audit cycles</div>
+          <div class="quick-link-title">🎯 Phase 5 Wave 2.5 Audit (✅ converged at 0 ship blocker · 3rd cycle)</div>
+          <div class="quick-link-desc">17 finding · 0 CRIT + 0 HIGH · 4 MEDIUM polish · Convergence first proven</div>
         </a>
         <a href="audit-report-phase5-wave2.html" class="quick-link">
           <div class="quick-link-title">🔍 Phase 5 Wave 2 Audit (✅ 5 ship blockers closed via Wave 2.5)</div>

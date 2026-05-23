@@ -7,9 +7,9 @@
 
 ## 🎯 而家狀態
 
-**Phase**: **Phase 5 Wave 2.6 micro-patch shipped ✅ · 6 polish items closed · Migration 0014 applied · Manual E2E → Phase 5 closed → Phase 6 / Phase 7**
+**Phase**: **Phase 5 Wave 2.6 audit converged (4th cycle · 0 ship blocker · diminishing return clear) · Wave 2.7 (~10min · 2 fixes) + Manual E2E → Phase 5 closed → Phase 6 / Phase 7**
 **Live URL**: https://story-engine-drab.vercel.app
-**Last updated**: 2026-05-22 (Session 8 cont. — Wave 2.6 shipped)
+**Last updated**: 2026-05-22 (Session 8 cont. — Wave 2.6 audit converged · 4th cycle)
 
 ## 🎯 Founder priority rule（鎖死）
 
@@ -23,7 +23,8 @@
 
 | 排 | Plan item | Tier | Time | Why |
 |---|---|---|---|---|
-| 🧪 | **Manual E2E test** — 6 happy + negative paths: anon /library · 1-char search → see hint card · create→publish→see in board · benign turn · explicit-violence ACTION_BLOCKED card · SQL INSERT clamp verify | 🟢 FUNCTION | ~30min Founder time | Phase 5 6 migrations + 14 commits + ~3500 LOC change · last E2E 喺 Wave 1 ship · cumulative subtle bug check |
+| 🟦 | **Wave 2.7 micro-patch** — 2 quick items from Wave 2.6 audit: (1) W2.6-CODE-M-01 delete 4-line dead-code downgrade branch in library/page.tsx Stage 2 · (2) W2.6-INFO-01 migrate 8 W2.5-* deferred items 入 pm/BACKLOG.md「Phase 5 deferred polish」section to survive STATUS rotation | 🟢 FUNCTION | ~10min | Last micro-patch · both agents converged on these 2 |
+| 🧪 | **Manual E2E test** — 6 happy + negative paths: anon /library · 1-char search → see hint card · create→publish→see in board · benign turn · explicit-violence ACTION_BLOCKED card · SQL INSERT clamp verify | 🟢 FUNCTION | ~30min Founder time | Phase 5 6 migrations + 15 commits + ~3700 LOC change · last E2E 喺 Wave 1 ship · cumulative subtle bug check |
 | 🥇 | **Phase 6 non-money function bits** — adult mode toggle · content rating filter · provider gating（唔包 KYC）| 🟢 FUNCTION | ~1 session | Adult flow narrative gating |
 | 🥈 | **Phase 7 content** — Founder + Claude 寫 5 條 launch-ready 官方故事（順手填空蕩 genre 榜 + 收集 real genre distribution data 用嚟解 W2.5-GENRE-M-02） | 🟢 FUNCTION | 多 session slow-burn | 官方故事支撐 launch + Wave 2.5 audit deferred item resolved |
 | 🥉 | **Phase 1.5/2 polish (audit deferred)** — NPC name fuzzy match · 4-axis disposition init · always_on demote · refusal embed flow · Memory Journal UI backend prep | 🟢 FUNCTION | ~1 session | Audit backlog cleanup |
@@ -38,9 +39,26 @@
 
 ## 🚧 Blockers
 
-**冇 launch blocker**。**3-cycle audit converged** — Wave 2.5 audit found 0 CRIT + 0 HIGH ship blocker（17 finding total · 4 MEDIUM polish + 8 LOW + 5 INFO）。CLAUDE.md hard rule #7 audit-as-gating discipline 救咗 11 launch-day-killing issue（4 P5 SHOWSTOPPERS + 6 Wave 1.5 blockers + 5 Wave 2.5 blockers）。Wave 2.6 micro-patch (~30min) 處理 4 個 MEDIUM polish 之後 + Manual E2E 通過 → Phase 5 community function tier 真正完整 ship-ready。
+**冇 launch blocker**。**4-cycle audit converged twice** — Wave 2.5 audit (17 finding · 0 blocker · first convergence) → Wave 2.6 fix (6 polish) → Wave 2.6 audit (16 finding · 0 blocker · convergence holds)。Finding count declining trend confirmed: 29 → 24 → 17 → 16。**21 個 launch-day-killing + polish issue caught & fixed pre-prod**。兩個 agent 獨立 reach 同一個 conclusion: decline 5th cycle (diminishing return real) · 做 Wave 2.7 (~10min · 2 fix) + Manual E2E → Phase 5 community function tier 真正 closed。
 
-**Deferred 至 Phase 7 / backlog**（confirmed non-blocker）：W2.5-GENRE-M-02 alias gap（Phase 7 收集 real distribution data 之後 normalize）· W2.5-FTS-L-03 tokenizer combining mark strip · W2.5-FTS-L-04 word-boundary mismatch (pg_trgm extension) · W2-COST-H-04 anon ISR cache（高流量先有影響）· W2.5-CACHE-INFO-10 force-dynamic ISR split · W2.5-UX-INFO-09 ACTION_BLOCKED craft hint（post-launch telemetry data first）· W2-LIB-L-09 carousel dedup · W2-FTS-M-04 Bopomofo regex。
+**Deferred 至 backlog**（pending Wave 2.7 migration into pm/BACKLOG.md per W2.6-INFO-01）：14 items 含 W2.5-GENRE-M-02 alias gap（Phase 7 real distribution data 之後 normalize）· W2.5-FTS-L-03/L-04 tokenizer polish · W2-COST-H-04 anon ISR · W2.6-MIG-L-02 'curated' enum doc · W2.6-PLAY-L-03/L-04 defensive · W2.6-LIB-L-05 1-char Latin hint · W2.6-LIB-I-06 Settings display_name trim · W2.6-UX-L-03 English error strings · W2.6-MIG-I-07 createStory+trigger origin redundancy · W2.6-INFO-03 getCommentReplies UI TODO · W2.6-MIGRATION-L-04 sanity check pattern。
+
+## ✅ Just completed (Session 8 cont. — Phase 5 Wave 2.6 audit · 4-cycle convergence holds)
+
+### Wave 2.6 audit (4th cycle) — 0 ship blocker · convergence holds
+- 16 finding · 0 CRIT + 0 HIGH + 1 MEDIUM (dead-code) + 8 LOW + 7 INFO
+- 兩個 agent (Security/Correctness + UX/Cost/Regression) 獨立 reach 同一 conclusion
+- Both flag W2.6-CODE-M-01 (library/page.tsx Stage 2 dead-code) + W2.6-INFO-01 (pm/BACKLOG.md stale) as the only actionable Wave 2.7 items
+- Both recommend declining 5th cycle · diminishing return signal clear
+- See [audit-report-phase5-wave2.6.html](audit-report-phase5-wave2.6.html)
+
+### 4-cycle convergence chart confirms pattern reusable for future phases
+```
+Wave 1 audit  : 29 finding · 6 blocker
+Wave 2 audit  : 24 finding · 5 blocker
+Wave 2.5 audit: 17 finding · 0 blocker ← first convergence
+Wave 2.6 audit: 16 finding · 0 blocker ← convergence holds
+```
 
 ## ✅ Just completed (Session 8 cont. — Phase 5 Wave 2.6 micro-patch + convergence)
 

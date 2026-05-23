@@ -229,4 +229,4 @@ DB：`story_characters` (模板) + `playthrough_character_states` (per-playthrou
 
 ---
 
-_Last updated: 2026-05-22 (Session 8 — Phase 5 Community ship + 3-cycle audit converged · Wave 2.5 audit = 0 ship blocker · Wave 2.6 micro-patch + Manual E2E pending)_
+_Last updated: 2026-05-22 (Session 8 — Phase 5 Community ship + 4-cycle audit · Wave 2.6 audit converged again at 0 ship blocker · 21 issues caught & fixed pre-prod · Wave 2.7 micro-patch + Manual E2E pending)_
