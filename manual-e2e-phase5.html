@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Story Engine — Phase 5 Manual E2E Checklist</title>
+<style>
+  :root { --primary: #4F46E5; --primary-soft: #EEF2FF; --accent: #F59E0B; --accent-soft: #FEF3C7; --bg: #FAFAF7; --card: #FFFFFF; --ink: #18181B; --ink-soft: #3F3F46; --muted: #71717A; --border: #E4E4E7; --green: #10B981; --green-soft: #D1FAE5; --rose: #E11D48; --amber: #D97706; --code-bg: #F4F4F5; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif; background: var(--bg); color: var(--ink); line-height: 1.7; font-size: 15px; -webkit-font-smoothing: antialiased; }
+  main { max-width: 900px; margin: 0 auto; padding: 40px 28px 100px; }
+  .hero { text-align: center; margin-bottom: 28px; }
+  .eyebrow { display: inline-block; font-size: 11px; font-weight: 700; color: var(--primary); background: var(--primary-soft); padding: 5px 12px; border-radius: 999px; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 14px; }
+  h1 { font-size: 30px; font-weight: 800; letter-spacing: -0.025em; margin-bottom: 8px; }
+  .hero p { color: var(--muted); font-size: 15px; max-width: 660px; margin: 0 auto; }
+  .meta { color: var(--muted); font-size: 12.5px; margin-top: 12px; }
+  .session-box { background: var(--card); border: 2px solid var(--primary); border-radius: 12px; padding: 18px 22px; margin: 22px 0 36px; }
+  .session-box strong { color: var(--primary); }
+  .check { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 22px 26px; margin-bottom: 16px; }
+  .check-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px dashed var(--border); }
+  .check-num { font-size: 24px; font-weight: 800; color: var(--primary); background: var(--primary-soft); width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .check-title { font-size: 17px; font-weight: 700; flex: 1; }
+  .step { margin-bottom: 14px; }
+  .step-label { font-size: 11.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 4px; }
+  .step-content { font-size: 14px; color: var(--ink); }
+  .step.action .step-label { color: var(--primary); }
+  .step.expect .step-label { color: var(--green); }
+  .step.if-fail .step-label { color: var(--rose); }
+  .step.if-fail { padding: 12px 16px; background: #fff5f6; border-left: 3px solid var(--rose); border-radius: 6px; }
+  code { background: var(--code-bg); padding: 2px 6px; border-radius: 4px; font-family: "SF Mono", Monaco, monospace; font-size: 12.5px; }
+  pre { background: var(--code-bg); padding: 14px 16px; border-radius: 8px; overflow-x: auto; font-family: "SF Mono", Monaco, monospace; font-size: 12.5px; line-height: 1.5; margin: 8px 0; }
+  .footer { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 22px 26px; margin-top: 30px; }
+  .footer h2 { font-size: 17px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .footer p { font-size: 14px; color: var(--ink-soft); line-height: 1.7; }
+  .checkbox { width: 22px; height: 22px; border: 2px solid var(--border); border-radius: 6px; display: inline-block; vertical-align: middle; margin-right: 8px; cursor: pointer; }
+  .checkbox.checked { background: var(--green); border-color: var(--green); position: relative; }
+  .checkbox.checked::after { content: "✓"; color: white; font-weight: 800; position: absolute; left: 4px; top: -2px; }
+  .pill { display: inline-block; font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 999px; letter-spacing: 0.04em; }
+  .pill.happy { background: var(--green-soft); color: var(--green); }
+  .pill.negative { background: var(--accent-soft); color: var(--amber); }
+  .pill.sql { background: var(--primary-soft); color: var(--primary); }
+  .back-link { display: inline-block; margin-top: 30px; color: var(--primary); text-decoration: none; font-size: 13px; font-weight: 700; padding: 8px 14px; background: var(--primary-soft); border-radius: 8px; }
+  .back-link:hover { background: var(--primary); color: white; }
+  ul.tips { padding-left: 22px; }
+  ul.tips li { font-size: 13.5px; color: var(--ink-soft); padding: 4px 0; }
+</style>
+</head>
+<body>
+<main>
+
+<div class="hero">
+  <span class="eyebrow">🧪 Founder E2E · Phase 5 community function tier</span>
+  <h1>Phase 5 Manual E2E Checklist</h1>
+  <p>4-cycle audit converged 喺 zero ship blocker · Wave 2.7 polish 都做埋。<strong>呢 6 個 check 通過之後 Phase 5 真正完整 ship-ready</strong>。每個 check ~3-5 分鐘 · 全部加埋約 30 分鐘。</p>
+  <div class="meta">Live: <a href="https://story-engine-drab.vercel.app" target="_blank" style="color: var(--primary);">story-engine-drab.vercel.app</a> · 6 個 migration applied (0009-0014) · 21 個 issue caught & fixed pre-prod</div>
+</div>
+
+<div class="session-box">
+  <strong>準備工作</strong>：開 <code>https://story-engine-drab.vercel.app</code> · 試嗰陣 keep 開 browser devtools (Console + Network tab) · 留意有冇 error。如果發現任何 unexpected behavior · 攞 screenshot + console output 俾我跟進。
+</div>
+
+<!-- CHECK 1 -->
+<div class="check">
+  <div class="check-head">
+    <div class="check-num">1</div>
+    <div class="check-title">Anon /library 載入 — 多 board layout OR launch fallback <span class="pill happy">Happy path</span></div>
+  </div>
+  <div class="step action">
+    <div class="step-label">Action</div>
+    <div class="step-content">
+      Logout（如果未 logout）· 然後 navigate to <code>/library</code>（無 login state）
+    </div>
+  </div>
+  <div class="step expect">
+    <div class="step-label">Expected</div>
+    <div class="step-content">
+      頁面成功 load · 至少見到一個 carousel (e.g., 「公開故事」launch fallback · 或者 「🔥 熱門」)。如果有公開故事 ≥ 8 條，多 board layout (🔥/🆕/💕/⚔️/🎓/🔮/🏀/🕵️) 出齊；如果少於 8 條，只見「公開故事」單一 list。Browser console <strong>冇 red error</strong>。
+    </div>
+  </div>
+  <div class="step if-fail">
+    <div class="step-label">⚠️ If fail</div>
+    <div class="step-content">攞 console error screenshot · 留意係咪 supabase RPC 出問題定 client render bug</div>
+  </div>
+</div>
+
+<!-- CHECK 2 -->
+<div class="check">
+  <div class="check-head">
+    <div class="check-num">2</div>
+    <div class="check-title">1-char CJK search → amber hint card <span class="pill negative">Negative path</span></div>
+  </div>
+  <div class="step action">
+    <div class="step-label">Action</div>
+    <div class="step-content">
+      喺 library 頁嘅 search bar 輸入單一字「愛」（or「校」/「我」/「的」）· 按搜尋
+    </div>
+  </div>
+  <div class="step expect">
+    <div class="step-label">Expected</div>
+    <div class="step-content">
+      頁面跳去 <code>/library?q=愛</code> · 0 results · <strong>見到 amber 黃色 card</strong> 寫住「請輸入至少 2 個字」+ phrase example (校園 / 戀愛 / 古惑仔)。<br>
+      再試 search「校園」（2 字）· 如果有 match · 出 result list；如果未有公開故事 · 出 generic 「搵唔到」message。
+    </div>
+  </div>
+  <div class="step if-fail">
+    <div class="step-label">⚠️ If fail</div>
+    <div class="step-content">如果 1-char query 出咗 generic「搵唔到」而冇 amber hint · 或者 raw JSON error · screenshot + 報 issue</div>
+  </div>
+</div>
+
+<!-- CHECK 3 -->
+<div class="check">
+  <div class="check-head">
+    <div class="check-num">3</div>
+    <div class="check-title">Create story → publish → see in correct board <span class="pill happy">Happy path</span></div>
+  </div>
+  <div class="step action">
+    <div class="step-label">Action</div>
+    <div class="step-content">
+      Login (or guest mode) → /stories/new → 用 prompt <strong>「1980 年代香港古惑仔故事 · 我做新仔幫師兄做嘢搵錢」</strong>（呢個係 example prompt · 確認 moderation 唔再 false-positive） → 等 generate (30-60s) → 玩 1 turn → 返 /library/[story-id] → click「Publish 公開」 → 返 /library
+    </div>
+  </div>
+  <div class="step expect">
+    <div class="step-label">Expected</div>
+    <div class="step-content">
+      故事成功生成（schema_generator 唔 reject「古惑仔」prompt · violence false-positive 已修）· Publish 成功 (visibility → public) · 返 /library 之後新故事應該喺「⚔️ 冒險」carousel 出現（aliases 包含 '古惑仔'）· 或者喺「🆕 最新」carousel。
+    </div>
+  </div>
+  <div class="step if-fail">
+    <div class="step-label">⚠️ If fail</div>
+    <div class="step-content">如果 generate 階段見到「內容違反平台規則」 → moderation threshold 仲過嚴；如果 publish 後唔出現喺 carousel → genre alias mapping 有 gap（known issue W2.5-GENRE-M-02）</div>
+  </div>
+</div>
+
+<!-- CHECK 4 -->
+<div class="check">
+  <div class="check-head">
+    <div class="check-num">4</div>
+    <div class="check-title">Play benign turn — narrative streams + 可能見 safety hint <span class="pill happy">Happy path</span></div>
+  </div>
+  <div class="step action">
+    <div class="step-label">Action</div>
+    <div class="step-content">
+      喺 Check 3 剛創作嘅故事 playthrough 入面 · 輸入一個 benign action 例如「我問師兄今晚去邊度食飯」· submit
+    </div>
+  </div>
+  <div class="step expect">
+    <div class="step-label">Expected</div>
+    <div class="step-content">
+      Submit 即刻 see 用戶 turn appear · 600ms 之後可能 flash「<strong>內容審核 + AI 思考中...</strong>」+ Shield icon (取決於 network 速度)。Narrative stream 開始 trickle 落黎 · State panel 可能 update。整個 turn ~3-15s。
+    </div>
+  </div>
+  <div class="step if-fail">
+    <div class="step-label">⚠️ If fail</div>
+    <div class="step-content">如果 see「body stream already read」error → Wave 2.7 fix 仲未 deploy；如果 raw JSON error → play-client 400/503 handler 有 bug；如果 timeout > 30s → moderation API 慢或者 OpenAI outage</div>
+  </div>
+</div>
+
+<!-- CHECK 5 -->
+<div class="check">
+  <div class="check-head">
+    <div class="check-num">5</div>
+    <div class="check-title">Explicit-violence action → ACTION_BLOCKED 黃色 Shield card <span class="pill negative">Negative path</span></div>
+  </div>
+  <div class="step action">
+    <div class="step-label">Action</div>
+    <div class="step-content">
+      同一個 playthrough · 輸入一個 explicit graphic violence action 例如<br>
+      「我用刀刺穿佢個心臟然後拎刀挖佢眼珠出嚟」<br>
+      （呢個應該 trigger violence/graphic HARD_BLOCK + score floor 0.6）· submit
+    </div>
+  </div>
+  <div class="step expect">
+    <div class="step-label">Expected</div>
+    <div class="step-content">
+      Submit 之後見到 <strong>amber 黃色 Shield card</strong> 寫住「內容審核：呢個 action 過唔到」+ moderation reason（「內容包含暴力威脅、傷害指引或者針對特定群體嘅仇恨言論。」）+ 「試下換個方式描述...」suggestion。<br>
+      <strong>絕對唔應該見到 raw JSON</strong> 例如 <code>{"error":"action_blocked",...}</code>。
+    </div>
+  </div>
+  <div class="step if-fail">
+    <div class="step-label">⚠️ If fail</div>
+    <div class="step-content">如果見 raw JSON → play-client 400 handler bug；如果 action 過咗冇 block → moderation threshold 太鬆 / 唔 work；如果 see「body stream already read」→ Wave 2.7 fix 未 deploy</div>
+  </div>
+</div>
+
+<!-- CHECK 6 -->
+<div class="check">
+  <div class="check-head">
+    <div class="check-num">6</div>
+    <div class="check-title">SQL test — INSERT trigger 鎖死 play_count 等 client-controlled column <span class="pill sql">SQL test</span></div>
+  </div>
+  <div class="step action">
+    <div class="step-label">Action</div>
+    <div class="step-content">
+      Supabase Dashboard → SQL Editor (Story Engine project · ref <code>oivhvdfjmthydxqpcncp</code>) · run<br>
+      <pre>-- 用 authenticated role context 試 INSERT 設邪惡 values
+insert into public.stories (
+  owner_id, title, prompt_seed,
+  state_schema, story_bible, opening_narrative,
+  play_count, rating_avg, rating_count,
+  visibility, created_at
+)
+values (
+  auth.uid(),
+  'E2E test story',
+  'test prompt for inserter clamp test',
+  '{"fields":[]}',
+  '{}',
+  'Opening narrative for E2E test.',
+  99999,           -- 應該 clamp 做 0
+  5.0,             -- 應該 clamp 做 null
+  1000,            -- 應該 clamp 做 0
+  'public',        -- 應該 clamp 做 'private'
+  '2099-01-01'     -- 應該 clamp 做 now()
+)
+returning id, play_count, rating_avg, rating_count, visibility, created_at, origin;</pre>
+    </div>
+  </div>
+  <div class="step expect">
+    <div class="step-label">Expected</div>
+    <div class="step-content">
+      Returned row 顯示：<br>
+      • <code>play_count = 0</code>（INSERT trigger clamped 99999 → 0）<br>
+      • <code>rating_avg = null</code>（INSERT trigger clamped 5.0 → null）<br>
+      • <code>rating_count = 0</code>（INSERT trigger clamped 1000 → 0）<br>
+      • <code>visibility = 'private'</code>（INSERT trigger forced 'public' → 'private'）<br>
+      • <code>created_at ≈ now()</code>（INSERT trigger overwrote '2099-01-01'）<br>
+      • <code>origin = 'user'</code>（Wave 2.6 + 2.7 Migration 0014 origin lock）<br>
+      <br>
+      然後 cleanup: <code>delete from public.stories where title = 'E2E test story';</code>
+    </div>
+  </div>
+  <div class="step if-fail">
+    <div class="step-label">⚠️ If fail</div>
+    <div class="step-content">如果 play_count 仲係 99999 / visibility 仲係 'public' / origin 唔係 'user' → trigger 冇 fire 或者 condition broken · 即刻 escalate</div>
+  </div>
+</div>
+
+<div class="footer">
+  <h2>🎯 全部 6 個 check pass 之後</h2>
+  <p>
+    Phase 5 community function tier <strong>真正完整 closed</strong>。可以入下一個 function tier work：<br><br>
+    <strong>Option A — Phase 6 non-money function</strong>：adult mode toggle · content rating filter logic · provider gating (Anthropic vs OpenRouter)。為 launch 時 adult mode opt-in flow 鋪路（KYC 部分 defer 落 money tier）。<br><br>
+    <strong>Option B — Phase 7 content tier</strong>：Founder + Claude 寫 5 條 launch-ready 官方故事。順手填空蕩 genre carousel · 收集 real genre distribution data 解決 W2.5-GENRE-M-02。對 public launch impression 影響大。<br><br>
+    如果有 fail · 攞 screenshot 同 console output 俾我跟進 · 我會起 Wave 2.8 micro-patch fix。
+  </p>
+</div>
+
+<a href="pm-dashboard.html" class="back-link">← 返 Dashboard</a>
+
+</main>
+</body>
+</html>

@@ -184,17 +184,14 @@ export default async function LibraryPage({
     useLaunchFallback = trending.length < MULTI_BOARD_THRESHOLD;
 
     if (!useLaunchFallback) {
-      // Multi-board mode: fetch genre carousels in parallel
+      // Multi-board mode: fetch genre carousels in parallel.
+      // Empty-genre smart-hide is handled by StoryCarousel render layer —
+      // no need for a stage-2 downgrade check (Wave 2.7 W2.6-CODE-M-01 fix:
+      // the previous downgrade check was logically unreachable since the
+      // outer condition guarantees trending.length >= MULTI_BOARD_THRESHOLD).
       genreResults = await Promise.all(
         GENRE_BOARDS.map((g) => fetchBoard(g.aliases)),
       );
-      // If after fetching, every genre is empty AND trending is low, downgrade
-      // to launch fallback (handles the "trending barely populated, genres
-      // not yet seeded" edge case).
-      const anyGenrePopulated = genreResults.some((arr) => arr.length > 0);
-      if (!anyGenrePopulated && trending.length < MULTI_BOARD_THRESHOLD) {
-        useLaunchFallback = true;
-      }
     }
   }
 
