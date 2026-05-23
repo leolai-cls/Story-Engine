@@ -26,7 +26,17 @@ const InputSchema = z.object({
 
 /**
  * Map a NPC's default_disposition_toward_protagonist to an initial
- * disposition record. Director can extend with story-specific axes later.
+ * disposition record covering all 4 standard axes.
+ *
+ * Phase 1.5/2 polish: seed all 4 axes explicitly (trust mapped from the
+ * 6-level enum · romance / respect / fear at 0). Previously only `trust`
+ * was set — Narrator updates on `romance`/`respect`/`fear` worked via
+ * default-zero behavior but reading the disposition jsonb gave undefined
+ * for those axes (UI display awkward · math edge cases on first turn).
+ * Now: predictable {trust, romance, respect, fear} starting state.
+ *
+ * Director can still add story-specific axes (e.g., "loyalty", "envy") via
+ * update_character_disposition tool — DispositionSchema is open-ended.
  */
 function dispositionFromDefault(
   defaultDisp: string,
@@ -39,7 +49,12 @@ function dispositionFromDefault(
     warm: 60,
     devoted: 90,
   };
-  return { trust: trustMap[defaultDisp] ?? 0 };
+  return {
+    trust: trustMap[defaultDisp] ?? 0,
+    romance: 0,
+    respect: 0,
+    fear: 0,
+  };
 }
 
 export type CreateStoryResult = { ok: false; error: string };

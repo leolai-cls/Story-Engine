@@ -559,10 +559,45 @@ export async function POST(
           : extractDispositionChanges(toolCalls);
         const permanentFlags = isRefusal ? [] : extractPermanentFlags(toolCalls);
 
-        // Build lookup of NPCs by name to map character_name → character_id.
-        const charByName = new Map(
-          (characters ?? []).map((c) => [c.name, c]),
+        // Phase 1.5/2 polish (M-02) — NPC name fuzzy match.
+        // Narrator may refer to NPCs by short form ("阿明") while DB has full
+        // name ("陳家明") or vice versa. Lookup ladder:
+        //   1. Exact match (cheapest · most calls hit here)
+        //   2. NFKC + lowercase trim normalization (handles 全形 / spaces)
+        //   3. Substring match either direction (narrator name ∈ db OR db ∈ narrator)
+        //   4. Unresolved → log telemetry warning, skip
+        // Logged warnings let us see drift between Narrator output and DB
+        // schema over time (CLAUDE.md hard rule #8: path-format drift visibility).
+        const dbCharacters = characters ?? [];
+        const normalizeName = (s: string) =>
+          s.normalize("NFKC").trim().toLowerCase();
+        const charByExact = new Map(dbCharacters.map((c) => [c.name, c]));
+        const charByNormalized = new Map(
+          dbCharacters.map((c) => [normalizeName(c.name), c]),
         );
+
+        function resolveCharacter(
+          narratorName: string,
+        ): (typeof dbCharacters)[number] | null {
+          // 1. Exact match
+          const exact = charByExact.get(narratorName);
+          if (exact) return exact;
+          // 2. Normalized match
+          const norm = normalizeName(narratorName);
+          const normalized = charByNormalized.get(norm);
+          if (normalized) return normalized;
+          // 3. Substring match (both directions)
+          //    Helps "阿明" → "陳家明" AND "陳家明 (阿明)" → "陳家明"
+          if (norm.length >= 1) {
+            for (const c of dbCharacters) {
+              const dbNorm = normalizeName(c.name);
+              if (dbNorm.includes(norm) || norm.includes(dbNorm)) {
+                return c;
+              }
+            }
+          }
+          return null;
+        }
 
         // AUDIT FIX (AI-C-01 / DB-H-04): group all disposition + flag changes
         // by character_id BEFORE writing — the loop previously rebuilt each
@@ -578,12 +613,17 @@ export async function POST(
         const mergesByChar = new Map<string, NpcMerge>();
 
         for (const change of dispositionChanges) {
-          const dbChar = charByName.get(change.character_name);
+          const dbChar = resolveCharacter(change.character_name);
           if (!dbChar) {
             console.warn(
-              `[turn] Narrator referenced unknown NPC "${change.character_name}" — skipped`,
+              `[turn] Narrator referenced unknown NPC "${change.character_name}" — no fuzzy match in [${dbCharacters.map((c) => c.name).join(", ")}] · skipped`,
             );
             continue;
+          }
+          if (dbChar.name !== change.character_name) {
+            console.log(
+              `[turn] NPC fuzzy-matched "${change.character_name}" → "${dbChar.name}"`,
+            );
           }
           let entry = mergesByChar.get(dbChar.id);
           if (!entry) {
@@ -600,12 +640,17 @@ export async function POST(
             (entry.dispositionDelta[change.axis] ?? 0) + change.delta;
         }
         for (const flagOp of permanentFlags) {
-          const dbChar = charByName.get(flagOp.character_name);
+          const dbChar = resolveCharacter(flagOp.character_name);
           if (!dbChar) {
             console.warn(
-              `[turn] Narrator tried to set flag on unknown NPC "${flagOp.character_name}" — skipped`,
+              `[turn] Narrator tried to set flag on unknown NPC "${flagOp.character_name}" — no fuzzy match in [${dbCharacters.map((c) => c.name).join(", ")}] · skipped`,
             );
             continue;
+          }
+          if (dbChar.name !== flagOp.character_name) {
+            console.log(
+              `[turn] NPC fuzzy-matched (flag) "${flagOp.character_name}" → "${dbChar.name}"`,
+            );
           }
           let entry = mergesByChar.get(dbChar.id);
           if (!entry) {
@@ -698,9 +743,12 @@ export async function POST(
             permanent_flags: (cs?.permanent_flags as string[]) ?? [],
           });
         }
-        // Apply this turn's disposition changes to the in-memory map (DB is async)
+        // Apply this turn's disposition changes to the in-memory map (DB is async).
+        // M-02 fuzzy match: resolve narrator name → canonical DB name before lookup.
         for (const change of dispositionChanges) {
-          const cur = updatedCharStates.get(change.character_name);
+          const dbChar = resolveCharacter(change.character_name);
+          if (!dbChar) continue;
+          const cur = updatedCharStates.get(dbChar.name);
           if (!cur) continue;
           const newValue = Math.max(
             -100,
@@ -710,7 +758,9 @@ export async function POST(
         }
         // Add this turn's flags
         for (const flagOp of permanentFlags) {
-          const cur = updatedCharStates.get(flagOp.character_name);
+          const dbChar = resolveCharacter(flagOp.character_name);
+          if (!dbChar) continue;
+          const cur = updatedCharStates.get(dbChar.name);
           if (!cur) continue;
           if (!cur.permanent_flags.includes(flagOp.flag)) {
             cur.permanent_flags = [...cur.permanent_flags, flagOp.flag];

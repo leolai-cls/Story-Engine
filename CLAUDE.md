@@ -231,4 +231,4 @@ DB：`story_characters` (模板) + `playthrough_character_states` (per-playthrou
 
 ---
 
-_Last updated: 2026-05-23 (Session 8 — Phase 5 community 5-cycle audit done · 35 issues pre-prod · 20 deferred · **Manual E2E DEFERRED to post-UI tier per founder rule** · 落 Phase 7 content 或 Phase 6 non-money function)_
+_Last updated: 2026-05-23 (Session 8 — 🟢 FUNCTION TIER COMPLETE · Phase 5 + Phase 6 non-money + Phase 1.5/2 polish all shipped · 6 phases · 6 migrations (0009-0015) · 5-cycle Phase 5 audit converged · 35 issues caught pre-prod · 20 deferred to BACKLOG · 落 🟣 UI tier next)_

@@ -7,9 +7,9 @@
 
 ## 🎯 而家狀態
 
-**Phase**: **Phase 5 ✅ · Phase 6 non-money function shipped ✅ (adult mode toggle + provider gating + content filter + creation gate) · 落 Phase 1.5/2 audit-deferred polish**
+**Phase**: **🟢 FUNCTION TIER COMPLETE ✅ · 6 phases + 6 migrations + 5-cycle Phase 5 audit + Phase 6 non-money + Phase 1.5/2 polish quick wins shipped · 落 🟣 UI tier**
 **Live URL**: https://story-engine-drab.vercel.app
-**Last updated**: 2026-05-23 (Session 8 cont. — Phase 6 non-money shipped)
+**Last updated**: 2026-05-23 (Session 8 cont. — Function tier 完整完成 · UI tier next)
 
 ## 🎯 Founder priority rule（鎖死）
 
@@ -23,9 +23,7 @@
 
 | 排 | Plan item | Tier | Time | Why |
 |---|---|---|---|---|
-| 🥇 | **Phase 1.5/2 polish (audit deferred)** — NPC name fuzzy match · 4-axis disposition init · always_on demote · refusal embed flow · Memory Journal UI backend prep | 🟢 FUNCTION · technical | ~1 session | Audit backlog cleanup |
-| ↓ | _technical function 完晒_ |  |  |  |
-| 3 | **UI design wave** — Library page polish · Memory Journal UI（Phase 2 audit deferred · differentiator）· Locale switcher · Settings i18n · 全部 audit deferred UX items · Dashboard ROADMAP refresh (W2.7-DOC-M-04) · BACKLOG mirror (W2.7-DOC-L-05) | 🟣 UI | ~2 sessions | 玩家可見嘅嘢 |
+| 🥇 | **UI design wave** — Library page polish · Memory Journal UI（Phase 2 audit deferred P2-UX-C-03 · differentiator）· Locale switcher · Settings i18n · 全部 audit deferred UX items · Dashboard ROADMAP refresh (W2.7-DOC-M-04) · BACKLOG mirror (W2.7-DOC-L-05) · Phase 5 deferred polish UX items · Phase 1.5/2 deferred Memory Journal backend prep | 🟣 UI | ~2-3 sessions | 玩家可見嘅嘢 · launch impression decisive |
 | ↓ | _UI tier 完晒_ |  |  |  |
 | 4 | **Money tier** — Phase 4 Stripe (subscription + checkout + top-up) · Phase 6 KYC (Stripe Identity) · Phase 3 deferred (refund saga · OpenRouter dynamic pricing) | 🟡 MONEY | ~2 sessions | 收錢 backbone |
 | ↓ | _Money tier 完晒_ |  |  |  |
@@ -39,7 +37,28 @@
 
 **Migrated to backlog** (per pm/BACKLOG.md「Phase 5 deferred polish」section · 20 IDs 跨 4 sub-bucket)：W2.5-GENRE-M-02 alias gap · W2.5-FTS-L-03/L-04 tokenizer polish · W2-COST-H-04 anon ISR · W2.6-MIG-L-02 'curated' enum doc · W2.6-PLAY-L-03/L-04 defensive · W2.6-LIB-L-05 1-char Latin hint · W2.6-LIB-I-06 Settings display_name trim · W2.6-UX-L-03 English error strings · W2.6-MIG-I-07 createStory+trigger origin redundancy · W2.6-INFO-03 getCommentReplies UI TODO · W2.6-MIGRATION-L-04 sanity check pattern · 等等。
 
-## ✅ Just completed (Session 8 cont. — Phase 6 non-money function shipped)
+## ✅ Just completed (Session 8 cont. — 🟢 FUNCTION TIER COMPLETE)
+
+### Phase 1.5/2 polish — 2 quick wins shipped + 4 deferred items moved to BACKLOG
+- **M-02 NPC name fuzzy match** (turn route) — new `resolveCharacter()` resolver in onFinish · 3-layer ladder: exact → NFKC-normalize lowercase trim → bidirectional substring match。Narrator says「阿明」、DB has「陳家明」→ substring match · disposition + flags now correctly applied。Logged warnings for unresolved + fuzzy-matched cases (CLAUDE.md hard rule #8 path-format drift telemetry)。Applied 喺 disposition merge + arc transition check 兩個 site
+- **4-axis disposition init** — `dispositionFromDefault()` (createStoryFromPrompt) + `fork_story_to_playthrough` RPC (Migration 0015) 都 seed 4 standard axes (trust mapped from 6-level enum · romance/respect/fear at 0)。Predictable starting state · Narrator update on any axis 唔再 undefined · UI display 完整
+- **Migration 0015 applied** to prod · 3/3 sanity (romance + respect + fear all present in fork RPC source)
+
+### 4 items deferred to pm/BACKLOG.md「Phase 1.5/2 deferred polish」section
+- P2-UX-H-05 always_on lorebook demote pathway — needs cron job + scoring algorithm
+- Refusal embed flow — scope unclear pending audit clarification
+- P2-UX-C-03 Memory Journal UI backend prep — UI tier work (will be picked up by Memory Journal UI in 🟣 tier)
+- P2-PERF-C-01 recent turns cache breakpoint reshape — Anthropic prompt cache message structure work · ~1 session + audit
+
+### 🟢 FUNCTION TIER COMPLETE — Phase 5 community + Phase 6 non-money + Phase 1.5/2 polish
+- **6 phases done**: Phase 0 地基 · Phase 1 story engine MVP · Phase 1.5 Narrative Integrity · Phase 2 4-layer memory · Phase 3 multi-LLM + credits · Phase 5 community · Phase 6 non-money function · Phase 1.5/2 polish quick wins
+- **6 migrations** applied prod (0009-0015 sequential · Phase 5 community → polish)
+- **5-cycle audit converged** on Phase 5 (29 → 24 → 17 → 16 → 12 declining finding count · 35 issues caught pre-prod)
+- **20 deferred items** tracked in pm/BACKLOG.md across Phase 5 deferred polish + Phase 1.5/2 deferred polish sections
+- **TypeScript clean** across all changes
+- **Next: 🟣 UI tier** — library polish · Memory Journal UI · locale switcher · Settings i18n · all audit-deferred UX items
+
+## ✅ Earlier — Phase 6 non-money function shipped
 
 ### Phase 6 non-money function — adult mode infrastructure live
 - **🆕 web/src/components/settings/adult-mode-toggle.tsx** — 3-state UI: (1) age not verified → locked + KYC explainer · (2) verified + off → flippable · (3) verified + on → showing「已開啟」badge。CSAM hard-rule reminder embedded · regardless of toggle state

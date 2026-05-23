@@ -24,6 +24,17 @@
 
 ---
 
+## Phase 1.5/2 deferred polish（function tier final polish session · defer to later · non-blocking）
+
+呢 4 個係 Phase 1.5/2 audit-deferred polish 嘅大件 item — 需要 cron job / 新 architecture / UI work · 唔係 quick win · defer 落呢度。前 2 條 (NPC fuzzy match + 4-axis init) Session 8 cont. 完成咗。
+
+- ⬜ **P2-UX-H-05 always_on lorebook demote pathway** — 而家 lorebook 加 `always_on=true` 之後永遠喺 retriever 嘅 always_on cap 入面 (capped 至 8, sorted by updated_at)。如果一個 always_on entry 變 irrelevant (e.g., NPC 死咗 / 情節推進)，冇 demote 機制。需要：(a) 一個 cron job (e.g., Vercel cron daily) scan stale always_on entries 計 staleness score (last_referenced + days_old + match_count) · 高 staleness → demote always_on=false (仍然喺 RAG pool 可被 match) · (b) Director 入面加 tool `demote_lorebook` 等 Director 主動 demote。架構唔細 · ~半 session 工作 · Phase 2 audit P2-UX-H-05
+- ⬜ **Refusal embed flow** — 當 isLLMRefusal 觸發時 · embed/summarizer/lorebook fire-and-forget 全部 skip · 玩家 action text 都唔 embed。Phase 2 audit 提出嘅 follow-up：refusal 應該 embed user action text 入特定 table (e.g., refusal_log) 等 moderation team review · 或者 separate flag 喺 turn 入面標 refusal 等 future re-train。Scope unclear · pending audit clarification before implementing
+- ⬜ **P2-UX-C-03 Memory Journal UI backend prep** — 而家 backend 有 turn_embeddings + memory_summaries + lorebook_entries · 全部 RLS scoped to playthrough。Memory Journal UI (UI tier work) 會展示「AI 記得我講過咩」俾玩家睇。Backend prep needs: (a) `/api/playthroughs/[id]/memory-journal` 新 endpoint return summaries + top lorebook entries · (b) types 統一 export · (c) maybe 加 `last_referenced_at` column to lorebook for "recently used" sorting · 約半 session。但係 UI tier 工作 · defer until UI tier starts
+- ⬜ **P2-PERF-C-01 recent turns cache breakpoint reshape** — Anthropic prompt cache 嘅 effectiveness 取決於 recent_turns 邊度 cache break。而家 turn route 將 recent turns 連同 system prompt 一齊 send · cache hit rate ~partial · 可以 reshape — separate system (cacheable static) + history (cacheable up to N turns) + last 2 turns (uncacheable dynamic) · cache hit rate 預期 ~90% · 但 message structure 改要小心 affect prompt engineering · 約 1 session 工作 + audit。Defer
+
+---
+
 ## Phase 5 deferred polish（4-cycle audit converged · all non-blocking · 文檔保存防 STATUS rotation）
 
 Wave 2.5 / Wave 2.6 audit findings 確認 non-blocker · defer 落呢度 long-term track。每個 ID 對應 `audit-report-phase5-wave2.5.html` / `audit-report-phase5-wave2.6.html` 詳細 finding。
