@@ -38,7 +38,6 @@ import {
   computeCredits,
   computeTurnCredits,
   estimateTurnCredits,
-  getBalanceAndCheck,
   userTierAllowsModel,
 } from "@/lib/billing/credits";
 // ─── Phase 5 Wave 2 moderation (W1-MOD-H-03 audit fix) ──────────────────
@@ -155,14 +154,31 @@ export async function POST(
   //   (a) NSFW model gate: allows_nsfw=true model + !adult_mode_enabled → 403
   //   (b) Adult story gate (P6-MED-01 audit fix): story.content_rating='adult'
   //       + !adult_mode_enabled → 403 (applied after story load below).
-  // Load adult_mode_enabled once · reuse for both gates.
+  //
+  // P6P2-COST-M-01 audit fix (2nd cycle): merged the previous separate reads
+  // of `adult_mode_enabled` + `credit_balance` (via getBalanceAndCheck) into
+  // ONE profile read. Saves ~30-50ms PG roundtrip on every turn for every
+  // user. Inlined getBalanceAndCheck's fail-open semantics (error or null →
+  // assume sufficient, let atomic RPC at end-of-turn be source of truth).
   const modelEntry = MODELS[playthroughModel];
-  const { data: profileAdult } = await supabase
+  const estimatedTurnCost = estimateTurnCredits(playthroughModel);
+
+  const { data: profileGate, error: profileGateErr } = await supabase
     .from("profiles")
-    .select("adult_mode_enabled")
+    .select("adult_mode_enabled, credit_balance")
     .eq("id", user.id)
     .single();
-  const userAdultMode = profileAdult?.adult_mode_enabled === true;
+  if (profileGateErr) {
+    console.warn(
+      `[turn] profile gate read fail-open: ${profileGateErr.message}`,
+    );
+  }
+  const userAdultMode = profileGate?.adult_mode_enabled === true;
+  const balance =
+    typeof profileGate?.credit_balance === "number"
+      ? profileGate.credit_balance
+      : -1;
+  const sufficient = balance < 0 ? true : balance >= estimatedTurnCost;
 
   if (modelEntry?.allows_nsfw && !userAdultMode) {
     return NextResponse.json(
@@ -174,17 +190,12 @@ export async function POST(
     );
   }
 
-  const estimatedTurnCost = estimateTurnCredits(playthroughModel);
-  const balanceCheck = await getBalanceAndCheck(supabase, {
-    userId: user.id,
-    estimatedCost: estimatedTurnCost,
-  });
-  if (!balanceCheck.sufficient) {
+  if (!sufficient) {
     return NextResponse.json(
       {
         error: "insufficient_credits",
-        message: `Credit 唔夠（剩 ${balanceCheck.balance}，需要約 ${estimatedTurnCost}）。Top-up 或 upgrade 之後再玩。`,
-        currentBalance: balanceCheck.balance,
+        message: `Credit 唔夠（剩 ${balance}，需要約 ${estimatedTurnCost}）。Top-up 或 upgrade 之後再玩。`,
+        currentBalance: balance,
         estimatedCost: estimatedTurnCost,
       },
       { status: 402 }, // 402 Payment Required

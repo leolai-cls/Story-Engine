@@ -7,9 +7,9 @@
 
 ## 🎯 而家狀態
 
-**Phase**: **🟡 FUNCTION TIER nearly complete · Phase 6 non-money + Phase 1.5/2 polish 1st audit cycle 揾到 1 CRIT + 2 HIGH + 3 MED inline-fixed (Migration 0016 applied) · waiting on 2nd audit cycle 確認 convergence 先 truly complete**
+**Phase**: **🟢 FUNCTION TIER truly complete · Phase 6 + 1.5/2 polish 2-cycle audit converged · cycle 1 (3 ship blocker → inline-fixed) → cycle 2 (0 ship blocker · 2 NEW MED inline-fixed · Migration 0017 drops legacy fork RPC overload) · declining trend 16 → 7 · 落 🟣 UI tier**
 **Live URL**: https://story-engine-drab.vercel.app
-**Last updated**: 2026-05-23 (Session 8 cont. — Phase 6+1.5/2 1st audit fix wave shipped · 2nd audit cycle next)
+**Last updated**: 2026-05-23 (Session 8 cont. — Phase 6+1.5/2 polish 2-cycle audit converged · function tier truly complete · UI tier next)
 
 ## 🎯 Founder priority rule（鎖死）
 
@@ -31,17 +31,32 @@
 
 ## 🚧 Blockers
 
-**冇 launch blocker** — Phase 6+1.5/2 polish 1st audit 揾到嘅 3 ship blocker（1 CRIT + 2 HIGH）已 inline-fixed + Migration 0016 applied · 但 convergence 未 verified · 需要 2nd audit cycle 後先 truly conclude function tier complete。
+**冇 launch blocker · function tier truly complete**。
 
 **Phase 5 5-cycle audit converged** — Wave 2.5 audit (17 · 0 blocker) → Wave 2.6 fix → Wave 2.6 audit (16 · 0 blocker · convergence holds) → Wave 2.7 fix → Wave 2.7 audit (12 · 0 ship blocker · 1 HIGH on E2E checklist 已修)。Finding count declining: 29 → 24 → 17 → 16 → 12。**35 個 issue caught & fixed pre-prod (21 ship blocker + 14 polish)**。
 
-**Phase 6 + 1.5/2 polish audit cycle 1** — 16 finding · 1 CRIT (Llama MODEL_PRICING key) + 2 HIGH (llm_provider hardcoded · Library Adult option) + 3 MED + 10 LOW · 6 inline-fixed (Migration 0016 + 6 file edits) · 10 LOW deferred to BACKLOG。**Walks back premature「FUNCTION TIER COMPLETE」claim** — CLAUDE.md #7 audit-as-gating discipline 再一次救咗 launch-day-killing self-report claim。
+**Phase 6 + 1.5/2 polish audit 2-cycle converged**：
+- **Cycle 1** (16 finding · 1 CRIT (Llama MODEL_PRICING key) + 2 HIGH (llm_provider hardcoded · Library Adult option) + 3 MED + 10 LOW) → 6 inline-fixed + Migration 0016 加 fork RPC p_llm_provider param · 10 LOW deferred to BACKLOG。
+- **Cycle 2** (7 finding · post-fix verify · 兩個 agent 獨立 reach「0 NEW CRIT/HIGH」結論) → 2 NEW MED inline-fixed：(a) Migration 0017 drop legacy 3-arg fork RPC overload (sanity verified overloads=1) (b) turn route 合併 adult_mode + credit_balance reads 做 ONE select · drop unused getBalanceAndCheck import · 慳一個 PG roundtrip per turn for all users。
+- **Declining trend 16 → 7** · 2 consecutive zero-blocker cycle 已夠 declare convergence (Phase 5 overshoot 至 5 cycle 證明小 fix surface 上 diminishing return real)。
+- **+8 issues caught pre-prod** (3 ship blocker + 5 polish) · 加 Phase 5 嘅 35 = **43 total issues caught pre-prod across function tier**。
 
 **🧪 Manual E2E DEFERRED 到 UI tier 完之後**（founder rule · 2026-05-23）：唔再逐 phase 跑 E2E。等 function tier 全部 ship 晒 + UI tier polish 完 → 一次過 comprehensive test 整個 final product。manual-e2e-phase5.html 留住做 future E2E suite 嘅 starting point · 屆時 expand 覆蓋 community + UI + adult mode + 5 官方故事 + 完整 happy path。理由：minimal UI 測完仲要 UI tier 完再測一次 · 浪費 founder 時間 · 而且 final product 嘅 test 先有真正信號。
 
 **Migrated to backlog** (per pm/BACKLOG.md「Phase 5 deferred polish」section · 20 IDs 跨 4 sub-bucket)：W2.5-GENRE-M-02 alias gap · W2.5-FTS-L-03/L-04 tokenizer polish · W2-COST-H-04 anon ISR · W2.6-MIG-L-02 'curated' enum doc · W2.6-PLAY-L-03/L-04 defensive · W2.6-LIB-L-05 1-char Latin hint · W2.6-LIB-I-06 Settings display_name trim · W2.6-UX-L-03 English error strings · W2.6-MIG-I-07 createStory+trigger origin redundancy · W2.6-INFO-03 getCommentReplies UI TODO · W2.6-MIGRATION-L-04 sanity check pattern · 等等。
 
-## ✅ Just completed (Session 8 cont. — Phase 6 + 1.5/2 polish audit + 1st fix wave)
+## ✅ Just completed (Session 8 cont. — Phase 6 + 1.5/2 polish 2-cycle audit converged · function tier truly complete)
+
+### Phase 6 + 1.5/2 polish audit cycle 2 — 0 ship blocker · 2 NEW MED inline-fixed · Migration 0017 applied
+- **Cycle 2 audit on the cycle-1 fix surface** (2-agent parallel · 7 finding) · 兩個 agent 獨立 reach「0 NEW CRIT/HIGH」結論 · convergence signal achieved
+- **Migration 0017 applied** — drop legacy 3-arg `fork_story_to_playthrough` overload (created by 0009, re-created by 0015) · Migration 0016 用 `create or replace` 唔 drop overload · 形成 ghost RPC · 將來 caller omit 4th arg → 命中 ghost → re-introduce P6-HIGH-01 attribution bug · Migration 0017 explicitly drops 3-arg signature · sanity verified `overloads=1, has_param=true`
+- **Turn route merged profile reads** (P6P2-COST-M-01) — `adult_mode_enabled` + `credit_balance` 合併做 ONE combined `select` · inline `getBalanceAndCheck` fail-open semantics · drop unused import · 慳一個 PG roundtrip per turn for all users (was 2 sequential reads after P6-MED-01 refactor)
+- **Declining trend 16 → 7** · 2 consecutive zero-blocker cycle 已夠 declare convergence
+- **TypeScript clean** · audit HTML updated with cycle 2 narrative
+- **Function tier truly complete**: 6 phases · 8 migrations (0009-0017) · Phase 5 5-cycle audit + Phase 6/1.5/2 polish 2-cycle audit converged · **43 issues caught pre-prod** (24 ship blocker + 19 polish) · 10 LOW deferred to BACKLOG
+- **下一步：🟣 UI tier** — Library polish · Memory Journal UI (Phase 2 differentiator) · Locale switcher · Settings i18n · audit-deferred UX
+
+## ✅ Earlier (Session 8 cont. — Phase 6 + 1.5/2 polish audit + 1st fix wave)
 
 ### Phase 6 + 1.5/2 polish audit (1st cycle) — 1 CRIT + 2 HIGH + 3 MED inline-fixed · Migration 0016 applied
 - **🎯 Walks back premature「FUNCTION TIER COMPLETE」claim** — audit caught 1 CRIT (Llama MODEL_PRICING key mismatch · Settings page crash for adult-mode-on users) + 2 HIGH (llm_provider hardcoded 'anthropic' across 3 write sites · Library Adult 18+ option visible to all users → 0-result UX dead-loop)

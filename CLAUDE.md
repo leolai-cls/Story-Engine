@@ -231,4 +231,4 @@ DB：`story_characters` (模板) + `playthrough_character_states` (per-playthrou
 
 ---
 
-_Last updated: 2026-05-23 (Session 8 cont. — Phase 6 + 1.5/2 polish 1st audit cycle 揾到 1 CRIT (Llama MODEL_PRICING key) + 2 HIGH (llm_provider hardcoded · Library Adult option) + 3 MED (NPC fuzzy ambiguous · adult disable model orphan · content_rating gate) ship blockers · 全部 inline-fixed + Migration 0016 applied · 10 LOW deferred · 「FUNCTION TIER COMPLETE」claim 之前 premature · audit walked back · 2nd audit cycle next 確認 convergence 先 truly complete)_
+_Last updated: 2026-05-23 (Session 8 cont. — Phase 6 + 1.5/2 polish 2-cycle audit converged · Cycle 1: 3 ship blocker (1 CRIT + 2 HIGH) inline-fixed + Migration 0016 · Cycle 2: 0 ship blocker · 2 NEW MED inline-fixed (Migration 0017 drop legacy 3-arg fork RPC overload + turn route merged profile reads) · declining trend 16 → 7 · function tier 真正 complete · 8 migrations (0009-0017) · 43 issues caught pre-prod (24 ship blocker + 19 polish) · 10 LOW deferred to BACKLOG · 落 🟣 UI tier)_

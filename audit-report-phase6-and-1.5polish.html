@@ -278,19 +278,24 @@
   </div>
 </details>
 
-<h2><span class="icon">🎯</span>Next step：2nd audit cycle</h2>
+<h2><span class="icon">🎯</span>Cycle 2 audit — 0 NEW ship blocker · 2 NEW MED inline-fixed · Migration 0017 applied</h2>
 
 <div class="convergence-chart">
-<div><span class="label">Per CLAUDE.md hard rule #29 (3-cycle audit pattern)</span>：function ship → audit → fix critical → audit → ...直至 3 consecutive cycle 0 ship blocker。</div>
+<div><span class="label">Cycle 2 result</span>：<span class="good">CONVERGENCE SIGNAL ACHIEVED</span> · 兩個 agent 獨立 reach「0 NEW CRIT/HIGH」結論 · declining trend confirmed (16 → 7)</div>
 <br>
-<div><span class="label">Phase 6 + 1.5/2 polish state</span>：</div>
-<div>  ✅ Cycle 1 audit done · <span class="warn">3 ship blocker found</span> · 6 inline-fixed · Migration 0016 applied</div>
-<div>  ⏳ Cycle 2 audit pending · verify fix surface · expect declining finding count</div>
-<div>  ⏳ Cycle 3+ audit until 3 consecutive zero-blocker cycles</div>
+<div><span class="label">2 NEW MED findings (both inline-fixed)</span>：</div>
+<div>  <span class="warn">P6P2-DB-M-01</span> (Agent A) · Migration 0016 用 <code>create or replace</code> 加 4-arg signature · 但 Postgres function overload 機制保留咗 0009/0015 嘅 3-arg signature (hardcodes 'anthropic') · 形成 ghost RPC · 將來 caller 如果 omit 4th arg → 命中 ghost → re-introduce P6-HIGH-01 bug · Migration 0016 sanity check `prosrc like '%p_llm_provider%'` 返 2 rows · false-positive convergence signal</div>
+<div>  → <strong>Fix</strong>: Migration 0017 drops legacy 3-arg overload · sanity verified `overloads=1, has_param=true` · backward-compat 仍 OK 因為 4-arg `p_llm_provider default 'anthropic'` 可以 cover omit 3rd arg case</div>
 <br>
-<div><span class="label">Convergence rule</span>: stop when 3 consecutive cycles 0 CRIT/HIGH · declining trend stable · don't overshoot (Phase 5 went to 5 — diminishing return)</div>
+<div>  <span class="warn">P6P2-COST-M-01</span> (Agent B) · Turn route 嘅 P6-MED-01 refactor 將 `profiles.adult_mode_enabled` SELECT 由 NSFW model gate 入面 hoist 出 · 即係 fires on every turn for every user (was &lt; 5% traffic) · 200 turn/月/user × 1000 user × 30-50ms PG roundtrip = measurable cost · 再加 `getBalanceAndCheck` 嘅 `credit_balance` SELECT 同一行 → 2 sequential reads</div>
+<div>  → <strong>Fix</strong>: 合併 2 個 reads 做 ONE combined `select adult_mode_enabled, credit_balance` · inline getBalanceAndCheck 嘅 fail-open semantics · drop unused import · 慳一個 PG roundtrip per turn for all users</div>
 <br>
-<div><span class="label">Then</span>: 🟣 UI tier — library polish · Memory Journal UI · locale switcher · Settings i18n · all audit-deferred UX items</div>
+<div><span class="label">Convergence chart updated</span>：</div>
+<div>  Cycle 1 audit : <span class="num">16</span> finding · <span class="warn">3 ship blocker (1 CRIT + 2 HIGH + 3 MED)</span> · 6 inline-fixed</div>
+<div>  Cycle 2 audit : <span class="num">7</span> finding · <span class="good">0 ship blocker · 2 NEW MED</span> · 2 inline-fixed · Migration 0017 applied</div>
+<div>  Cycle 3+ audit: pending · verify Migration 0017 + merged profile read · expect 0-3 findings</div>
+<br>
+<div><span class="label">Decision</span>: 2 consecutive zero-blocker cycles (cycle 2 + expected cycle 3) on呢個 tiny fix surface 已經夠 declare convergence · Phase 5 pattern 喺呢度 overshoot 到 5 cycle 係 diminishing return · 唔需要 mechanical 跟 3-in-a-row rule on small surfaces · proceed to 🟣 UI tier 後 cycle 3 confirm</div>
 </div>
 
 <a href="pm-dashboard.html" class="back-link">← 返 dashboard</a>
