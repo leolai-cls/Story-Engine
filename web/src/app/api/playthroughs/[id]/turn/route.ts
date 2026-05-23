@@ -43,6 +43,8 @@ import {
 } from "@/lib/billing/credits";
 // ─── Phase 5 Wave 2 moderation (W1-MOD-H-03 audit fix) ──────────────────
 import { ModerationConfigError, moderateText } from "@/lib/moderation/openai-moderation";
+// ─── Phase 6 non-money function: adult mode gate ────────────────────────
+import { MODELS } from "@/lib/ai/models";
 
 /**
  * POST /api/playthroughs/[id]/turn
@@ -146,6 +148,29 @@ export async function POST(
       },
       { status: 403 },
     );
+  }
+
+  // Phase 6 non-money function — adult mode gate.
+  // CLAUDE.md hard rule #5: NSFW models (allows_nsfw=true · OpenRouter route)
+  // require adult_mode_enabled. Block at action layer in addition to UI hiding.
+  // A user who set NSFW model before disabling adult mode would otherwise
+  // continue burning credits on it.
+  const modelEntry = MODELS[playthroughModel];
+  if (modelEntry?.allows_nsfw) {
+    const { data: profileAdult } = await supabase
+      .from("profiles")
+      .select("adult_mode_enabled")
+      .eq("id", user.id)
+      .single();
+    if (!profileAdult?.adult_mode_enabled) {
+      return NextResponse.json(
+        {
+          error: "adult_mode_required",
+          message: `${modelEntry.display_name} 係 NSFW model · 需要先喺 Settings 開啟「成人模式」(KYC 後)。請揀其他 model 繼續。`,
+        },
+        { status: 403 },
+      );
+    }
   }
 
   const estimatedTurnCost = estimateTurnCredits(playthroughModel);

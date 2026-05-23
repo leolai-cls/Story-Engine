@@ -565,16 +565,16 @@
       <p class="section-sub">每次新 session 開始，由呢度睇起。</p>
 
       <div class="top-meta">
-        <div><strong>Last updated</strong> 2026-05-23 · Session 8 cont. (E2E DEFERRED to post-UI per founder rule · 落 Phase 7 / Phase 6 function tier)</div>
-        <div><strong>Phase</strong> Phase 0/1/1.5/2/3 backend ✅ · Phase 5 Wave 1→2.7 ✅ · <strong>5-cycle audit converged · 35 issue pre-prod</strong> · 落 Phase 7 content 或 Phase 6 non-money · UI tier 之後一次過 E2E</div>
+        <div><strong>Last updated</strong> 2026-05-23 · Session 8 cont. (Phase 6 non-money function shipped · 落 Phase 1.5/2 audit-deferred polish)</div>
+        <div><strong>Phase</strong> Phase 0/1/1.5/2/3 backend ✅ · Phase 5 ✅ · Phase 6 non-money function ✅ · 落 Phase 1.5/2 audit-deferred polish (last function tier item) → UI tier → Money tier → Final stage</div>
         <div><strong>Live</strong> <a href="https://story-engine-drab.vercel.app" target="_blank" style="color: var(--primary);">story-engine-drab.vercel.app</a></div>
       </div>
 
       <div class="status-hero">
-        <div class="label">🛠️ 落 Phase 6 non-money function (adult toggle / content filter / provider gating) · technical work first</div>
-        <div class="phase">Founder rules: (1) E2E 等 UI 完先一次過測 · (2) Phase 7 寫故事係 last-stage 小工作 · 等 backend + UI + money 完晒先寫</div>
+        <div class="label">✅ Phase 6 non-money function shipped · adult mode toggle + NSFW provider gating + content filter + creation gate · CLAUDE.md hard rule #5 (LLM isolation) enforced</div>
+        <div class="phase">Settings UI · ModelPicker filter · creation_rating button gate · library content filter · turn route NSFW gate · createStory adult gate</div>
         <div class="focus">
-          Phase 5 community function tier 真正完整 — 5-cycle audit converged final (3 consecutive zero-ship-blocker cycle · 29→24→17→16→12 declining) · 35 個 issue caught & fixed pre-prod (21 ship blocker + 14 polish) · 20 deferred 入 BACKLOG。Wave 2.7 audit 揾到嘅 issue 100% 喺 wrap-up artifacts · 已 inline 修咗 founder-misleading 嘅 E2E checklist 部分 (Check 6 SQL role · Check 1 logout · Check 4 navigation)。<strong>🧪 Manual E2E DEFERRED 到 UI tier 完之後（founder explicit rule · 2026-05-23）</strong>：唔再逐 phase 測 minimal UI · 等 function tier 全部完 + UI tier polish 完 → 一次過 comprehensive test 整個 final product。manual-e2e-phase5.html 留住做 future test suite 嘅 base。<strong>落一步揀 Phase 7 content 或 Phase 6 non-money function</strong>：(A) Phase 7 — Founder + Claude 寫 5 條 launch-ready 官方故事 · 填空蕩 genre 榜 + 收集 real distribution data 解 W2.5-GENRE-M-02 · launch impression 大躍進 · 多 session slow-burn。(B) Phase 6 — adult mode toggle Settings UI · content_rating filter logic · provider gating (Anthropic vs OpenRouter) · 唔包 KYC (money tier) · ~1 session。我推薦 Phase 7 先 — launch impression + real data feedback。
+          Session 8 cont. ship Phase 6 non-money function tier · ~2 file new + 5 file edit · 0 migration (DB layer Migration 0002 已 done)。<strong>新 component AdultModeToggle</strong>: 3-state UI · KYC 未做就 locked + explainer · age-verified 之後 user 可 flip · DB CHECK constraint + protect trigger 2nd defense。<strong>setAdultMode server action</strong>: 驗 is_age_verified server-side · friendly error。<strong>ModelPicker NSFW gate</strong>: narratorModels filter `(adultModeEnabled || !m.allows_nsfw)` · OpenRouter NSFW model 自動隱藏。<strong>setDefaultModel adult gate</strong>: action layer 防 NSFW model set without adult mode (CLAUDE.md hard rule #5 — LLM isolation 防 platform ban)。<strong>creation-form adult button gate</strong>: button disabled unless `adultModeEnabled` · title 解釋 「需要喺 Settings 開啟」 · label 「成人 (需 KYC)」→「成人 (18+)」。<strong>createStoryFromPrompt adult gate</strong>: server action 拒絕 content_rating='adult' without adult_mode。<strong>Library content filter</strong>: page fetch user adult_mode_enabled · post-RPC filter content_rating='adult' rows when off · anonymous default to hidden。<strong>Turn route NSFW gate</strong>: pt.llm_model.allows_nsfw=true + adult off → 403 「adult_mode_required」。<strong>TypeScript clean</strong>。<strong>下一步：Phase 1.5/2 audit-deferred polish</strong> (NPC name fuzzy match · always_on demote · refusal embed · Memory Journal backend prep) — function tier 最後 item · 完晒就入 UI tier。
         </div>
       </div>
 

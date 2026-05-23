@@ -68,6 +68,25 @@ export async function createStoryFromPrompt(
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Input invalid" };
   }
 
+  // Phase 6 non-money function — adult mode gate.
+  // CLAUDE.md hard rule #5: adult content rating requires adult_mode_enabled
+  // (which itself requires is_age_verified via DB CHECK constraint).
+  // Block at action layer in addition to UI button disabling.
+  if (parsed.data.content_rating === "adult") {
+    const { data: profileAdult } = await supabase
+      .from("profiles")
+      .select("adult_mode_enabled")
+      .eq("id", user.id)
+      .single();
+    if (!profileAdult?.adult_mode_enabled) {
+      return {
+        ok: false,
+        error:
+          "Adult-rated 故事需要先喺 Settings 開啟「成人模式」(KYC 驗證後)。請揀 SFW 或 Soft rating。",
+      };
+    }
+  }
+
   // Wave 1.5 W1-COST-C-01 reorder: cheap checks first (DB ~20ms each),
   // moderation in parallel with model lookup, then the expensive schema-gen.
   // Previously moderation ran before balance check — broke users waited

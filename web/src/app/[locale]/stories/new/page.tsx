@@ -22,6 +22,14 @@ export default async function NewStoryPage({
     redirect({ href: "/login", locale: l });
   }
 
+  // Phase 6 non-money function: gate adult content_rating on adult_mode_enabled
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("adult_mode_enabled")
+    .eq("id", user!.id)
+    .single();
+  const adultModeEnabled = profile?.adult_mode_enabled ?? false;
+
   return (
     <>
       <SiteHeader />
@@ -35,7 +43,7 @@ export default async function NewStoryPage({
           </p>
         </div>
 
-        <CreationForm />
+        <CreationForm adultModeEnabled={adultModeEnabled} />
       </main>
       <SiteFooter />
     </>

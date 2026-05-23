@@ -21,7 +21,12 @@ const EXAMPLE_PROMPTS = [
   "NBA 新秀第一年，我做被選去爛波隊嘅 controlled draft pick，要喺爛 team 證明自己。",
 ];
 
-export function CreationForm() {
+export function CreationForm({
+  adultModeEnabled,
+}: {
+  /** Phase 6 non-money function: gate 'adult' content_rating button */
+  adultModeEnabled: boolean;
+}) {
   const [prompt, setPrompt] = useState("");
   const [protagonist, setProtagonist] = useState("");
   const [rating, setRating] = useState<"sfw" | "soft" | "adult">("sfw");
@@ -83,25 +88,37 @@ export function CreationForm() {
           <div className="space-y-2">
             <Label>內容分級</Label>
             <div className="flex gap-2 flex-wrap">
-              {(["sfw", "soft", "adult"] as const).map((r) => (
-                <button
-                  key={r}
-                  type="button"
-                  onClick={() => setRating(r)}
-                  disabled={isPending || r === "adult"}
-                  className={`px-3 py-1.5 rounded-md text-xs font-medium border transition ${
-                    rating === r
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-card text-muted-foreground border-border hover:border-primary/40"
-                  } ${r === "adult" ? "opacity-50 cursor-not-allowed" : ""}`}
-                >
-                  {r === "sfw"
-                    ? "一般向 (SFW)"
-                    : r === "soft"
-                      ? "輕度暗示"
-                      : "成人 (Phase 6)"}
-                </button>
-              ))}
+              {(["sfw", "soft", "adult"] as const).map((r) => {
+                // Phase 6 non-money function: adult content rating requires
+                // adult_mode_enabled (which itself requires is_age_verified).
+                const adultDisabled = r === "adult" && !adultModeEnabled;
+                return (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => !adultDisabled && setRating(r)}
+                    disabled={isPending || adultDisabled}
+                    title={
+                      adultDisabled
+                        ? "需要喺 Settings 開啟成人模式 (KYC 後)"
+                        : undefined
+                    }
+                    className={`px-3 py-1.5 rounded-md text-xs font-medium border transition ${
+                      rating === r
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-card text-muted-foreground border-border hover:border-primary/40"
+                    } ${adultDisabled ? "opacity-50 cursor-not-allowed" : ""}`}
+                  >
+                    {r === "sfw"
+                      ? "一般向 (SFW)"
+                      : r === "soft"
+                        ? "輕度暗示"
+                        : adultModeEnabled
+                          ? "成人 (18+)"
+                          : "成人 (需 KYC)"}
+                  </button>
+                );
+              })}
               <input type="hidden" name="content_rating" value={rating} />
             </div>
           </div>

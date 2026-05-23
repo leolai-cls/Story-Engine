@@ -11,9 +11,12 @@ import { setDefaultModel } from "@/app/[locale]/settings/actions";
 export function ModelPicker({
   currentModelId,
   tier,
+  adultModeEnabled,
 }: {
   currentModelId: string;
   tier: Tier;
+  /** Phase 6 non-money function: NSFW (allows_nsfw=true) models hidden when false */
+  adultModeEnabled: boolean;
 }) {
   const [selected, setSelected] = useState(currentModelId);
   const [saving, setSaving] = useState(false);
@@ -23,10 +26,16 @@ export function ModelPicker({
   const allowedModels = useMemo(() => modelsForTier(tier), [tier]);
   const allowedIds = useMemo(() => new Set(allowedModels.map((m) => m.id)), [allowedModels]);
 
-  // Filter to narrator-role models (player picks narrator; director is fixed Haiku)
+  // Filter to narrator-role models (player picks narrator; director is fixed Haiku).
+  // Phase 6 non-money function: hide NSFW-only models when adult mode off.
+  // CLAUDE.md hard rule #5: adult mode LLM isolation — keep NSFW traffic off
+  // Anthropic/OpenAI direct providers to avoid platform ban risk.
   const narratorModels = useMemo(
-    () => Object.values(MODELS).filter((m) => m.role === "narrator"),
-    [],
+    () =>
+      Object.values(MODELS).filter(
+        (m) => m.role === "narrator" && (adultModeEnabled || !m.allows_nsfw),
+      ),
+    [adultModeEnabled],
   );
 
   async function handleSelect(modelId: string) {

@@ -120,6 +120,20 @@ export default async function LibraryPage({
     data: { user },
   } = await supabase.auth.getUser();
 
+  // Phase 6 non-money function: pull adult_mode_enabled for content filter.
+  // Anon visitors + non-adult users → adult-rated stories hidden from carousels
+  // and search results (client-side post-fetch filter · defense-in-depth on
+  // top of RPC's existing p_content_rating filter).
+  let adultModeEnabled = false;
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("adult_mode_enabled")
+      .eq("id", user.id)
+      .single();
+    adultModeEnabled = profile?.adult_mode_enabled ?? false;
+  }
+
   const searchMode = !!sp.q?.trim();
 
   // W2-FILTER-H-02 fix: empty string from <select value=""> default option
@@ -146,14 +160,20 @@ export default async function LibraryPage({
     return [];
   }
 
+  // Phase 6 helper: drop adult-rated stories when user/visitor not adult-mode-on
+  const filterByAdultMode = <T extends { content_rating: string }>(arr: T[]) =>
+    adultModeEnabled ? arr : arr.filter((s) => s.content_rating !== "adult");
+
   // Search mode → single result list (one RPC).
   const searchResults = searchMode
-    ? await searchStories(supabase, {
-        query: sp.q ?? "",
-        language,
-        contentRating,
-        limit: 24,
-      })
+    ? filterByAdultMode(
+        await searchStories(supabase, {
+          query: sp.q ?? "",
+          language,
+          contentRating,
+          limit: 24,
+        }),
+      )
     : null;
 
   // Browse mode: 2-stage fetch (Wave 2.6 W2.5-PERF-M-02 fix).
@@ -177,8 +197,9 @@ export default async function LibraryPage({
       getTrendingStories(supabase, { language, contentRating, limit: 8 }),
       getLatestStories(supabase, { language, contentRating, limit: 8 }),
     ]);
-    trending = t;
-    latest = l;
+    // Phase 6 non-money function: apply adult mode filter to all carousel results
+    trending = filterByAdultMode(t);
+    latest = filterByAdultMode(l);
 
     // Decide layout BEFORE fetching genre boards
     useLaunchFallback = trending.length < MULTI_BOARD_THRESHOLD;
@@ -189,9 +210,10 @@ export default async function LibraryPage({
       // no need for a stage-2 downgrade check (Wave 2.7 W2.6-CODE-M-01 fix:
       // the previous downgrade check was logically unreachable since the
       // outer condition guarantees trending.length >= MULTI_BOARD_THRESHOLD).
-      genreResults = await Promise.all(
+      const fetched = await Promise.all(
         GENRE_BOARDS.map((g) => fetchBoard(g.aliases)),
       );
+      genreResults = fetched.map((arr) => filterByAdultMode(arr));
     }
   }
 

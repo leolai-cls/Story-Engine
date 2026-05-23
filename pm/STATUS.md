@@ -7,9 +7,9 @@
 
 ## 🎯 而家狀態
 
-**Phase**: **Phase 5 Wave 2.7 audit 5-cycle final · 0 ship blocker · 35 issues caught pre-prod · Manual E2E DEFERRED 到 UI tier 完之後一次過測（founder rule）· 落 Phase 7 content 或 Phase 6 non-money function**
+**Phase**: **Phase 5 ✅ · Phase 6 non-money function shipped ✅ (adult mode toggle + provider gating + content filter + creation gate) · 落 Phase 1.5/2 audit-deferred polish**
 **Live URL**: https://story-engine-drab.vercel.app
-**Last updated**: 2026-05-23 (Session 8 cont. — E2E deferred to post-UI · function tier 繼續 build)
+**Last updated**: 2026-05-23 (Session 8 cont. — Phase 6 non-money shipped)
 
 ## 🎯 Founder priority rule（鎖死）
 
@@ -23,8 +23,7 @@
 
 | 排 | Plan item | Tier | Time | Why |
 |---|---|---|---|---|
-| 🥇 | **Phase 6 non-money function** — adult mode toggle · content rating filter · provider gating (Anthropic vs OpenRouter)（唔包 KYC · 嗰個 money tier）| 🟢 FUNCTION · technical | ~1 session | Adult flow architecture · 解鎖 money tier prep |
-| 🥈 | **Phase 1.5/2 polish (audit deferred)** — NPC name fuzzy match · 4-axis disposition init · always_on demote · refusal embed flow · Memory Journal UI backend prep | 🟢 FUNCTION · technical | ~1 session | Audit backlog cleanup |
+| 🥇 | **Phase 1.5/2 polish (audit deferred)** — NPC name fuzzy match · 4-axis disposition init · always_on demote · refusal embed flow · Memory Journal UI backend prep | 🟢 FUNCTION · technical | ~1 session | Audit backlog cleanup |
 | ↓ | _technical function 完晒_ |  |  |  |
 | 3 | **UI design wave** — Library page polish · Memory Journal UI（Phase 2 audit deferred · differentiator）· Locale switcher · Settings i18n · 全部 audit deferred UX items · Dashboard ROADMAP refresh (W2.7-DOC-M-04) · BACKLOG mirror (W2.7-DOC-L-05) | 🟣 UI | ~2 sessions | 玩家可見嘅嘢 |
 | ↓ | _UI tier 完晒_ |  |  |  |
@@ -40,7 +39,25 @@
 
 **Migrated to backlog** (per pm/BACKLOG.md「Phase 5 deferred polish」section · 20 IDs 跨 4 sub-bucket)：W2.5-GENRE-M-02 alias gap · W2.5-FTS-L-03/L-04 tokenizer polish · W2-COST-H-04 anon ISR · W2.6-MIG-L-02 'curated' enum doc · W2.6-PLAY-L-03/L-04 defensive · W2.6-LIB-L-05 1-char Latin hint · W2.6-LIB-I-06 Settings display_name trim · W2.6-UX-L-03 English error strings · W2.6-MIG-I-07 createStory+trigger origin redundancy · W2.6-INFO-03 getCommentReplies UI TODO · W2.6-MIGRATION-L-04 sanity check pattern · 等等。
 
-## ✅ Just completed (Session 8 cont. — Phase 5 Wave 2.7 + E2E ready)
+## ✅ Just completed (Session 8 cont. — Phase 6 non-money function shipped)
+
+### Phase 6 non-money function — adult mode infrastructure live
+- **🆕 web/src/components/settings/adult-mode-toggle.tsx** — 3-state UI: (1) age not verified → locked + KYC explainer · (2) verified + off → flippable · (3) verified + on → showing「已開啟」badge。CSAM hard-rule reminder embedded · regardless of toggle state
+- **setAdultMode server action** — verifies `is_age_verified` server-side before flipping · DB CHECK constraint + protect trigger are 2nd defense layer (Migration 0002)
+- **ModelPicker filters NSFW models** — narratorModels filtered by `(adultModeEnabled || !m.allows_nsfw)` · OpenRouter NSFW model hidden until adult mode on
+- **setDefaultModel adult mode gate** — defense-in-depth at action layer · NSFW model setting blocked without adult mode (CLAUDE.md hard rule #5)
+- **creation-form.tsx adult button gate** — 「adult」rating button disabled unless `adultModeEnabled` · title attribute explains 「需要喺 Settings 開啟」 · button label changes 「成人 (需 KYC)」→「成人 (18+)」
+- **createStoryFromPrompt adult gate** — server action rejects content_rating='adult' without adult_mode_enabled
+- **Library content filter** — page fetches user's adult_mode_enabled · applies post-RPC filter `content_rating !== 'adult'` to trending/latest/genre/search results when off · anonymous visitors default to !adult (hidden)
+- **Turn route NSFW model gate** — when pt.llm_model.allows_nsfw=true AND user.adult_mode_enabled=false → 403 「adult_mode_required」 with friendly play-client message
+- TypeScript clean
+
+### Phase 5 → Phase 6 transition summary
+- Phase 5 community function tier completed Session 8 (5-cycle audit converged · 35 issues caught + 14 polish + 20 deferred)
+- Phase 6 non-money function shipped Session 8 cont. — pure UI/logic work · 4 file new/edit · 0 migration needed (DB layer already done Migration 0002)
+- Next: Phase 1.5/2 audit-deferred polish OR UI tier (function tier 仍剩 1 item · 完晒 entire function tier)
+
+## ✅ Earlier — Phase 5 Wave 2.7 + E2E ready
 
 ### Wave 2.7 micro-patch — 2 items closed + Manual E2E checklist + Wave 2.7 audit fixes inline
 - **W2.6-CODE-M-01** — Deleted 4-line dead-code downgrade branch in library/page.tsx Stage 2 (logically unreachable inner condition since outer guarantees trending.length >= 8). Behavior unchanged · empty carousel smart-hide handled by render layer.

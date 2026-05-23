@@ -10,6 +10,7 @@ import { createClient } from "@/lib/supabase/server";
 import { TIER_CONFIG, type Tier } from "@/lib/billing/credits";
 import { ModelPicker } from "@/components/settings/model-picker";
 import { SignOutButton } from "@/components/settings/sign-out-button";
+import { AdultModeToggle } from "@/components/settings/adult-mode-toggle";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,7 @@ export default async function SettingsPage({
     supabase
       .from("profiles")
       .select(
-        "display_name, locale, avatar_url, subscription_tier, credit_balance, credit_period_end, default_llm_provider, default_model, created_at",
+        "display_name, locale, avatar_url, subscription_tier, credit_balance, credit_period_end, default_llm_provider, default_model, created_at, adult_mode_enabled, is_age_verified",
       )
       .eq("id", user.id)
       .single(),
@@ -247,10 +248,17 @@ export default async function SettingsPage({
             </CardContent>
           </Card>
 
+          {/* ─── Adult mode toggle (Phase 6 non-money function) ─────────── */}
+          <AdultModeToggle
+            initialEnabled={profile?.adult_mode_enabled ?? false}
+            isAgeVerified={profile?.is_age_verified ?? false}
+          />
+
           {/* ─── Model picker ──────────────────────────────────────────── */}
           <ModelPicker
             currentModelId={profile?.default_model ?? "claude-sonnet-4-6"}
             tier={tier}
+            adultModeEnabled={profile?.adult_mode_enabled ?? false}
           />
         </div>
       </main>
