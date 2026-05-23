@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { revalidatePath } from "next/cache";
 import { ModerationConfigError, moderateText } from "@/lib/moderation/openai-moderation";
+import { MODELS } from "@/lib/ai/models";
 
 /**
  * Phase 5 Community — server actions.
@@ -444,10 +445,16 @@ export async function forkStoryToPlaythrough(params: {
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "unauthorized" };
 
+  // P6-HIGH-01: derive llm_provider from MODELS · pass to RPC (Migration 0016
+  // added p_llm_provider param). Fixes mis-attribution where Llama (openrouter)
+  // forked stories were stamped as anthropic.
+  const resolvedModel = params.llmModel ?? "claude-sonnet-4-6";
+  const resolvedProvider = MODELS[resolvedModel]?.provider ?? "anthropic";
   const { data, error } = await supabase.rpc("fork_story_to_playthrough", {
     p_story_id: params.storyId,
     p_character_name: params.characterName ?? null,
     p_llm_model: params.llmModel ?? null,
+    p_llm_provider: resolvedProvider,
   });
 
   if (error) {

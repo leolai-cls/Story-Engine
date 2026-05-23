@@ -24,6 +24,28 @@
 
 ---
 
+## Phase 6 + 1.5/2 polish deferred（1st audit cycle · 10 LOW items · all non-blocking · 對應 audit-report-phase6-and-1.5polish.html）
+
+呢批係 Phase 6 non-money + Phase 1.5/2 polish 1st audit cycle 揾到嘅 10 個 LOW · 全部 non-blocker · UI tier 或者 future polish wave 處理。
+
+### UI tier 待做（adult mode UX polish · ModelPicker discoverability）
+- ⬜ **P6-UX-L-03** play-client 403 adult_mode_required friendly card — 而家 fall through 去 generic error · 應該 render Shield card「呢個 model 需要喺 Settings 開啟成人模式」+ deep link · UI tier work
+- ⬜ **P6-LOW-02** creation-form「成人 (需 KYC)」jargon → 「成人 (需身份驗證)」+ deep-link · UI tier work
+- ⬜ **P6-LOW-03** ModelPicker NSFW discoverability — adult-mode-off user 完全唔知有 NSFW models 存在 · helper text「開啟成人模式可以揀更多 NSFW-allowed models」+ Settings deep link · UI tier work
+- ⬜ **P1.5P-LOW-01** Disposition UI 4-axis surface — 4-axis seeded in DB 但 character-relationship-panel.tsx 仲淨係 show trust · romance/respect/fear axes 應該 visible · Memory Journal UI 同期做 · UI tier work
+- ⬜ **P6-MED-02** Dashboard「下一步」table 仲 reference Manual E2E 做 next step · founder rule 2026-05-23 已 defer 全部 manual E2E 落 UI tier · UI tier doc-refresh wave
+
+### Perf / 微優化（高流量先做）
+- ⬜ **P6-PERF-L-05** Library content filter 而家 client-side post-RPC apply · 浪費 bandwidth + 暴露 metadata · push 落 RPC param: trending_stories / latest_stories / stories_by_genre 加 `p_include_adult bool default false`
+
+### 技術 debt / defensive hardening
+- ⬜ **P6-EDGE-L-06** setAdultMode profile missing edge — if profile row missing (rare · handle_new_user race)，disable path tries reset model but profile?.default_model = undefined · 應該 log + skip · defensive
+- ⬜ **P1.5P-DOC-L-02** schemas/character.ts "affection" → "romance" rename — 4-axis uses `romance` 但 character schema 仲叫 `affection` · jsonb 唔 enforce 所以 work · doc-tier alignment 提升 future readability
+- ⬜ **P6-LOW-01** CSAM reminder nag for adult mode users — Adult mode toggle 已 embed CSAM hard-rule reminder · 但每次 enable 都應該 re-display + user explicit consent click · CLAUDE.md hard rule #6 防線 strengthen
+- ⬜ **P1.5P-LOW-02** Two-source-of-truth disposition seeds — createStoryFromPrompt + fork_story_to_playthrough RPC 兩處 disposition seed logic · drift risk · 應該 consolidate 落 RPC (DB-level) · createStoryFromPrompt refactor · 後期做
+
+---
+
 ## Phase 1.5/2 deferred polish（function tier final polish session · defer to later · non-blocking）
 
 呢 4 個係 Phase 1.5/2 audit-deferred polish 嘅大件 item — 需要 cron job / 新 architecture / UI work · 唔係 quick win · defer 落呢度。前 2 條 (NPC fuzzy match + 4-axis init) Session 8 cont. 完成咗。

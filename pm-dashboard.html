@@ -565,20 +565,31 @@
       <p class="section-sub">每次新 session 開始，由呢度睇起。</p>
 
       <div class="top-meta">
-        <div><strong>Last updated</strong> 2026-05-23 · Session 8 cont. (🟢 FUNCTION TIER COMPLETE · 落 🟣 UI tier)</div>
-        <div><strong>Phase</strong> Phase 0/1/1.5/2/3/5/6 ✅ · 6 migrations · 5-cycle Phase 5 audit converged · Phase 6 non-money ✅ · Phase 1.5/2 polish quick wins ✅ · <strong>Function tier 完整完成</strong> · 落 🟣 UI tier (library polish · Memory Journal UI · locale switcher · etc)</div>
+        <div><strong>Last updated</strong> 2026-05-23 · Session 8 cont. (Phase 6+1.5/2 1st audit fix wave shipped · 2nd cycle next)</div>
+        <div><strong>Phase</strong> Phase 0/1/1.5/2/3/5/6 ✅ · 7 migrations (0001-0016) · 5-cycle Phase 5 audit converged · Phase 6 + 1.5/2 polish 1st audit (16 finding · 1 CRIT + 2 HIGH + 3 MED inline-fixed · 10 LOW deferred) · <strong>function tier nearly complete · waiting on 2nd audit cycle</strong> 確認 convergence 先入 🟣 UI tier</div>
         <div><strong>Live</strong> <a href="https://story-engine-drab.vercel.app" target="_blank" style="color: var(--primary);">story-engine-drab.vercel.app</a></div>
       </div>
 
       <div class="status-hero">
-        <div class="label">🎉 🟢 FUNCTION TIER COMPLETE · Phase 5 community + Phase 6 non-money + Phase 1.5/2 polish 全部 shipped · 落 🟣 UI tier next</div>
-        <div class="phase">M-02 NPC fuzzy match · 4-axis disposition init (Migration 0015) · 4 items defer to BACKLOG · 6 phases + 6 migrations + 5-cycle audit + 35 issues caught + 20 deferred</div>
+        <div class="label">🟡 Phase 6+1.5/2 polish 1st audit · 1 CRIT + 2 HIGH + 3 MED inline-fixed · Migration 0016 applied · 「FUNCTION TIER COMPLETE」premature claim walked back</div>
+        <div class="phase">P6-CRIT-01 Llama MODEL_PRICING key · P6-HIGH-01 llm_provider hardcoded · P6-HIGH-02 Library Adult option · P1.5P-LOGIC-M-01 NPC fuzzy 收緊 · P6-UX-M-02 disable adult mode reset model · P6-MED-01 content_rating gate · 10 LOW defer · Migration 0016 fork RPC p_llm_provider</div>
         <div class="focus">
-          Session 8 cont. 完成 Phase 1.5/2 audit-deferred polish · 標誌住 <strong>🟢 function tier 完整完成</strong>。<strong>2 quick wins shipped</strong>: (1) <strong>M-02 NPC name fuzzy match</strong> — turn route 新 resolveCharacter() resolver · exact → NFKC-normalize → bidirectional substring match · Narrator 講「阿明」現在會 match DB「陳家明」· 兩個 site applied (disposition merge + arc transition) · log fuzzy + unresolved warnings for telemetry (CLAUDE.md #8)。(2) <strong>4-axis disposition init</strong> — dispositionFromDefault + fork_story_to_playthrough RPC (Migration 0015) 都 seed 4 standard axes (trust/romance/respect/fear · trust mapped from enum)。<strong>4 items deferred to BACKLOG</strong>「Phase 1.5/2 deferred polish」section: always_on demote pathway (需 cron) · refusal embed flow (scope unclear) · Memory Journal UI backend prep (UI tier) · recent turns cache breakpoint reshape (Anthropic message structure work)。<strong>Phase 5 + Phase 6 + Phase 1.5/2 polish 全部 shipped — function tier 完整完成</strong>：6 phases · 6 migrations (0009-0015) · 5-cycle Phase 5 audit converged · 35 issues caught pre-prod · 20 deferred items tracked in BACKLOG · TypeScript clean。<strong>下一步：🟣 UI tier</strong> — Library page polish · Memory Journal UI (Phase 2 differentiator) · Locale switcher · Settings i18n · all audit-deferred UX items · Dashboard ROADMAP refresh · BACKLOG mirror · ~2-3 sessions。
+          Session 8 cont. shipped <strong>Phase 6 non-money + Phase 1.5/2 polish quick wins</strong>，然後即刻 follow CLAUDE.md hard rule #7 + #29 跑 audit。<strong>2-agent parallel audit (Security/Correctness + UX/Cost/Regression) 揾到 16 finding</strong> · 包括 <strong>1 CRIT + 2 HIGH + 3 MED 全部 inline-fixed</strong>：(1) <code>P6-CRIT-01</code> Llama MODEL_PRICING key mismatch (Settings page crash for adult-mode-on users) (2) <code>P6-HIGH-01</code> llm_provider hardcoded 'anthropic' 喺 3 個 write site → analytics + billing reconciliation breakage · Migration 0016 加 fork RPC p_llm_provider param 解決 (3) <code>P6-HIGH-02</code> Library Adult 18+ option 對所有 user 可見 → 0-result UX dead-loop (4) <code>P1.5P-LOGIC-M-01</code> NPC fuzzy match 收緊 length>=2 + abstain-on-ambiguity (5) <code>P6-UX-M-02</code> disable adult mode 同步 reset NSFW default_model (6) <code>P6-MED-01</code> Turn route content_rating='adult' gate · 雙重 defense。<strong>10 個 LOW deferred 落 BACKLOG「Phase 6 + 1.5/2 polish deferred」section</strong>。<strong>呢個 audit 揭咗一個重要 lesson</strong>：function tier「complete」claim 唔可以淨係靠開發者 self-report — Session 8 cont. 之前已經標記 function tier complete · audit walked back · 至少需要 2nd audit cycle 確認 convergence。<strong>下一步</strong>：2nd audit cycle 跑 fix surface · expect declining finding count · 3 consecutive zero-blocker cycle → truly complete → 入 🟣 UI tier。
         </div>
       </div>
 
       <div class="status-grid">
+        <div class="status-card good">
+          <div class="status-card-title">🎯 Phase 6 + 1.5/2 polish 1st audit · 1 CRIT + 2 HIGH + 3 MED inline-fixed · Migration 0016 applied</div>
+          <ul>
+            <li><strong>Walks back premature「FUNCTION TIER COMPLETE」claim</strong> — Session 8 cont. 之前已標記 function tier complete · audit 即刻 catch 到 3 ship blocker · CLAUDE.md hard rule #7 + #29 audit-as-gating 再一次救咗 self-report claim</li>
+            <li><strong>1 CRIT</strong> · P6-CRIT-01 Llama MODEL_PRICING key mismatch · Settings page crash for adult-mode-on user · caught only by Agent B initially (lesson: parallel audits catch what single-agent missed)</li>
+            <li><strong>2 HIGH</strong> · P6-HIGH-01 llm_provider hardcoded 'anthropic' 喺 3 個 write site → analytics + billing reconciliation breakage · Migration 0016 加 fork RPC p_llm_provider param 解決 · P6-HIGH-02 Library Adult 18+ option 對所有 user 可見 → 0-result UX dead-loop</li>
+            <li><strong>3 MED</strong> · P1.5P-LOGIC-M-01 NPC fuzzy match 收緊 (length>=2 + abstain-on-ambiguity) · P6-UX-M-02 disable adult mode 同步 reset NSFW default_model · P6-MED-01 Turn route content_rating='adult' secondary gate</li>
+            <li><strong>10 LOW deferred</strong> to pm/BACKLOG.md「Phase 6 + 1.5/2 polish deferred」section (UI tier polish + perf + tech debt sub-buckets)</li>
+            <li>TypeScript clean · Migration 0016 sanity verified · 下一步：2nd audit cycle 確認 convergence</li>
+          </ul>
+        </div>
         <div class="status-card good">
           <div class="status-card-title">✅ Session 8 完成 — Phase 5 Community ship + audit</div>
           <ul>
@@ -653,6 +664,10 @@
 
       <h3>What's next（按優先排）</h3>
       <div class="quick-links">
+        <a href="audit-report-phase6-and-1.5polish.html" class="quick-link">
+          <div class="quick-link-title">🎯 Phase 6 + 1.5/2 polish Audit (latest · 1st cycle · 1 CRIT + 2 HIGH inline-fixed)</div>
+          <div class="quick-link-desc">16 finding · Migration 0016 applied · 6 fix · 10 LOW defer · 2nd cycle pending convergence verification · walks back premature「FUNCTION TIER COMPLETE」claim</div>
+        </a>
         <a href="https://story-engine-drab.vercel.app/login" class="quick-link" target="_blank">
           <div class="quick-link-title">🎮 試玩 (Guest mode)</div>
           <div class="quick-link-desc">Login → Guest button → /stories/new → 玩夠 5+ turns 試 act transition</div>

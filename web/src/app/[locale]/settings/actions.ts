@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { MODELS } from "@/lib/ai/models";
+import { MODELS, DEFAULT_NARRATOR } from "@/lib/ai/models";
 import { userTierAllowsModel } from "@/lib/billing/credits";
 import { revalidatePath } from "next/cache";
 
@@ -32,13 +32,16 @@ export async function setAdultMode(
     return { ok: false, error: "unauthorized" };
   }
 
+  // Load profile state once · need is_age_verified for enable path + current
+  // default_model to detect NSFW model that needs auto-reset on disable.
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("is_age_verified, default_model")
+    .eq("id", user.id)
+    .single();
+
   // If enabling, verify user is age-verified
   if (enabled) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("is_age_verified")
-      .eq("id", user.id)
-      .single();
     if (!profile?.is_age_verified) {
       return {
         ok: false,
@@ -47,9 +50,31 @@ export async function setAdultMode(
     }
   }
 
+  // P6-UX-M-02 audit fix: if disabling adult mode AND current default_model
+  // is NSFW (allows_nsfw=true) → also reset default_model to DEFAULT_NARRATOR.
+  // Otherwise ModelPicker hides the user's current selection (filter `(adult
+  // || !allows_nsfw)` drops NSFW), creation form + turn route would 403 on
+  // next interaction, user has no visible way to recover. Atomic reset
+  // keeps the user in a working state.
+  const currentModel = profile?.default_model;
+  const currentModelEntry = currentModel ? MODELS[currentModel] : undefined;
+  const needsModelReset =
+    !enabled && currentModelEntry?.allows_nsfw === true;
+
+  const update: { adult_mode_enabled: boolean; default_model?: string; default_llm_provider?: string } = {
+    adult_mode_enabled: enabled,
+  };
+  if (needsModelReset) {
+    update.default_model = DEFAULT_NARRATOR;
+    update.default_llm_provider = MODELS[DEFAULT_NARRATOR]?.provider ?? "anthropic";
+    console.log(
+      `[setAdultMode] reset NSFW default_model "${currentModel}" → "${DEFAULT_NARRATOR}" for user ${user.id} (adult mode disabled)`,
+    );
+  }
+
   const { error } = await supabase
     .from("profiles")
-    .update({ adult_mode_enabled: enabled })
+    .update(update)
     .eq("id", user.id);
 
   if (error) {

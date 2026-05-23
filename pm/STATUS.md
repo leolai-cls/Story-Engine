@@ -7,9 +7,9 @@
 
 ## 🎯 而家狀態
 
-**Phase**: **🟢 FUNCTION TIER COMPLETE ✅ · 6 phases + 6 migrations + 5-cycle Phase 5 audit + Phase 6 non-money + Phase 1.5/2 polish quick wins shipped · 落 🟣 UI tier**
+**Phase**: **🟡 FUNCTION TIER nearly complete · Phase 6 non-money + Phase 1.5/2 polish 1st audit cycle 揾到 1 CRIT + 2 HIGH + 3 MED inline-fixed (Migration 0016 applied) · waiting on 2nd audit cycle 確認 convergence 先 truly complete**
 **Live URL**: https://story-engine-drab.vercel.app
-**Last updated**: 2026-05-23 (Session 8 cont. — Function tier 完整完成 · UI tier next)
+**Last updated**: 2026-05-23 (Session 8 cont. — Phase 6+1.5/2 1st audit fix wave shipped · 2nd audit cycle next)
 
 ## 🎯 Founder priority rule（鎖死）
 
@@ -31,13 +31,31 @@
 
 ## 🚧 Blockers
 
-**冇 launch blocker**。**5-cycle audit converged** — Wave 2.5 audit (17 · 0 blocker) → Wave 2.6 fix → Wave 2.6 audit (16 · 0 blocker · convergence holds) → Wave 2.7 fix → Wave 2.7 audit (12 · 0 ship blocker · 1 HIGH on E2E checklist 已修)。Finding count declining: 29 → 24 → 17 → 16 → 12。**35 個 issue caught & fixed pre-prod (21 ship blocker + 14 polish)**。
+**冇 launch blocker** — Phase 6+1.5/2 polish 1st audit 揾到嘅 3 ship blocker（1 CRIT + 2 HIGH）已 inline-fixed + Migration 0016 applied · 但 convergence 未 verified · 需要 2nd audit cycle 後先 truly conclude function tier complete。
+
+**Phase 5 5-cycle audit converged** — Wave 2.5 audit (17 · 0 blocker) → Wave 2.6 fix → Wave 2.6 audit (16 · 0 blocker · convergence holds) → Wave 2.7 fix → Wave 2.7 audit (12 · 0 ship blocker · 1 HIGH on E2E checklist 已修)。Finding count declining: 29 → 24 → 17 → 16 → 12。**35 個 issue caught & fixed pre-prod (21 ship blocker + 14 polish)**。
+
+**Phase 6 + 1.5/2 polish audit cycle 1** — 16 finding · 1 CRIT (Llama MODEL_PRICING key) + 2 HIGH (llm_provider hardcoded · Library Adult option) + 3 MED + 10 LOW · 6 inline-fixed (Migration 0016 + 6 file edits) · 10 LOW deferred to BACKLOG。**Walks back premature「FUNCTION TIER COMPLETE」claim** — CLAUDE.md #7 audit-as-gating discipline 再一次救咗 launch-day-killing self-report claim。
 
 **🧪 Manual E2E DEFERRED 到 UI tier 完之後**（founder rule · 2026-05-23）：唔再逐 phase 跑 E2E。等 function tier 全部 ship 晒 + UI tier polish 完 → 一次過 comprehensive test 整個 final product。manual-e2e-phase5.html 留住做 future E2E suite 嘅 starting point · 屆時 expand 覆蓋 community + UI + adult mode + 5 官方故事 + 完整 happy path。理由：minimal UI 測完仲要 UI tier 完再測一次 · 浪費 founder 時間 · 而且 final product 嘅 test 先有真正信號。
 
 **Migrated to backlog** (per pm/BACKLOG.md「Phase 5 deferred polish」section · 20 IDs 跨 4 sub-bucket)：W2.5-GENRE-M-02 alias gap · W2.5-FTS-L-03/L-04 tokenizer polish · W2-COST-H-04 anon ISR · W2.6-MIG-L-02 'curated' enum doc · W2.6-PLAY-L-03/L-04 defensive · W2.6-LIB-L-05 1-char Latin hint · W2.6-LIB-I-06 Settings display_name trim · W2.6-UX-L-03 English error strings · W2.6-MIG-I-07 createStory+trigger origin redundancy · W2.6-INFO-03 getCommentReplies UI TODO · W2.6-MIGRATION-L-04 sanity check pattern · 等等。
 
-## ✅ Just completed (Session 8 cont. — 🟢 FUNCTION TIER COMPLETE)
+## ✅ Just completed (Session 8 cont. — Phase 6 + 1.5/2 polish audit + 1st fix wave)
+
+### Phase 6 + 1.5/2 polish audit (1st cycle) — 1 CRIT + 2 HIGH + 3 MED inline-fixed · Migration 0016 applied
+- **🎯 Walks back premature「FUNCTION TIER COMPLETE」claim** — audit caught 1 CRIT (Llama MODEL_PRICING key mismatch · Settings page crash for adult-mode-on users) + 2 HIGH (llm_provider hardcoded 'anthropic' across 3 write sites · Library Adult 18+ option visible to all users → 0-result UX dead-loop)
+- **🆕 Migration 0016 applied** — `fork_story_to_playthrough` RPC 加 `p_llm_provider text default 'anthropic'` param · used in both `playthroughs.llm_provider` + `turns.llm_provider` (turn 0 opening) insert · sanity verified · backward-compat retained
+- **6 inline fixes**:
+  - **P6-CRIT-01** — Llama MODEL_PRICING key 由 `"meta-llama/llama-3.1-405b-instruct"` 改成 `"llama-3-1-405b-uncensored"` (web/src/lib/billing/credits.ts) · 配合 MODELS catalog internal id · computeCredits 唔再 throw
+  - **P6-HIGH-01** — llm_provider derive from `MODELS[modelId]?.provider ?? "anthropic"` at 3 write sites: turn route persist · createStoryFromPrompt insert · forkStoryToPlaythrough RPC call · Migration 0016 完成 DB-side fix
+  - **P6-HIGH-02** — Library Adult 18+ option conditional `{adultModeEnabled && <option value="adult">...}` · 解死循環 UX
+  - **P1.5P-LOGIC-M-01** — `resolveCharacter()` tighten: `norm.length >= 2` + multi-candidate ambiguity 用 log warning + abstain return null (CLAUDE.md hard rule #8 path-format drift telemetry)
+  - **P6-UX-M-02** — `setAdultMode(false)` atomic reset NSFW default_model 返 DEFAULT_NARRATOR · user 唔再 stuck
+  - **P6-MED-01** — Turn route 加 secondary gate `story.content_rating='adult' && !userAdultMode` → 403 adult_mode_required · 雙重 defense
+- **10 LOW deferred** to pm/BACKLOG.md「Phase 6 + 1.5/2 polish deferred」section (UI tier + perf + tech debt sub-buckets)
+- **TypeScript clean** · audit report HTML written (`audit-report-phase6-and-1.5polish.html`)
+- **Audit-as-gating discipline (CLAUDE.md #7 + #29) 再一次救咗 launch-day-killing self-report claim** — function tier「complete」唔可以淨係靠開發者 self-report · 要 audit verify
 
 ### Phase 1.5/2 polish — 2 quick wins shipped + 4 deferred items moved to BACKLOG
 - **M-02 NPC name fuzzy match** (turn route) — new `resolveCharacter()` resolver in onFinish · 3-layer ladder: exact → NFKC-normalize lowercase trim → bidirectional substring match。Narrator says「阿明」、DB has「陳家明」→ substring match · disposition + flags now correctly applied。Logged warnings for unresolved + fuzzy-matched cases (CLAUDE.md hard rule #8 path-format drift telemetry)。Applied 喺 disposition merge + arc transition check 兩個 site

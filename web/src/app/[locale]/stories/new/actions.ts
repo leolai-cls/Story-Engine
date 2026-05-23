@@ -8,7 +8,7 @@ import type { Disposition } from "@/schemas/character";
 import { redirect } from "@/i18n/navigation";
 import { getLocale } from "next-intl/server";
 import { revalidatePath } from "next/cache";
-import { DEFAULT_NARRATOR } from "@/lib/ai/models";
+import { DEFAULT_NARRATOR, MODELS } from "@/lib/ai/models";
 import {
   chargeCredits,
   computeCredits,
@@ -262,6 +262,9 @@ export async function createStoryFromPrompt(
 
   // Create playthrough (immediately starts playing — no separate "save then play" step)
   const initialState = initialStateFromSchema(generated.state_schema);
+  // P6-HIGH-01 fix: derive llm_provider from MODELS catalog · accurate
+  // attribution for Llama (openrouter) vs Anthropic playthroughs.
+  const narratorProvider = MODELS[userNarratorModel]?.provider ?? "anthropic";
   const { data: playthrough, error: ptErr } = await supabase
     .from("playthroughs")
     .insert({
@@ -269,7 +272,7 @@ export async function createStoryFromPrompt(
       story_id: story.id,
       character_name: parsed.data.protagonist_hint?.slice(0, 40) ?? "主角",
       current_state: initialState,
-      llm_provider: "anthropic",
+      llm_provider: narratorProvider,
       llm_model: userNarratorModel,
       turn_count: 1, // opening narrative counts as turn 0 below
       status: "active",
@@ -301,13 +304,13 @@ export async function createStoryFromPrompt(
     }
   }
 
-  // Insert opening narrative as turn 0
+  // Insert opening narrative as turn 0 (P6-HIGH-01: derive provider)
   const { error: turnErr } = await supabase.from("turns").insert({
     playthrough_id: playthrough.id,
     turn_index: 0,
     role: "ai",
     text: generated.opening_narrative,
-    llm_provider: "anthropic",
+    llm_provider: narratorProvider,
     model: userNarratorModel,
     credits_charged: 0, // story creation charged separately on stories ref below
   });

@@ -279,7 +279,10 @@ export default async function LibraryPage({
               <option value="">所有 rating</option>
               <option value="sfw">SFW</option>
               <option value="soft">Soft</option>
-              <option value="adult">Adult 18+</option>
+              {/* P6-HIGH-02 fix (audit): hide 'Adult 18+' option from non-adult
+                  users · they previously could select it and get filtered-to-
+                  empty results · "library looks broken" UX dead-end. */}
+              {adultModeEnabled && <option value="adult">Adult 18+</option>}
             </select>
             <button
               type="submit"

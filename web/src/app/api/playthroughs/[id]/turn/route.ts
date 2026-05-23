@@ -150,27 +150,28 @@ export async function POST(
     );
   }
 
-  // Phase 6 non-money function — adult mode gate.
-  // CLAUDE.md hard rule #5: NSFW models (allows_nsfw=true · OpenRouter route)
-  // require adult_mode_enabled. Block at action layer in addition to UI hiding.
-  // A user who set NSFW model before disabling adult mode would otherwise
-  // continue burning credits on it.
+  // Phase 6 non-money function — adult mode gate (CLAUDE.md hard rule #5
+  // LLM isolation). Two enforcement layers:
+  //   (a) NSFW model gate: allows_nsfw=true model + !adult_mode_enabled → 403
+  //   (b) Adult story gate (P6-MED-01 audit fix): story.content_rating='adult'
+  //       + !adult_mode_enabled → 403 (applied after story load below).
+  // Load adult_mode_enabled once · reuse for both gates.
   const modelEntry = MODELS[playthroughModel];
-  if (modelEntry?.allows_nsfw) {
-    const { data: profileAdult } = await supabase
-      .from("profiles")
-      .select("adult_mode_enabled")
-      .eq("id", user.id)
-      .single();
-    if (!profileAdult?.adult_mode_enabled) {
-      return NextResponse.json(
-        {
-          error: "adult_mode_required",
-          message: `${modelEntry.display_name} 係 NSFW model · 需要先喺 Settings 開啟「成人模式」(KYC 後)。請揀其他 model 繼續。`,
-        },
-        { status: 403 },
-      );
-    }
+  const { data: profileAdult } = await supabase
+    .from("profiles")
+    .select("adult_mode_enabled")
+    .eq("id", user.id)
+    .single();
+  const userAdultMode = profileAdult?.adult_mode_enabled === true;
+
+  if (modelEntry?.allows_nsfw && !userAdultMode) {
+    return NextResponse.json(
+      {
+        error: "adult_mode_required",
+        message: `${modelEntry.display_name} 係 NSFW model · 需要先喺 Settings 開啟「成人模式」(KYC 後)。請揀其他 model 繼續。`,
+      },
+      { status: 403 },
+    );
   }
 
   const estimatedTurnCost = estimateTurnCredits(playthroughModel);
@@ -197,6 +198,22 @@ export async function POST(
     .single();
   if (storyErr || !story) {
     return NextResponse.json({ error: "story not found" }, { status: 404 });
+  }
+
+  // P6-MED-01 audit fix — adult-rated story gate (CLAUDE.md hard rule #5).
+  // Scenario: user created adult-rated story with adult mode ON · later
+  // disabled adult mode. Without this gate, the user can keep playing on
+  // Anthropic Sonnet with story.content_rating='adult' moderation thresholds
+  // (which are more permissive on sexual category) → NSFW intent reaches a
+  // direct provider that mustn't see it. Block here · friendly 繁中 error.
+  if (story.content_rating === "adult" && !userAdultMode) {
+    return NextResponse.json(
+      {
+        error: "adult_mode_required",
+        message: "呢個故事係 adult-rated · 需要先喺 Settings 開啟「成人模式」(KYC 後) 至可以繼續玩。",
+      },
+      { status: 403 },
+    );
   }
 
   // 3.6 Wave 2.5 W2-PERF-M-06: parallelize moderation with character /
@@ -586,14 +603,24 @@ export async function POST(
           const norm = normalizeName(narratorName);
           const normalized = charByNormalized.get(norm);
           if (normalized) return normalized;
-          // 3. Substring match (both directions)
-          //    Helps "阿明" → "陳家明" AND "陳家明 (阿明)" → "陳家明"
-          if (norm.length >= 1) {
-            for (const c of dbCharacters) {
+          // 3. Substring match (bidirectional · abstain on ambiguity).
+          //    P1.5P-LOGIC-M-01 audit fix: previously `norm.length >= 1`
+          //    matched single CJK char like "家" → wrong NPC silently picked
+          //    (first match wins). Now: require >=2 chars + collect all
+          //    candidates · if >1 match → abstain (return null) + log
+          //    AMBIGUOUS · only single-candidate fuzzy match commits.
+          if (norm.length >= 2) {
+            const candidates = dbCharacters.filter((c) => {
               const dbNorm = normalizeName(c.name);
-              if (dbNorm.includes(norm) || norm.includes(dbNorm)) {
-                return c;
-              }
+              return dbNorm.includes(norm) || norm.includes(dbNorm);
+            });
+            if (candidates.length === 1) {
+              return candidates[0];
+            }
+            if (candidates.length > 1) {
+              console.warn(
+                `[turn] NPC AMBIGUOUS fuzzy match for "${narratorName}" — candidates [${candidates.map((c) => c.name).join(", ")}] · abstaining (no update applied)`,
+              );
             }
           }
           return null;
@@ -813,7 +840,13 @@ export async function POST(
             state_delta: isRefusal ? null : delta,
             director_verdict: verdict,
             skill_check: skillCheckResult,
-            llm_provider: "anthropic",
+            // P6-HIGH-01 fix: derive llm_provider from MODELS catalog instead
+            // of hardcoded "anthropic". Previously Llama (openrouter) turns
+            // were mis-stamped as anthropic — analytics by provider would
+            // attribute NSFW traffic to wrong provider, masking CLAUDE.md
+            // hard rule #5 compliance audit + breaking Phase 4 billing
+            // reconciliation against OpenRouter invoices.
+            llm_provider: MODELS[pt.llm_model ?? "claude-sonnet-4-6"]?.provider ?? "anthropic",
             model: pt.llm_model ?? "claude-sonnet-4-6",
             input_tokens: usage?.inputTokens,
             output_tokens: usage?.outputTokens,

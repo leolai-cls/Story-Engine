@@ -231,4 +231,4 @@ DB：`story_characters` (模板) + `playthrough_character_states` (per-playthrou
 
 ---
 
-_Last updated: 2026-05-23 (Session 8 — 🟢 FUNCTION TIER COMPLETE · Phase 5 + Phase 6 non-money + Phase 1.5/2 polish all shipped · 6 phases · 6 migrations (0009-0015) · 5-cycle Phase 5 audit converged · 35 issues caught pre-prod · 20 deferred to BACKLOG · 落 🟣 UI tier next)_
+_Last updated: 2026-05-23 (Session 8 cont. — Phase 6 + 1.5/2 polish 1st audit cycle 揾到 1 CRIT (Llama MODEL_PRICING key) + 2 HIGH (llm_provider hardcoded · Library Adult option) + 3 MED (NPC fuzzy ambiguous · adult disable model orphan · content_rating gate) ship blockers · 全部 inline-fixed + Migration 0016 applied · 10 LOW deferred · 「FUNCTION TIER COMPLETE」claim 之前 premature · audit walked back · 2nd audit cycle next 確認 convergence 先 truly complete)_

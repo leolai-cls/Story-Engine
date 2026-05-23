@@ -66,7 +66,14 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
   },
   // ─── OpenRouter (Phase 6 adult mode) ───────────────────────────────
   // Llama 3.1 405B via OpenRouter — pricing varies; using upper bound.
-  "meta-llama/llama-3.1-405b-instruct": {
+  // P6-CRIT-01 fix (Phase 6 + 1.5/2 polish audit): key MUST match the
+  // internal Story Engine id from MODELS catalog, NOT the OpenRouter
+  // provider id. Every consumer (ModelPicker · estimateTurnCredits in
+  // turn route · computeTurnCredits onFinish) calls with the internal
+  // id `llama-3-1-405b-uncensored`. Previously keyed by the provider id
+  // `meta-llama/llama-3.1-405b-instruct` — computeCredits threw on
+  // unknown key, crashing Settings page for any adult-mode-on user.
+  "llama-3-1-405b-uncensored": {
     inputPerMillion: 2.5,
     outputPerMillion: 2.5,
   },
