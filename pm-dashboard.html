@@ -565,16 +565,16 @@
       <p class="section-sub">每次新 session 開始，由呢度睇起。</p>
 
       <div class="top-meta">
-        <div><strong>Last updated</strong> 2026-05-22 · Session 8 cont. (Wave 2.5 audit converged · 0 ship blocker · Phase 5 ready to close)</div>
-        <div><strong>Phase</strong> Phase 0/1/1.5/2/3 backend ✅ · Phase 5 Wave 1 → 1.5 → 2 → 2.5 → audit converged ✅ · 落 Wave 2.6 micro-patch (~30min) + Manual E2E → Phase 6 / Phase 7</div>
+        <div><strong>Last updated</strong> 2026-05-22 · Session 8 cont. (Wave 2.6 micro-patch shipped · 6 polish items closed · Manual E2E pending)</div>
+        <div><strong>Phase</strong> Phase 0/1/1.5/2/3 backend ✅ · Phase 5 Wave 1 → 1.5 → 2 → 2.5 → 2.6 ✅ (audit converged · 6 polish closed) · 落 Manual E2E → Phase 6 / Phase 7</div>
         <div><strong>Live</strong> <a href="https://story-engine-drab.vercel.app" target="_blank" style="color: var(--primary);">story-engine-drab.vercel.app</a></div>
       </div>
 
       <div class="status-hero">
-        <div class="label">🎯 Phase 5 3-cycle audit converged · Wave 2.5 audit = 0 CRIT + 0 HIGH ship blocker (第一次)</div>
-        <div class="phase">17 finding · 4 MEDIUM polish (~30min total) · 8 LOW + 5 INFO defer · Audit-as-gating discipline 救咗 11 launch-day issue</div>
+        <div class="label">✅ Phase 5 Wave 2.6 micro-patch shipped · 6 polish items closed · Migration 0014 applied · Phase 5 真正 ship-ready</div>
+        <div class="phase">play-client body-stream fix · 2-stage library fetch · 1-char search hint · trendingCount=0 fallback · origin INSERT lock · display_name trim</div>
         <div class="focus">
-          Session 8 cont. 完成第 3 個 audit cycle — Wave 2.5 (Migration 0013 + 5 code fix + 4 fold-in) 之後 2-agent parallel audit。<strong>Convergence proven</strong>：Wave 1 audit (29 finding · 6 ship blockers) → Wave 1.5 fix → Wave 2 audit (24 finding · 5 ship blockers) → Wave 2.5 fix → <strong>Wave 2.5 audit (17 finding · 0 ship blockers)</strong>。CLAUDE.md hard rule #7「ship → audit → fix critical → next phase」pattern 喺呢度 first time 真正 converge 喺 zero。剩 4 個 MEDIUM 都係 quick polish：(1) W2.5-UX-M-01 play-client body stream double-consume · (2) W2.5-PERF-M-02 fetchBoard 喺 launch 跑晒 36 RPC · (3) W2.5-DOC-M-01 1-char search hint 仲未實作 · (4) W2.5-GENRE-M-02 genre alias gap (defer Phase 7 收集 real distribution)。<strong>下一步：Wave 2.6 micro-patch ~30min 修頭 3 個 MEDIUM + 2 個 LOW → Manual E2E (6 checks) → Phase 5 closed → Phase 6 non-money function tier (adult toggle / content rating filter / provider gating) 或 Phase 7 content tier (5 條官方故事)</strong>。
+          Session 8 cont. ship Wave 2.6 micro-patch — 6 個 polish item 全部 close。<strong>W2.5-UX-M-01</strong>: play-client 讀 body 一次 at top of <code>if (!res.ok)</code> · 唔再見「body stream already read」error leak。<strong>W2.5-PERF-M-02</strong>: library 2-stage fetch — stage 1 trending+latest · stage 2 genre boards 只當 multi-board mode engage 先 fetch · launch 慳 36 RPC。<strong>W2.5-DOC-M-01</strong>: 1-char search 顯示 amber hint card「請輸入至少 2 個字」+ phrase examples。<strong>W2.5-UX-L-07</strong>: drop <code>trendingCount &gt; 0</code> condition · zero-trending Day 0 visitor 都見 friendly single-list fallback。<strong>W2.5-SEC-L-04</strong>: Migration 0014 加 <code>new.origin := 'user'</code> 落 INSERT lock trigger · defense-in-depth for future Official badge feature。<strong>W2.5-UX-L-06</strong>: <code>display_name?.trim() ||</code> 取代 <code>display_name ||</code> · whitespace-only fallback 落 UUID prefix。<strong>下一步：Manual E2E (6 checks) → Phase 5 真正 closed → Phase 6 non-money function tier (adult mode toggle · content rating filter · provider gating) 或 Phase 7 content tier (5 條官方故事)</strong>。Defer to backlog: W2.5-GENRE-M-02 alias gap (Phase 7 real data) · W2.5-FTS-L-03 tokenizer combining mark · W2.5-CACHE-INFO-10 anon ISR (perf sprint)。
         </div>
       </div>
 
@@ -614,16 +614,17 @@
             <li>CLAUDE.md hard rule #7 audit-as-gating discipline 救咗 11 launch-day-killing issue</li>
           </ul>
         </div>
-        <div class="status-card warn">
-          <div class="status-card-title">🟦 Wave 2.6 micro-patch (~30 min · before Manual E2E)</div>
+        <div class="status-card good">
+          <div class="status-card-title">✅ Wave 2.6 micro-patch shipped — 6 polish items closed</div>
           <ul>
-            <li>🟦 <strong>W2.5-UX-M-01</strong> play-client body-stream double-consume · read body once at top + key off body?.error per status</li>
-            <li>🟦 <strong>W2.5-PERF-M-02</strong> 2-stage fetch — trending + latest first, skip genre fetches if launch fallback engages (saves ~600ms at launch)</li>
-            <li>🟦 <strong>W2.5-DOC-M-01</strong> Add 1-char search hint card in library page ("請輸入至少 2 個字")</li>
-            <li>🔵 <strong>W2.5-UX-L-07</strong> Drop `trendingCount > 0` from useLaunchFallback condition</li>
-            <li>🔵 <strong>W2.5-SEC-L-04</strong> Add `new.origin := 'user'` to INSERT trigger (defense-in-depth)</li>
-            <li>🔵 <strong>W2.5-UX-L-06</strong> display_name?.trim() instead of `||` (whitespace render fix)</li>
-            <li>之後：Manual E2E (6 checks) → Phase 5 closed → Phase 6 / Phase 7</li>
+            <li>✅ <strong>W2.5-UX-M-01</strong> play-client read body once at top + key off body?.error · no more "body stream already read" leak</li>
+            <li>✅ <strong>W2.5-PERF-M-02</strong> 2-stage Promise.all — trending+latest first · genre fetches conditional on multi-board mode</li>
+            <li>✅ <strong>W2.5-DOC-M-01</strong> 1-char search amber hint card with phrase examples</li>
+            <li>✅ <strong>W2.5-UX-L-07</strong> Dropped `trendingCount > 0` from useLaunchFallback</li>
+            <li>✅ <strong>W2.5-SEC-L-04</strong> Migration 0014: `new.origin := 'user'` lock in INSERT trigger</li>
+            <li>✅ <strong>W2.5-UX-L-06</strong> `display_name?.trim() ||` (ratings + comments)</li>
+            <li>Sanity verified · origin lock landed in prod · TypeScript clean</li>
+            <li>下一步：Manual E2E (6 checks) → Phase 5 真正 closed → Phase 6 / Phase 7</li>
           </ul>
         </div>
       </div>

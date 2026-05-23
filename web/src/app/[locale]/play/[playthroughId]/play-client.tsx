@@ -186,42 +186,42 @@ export function PlayClient({
         });
 
         if (!res.ok) {
-          // AUDIT FIX (P3-UX-M-13): friendly UX for credit / tier errors.
-          // Previously threw raw JSON / HTTP text into the error box.
+          // Wave 2.6 W2.5-UX-M-01 fix: Fetch Response body is single-consume.
+          // Previously each branch did `await res.json()` and fell through to
+          // `await res.text()` — second consume threw "body stream already
+          // read" which leaked to the user instead of the real server error.
+          // Now: read once at the top, key off body?.error per status.
+          const body = await res.json().catch(() => null);
+
           if (res.status === 402) {
-            const body = await res.json().catch(() => null);
+            // AUDIT FIX (P3-UX-M-13): friendly UX for credit errors.
             const currentBalance = body?.currentBalance ?? "?";
             const estimatedCost = body?.estimatedCost ?? "?";
             throw new Error(
               `INSUFFICIENT_CREDITS:Credit 唔夠（剩 ${currentBalance}，需要約 ${estimatedCost}）。去 Settings 升級或 top-up。`,
             );
           }
-          if (res.status === 403) {
-            const body = await res.json().catch(() => null);
-            if (body?.error === "model_tier_required") {
-              throw new Error(
-                `MODEL_TIER:你嘅 tier (${body.currentTier ?? "?"}) 唔可以用 ${body.modelId ?? "呢個 model"}。去 Settings 揀其他 model 或升級。`,
-              );
-            }
+          if (res.status === 403 && body?.error === "model_tier_required") {
+            throw new Error(
+              `MODEL_TIER:你嘅 tier (${body.currentTier ?? "?"}) 唔可以用 ${body.modelId ?? "呢個 model"}。去 Settings 揀其他 model 或升級。`,
+            );
           }
-          // W2-UX-H-03 fix (Phase 5 Wave 2.5 audit): 400 action_blocked from
-          // turn moderation. Friendly Shield card instead of raw JSON dump.
-          if (res.status === 400) {
-            const body = await res.json().catch(() => null);
-            if (body?.error === "action_blocked" && body?.message) {
-              throw new Error(`ACTION_BLOCKED:${body.message}`);
-            }
+          // W2-UX-H-03 fix: 400 action_blocked from turn moderation.
+          if (res.status === 400 && body?.error === "action_blocked" && body?.message) {
+            throw new Error(`ACTION_BLOCKED:${body.message}`);
           }
-          if (res.status === 503) {
-            const body = await res.json().catch(() => null);
-            if (body?.error === "moderation_misconfigured") {
-              throw new Error(
-                body.message ?? "內容審核系統設定問題，請稍後再試。",
-              );
-            }
+          if (res.status === 503 && body?.error === "moderation_misconfigured") {
+            throw new Error(
+              body.message ?? "內容審核系統設定問題，請稍後再試。",
+            );
           }
-          const errBody = await res.text();
-          throw new Error(errBody || `HTTP ${res.status}`);
+          // Fallback: surface the body's message field if present, else a
+          // generic HTTP error. NO second body consume — that's the W2.5-UX-M-01
+          // bug we're fixing.
+          const fallbackMsg =
+            (body && (body.message || body.error)) ||
+            `請求失敗（HTTP ${res.status}）`;
+          throw new Error(String(fallbackMsg));
         }
 
         // Consume the data stream: AI SDK's UIMessageStream sends JSON chunks

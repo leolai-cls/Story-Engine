@@ -7,9 +7,9 @@
 
 ## 🎯 而家狀態
 
-**Phase**: **Phase 5 Wave 2.5 audit converged (3-cycle pattern complete · 0 ship blocker) · Wave 2.6 micro-patch (~30min) + Manual E2E → Phase 5 closed → Phase 6 / Phase 7**
+**Phase**: **Phase 5 Wave 2.6 micro-patch shipped ✅ · 6 polish items closed · Migration 0014 applied · Manual E2E → Phase 5 closed → Phase 6 / Phase 7**
 **Live URL**: https://story-engine-drab.vercel.app
-**Last updated**: 2026-05-22 (Session 8 cont. — Wave 2.5 audit converged)
+**Last updated**: 2026-05-22 (Session 8 cont. — Wave 2.6 shipped)
 
 ## 🎯 Founder priority rule（鎖死）
 
@@ -23,8 +23,7 @@
 
 | 排 | Plan item | Tier | Time | Why |
 |---|---|---|---|---|
-| 🟦 | **Wave 2.6 micro-patch** — 4 個 MEDIUM polish from Wave 2.5 audit: (1) play-client body-stream double-consume · (2) 2-stage fetchBoard skip when launch fallback · (3) 1-char search hint card · (4) defer W2.5-GENRE-M-02 alias gap to Phase 7 (need real distribution data first) + 2 LOW quick fixes (drop trendingCount>0 condition · origin lock · display_name?.trim()) | 🟢 FUNCTION | ~30min | 0 ship blocker 但 4 MEDIUM 都係 quick UX polish · 完晒 Phase 5 真正 ship-ready |
-| 🧪 | **Manual E2E test** — 6 happy + negative paths: anon /library · 1-char search · create→publish→see in board · benign turn · explicit-violence ACTION_BLOCKED card · SQL INSERT clamp verify | 🟢 FUNCTION | ~30min Founder time | Phase 5 5 migrations + 13 commits + ~3500 LOC change · last E2E 喺 Wave 1 ship · cumulative subtle bug check |
+| 🧪 | **Manual E2E test** — 6 happy + negative paths: anon /library · 1-char search → see hint card · create→publish→see in board · benign turn · explicit-violence ACTION_BLOCKED card · SQL INSERT clamp verify | 🟢 FUNCTION | ~30min Founder time | Phase 5 6 migrations + 14 commits + ~3500 LOC change · last E2E 喺 Wave 1 ship · cumulative subtle bug check |
 | 🥇 | **Phase 6 non-money function bits** — adult mode toggle · content rating filter · provider gating（唔包 KYC）| 🟢 FUNCTION | ~1 session | Adult flow narrative gating |
 | 🥈 | **Phase 7 content** — Founder + Claude 寫 5 條 launch-ready 官方故事（順手填空蕩 genre 榜 + 收集 real genre distribution data 用嚟解 W2.5-GENRE-M-02） | 🟢 FUNCTION | 多 session slow-burn | 官方故事支撐 launch + Wave 2.5 audit deferred item resolved |
 | 🥉 | **Phase 1.5/2 polish (audit deferred)** — NPC name fuzzy match · 4-axis disposition init · always_on demote · refusal embed flow · Memory Journal UI backend prep | 🟢 FUNCTION | ~1 session | Audit backlog cleanup |
@@ -43,14 +42,24 @@
 
 **Deferred 至 Phase 7 / backlog**（confirmed non-blocker）：W2.5-GENRE-M-02 alias gap（Phase 7 收集 real distribution data 之後 normalize）· W2.5-FTS-L-03 tokenizer combining mark strip · W2.5-FTS-L-04 word-boundary mismatch (pg_trgm extension) · W2-COST-H-04 anon ISR cache（高流量先有影響）· W2.5-CACHE-INFO-10 force-dynamic ISR split · W2.5-UX-INFO-09 ACTION_BLOCKED craft hint（post-launch telemetry data first）· W2-LIB-L-09 carousel dedup · W2-FTS-M-04 Bopomofo regex。
 
-## ✅ Just completed (Session 8 cont. — Phase 5 Wave 2.5 audit converged)
+## ✅ Just completed (Session 8 cont. — Phase 5 Wave 2.6 micro-patch + convergence)
 
-### 3-cycle audit convergence pattern verified
+### Wave 2.6 micro-patch — 6 polish items closed (commit pending)
+- **W2.5-UX-M-01** — play-client `if (!res.ok)` 讀 body 一次 at top + key off body?.error per status. Eliminates "body stream already read" leak for non-special-case errors
+- **W2.5-PERF-M-02** — Library 2-stage fetch: stage 1 trending+latest, stage 2 genre boards only if multi-board engages. Saves ~36 RPCs at launch
+- **W2.5-DOC-M-01** — 1-char search amber hint card「請輸入至少 2 個字」with phrase examples
+- **W2.5-UX-L-07** — Drop `trendingCount > 0` from useLaunchFallback → zero trending also routes to single-list fallback
+- **W2.5-SEC-L-04** — Migration 0014 adds `new.origin := 'user'` to stories INSERT lock trigger
+- **W2.5-UX-L-06** — `display_name?.trim() ||` instead of bare `||` (whitespace-only render fix)
+- Sanity verified on prod (origin lock landed) · TypeScript clean
+
+### 3-cycle audit convergence pattern verified (Wave 2.5 audit)
 - Wave 1 audit (29 finding · 6 ship blockers) → Wave 1.5 fix
 - Wave 2 audit (24 finding · 5 ship blockers) → Wave 2.5 fix
-- **Wave 2.5 audit (17 finding · 0 ship blockers)** → convergence ✅
+- Wave 2.5 audit (17 finding · 0 ship blockers) → Wave 2.6 polish → **converged**
 - 11 launch-day-killing issues caught and fixed before they hit prod
 - Pattern proven for future phases: each function ship gets ≥1 audit cycle until 0 ship blockers
+- See [pattern_audit_3cycle_convergence](~/.claude/.../memory/) in local memory for reusable discipline
 
 ## ✅ Just completed (Session 8 cont. — Phase 5 Wave 2.5)
 

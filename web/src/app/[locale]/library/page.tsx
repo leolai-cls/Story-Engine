@@ -10,6 +10,7 @@ import {
   searchStories,
   getMyPlaythroughs,
   getMyStories,
+  type LibraryStory,
 } from "@/lib/community/queries";
 import {
   Sparkles,
@@ -145,16 +146,7 @@ export default async function LibraryPage({
     return [];
   }
 
-  // Search mode → single result list; browse mode → multi-board.
-  // All queries fetched in parallel for SSR speed.
-  const browseFetches = searchMode
-    ? Promise.resolve(null)
-    : Promise.all([
-        getTrendingStories(supabase, { language, contentRating, limit: 8 }),
-        getLatestStories(supabase, { language, contentRating, limit: 8 }),
-        ...GENRE_BOARDS.map((g) => fetchBoard(g.aliases)),
-      ]);
-
+  // Search mode → single result list (one RPC).
   const searchResults = searchMode
     ? await searchStories(supabase, {
         query: sp.q ?? "",
@@ -164,20 +156,47 @@ export default async function LibraryPage({
       })
     : null;
 
-  const browseResults = await browseFetches;
-  const [trending, latest, ...genreResults] = browseResults ?? [];
+  // Browse mode: 2-stage fetch (Wave 2.6 W2.5-PERF-M-02 fix).
+  //   Stage 1: trending + latest. Decide useLaunchFallback from result.
+  //   Stage 2: genre boards ONLY if multi-board mode engages.
+  //
+  // At launch with sparse content, the launch fallback engages and we skip
+  // up to 36 alias RPCs (6 boards × ~6 aliases each) that would have been
+  // wasted (their results discarded by the fallback render path).
+  let trending: LibraryStory[] = [];
+  let latest: LibraryStory[] = [];
+  let genreResults: LibraryStory[][] = [];
 
-  // W2-LAUNCH-H-05 fix: launch fallback. If trending has very few stories AND
-  // all genre boards are empty, render a single combined list instead of
-  // multi-board (avoids "this place is empty" first-impression). Multi-board
-  // automatically engages once content crosses the threshold.
-  const trendingCount = (trending ?? []).length;
-  const anyGenrePopulated = (genreResults ?? []).some((arr) => (arr ?? []).length > 0);
-  const useLaunchFallback =
-    !searchMode &&
-    trendingCount > 0 &&
-    trendingCount < MULTI_BOARD_THRESHOLD &&
-    !anyGenrePopulated;
+  // W2-LAUNCH-H-05 + W2.5-UX-L-07: also fallback when trendingCount === 0
+  // (zero trending + zero genre = render single «公開故事» list, not 1 empty
+  // 熱門 card + 6 hidden boards).
+  let useLaunchFallback = false;
+
+  if (!searchMode) {
+    const [t, l] = await Promise.all([
+      getTrendingStories(supabase, { language, contentRating, limit: 8 }),
+      getLatestStories(supabase, { language, contentRating, limit: 8 }),
+    ]);
+    trending = t;
+    latest = l;
+
+    // Decide layout BEFORE fetching genre boards
+    useLaunchFallback = trending.length < MULTI_BOARD_THRESHOLD;
+
+    if (!useLaunchFallback) {
+      // Multi-board mode: fetch genre carousels in parallel
+      genreResults = await Promise.all(
+        GENRE_BOARDS.map((g) => fetchBoard(g.aliases)),
+      );
+      // If after fetching, every genre is empty AND trending is low, downgrade
+      // to launch fallback (handles the "trending barely populated, genres
+      // not yet seeded" edge case).
+      const anyGenrePopulated = genreResults.some((arr) => arr.length > 0);
+      if (!anyGenrePopulated && trending.length < MULTI_BOARD_THRESHOLD) {
+        useLaunchFallback = true;
+      }
+    }
+  }
 
   // User-specific sections (parallel with browse fetch)
   const [myPlaythroughs, myStories] = user
@@ -353,7 +372,22 @@ export default async function LibraryPage({
             <h2 className="text-xl font-bold mb-4">
               搜尋結果：「{sp.q}」 ({searchResults.length})
             </h2>
-            {searchResults.length === 0 ? (
+            {/* W2.5-DOC-M-01 fix (Wave 2.6): 1-char CJK query hint. Bigram-only
+                tokenizer (Migration 0013) drops single CJK chars — searching
+                「愛」 or 「校」 returns empty. Without this card the user thinks
+                the platform is broken. */}
+            {searchResults.length === 0 && (sp.q?.trim().length ?? 0) === 1 ? (
+              <Card className="border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/40">
+                <CardContent className="py-8 text-center">
+                  <p className="text-sm font-semibold text-amber-900 dark:text-amber-100 mb-2">
+                    請輸入至少 2 個字
+                  </p>
+                  <p className="text-xs text-amber-800 dark:text-amber-200">
+                    中文搜索要 2 字以上嘅 bigram 組合至 work — 試下「校園」「戀愛」「古惑仔」呢類有 phrase 嘅 keyword。
+                  </p>
+                </CardContent>
+              </Card>
+            ) : searchResults.length === 0 ? (
               <Card>
                 <CardContent className="py-12 text-center">
                   <p className="text-sm text-muted-foreground">

@@ -156,7 +156,10 @@ export default async function StoryDetailPage({
                   <CardContent className="py-4">
                     <div className="flex items-center gap-2 mb-2 flex-wrap">
                       <span className="text-xs font-semibold text-foreground">
-                        {r.display_name || `${r.user_id.slice(0, 8)}…`}
+                        {/* W2.5-UX-L-06 fix (Wave 2.6): `.trim() ||` catches
+                            whitespace-only display_name; bare `||` renders
+                            blank. */}
+                        {r.display_name?.trim() || `${r.user_id.slice(0, 8)}…`}
                       </span>
                       <div className="flex">
                         {[1, 2, 3, 4, 5].map((n) => (
@@ -205,7 +208,8 @@ export default async function StoryDetailPage({
                   <CardContent className="py-3">
                     <div className="flex items-center justify-between gap-2 mb-1.5">
                       <span className="text-xs font-semibold text-foreground">
-                        {c.display_name || (
+                        {/* W2.5-UX-L-06 fix (Wave 2.6): trim whitespace-only. */}
+                        {c.display_name?.trim() || (
                           <span className="font-mono text-muted-foreground">
                             {c.user_id.slice(0, 8)}…
                           </span>
