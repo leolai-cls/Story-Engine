@@ -7,9 +7,9 @@
 
 ## 🎯 而家狀態
 
-**Phase**: **Phase 5 Wave 2.5 shipped ✅ · Migration 0013 applied + 6/6 sanity pass · 全部 5 ship blocker 關閉 + 4 個 audit fold-in · 落 Phase 1.5/2 polish / Phase 6 / Phase 7**
+**Phase**: **Phase 5 Wave 2.5 audit converged (3-cycle pattern complete · 0 ship blocker) · Wave 2.6 micro-patch (~30min) + Manual E2E → Phase 5 closed → Phase 6 / Phase 7**
 **Live URL**: https://story-engine-drab.vercel.app
-**Last updated**: 2026-05-22 (Session 8 cont. — Wave 2.5 closed)
+**Last updated**: 2026-05-22 (Session 8 cont. — Wave 2.5 audit converged)
 
 ## 🎯 Founder priority rule（鎖死）
 
@@ -23,9 +23,11 @@
 
 | 排 | Plan item | Tier | Time | Why |
 |---|---|---|---|---|
-| 🥇 | **Phase 1.5/2 polish (audit deferred)** — NPC name fuzzy match · 4-axis disposition init · always_on demote · refusal embed flow · Memory Journal UI backend prep | 🟢 FUNCTION | ~1 session | Audit backlog cleanup before launch |
-| 🥈 | **Phase 6 non-money function bits** — adult mode toggle · content rating filter · provider gating（唔包 KYC）| 🟢 FUNCTION | ~1 session | Adult flow narrative gating |
-| 🥉 | **Phase 7 content** — Founder + Claude 寫 5 條 launch-ready 官方故事 | 🟢 FUNCTION | 多 session slow-burn | 官方故事支撐 launch + 填空蕩 genre 榜 |
+| 🟦 | **Wave 2.6 micro-patch** — 4 個 MEDIUM polish from Wave 2.5 audit: (1) play-client body-stream double-consume · (2) 2-stage fetchBoard skip when launch fallback · (3) 1-char search hint card · (4) defer W2.5-GENRE-M-02 alias gap to Phase 7 (need real distribution data first) + 2 LOW quick fixes (drop trendingCount>0 condition · origin lock · display_name?.trim()) | 🟢 FUNCTION | ~30min | 0 ship blocker 但 4 MEDIUM 都係 quick UX polish · 完晒 Phase 5 真正 ship-ready |
+| 🧪 | **Manual E2E test** — 6 happy + negative paths: anon /library · 1-char search · create→publish→see in board · benign turn · explicit-violence ACTION_BLOCKED card · SQL INSERT clamp verify | 🟢 FUNCTION | ~30min Founder time | Phase 5 5 migrations + 13 commits + ~3500 LOC change · last E2E 喺 Wave 1 ship · cumulative subtle bug check |
+| 🥇 | **Phase 6 non-money function bits** — adult mode toggle · content rating filter · provider gating（唔包 KYC）| 🟢 FUNCTION | ~1 session | Adult flow narrative gating |
+| 🥈 | **Phase 7 content** — Founder + Claude 寫 5 條 launch-ready 官方故事（順手填空蕩 genre 榜 + 收集 real genre distribution data 用嚟解 W2.5-GENRE-M-02） | 🟢 FUNCTION | 多 session slow-burn | 官方故事支撐 launch + Wave 2.5 audit deferred item resolved |
+| 🥉 | **Phase 1.5/2 polish (audit deferred)** — NPC name fuzzy match · 4-axis disposition init · always_on demote · refusal embed flow · Memory Journal UI backend prep | 🟢 FUNCTION | ~1 session | Audit backlog cleanup |
 | 🥈 | **Phase 1.5/2 polish** — NPC name fuzzy match · 4-axis disposition init · always_on demote · refusal embed flow · audit deferred | 🟢 FUNCTION | ~1 session | Audit backlog cleanup |
 | 🥉 | **Phase 6 function bits** — adult mode toggle · content rating filter · provider gating（唔包 KYC） | 🟢 FUNCTION | ~1 session | Adult flow narrative gating |
 | 4 | **Phase 5 Wave 3 polish** — parent_id RLS · rating row-lock · depth cap · private FTS opt-out · moderation content_id check · unlisted decision | 🟢 FUNCTION | ~30 分鐘 | Defense in depth |
@@ -37,9 +39,18 @@
 
 ## 🚧 Blockers
 
-**冇 launch blocker**。Phase 5 wave 5 個 ship blocker 全部修咗（Migration 0013 applied · 6/6 sanity pass）。Multi-board library 終於 alive — schema-generator 出嘅「戀愛校園」/「古惑仔」/「玄幻冒險」現在 match 對應 carousel；search form 唔再殺 result；玩家 moderation block 見 Shield card；trending board future-date exploit 兩層防禦關閉；launch 期 empty library 自動 fallback 做 single-list。落 Phase 1.5/2 polish 或 Phase 6 non-money 或 Phase 7 content。
+**冇 launch blocker**。**3-cycle audit converged** — Wave 2.5 audit found 0 CRIT + 0 HIGH ship blocker（17 finding total · 4 MEDIUM polish + 8 LOW + 5 INFO）。CLAUDE.md hard rule #7 audit-as-gating discipline 救咗 11 launch-day-killing issue（4 P5 SHOWSTOPPERS + 6 Wave 1.5 blockers + 5 Wave 2.5 blockers）。Wave 2.6 micro-patch (~30min) 處理 4 個 MEDIUM polish 之後 + Manual E2E 通過 → Phase 5 community function tier 真正完整 ship-ready。
 
-**Deferred 至下個 sprint**（非 launch blocker）：W2-COST-H-04 library anon ISR cache（深 refactor · 高流量先有影響）· W2-FP-* moderation false-positive monitoring（observability tier）· W2-LIB-L-09 carousel dedup（UI polish）· W2-FTS-M-04 Bopomofo / CJK Extension B regex extend。
+**Deferred 至 Phase 7 / backlog**（confirmed non-blocker）：W2.5-GENRE-M-02 alias gap（Phase 7 收集 real distribution data 之後 normalize）· W2.5-FTS-L-03 tokenizer combining mark strip · W2.5-FTS-L-04 word-boundary mismatch (pg_trgm extension) · W2-COST-H-04 anon ISR cache（高流量先有影響）· W2.5-CACHE-INFO-10 force-dynamic ISR split · W2.5-UX-INFO-09 ACTION_BLOCKED craft hint（post-launch telemetry data first）· W2-LIB-L-09 carousel dedup · W2-FTS-M-04 Bopomofo regex。
+
+## ✅ Just completed (Session 8 cont. — Phase 5 Wave 2.5 audit converged)
+
+### 3-cycle audit convergence pattern verified
+- Wave 1 audit (29 finding · 6 ship blockers) → Wave 1.5 fix
+- Wave 2 audit (24 finding · 5 ship blockers) → Wave 2.5 fix
+- **Wave 2.5 audit (17 finding · 0 ship blockers)** → convergence ✅
+- 11 launch-day-killing issues caught and fixed before they hit prod
+- Pattern proven for future phases: each function ship gets ≥1 audit cycle until 0 ship blockers
 
 ## ✅ Just completed (Session 8 cont. — Phase 5 Wave 2.5)
 
