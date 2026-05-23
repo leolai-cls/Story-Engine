@@ -2,6 +2,11 @@ import { NextResponse, type NextRequest, after } from "next/server";
 import { streamText } from "ai";
 import { getProviderModel } from "@/lib/ai/providers";
 import { createClient } from "@/lib/supabase/server";
+// Migration 0018 (Phase 2 memory lockdown) — memory table mutation
+// revoked from authenticated. Server-side writers (embed / summarizer /
+// lorebook) use service-role client which bypasses RLS. User SELECT on
+// own memory still works via the user-auth `supabase` client.
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import {
   buildStableSystemPrompt,
   buildDynamicSystemPrompt,
@@ -500,12 +505,17 @@ export async function POST(
       // summarizer + lorebook in onFinish below.
       //
       // Reuse the queryEmbedding computed by retriever (avoids dup API call).
+      //
+      // Migration 0018 lockdown: memory_lockdown REVOKEd user INSERT/UPDATE
+      // on memory tables · server-side memory writers now use service-role
+      // client. User can READ own memory via Memory Journal · cannot mutate.
       if (memory.queryEmbedding && userTurnId) {
         const turnId = userTurnId;
         const queryVec = memory.queryEmbedding;
         after(async () => {
           try {
-            const { error: embedErr } = await supabase
+            const serviceClient = createServiceRoleClient();
+            const { error: embedErr } = await serviceClient
               .from("turn_embeddings")
               .insert({ turn_id: turnId, embedding: queryVec });
             if (embedErr) {
@@ -991,11 +1001,16 @@ export async function POST(
         const aiTurnId = aiTurnRow?.id ?? null;
         if (!isRefusal && aiTurnId) {
           // Embed AI turn → turn_embeddings (RAG tier 3)
+          //
+          // Migration 0018 lockdown: use service-role client for memory writes.
+          // User INSERT on memory tables revoked in 0018. createServiceRoleClient
+          // bypasses RLS — only ever called from server-side after() blocks.
           after(async () => {
             try {
+              const serviceClient = createServiceRoleClient();
               const embed = await embedTextSafe(finalText, "turn:ai");
               if (embed) {
-                const { error: embedErr } = await supabase
+                const { error: embedErr } = await serviceClient
                   .from("turn_embeddings")
                   .insert({ turn_id: aiTurnId, embedding: embed.vector });
                 if (embedErr && !/relation .* does not exist/i.test(String(embedErr.message ?? ""))) {
@@ -1010,8 +1025,9 @@ export async function POST(
           // Rolling summary (every 20 turns) — locale-aware (P2-UX-H-09)
           after(async () => {
             try {
+              const serviceClient = createServiceRoleClient();
               await maybeRunSummarization({
-                supabase,
+                supabase: serviceClient,
                 playthroughId,
                 currentMaxTurnIndex: aiTurnIndex,
                 language: storyBible.hard_locked.language,
@@ -1027,8 +1043,9 @@ export async function POST(
           // Lorebook entity extraction — locale-aware (P2-UX-H-09)
           after(async () => {
             try {
+              const serviceClient = createServiceRoleClient();
               await runLorebookExtraction({
-                supabase,
+                supabase: serviceClient,
                 playthroughId,
                 userAction: action,
                 aiNarrative: finalText,
