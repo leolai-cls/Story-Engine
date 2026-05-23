@@ -45,18 +45,63 @@ export const dynamic = "force-dynamic";
  * Migration 0012).
  */
 
+/**
+ * Multi-board genre carousel definitions.
+ *
+ * Wave 2.5 W2-GENRE-C-01 fix: keys were originally English ("romance",
+ * "adventure"), but schema-generator.ts:112 prompt teaches Claude to emit
+ * CJK genre strings ("戀愛校園", "古惑仔", "玄幻冒險"). Keys never matched,
+ * 6 boards permanently empty.
+ *
+ * New design: each board has a CJK display title PLUS an `aliases` array
+ * of likely tag/genre values the schema-generator might emit. The
+ * `stories_by_genre` RPC matches any of these aliases. This keeps the UI
+ * taxonomy clean while accommodating the LLM's varied output.
+ */
 const GENRE_BOARDS: Array<{
-  key: string;
   title: string;
   icon: string;
+  aliases: string[];
 }> = [
-  { key: "romance", title: "戀愛", icon: "💕" },
-  { key: "adventure", title: "冒險", icon: "⚔️" },
-  { key: "school", title: "校園", icon: "🎓" },
-  { key: "fantasy", title: "奇幻", icon: "🔮" },
-  { key: "sports", title: "運動", icon: "🏀" },
-  { key: "mystery", title: "懸疑", icon: "🕵️" },
+  {
+    title: "戀愛",
+    icon: "💕",
+    aliases: ["戀愛", "戀愛校園", "愛情", "romance", "純愛", "言情"],
+  },
+  {
+    title: "冒險",
+    icon: "⚔️",
+    aliases: ["冒險", "古惑仔", "黑道", "江湖", "adventure", "action", "武俠"],
+  },
+  {
+    title: "校園",
+    icon: "🎓",
+    aliases: ["校園", "戀愛校園", "青春", "school", "学院", "學園"],
+  },
+  {
+    title: "奇幻",
+    icon: "🔮",
+    aliases: ["奇幻", "玄幻", "玄幻冒險", "魔法", "fantasy", "魔幻", "仙俠"],
+  },
+  {
+    title: "運動",
+    icon: "🏀",
+    aliases: ["運動", "體育", "sports", "競技"],
+  },
+  {
+    title: "懸疑",
+    icon: "🕵️",
+    aliases: ["懸疑", "推理", "mystery", "thriller", "驚悚", "犯罪"],
+  },
 ];
+
+/**
+ * Threshold for engaging multi-board layout vs falling back to single list.
+ * W2-LAUNCH-H-05 fix: at launch (or any time content is sparse), multi-board
+ * shows mostly empty boards which hurts first-impression. Below this
+ * threshold we render a single «公開故事» list instead.
+ */
+const MULTI_BOARD_THRESHOLD = 8; // trending stories needed to engage multi-board
 
 export default async function LibraryPage({
   params,
@@ -74,44 +119,65 @@ export default async function LibraryPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const searchMode = !!sp.q;
+  const searchMode = !!sp.q?.trim();
+
+  // W2-FILTER-H-02 fix: empty string from <select value=""> default option
+  // must NOT be passed as a filter value. `??` only catches null/undefined;
+  // here we explicitly coerce empty strings to undefined so the RPC
+  // `(p_language is null or s.language = p_language)` correctly treats
+  // "no filter".
+  const language = sp.language?.trim() || undefined;
+  const contentRating = sp.rating?.trim() || undefined;
+
+  // W2-GENRE-C-01 fix: for each genre board, try each alias and keep the
+  // first non-empty result. Falls back to empty array if nothing matches.
+  // This makes the board match across CJK / English / variant tag spellings.
+  async function fetchBoard(aliases: string[]) {
+    for (const alias of aliases) {
+      const stories = await getStoriesByGenre(supabase, {
+        genre: alias,
+        language,
+        contentRating,
+        limit: 8,
+      });
+      if (stories.length > 0) return stories;
+    }
+    return [];
+  }
 
   // Search mode → single result list; browse mode → multi-board.
   // All queries fetched in parallel for SSR speed.
   const browseFetches = searchMode
     ? Promise.resolve(null)
     : Promise.all([
-        getTrendingStories(supabase, {
-          language: sp.language,
-          contentRating: sp.rating,
-          limit: 8,
-        }),
-        getLatestStories(supabase, {
-          language: sp.language,
-          contentRating: sp.rating,
-          limit: 8,
-        }),
-        ...GENRE_BOARDS.map((g) =>
-          getStoriesByGenre(supabase, {
-            genre: g.key,
-            language: sp.language,
-            contentRating: sp.rating,
-            limit: 8,
-          }),
-        ),
+        getTrendingStories(supabase, { language, contentRating, limit: 8 }),
+        getLatestStories(supabase, { language, contentRating, limit: 8 }),
+        ...GENRE_BOARDS.map((g) => fetchBoard(g.aliases)),
       ]);
 
   const searchResults = searchMode
     ? await searchStories(supabase, {
         query: sp.q ?? "",
-        language: sp.language,
-        contentRating: sp.rating,
+        language,
+        contentRating,
         limit: 24,
       })
     : null;
 
   const browseResults = await browseFetches;
   const [trending, latest, ...genreResults] = browseResults ?? [];
+
+  // W2-LAUNCH-H-05 fix: launch fallback. If trending has very few stories AND
+  // all genre boards are empty, render a single combined list instead of
+  // multi-board (avoids "this place is empty" first-impression). Multi-board
+  // automatically engages once content crosses the threshold.
+  const trendingCount = (trending ?? []).length;
+  const anyGenrePopulated = (genreResults ?? []).some((arr) => (arr ?? []).length > 0);
+  const useLaunchFallback =
+    !searchMode &&
+    trendingCount > 0 &&
+    trendingCount < MULTI_BOARD_THRESHOLD &&
+    !anyGenrePopulated;
 
   // User-specific sections (parallel with browse fetch)
   const [myPlaythroughs, myStories] = user
@@ -359,8 +425,19 @@ export default async function LibraryPage({
           </section>
         )}
 
-        {/* Browse mode: multi-board carousels */}
-        {!searchMode && (
+        {/* Browse mode: launch-fallback single list OR multi-board carousels.
+            W2-LAUNCH-H-05: sparse-content phase shows a unified list so
+            visitors don't see "wow this place is empty" with 6 hidden boards. */}
+        {!searchMode && useLaunchFallback && (
+          <StoryCarousel
+            title="公開故事"
+            icon="📚"
+            stories={trending ?? []}
+            emptyMessage={"仲冇公開故事 — 創作一個成為先驅。"}
+          />
+        )}
+
+        {!searchMode && !useLaunchFallback && (
           <>
             <StoryCarousel
               title="熱門"
@@ -377,7 +454,7 @@ export default async function LibraryPage({
             />
             {GENRE_BOARDS.map((g, i) => (
               <StoryCarousel
-                key={g.key}
+                key={g.title}
                 title={g.title}
                 icon={g.icon}
                 stories={genreResults[i] ?? []}

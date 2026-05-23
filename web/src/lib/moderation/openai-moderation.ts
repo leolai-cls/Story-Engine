@@ -208,9 +208,14 @@ async function callModerationAPI(
   const trimmed = normalized.length > 32_000 ? normalized.slice(0, 32_000) : normalized;
 
   // Wave 2 W1-INFO-14: exponential backoff retry on 429 / 5xx. Same pattern
-  // as embed.ts withRateLimitRetry. Total budget: 500ms + 2s + first call =
-  // up to ~5.5s worst case under retry (vs single 3s call). Action layer
-  // failClosed:true means worst case is still bounded.
+  // as embed.ts withRateLimitRetry.
+  //
+  // Wave 2.5 W2-MOD-M-07 doc fix: worst case is ~11.5s under retry
+  // (3 attempts × 3s timeout each + 500ms + 2s backoffs), or up to ~19s if
+  // Retry-After header is honored at the 5s upper bound. Vercel maxDuration
+  // (60s on turn / createStory) is comfortable. failClosed:true means a
+  // user-blocking error after the full retry budget rather than a silent
+  // bypass — acceptable.
   const BACKOFFS_MS = [500, 2000];
   for (let attempt = 0; attempt <= BACKOFFS_MS.length; attempt++) {
     try {

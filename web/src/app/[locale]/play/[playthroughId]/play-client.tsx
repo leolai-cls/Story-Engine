@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Send, Loader2, ArrowLeft, Coins, Lock } from "lucide-react";
+import { Sparkles, Send, Loader2, ArrowLeft, Coins, Lock, Shield } from "lucide-react";
 import { DynamicStatePanel } from "@/components/state-panel";
 import type { StateSchema } from "@/schemas/state-schema";
 
@@ -59,6 +59,29 @@ function PlayErrorCard({ error }: { error: string }) {
       </div>
     );
   }
+  // W2-UX-H-03 fix: turn moderation returns 400 with action_blocked.
+  // Previously the raw JSON body flowed through to the default branch.
+  // Now play-client throws "ACTION_BLOCKED:..." prefix → friendly card.
+  if (error.startsWith("ACTION_BLOCKED:")) {
+    return (
+      <div className="rounded-md border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950/40">
+        <div className="flex items-start gap-3">
+          <Shield className="h-5 w-5 flex-shrink-0 text-amber-600 dark:text-amber-300" />
+          <div className="flex-1 text-sm">
+            <div className="font-semibold text-amber-900 dark:text-amber-100">
+              內容審核：呢個 action 過唔到
+            </div>
+            <div className="mt-1 text-xs text-amber-800 dark:text-amber-200">
+              {error.replace("ACTION_BLOCKED:", "")}
+            </div>
+            <div className="mt-2 text-[11px] text-amber-700/80 dark:text-amber-300/80">
+              試下換個方式描述你嘅行動，或者調整劇情走向。
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
   // Default error display
   return (
     <div className="rounded-md border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300">
@@ -97,6 +120,26 @@ export function PlayClient({
   const [streamText, setStreamText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // W2-UX-M-07: show "正在審核 + 思考..." indicator during the moderation +
+  // pre-stream window. The turn route does ~500-2000ms of moderation + DB
+  // setup before the first stream byte arrives. Without a hint the user
+  // sees "nothing happening" and may double-click. 600ms threshold avoids
+  // flashing on fast paths.
+  const [showSafetyHint, setShowSafetyHint] = useState(false);
+  const hintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (streaming && !streamText) {
+      if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
+      hintTimerRef.current = setTimeout(() => setShowSafetyHint(true), 600);
+    } else {
+      if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
+      setShowSafetyHint(false);
+    }
+    return () => {
+      if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
+    };
+  }, [streaming, streamText]);
 
   // Auto-scroll on new content
   useEffect(() => {
@@ -158,6 +201,22 @@ export function PlayClient({
             if (body?.error === "model_tier_required") {
               throw new Error(
                 `MODEL_TIER:你嘅 tier (${body.currentTier ?? "?"}) 唔可以用 ${body.modelId ?? "呢個 model"}。去 Settings 揀其他 model 或升級。`,
+              );
+            }
+          }
+          // W2-UX-H-03 fix (Phase 5 Wave 2.5 audit): 400 action_blocked from
+          // turn moderation. Friendly Shield card instead of raw JSON dump.
+          if (res.status === 400) {
+            const body = await res.json().catch(() => null);
+            if (body?.error === "action_blocked" && body?.message) {
+              throw new Error(`ACTION_BLOCKED:${body.message}`);
+            }
+          }
+          if (res.status === 503) {
+            const body = await res.json().catch(() => null);
+            if (body?.error === "moderation_misconfigured") {
+              throw new Error(
+                body.message ?? "內容審核系統設定問題，請稍後再試。",
               );
             }
           }
@@ -291,7 +350,14 @@ export function PlayClient({
             {streaming && !streamText && (
               <div className="flex items-center gap-2 text-xs text-muted-foreground py-3">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                AI 諗緊...
+                {showSafetyHint ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <Shield className="h-3.5 w-3.5" />
+                    內容審核 + AI 思考中...
+                  </span>
+                ) : (
+                  "AI 諗緊..."
+                )}
               </div>
             )}
 

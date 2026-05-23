@@ -7,9 +7,9 @@
 
 ## 🎯 而家狀態
 
-**Phase**: **Phase 5 Wave 2 shipped + 即 audit → 1 CRIT + 4 HIGH ship blocker · Wave 2.5 patch 入下個 phase 之前必修**
+**Phase**: **Phase 5 Wave 2.5 shipped ✅ · Migration 0013 applied + 6/6 sanity pass · 全部 5 ship blocker 關閉 + 4 個 audit fold-in · 落 Phase 1.5/2 polish / Phase 6 / Phase 7**
 **Live URL**: https://story-engine-drab.vercel.app
-**Last updated**: 2026-05-22 (Session 8 cont. — Wave 2 audit · Wave 2.5 必修)
+**Last updated**: 2026-05-22 (Session 8 cont. — Wave 2.5 closed)
 
 ## 🎯 Founder priority rule（鎖死）
 
@@ -23,7 +23,6 @@
 
 | 排 | Plan item | Tier | Time | Why |
 |---|---|---|---|---|
-| 🛑 | **Wave 2.5 patch** — 5 ship blocker fix: GENRE_BOARDS CJK keys + stories_by_genre RPC alias map (W2-GENRE-C-01) · library/page.tsx empty-string filter sanitize (W2-FILTER-H-02) · play-client 400 action_blocked branch + PlayErrorCard friendly render (W2-UX-H-03) · Migration 0013 trending clamp + stories INSERT trigger (W2-TREND-H-01) · launch fallback single-list mode (W2-LAUNCH-H-05) + 順手 fold-in 7-8 medium (anon ISR · turn moderation parallel · turn loading hint · ZWJ strip · CJK stop-list · profile display_name render · doc fix · dead var) | 🟢 FUNCTION | ~1 session | Wave 2 fix shipped 但 audit 揾到 5 個 launch blocker · 同 Wave 1.5 一樣 pattern |
 | 🥇 | **Phase 1.5/2 polish (audit deferred)** — NPC name fuzzy match · 4-axis disposition init · always_on demote · refusal embed flow · Memory Journal UI backend prep | 🟢 FUNCTION | ~1 session | Audit backlog cleanup before launch |
 | 🥈 | **Phase 6 non-money function bits** — adult mode toggle · content rating filter · provider gating（唔包 KYC）| 🟢 FUNCTION | ~1 session | Adult flow narrative gating |
 | 🥉 | **Phase 7 content** — Founder + Claude 寫 5 條 launch-ready 官方故事 | 🟢 FUNCTION | 多 session slow-burn | 官方故事支撐 launch + 填空蕩 genre 榜 |
@@ -38,7 +37,29 @@
 
 ## 🚧 Blockers
 
-**🛑 Wave 2.5 必修先入下個 phase**：Wave 2 ship 完即 2-agent parallel audit 揾到 1 CRITICAL + 4 HIGH ship blocker（24 finding total）：（1）W2-GENRE-C-01 6 個 genre carousel 永久空白 — library 用英文 key 但 schema-generator 出 CJK genre · multi-board UX dead-on-arrival；（2）W2-FILTER-H-02 search form default empty filter 殺所有 result；（3）W2-UX-H-03 turn moderation block 顯示 raw JSON 俾玩家；（4）W2-TREND-H-01 trending newcomer boost + INSERT RLS 漏 column restriction → future-date attack；（5）W2-LAUNCH-H-05 empty library 比 single-list 更空。詳見 [audit-report-phase5-wave2.html](audit-report-phase5-wave2.html)。同 Wave 1.5 一樣 pattern：fix shipped → audit → next-layer issue。Wave 2.5 ~100 LoC 修晒 5 條 + 順手 fold-in。
+**冇 launch blocker**。Phase 5 wave 5 個 ship blocker 全部修咗（Migration 0013 applied · 6/6 sanity pass）。Multi-board library 終於 alive — schema-generator 出嘅「戀愛校園」/「古惑仔」/「玄幻冒險」現在 match 對應 carousel；search form 唔再殺 result；玩家 moderation block 見 Shield card；trending board future-date exploit 兩層防禦關閉；launch 期 empty library 自動 fallback 做 single-list。落 Phase 1.5/2 polish 或 Phase 6 non-money 或 Phase 7 content。
+
+**Deferred 至下個 sprint**（非 launch blocker）：W2-COST-H-04 library anon ISR cache（深 refactor · 高流量先有影響）· W2-FP-* moderation false-positive monitoring（observability tier）· W2-LIB-L-09 carousel dedup（UI polish）· W2-FTS-M-04 Bopomofo / CJK Extension B regex extend。
+
+## ✅ Just completed (Session 8 cont. — Phase 5 Wave 2.5)
+
+### Migration 0013 — 5 ship blocker fixes + 4 audit fold-in applied on prod
+- **W2-TREND-H-01 (HIGH)** — Trending exploit closed via two layers: (a) `trending_stories` + `stories_by_genre` formulas use `greatest(0, now() - created_at)` clamp; (b) new `stories_lock_server_columns_on_insert` BEFORE INSERT trigger forces `created_at:=now()` · `visibility:='private'` · counter columns to 0/null for non-service-role callers. Browser console INSERT setting future created_at no longer poisons trending.
+- **W2-FTS-M-09** — `cjk_bigram_tokenize` strips zero-width chars (U+200B/U+200C/U+200D/U+2060/U+FEFF) before iterating. ZWJ injection bypass closed.
+- **W2-FTS-M-10** — Tokenizer changed to bigram-only emission. Single-char CJK queries (`'的'`, `'是'`, `'我'`) return zero results instead of matching all titles. Search noise dramatically reduced. Backfilled all stories.
+- **W2-MOD-L-11** — Dead `last_was_cjk` variable removed from tokenizer.
+
+### Code-layer fixes
+- **W2-GENRE-C-01 (CRITICAL)** — library/page.tsx GENRE_BOARDS rebuilt with CJK titles + alias arrays (each board has 5-7 variants: 戀愛/戀愛校園/愛情/romance/純愛/言情 etc). New `fetchBoard(aliases)` tries each alias until non-empty. Schema-generator's CJK output now matches the carousels.
+- **W2-FILTER-H-02 (HIGH)** — Library page sanitizes `sp.language?.trim() || undefined` (replacing `?? null` which let empty string through). Search form re-submit no longer kills all carousels.
+- **W2-UX-H-03 (HIGH)** — play-client adds 400 (`action_blocked`) + 503 (`moderation_misconfigured`) branches. New `ACTION_BLOCKED:` prefix triggers PlayErrorCard amber Shield card with friendly framing. Raw JSON is gone.
+- **W2-LAUNCH-H-05 (HIGH)** — Library `useLaunchFallback` boolean: when trending count < 8 AND no genre populated, renders single «公開故事» list instead of mostly-empty multi-board. Auto-engages multi-board once content crosses threshold.
+- **W2-PERF-M-06** — Turn route moderate + characters + char_states + recent_turns now `Promise.all` parallel. Saves ~500-2000ms per successful turn.
+- **W2-UX-M-07** — Play-client shows «內容審核 + AI 思考中...» indicator with Shield icon after 600ms of `streaming && !streamText` window. Consistent with Comment/Rate/Report panels.
+- **W2-UI-L-12** — Story detail page renders `display_name || user_id.slice(0,8) + '…'` fallback on comments + ratings. Wave 2 profile join finally surfaces.
+- **W2-MOD-M-07** — Moderation wrapper retry comment corrected: actual worst case ~11.5s (or ~19s with Retry-After upper bound), not the misleading ~5.5s.
+
+### TypeScript clean (npx tsc --noEmit exit 0) · Sanity 6/6 pass on prod
 
 ## ✅ Just completed (Session 8 cont. — Phase 5 Wave 2)
 

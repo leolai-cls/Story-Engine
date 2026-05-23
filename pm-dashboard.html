@@ -565,16 +565,16 @@
       <p class="section-sub">每次新 session 開始，由呢度睇起。</p>
 
       <div class="top-meta">
-        <div><strong>Last updated</strong> 2026-05-22 · Session 8 cont. (Wave 2 ship → audit → 1 CRIT + 4 HIGH ship blockers · Wave 2.5 patch 必修)</div>
-        <div><strong>Phase</strong> Phase 0/1/1.5/2/3 backend ✅ · Phase 5 Wave 1 ✅ · Wave 1.5 ✅ · Wave 2 shipped + 即 audit · <strong>Wave 2.5 必修</strong> → Phase 1.5/2 polish / Phase 6 / Phase 7</div>
+        <div><strong>Last updated</strong> 2026-05-22 · Session 8 cont. (Wave 2.5 shipped · 全部 5 ship blocker 修咗 + 4 audit fold-in)</div>
+        <div><strong>Phase</strong> Phase 0/1/1.5/2/3 backend ✅ · Phase 5 Wave 1 ✅ · Wave 1.5 ✅ · Wave 2 ✅ · Wave 2.5 ✅ · 落 Phase 1.5/2 polish / Phase 6 / Phase 7</div>
         <div><strong>Live</strong> <a href="https://story-engine-drab.vercel.app" target="_blank" style="color: var(--primary);">story-engine-drab.vercel.app</a></div>
       </div>
 
       <div class="status-hero">
-        <div class="label">🛑 Wave 2 shipped 但即 audit 揾到 1 CRIT + 4 HIGH ship blocker · Wave 2.5 patch 入下個 phase 之前必修</div>
-        <div class="phase">6 個 genre carousel 永久空白 (English key vs CJK output mismatch) · search form default empty filter 殺 result · turn block 顯示 raw JSON · trending future-date exploit · empty library first impression</div>
+        <div class="label">✅ Phase 5 Wave 2.5 完成 · 全部 5 ship blocker 修咗 + 4 audit fold-in · Migration 0013 · 6/6 sanity pass</div>
+        <div class="phase">CJK genre alias map · empty-filter sanitize · 400 friendly Shield card · trending clamp + INSERT lock · launch fallback · turn parallel · turn loading hint · display_name UI · bigram-only · ZWJ strip</div>
         <div class="focus">
-          Session 8 cont. ship Migration 0012 + multi-board library page + 7 audit fold-in。<strong>即時 2-agent parallel audit 揾到 24 finding · 1 CRITICAL + 5 HIGH</strong>：（1）<strong>W2-GENRE-C-01 CRITICAL</strong> library 嘅 GENRE_BOARDS keys 用英文 ('romance', 'adventure', 'school', 'fantasy', 'sports', 'mystery') 但 schema-generator prompt 教 Claude 出 CJK genre ('戀愛校園', '古惑仔', '玄幻冒險') — 6 個 carousel 永遠空白；（2）<strong>W2-FILTER-H-02 HIGH</strong> search form select default value="" + `??` 唔 catch empty string → RPC `where s.language = ''` → 0 results everywhere · 用戶按一次「搜尋」即見 library 表面壞晒；（3）<strong>W2-UX-H-03 HIGH</strong> turn moderation 返 400 JSON · play-client 唔 handle 400 · 玩家見 raw <code>{"error":"action_blocked",...}</code>；（4）<strong>W2-TREND-H-01 HIGH</strong> trending newcomer boost <code>exp(-age/3)</code> 冇 clamp + stories INSERT RLS 漏 column restriction · 用戶可 browser console INSERT 設 created_at='2099-01-01' 永久霸佔 trending；（5）<strong>W2-LAUNCH-H-05 HIGH</strong> 配合 W2-GENRE-C-01 + 內容稀疏 · library first impression 比之前 single-list 更空。<strong>同 Wave 1.5 一樣 pattern</strong>：fix shipped → audit → 揾到 next-layer issue。Wave 2.5 ~100 LoC 修晒。
+          Session 8 cont. ship Migration 0013 + 5 code-layer fix。<strong>W2-GENRE-C-01 (CRIT)</strong>: GENRE_BOARDS keys 改 CJK title + 每 board 5-7 個 aliases (戀愛/戀愛校園/愛情/romance/純愛/言情 etc) · fetchBoard 試每個 alias · multi-board UX 真係 alive。<strong>W2-FILTER-H-02</strong>: `sp.language?.trim() || undefined` · empty string 唔再殺 RPC。<strong>W2-UX-H-03</strong>: play-client 加 400/503 branch + PlayErrorCard amber Shield card friendly framing。<strong>W2-TREND-H-01</strong>: 公式 `greatest(0, now() - created_at)` clamp + 新 BEFORE INSERT trigger 對 non-service-role 強制 server-controlled defaults (created_at / visibility / counters / owner_id)。<strong>W2-LAUNCH-H-05</strong>: launch fallback — trending &lt; 8 + no genre populated → render 單 list · cross threshold auto multi-board。<strong>順手 fold-in</strong>：W2-PERF-M-06 turn moderate + 3 SELECT Promise.all parallel · W2-UX-M-07 600ms 後「內容審核 + AI 思考中」hint · W2-UI-L-12 ratings/comments render display_name · W2-FTS-M-09 ZWJ strip · W2-FTS-M-10 bigram-only mode · W2-MOD-L-11 dead var · W2-MOD-M-07 doc fix。<strong>Deferred</strong>：W2-COST-H-04 anon ISR (深 refactor)。下一步：Phase 1.5/2 polish · Phase 6 non-money · Phase 7 content。
         </div>
       </div>
 
@@ -602,16 +602,17 @@
             <li>Migration 0012 applied · 8/8 sanity pass · TypeScript clean</li>
           </ul>
         </div>
-        <div class="status-card warn">
-          <div class="status-card-title">🛑 Wave 2.5 必修 — 1 CRIT + 4 HIGH ship blocker (24 finding total)</div>
+        <div class="status-card good">
+          <div class="status-card-title">✅ Wave 2.5 — 全部 5 ship blocker 修咗 + 4 audit fold-in (Migration 0013)</div>
           <ul>
-            <li>🛑 <strong>W2-GENRE-C-01 CRIT</strong> — 6 個 genre carousel 永久空白：library 用英文 key ('romance' etc) · schema-generator 出 CJK ('戀愛校園', '古惑仔')。Multi-board UX dead-on-arrival。Fix: GENRE_BOARDS keys 改 CJK + RPC alias map</li>
-            <li>🛑 <strong>W2-FILTER-H-02 HIGH</strong> — Search form default empty filter (`?language=`) → RPC `where s.language = ''` → 0 results everywhere · user 按一次搜尋即見壞。Fix: `sp.language || undefined`</li>
-            <li>🛑 <strong>W2-UX-H-03 HIGH</strong> — Turn moderation block 返 400 JSON · play-client 唔 handle · raw JSON 顯示俾玩家。Fix: play-client 加 400 branch + PlayErrorCard friendly render</li>
-            <li>🛑 <strong>W2-TREND-H-01 HIGH</strong> — Trending newcomer boost 冇 clamp + stories INSERT RLS 漏 column restriction → 用戶 browser 直 INSERT 設 created_at='2099-01-01' 永久霸佔 trending board。Fix: Migration 0013 + clamp formula + INSERT trigger</li>
-            <li>🛑 <strong>W2-LAUNCH-H-05 HIGH</strong> — Empty library first impression killer · regression vs single-board UX。Fix: launch fallback render 單一 list until trending ≥ 8 OR genre ≥ 4</li>
-            <li>Wave 2.5 ~100 LoC 修晒 5 條 + 順手 fold-in 7-8 條 medium · 後再 audit verify</li>
-            <li>之後：Phase 1.5/2 polish · Phase 6 non-money · Phase 7 官方故事</li>
+            <li>✅ <strong>W2-GENRE-C-01 CRIT</strong> — GENRE_BOARDS rebuilt with CJK title + aliases array · fetchBoard 試每個 alias · 6 個 carousel 真係 surface schema-generator 嘅 CJK genre</li>
+            <li>✅ <strong>W2-FILTER-H-02 HIGH</strong> — Library page 用 `sp.language?.trim() || undefined` 取代 `?? null` · empty string 唔再殺 RPC</li>
+            <li>✅ <strong>W2-UX-H-03 HIGH</strong> — play-client 加 400 / 503 branch · ACTION_BLOCKED: prefix → PlayErrorCard amber Shield card friendly framing</li>
+            <li>✅ <strong>W2-TREND-H-01 HIGH</strong> — Two-layer: 公式 greatest(0, now()-created_at) clamp + 新 stories_lock_server_columns_on_insert BEFORE INSERT trigger 對 non-service-role 強制 server-controlled defaults</li>
+            <li>✅ <strong>W2-LAUNCH-H-05 HIGH</strong> — useLaunchFallback boolean · trending &lt; 8 + no genre → render 單一「公開故事」list · cross threshold auto multi-board</li>
+            <li>✅ Bonus fold-in: <strong>W2-PERF-M-06</strong> turn moderate + 3 SELECT Promise.all parallel · <strong>W2-UX-M-07</strong> 600ms 後「內容審核 + AI 思考中」hint · <strong>W2-UI-L-12</strong> display_name 渲染 · <strong>W2-FTS-M-09</strong> ZWJ strip · <strong>W2-FTS-M-10</strong> bigram-only · <strong>W2-MOD-L-11</strong> dead var · <strong>W2-MOD-M-07</strong> doc fix</li>
+            <li>Migration 0013 applied · 6/6 sanity pass · TypeScript clean</li>
+            <li>Deferred: W2-COST-H-04 anon ISR (高流量先有影響) · W2-LIB-L-09 carousel dedup · W2-FTS-M-04 Bopomofo regex</li>
           </ul>
         </div>
       </div>
@@ -623,8 +624,8 @@
           <div class="quick-link-desc">Login → Guest button → /stories/new → 玩夠 5+ turns 試 act transition</div>
         </a>
         <a href="audit-report-phase5-wave2.html" class="quick-link">
-          <div class="quick-link-title">🔍 Phase 5 Wave 2 Audit (latest · ⚠️ 1 CRIT + 4 HIGH ship blockers)</div>
-          <div class="quick-link-desc">Multi-board library shipped but 5 launch blockers — English vs CJK genre keys · empty-filter kill · turn block raw JSON · trending exploit · empty library UX</div>
+          <div class="quick-link-title">🔍 Phase 5 Wave 2 Audit (✅ 5 ship blockers closed via Wave 2.5)</div>
+          <div class="quick-link-desc">1 CRIT + 4 HIGH ship blockers · Migration 0013 + CJK aliases + filter sanitize + 400 friendly card + trending clamp + launch fallback · 6/6 sanity</div>
         </a>
         <a href="audit-report-phase5-wave1.html" class="quick-link">
           <div class="quick-link-title">🔍 Phase 5 Wave 1 Audit (✅ 6 ship blockers closed via Wave 1.5)</div>

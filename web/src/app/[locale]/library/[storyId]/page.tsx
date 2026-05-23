@@ -154,7 +154,10 @@ export default async function StoryDetailPage({
               {ratings.map((r) => (
                 <Card key={r.user_id + r.created_at}>
                   <CardContent className="py-4">
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                      <span className="text-xs font-semibold text-foreground">
+                        {r.display_name || `${r.user_id.slice(0, 8)}…`}
+                      </span>
                       <div className="flex">
                         {[1, 2, 3, 4, 5].map((n) => (
                           <Star
@@ -167,7 +170,7 @@ export default async function StoryDetailPage({
                           />
                         ))}
                       </div>
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-xs text-muted-foreground ml-auto">
                         {new Date(r.created_at).toLocaleDateString()}
                       </span>
                     </div>
@@ -201,8 +204,12 @@ export default async function StoryDetailPage({
                 <Card key={c.id}>
                   <CardContent className="py-3">
                     <div className="flex items-center justify-between gap-2 mb-1.5">
-                      <span className="text-xs text-muted-foreground font-mono">
-                        {c.user_id.slice(0, 8)}…
+                      <span className="text-xs font-semibold text-foreground">
+                        {c.display_name || (
+                          <span className="font-mono text-muted-foreground">
+                            {c.user_id.slice(0, 8)}…
+                          </span>
+                        )}
                       </span>
                       <span className="text-xs text-muted-foreground">
                         {new Date(c.created_at).toLocaleString()}

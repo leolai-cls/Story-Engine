@@ -174,55 +174,67 @@ export async function POST(
     return NextResponse.json({ error: "story not found" }, { status: 404 });
   }
 
-  // 3.6 W1-MOD-H-03 (Phase 5 Wave 2 audit fix) — moderate user action input
-  // BEFORE Director / Narrator pipeline. CLAUDE.md hard rule #6 covers all
-  // user-input surfaces including private playthrough action text — the
-  // turn text persists to the turns table even on Narrator refusal, so
-  // CSAM / illegal action descriptions need to be blocked at submit time.
-  // failClosed:true: transient API errors block (no silent bypass on the
-  // hottest input surface).
-  try {
-    const verdict = await moderateText(
-      action,
-      (story.content_rating as "sfw" | "soft" | "adult") ?? "sfw",
-      { failClosed: true },
-    );
-    if (!verdict.allowed) {
-      console.warn(
-        `[turn] moderation blocked action on pt ${playthroughId} user ${user.id}: ${verdict.categories.join(", ")}`,
-      );
-      return NextResponse.json(
-        { error: "action_blocked", message: verdict.reason },
-        { status: 400 },
-      );
-    }
-  } catch (e) {
-    if (e instanceof ModerationConfigError) {
-      console.error("[turn] moderation config error:", e.message);
+  // 3.6 Wave 2.5 W2-PERF-M-06: parallelize moderation with character /
+  // char-state / recent-turn fetches. Moderation only needs story.content_rating
+  // (already in hand). The 3 DB queries only need playthroughId / story_id.
+  // Previously serialized — moderation latency (~500ms-2s) blocked 3 independent
+  // SELECTs. Now they all run together; we process the verdict after settle.
+  //
+  // W1-MOD-H-03 + CLAUDE.md hard rule #6 still hold: action moderation happens
+  // BEFORE any Director / Narrator call (those come later in the pipeline).
+  // failClosed:true ensures transient API errors block.
+  const moderationPromise = moderateText(
+    action,
+    (story.content_rating as "sfw" | "soft" | "adult") ?? "sfw",
+    { failClosed: true },
+  )
+    .then((verdict) => ({ ok: true as const, verdict }))
+    .catch((e: unknown) => ({ ok: false as const, error: e }));
+
+  const [moderationResult, charactersResult, charStatesResult, recentTurnsResult] = await Promise.all([
+    moderationPromise,
+    supabase.from("story_characters").select("*").eq("story_id", pt.story_id),
+    supabase
+      .from("playthrough_character_states")
+      .select("*")
+      .eq("playthrough_id", playthroughId),
+    supabase
+      .from("turns")
+      .select("role, text, turn_index")
+      .eq("playthrough_id", playthroughId)
+      .order("turn_index", { ascending: false })
+      .limit(RECENT_TURN_LIMIT),
+  ]);
+
+  // Handle moderation verdict / error before continuing into the LLM pipeline
+  if (!moderationResult.ok) {
+    const err = moderationResult.error;
+    if (err instanceof ModerationConfigError) {
+      console.error("[turn] moderation config error:", err.message);
       return NextResponse.json(
         { error: "moderation_misconfigured", message: "內容審核系統設定問題，請稍後再試。" },
         { status: 503 },
       );
     }
-    throw e;
+    console.error("[turn] moderation threw unexpected:", err);
+    return NextResponse.json(
+      { error: "moderation_failed", message: "內容審核暫時無法使用，請稍後再試。" },
+      { status: 503 },
+    );
+  }
+  if (!moderationResult.verdict.allowed) {
+    console.warn(
+      `[turn] moderation blocked action on pt ${playthroughId} user ${user.id}: ${moderationResult.verdict.categories.join(", ")}`,
+    );
+    return NextResponse.json(
+      { error: "action_blocked", message: moderationResult.verdict.reason },
+      { status: 400 },
+    );
   }
 
-  const { data: characters } = await supabase
-    .from("story_characters")
-    .select("*")
-    .eq("story_id", pt.story_id);
-
-  const { data: charStates } = await supabase
-    .from("playthrough_character_states")
-    .select("*")
-    .eq("playthrough_id", playthroughId);
-
-  const { data: recentTurns } = await supabase
-    .from("turns")
-    .select("role, text, turn_index")
-    .eq("playthrough_id", playthroughId)
-    .order("turn_index", { ascending: false })
-    .limit(RECENT_TURN_LIMIT);
+  const characters = charactersResult.data;
+  const charStates = charStatesResult.data;
+  const recentTurns = recentTurnsResult.data;
 
   // Reverse to chronological
   const turnsChronological = (recentTurns ?? []).reverse();
