@@ -23,14 +23,14 @@
 
 | 排 | Plan item | Tier | Time | Why |
 |---|---|---|---|---|
-| 🥇 | **Phase 7 content** — Founder + Claude 寫 5 條 launch-ready 官方故事（填空蕩 genre 榜 + 收集 real distribution data 解 W2.5-GENRE-M-02） | 🟢 FUNCTION | 多 session slow-burn | Launch impression 大躍進 · 解 deferred audit item |
-| 🥈 | **Phase 6 non-money function** — adult mode toggle · content rating filter · provider gating (Anthropic vs OpenRouter)（唔包 KYC · 嗰個 money tier）| 🟢 FUNCTION | ~1 session | Adult flow architecture · 解鎖 money tier prep |
-| 🥉 | **Phase 1.5/2 polish (audit deferred)** — NPC name fuzzy match · 4-axis disposition init · always_on demote · refusal embed flow · Memory Journal UI backend prep | 🟢 FUNCTION | ~1 session | Audit backlog cleanup |
-| ↓ | _function tier 完晒_ |  |  |  |
-| 4 | **UI design wave** — Library page polish · Memory Journal UI（Phase 2 audit deferred · differentiator）· Locale switcher · Settings i18n · 全部 audit deferred UX items · Dashboard ROADMAP refresh (W2.7-DOC-M-04) · BACKLOG mirror (W2.7-DOC-L-05) | 🟣 UI | ~2 sessions | 玩家可見嘅嘢 |
-| 🧪 | **Comprehensive Manual E2E** ([manual-e2e-phase5.html](../manual-e2e-phase5.html) + expand to cover UI flows) — Founder explicit rule: 等 UI tier 完之後一次過測，唔逐 phase 測。Manual E2E covers community + UI + adult mode toggle + 5 official stories + entire happy path | 🟣 UI tier final step | ~1-2 sessions Founder | All function + UI tested as final product, not minimal-UI iterations |
-| ↓ | _UI tier + E2E 通過_ |  |  |  |
-| 5 | **Money tier** — Phase 4 Stripe (subscription + checkout + top-up) · Phase 6 KYC (Stripe Identity) · Phase 3 deferred (refund saga · OpenRouter dynamic pricing) | 🟡 MONEY | ~2 sessions | 收錢 backbone |
+| 🥇 | **Phase 6 non-money function** — adult mode toggle · content rating filter · provider gating (Anthropic vs OpenRouter)（唔包 KYC · 嗰個 money tier）| 🟢 FUNCTION · technical | ~1 session | Adult flow architecture · 解鎖 money tier prep |
+| 🥈 | **Phase 1.5/2 polish (audit deferred)** — NPC name fuzzy match · 4-axis disposition init · always_on demote · refusal embed flow · Memory Journal UI backend prep | 🟢 FUNCTION · technical | ~1 session | Audit backlog cleanup |
+| ↓ | _technical function 完晒_ |  |  |  |
+| 3 | **UI design wave** — Library page polish · Memory Journal UI（Phase 2 audit deferred · differentiator）· Locale switcher · Settings i18n · 全部 audit deferred UX items · Dashboard ROADMAP refresh (W2.7-DOC-M-04) · BACKLOG mirror (W2.7-DOC-L-05) | 🟣 UI | ~2 sessions | 玩家可見嘅嘢 |
+| ↓ | _UI tier 完晒_ |  |  |  |
+| 4 | **Money tier** — Phase 4 Stripe (subscription + checkout + top-up) · Phase 6 KYC (Stripe Identity) · Phase 3 deferred (refund saga · OpenRouter dynamic pricing) | 🟡 MONEY | ~2 sessions | 收錢 backbone |
+| ↓ | _Money tier 完晒_ |  |  |  |
+| 🏁 | **Final stage (launch eve)** — (a) Phase 7 content: 5 條 launch-ready 官方故事 (小工作) · (b) Comprehensive Manual E2E (founder ~1-2 session) covers community + UI + adult mode + 5 stories + entire happy path | 🟢 + 🧪 | ~2-3 session 一氣呵成 | Founder rule: 寫故事細工作 · 等所有 backend/UI/money 完晒先 polish 內容 · 同時 final E2E 測 launch-ready product |
 
 ## 🚧 Blockers
 
