@@ -94,7 +94,7 @@ export const MODELS: Record<string, ModelEntry> = {
   "gemini-3-1-pro": {
     id: "gemini-3-1-pro",
     provider: "openrouter",
-    model_id: "google/gemini-3.1-pro",
+    model_id: "google/gemini-3.1-pro-preview",
     display_name: "Gemini 3.1 Pro",
     role: "narrator",
     credit_multiplier: 2.0,
