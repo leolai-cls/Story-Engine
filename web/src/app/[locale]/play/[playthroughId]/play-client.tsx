@@ -294,6 +294,8 @@ export function PlayClient({
   const [streaming, setStreaming] = useState(false);
   const [streamText, setStreamText] = useState("");
   const [error, setError] = useState<string | null>(null);
+  // C10 audit fix · mobile 3-tab pattern (敘事 / 角色 / 狀態)
+  const [mobileTab, setMobileTab] = useState<"narrative" | "npc" | "state">("narrative");
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // W2-UX-M-07: show "正在審核 + 思考..." indicator during the moderation +
@@ -496,10 +498,43 @@ export function PlayClient({
         </div>
       </header>
 
-      {/* Two-column layout: narrative left, state panel right */}
+      {/* C10 audit fix · Mobile 3-tab bar (lg:hidden) */}
+      <div
+        className="lg:hidden flex border-b"
+        style={{
+          background: "var(--se-bg-elev)",
+          borderColor: "var(--se-border)",
+        }}
+      >
+        {(
+          [
+            { id: "narrative", label: "敘事" },
+            { id: "npc", label: `角色 · ${npcs.length}` },
+            { id: "state", label: "狀態" },
+          ] as const
+        ).map((t) => {
+          const a = mobileTab === t.id;
+          return (
+            <button
+              key={t.id}
+              onClick={() => setMobileTab(t.id as typeof mobileTab)}
+              className="flex-1 py-2.5 text-xs se-cjk"
+              style={{
+                color: a ? "var(--se-fg)" : "var(--se-fg-muted)",
+                borderBottom: `2px solid ${a ? "var(--se-accent)" : "transparent"}`,
+                fontWeight: a ? 500 : 400,
+              }}
+            >
+              {t.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Two-column layout: narrative left, state panel right · mobile uses tabs */}
       <div className="flex-1 container mx-auto max-w-7xl px-4 sm:px-6 py-4 grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 min-h-0">
-        {/* Narrative + input */}
-        <div className="flex flex-col min-h-0">
+        {/* Narrative + input · mobile: only when tab="narrative" */}
+        <div className={`flex-col min-h-0 ${mobileTab === "narrative" ? "flex" : "hidden lg:flex"}`}>
           <div className="text-xs text-muted-foreground mb-2 line-clamp-1">
             {storyDescription}
           </div>
@@ -635,11 +670,15 @@ export function PlayClient({
           </form>
         </div>
 
-        {/* Right rail · NPC dispositions + State panel */}
-        <div className="lg:sticky lg:top-16 lg:self-start flex flex-col gap-4 max-h-[calc(100vh-5rem)] overflow-y-auto">
-          {/* NPC cards — Hard rule #6: 4-axis disposition visible per NPC */}
+        {/* Right rail · NPC dispositions + State panel · mobile uses tabs */}
+        <div
+          className={`lg:sticky lg:top-16 lg:self-start lg:flex lg:flex-col gap-4 lg:max-h-[calc(100vh-5rem)] lg:overflow-y-auto ${mobileTab !== "narrative" ? "block" : "hidden lg:flex"}`}
+        >
+          {/* NPC cards — Hard rule #6: 4-axis disposition visible per NPC · mobile: tab="npc" */}
           {npcs.length > 0 && (
-            <div className="flex flex-col gap-2.5">
+            <div
+              className={`flex-col gap-2.5 ${mobileTab === "npc" ? "flex" : "hidden lg:flex"}`}
+            >
               <div
                 className="se-mono uppercase flex items-center gap-1.5"
                 style={{ fontSize: 10, color: "var(--se-fg-dim)", letterSpacing: "0.08em" }}
@@ -657,12 +696,14 @@ export function PlayClient({
               ))}
             </div>
           )}
-          {/* Adaptive state panel · 9 atomic renderers */}
-          <DynamicStatePanel
-            schema={stateSchema}
-            state={state}
-            title={`${characterName} 嘅狀態`}
-          />
+          {/* Adaptive state panel · 9 atomic renderers · mobile: tab="state" */}
+          <div className={mobileTab === "state" ? "block" : "hidden lg:block"}>
+            <DynamicStatePanel
+              schema={stateSchema}
+              state={state}
+              title={`${characterName} 嘅狀態`}
+            />
+          </div>
         </div>
       </div>
     </div>

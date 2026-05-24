@@ -97,9 +97,74 @@ export default async function StoryDetailPage({
   return (
     <>
       <SiteHeader />
-      <main className="flex-1" style={{ background: "var(--se-bg)" }}>
-        {/* HERO — full-bleed cover */}
-        <section className="relative overflow-hidden border-b" style={{
+      <main className="flex-1 pb-20 md:pb-0" style={{ background: "var(--se-bg)" }}>
+        {/* B3 audit · Mobile compact hero (110px side cover + title beside · md:hidden) */}
+        <section
+          className="md:hidden relative px-4 pt-6 pb-5"
+          style={{
+            background: `linear-gradient(180deg, var(--se-surface-2) 0%, var(--se-bg) 100%)`,
+            borderBottom: "1px solid var(--se-border)",
+          }}
+        >
+          <div className="flex items-center gap-1.5 mb-4">
+            <Link
+              href={"/library" as never}
+              locale={locale}
+              className="inline-flex items-center gap-1 text-xs"
+              style={{ color: "var(--se-fg-muted)" }}
+            >
+              <ArrowLeft size={11} />
+              故事庫
+            </Link>
+          </div>
+          <div className="flex items-start gap-3.5">
+            <div className="flex-none" style={{ width: 110 }}>
+              <Cover storyId={story.id} genre={story.genre as GenreKey} ratio="3 / 4" size="md" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 mb-2 flex-wrap">
+                {story.genre && <GenreChip genre={story.genre as GenreKey} />}
+                <RatingBadge rating={story.content_rating} />
+              </div>
+              <h1
+                className="m-0 se-cjk"
+                style={{
+                  fontSize: 20,
+                  fontWeight: 600,
+                  letterSpacing: "-0.02em",
+                  lineHeight: 1.2,
+                  color: "var(--se-fg)",
+                }}
+              >
+                {story.title}
+              </h1>
+              <div
+                className="flex items-center gap-1.5 mt-2 text-xs"
+                style={{ color: "var(--se-fg-muted)" }}
+              >
+                <Avatar name="·" size={16} hue={220} />
+                <span style={{ color: "var(--se-fg-2)" }}>社群創作</span>
+              </div>
+              <div className="mt-2">
+                <Stars value={story.rating_avg ?? 0} count={story.rating_count} size={11} />
+              </div>
+            </div>
+          </div>
+          {story.description && (
+            <p
+              className="mt-4 mb-0 text-sm se-cjk"
+              style={{
+                color: "var(--se-fg-2)",
+                lineHeight: 1.7,
+              }}
+            >
+              {story.description}
+            </p>
+          )}
+        </section>
+
+        {/* HERO — full-bleed cover · desktop only (md+) */}
+        <section className="hidden md:block relative overflow-hidden border-b" style={{
           height: 480,
           borderColor: "var(--se-border)",
         }}>
@@ -164,9 +229,9 @@ export default async function StoryDetailPage({
             <h1
               className="se-cjk text-white m-0"
               style={{
-                fontSize: 56,
+                fontSize: 64,
                 fontWeight: 700,
-                lineHeight: 1.05,
+                lineHeight: 1.02,
                 letterSpacing: "-0.03em",
                 textWrap: "balance",
               }}
@@ -208,10 +273,9 @@ export default async function StoryDetailPage({
           </div>
         </section>
 
-        {/* Body · 2-col layout: main + sidebar */}
+        {/* Body · 2-col layout: main + sidebar (1-col on mobile) */}
         <div
-          className="max-w-[1200px] mx-auto px-6 sm:px-14 py-10"
-          style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 48 }}
+          className="max-w-[1200px] mx-auto px-4 sm:px-14 py-6 md:py-10 grid grid-cols-1 md:grid-cols-[1fr_320px] gap-6 md:gap-12"
         >
           {/* MAIN column */}
           <div className="min-w-0">

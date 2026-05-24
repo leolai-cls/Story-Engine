@@ -26,13 +26,31 @@ export interface StoryCardData {
   href?: string;
 }
 
-export function StoryCard({ s, w = 224, locale }: { s: StoryCardData; w?: number; locale: string }) {
+export function StoryCard({
+  s,
+  w = 224,
+  mobileW = 138,
+  locale,
+}: {
+  s: StoryCardData;
+  /** Desktop card width (default 224 · matches designer's hero-row cards). */
+  w?: number;
+  /** Mobile card width (default 138 · matches designer's A6 mobile mock). */
+  mobileW?: number;
+  locale: string;
+}) {
   const href = s.href ?? `/${locale}/library/${s.id}`;
   return (
     <Link
       href={href}
       className="flex-none flex flex-col cursor-pointer transition-transform duration-[250ms] hover:-translate-y-[3px]"
-      style={{ width: w, transitionTimingFunction: "var(--se-ease)" }}
+      style={{
+        // CSS var enables responsive width via media query in globals.css
+        ["--card-w" as string]: `${w}px`,
+        ["--card-w-mobile" as string]: `${mobileW}px`,
+        width: "var(--card-w)",
+        transitionTimingFunction: "var(--se-ease)",
+      }}
     >
       <div className="relative">
         <Cover storyId={s.id} title={s.title} genre={s.genre as GenreKey} ratio="3 / 4" size="md" />

@@ -205,8 +205,8 @@ export default async function LibraryPage({
           <LibraryHero locale={locale} story={heroStory} adultModeEnabled={adultModeEnabled} />
         )}
 
-        {/* Search bar (compact · always visible when no hero) */}
-        {(searchMode || !heroStory) && (
+        {/* Search bar — full filters · shown in search mode or when no hero */}
+        {(searchMode || !heroStory || !user) && (
           <div className="px-6 sm:px-14 py-6">
             <SearchForm
               q={sp.q ?? ""}
@@ -382,11 +382,81 @@ function LibraryHero({
         className="absolute inset-0"
         style={{
           background: `
-            linear-gradient(90deg, rgba(20,18,14,0.6) 0%, rgba(20,18,14,0.2) 35%, transparent 60%),
-            linear-gradient(0deg, var(--se-bg) 0%, transparent 35%),
-            linear-gradient(270deg, var(--se-bg) 0%, transparent 50%)`,
+            linear-gradient(90deg, rgba(20,18,14,0.55) 0%, rgba(20,18,14,0.25) 30%, transparent 55%),
+            linear-gradient(0deg, var(--se-bg) 0%, transparent 30%),
+            linear-gradient(270deg, var(--se-bg) 0%, transparent 45%)`,
         }}
       />
+
+      {/* Search inset over hero · top-right (Netflix-style nav-search-over-hero) */}
+      <div
+        className="absolute z-20 hidden md:flex items-center gap-3.5"
+        style={{ top: 22, left: 56, right: 56 }}
+      >
+        <form
+          method="get"
+          className="flex items-center gap-2 h-[38px] px-3.5 rounded-lg flex-1"
+          style={{
+            maxWidth: 480,
+            background: "rgba(255,255,255,0.85)",
+            backdropFilter: "blur(12px)",
+            border: "1px solid var(--se-border)",
+          }}
+        >
+          <Search size={14} color="var(--se-fg-dim)" />
+          <input
+            type="text"
+            name="q"
+            placeholder="搜尋故事、作者、tag…"
+            className="flex-1 bg-transparent outline-none text-sm se-cjk"
+            style={{ color: "var(--se-fg)" }}
+          />
+          <span
+            className="se-mono"
+            style={{
+              fontSize: 10,
+              color: "var(--se-fg-dim)",
+              padding: "2px 5px",
+              borderRadius: 3,
+              background: "rgba(20,18,14,0.06)",
+            }}
+          >
+            ⌘K
+          </span>
+        </form>
+      </div>
+
+      {/* Cycle indicator · bottom-right (designer: 01 / 04 pagination + active dot) */}
+      <div
+        className="absolute z-10 hidden md:flex items-center gap-3.5"
+        style={{ right: 56, bottom: 56 }}
+      >
+        <div className="flex gap-1.5">
+          {[0, 1, 2, 3].map((i) => (
+            <div
+              key={i}
+              style={{
+                width: i === 0 ? 28 : 8,
+                height: 3,
+                borderRadius: 2,
+                background: i === 0 ? "#fff" : "rgba(255,255,255,0.35)",
+                transition: "width .25s var(--se-ease)",
+              }}
+            />
+          ))}
+        </div>
+        <span
+          className="se-mono"
+          style={{
+            fontSize: 10.5,
+            color: "rgba(255,255,255,0.65)",
+            letterSpacing: "0.08em",
+          }}
+        >
+          01 / 04
+        </span>
+      </div>
+
       {/* Hero content — bottom-left aligned (Netflix pattern) */}
       <div
         className="absolute z-10 text-white"

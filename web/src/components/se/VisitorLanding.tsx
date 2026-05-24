@@ -118,21 +118,43 @@ export function VisitorLanding({ locale }: { locale: string }) {
           </div>
         </div>
 
-        {/* Right: 3-tile cover collage */}
-        <div
-          className="grid grid-cols-2 gap-3"
-          style={{
-            gridTemplateRows: "1fr 1fr",
-          }}
-        >
-          <div style={{ aspectRatio: "3 / 4" }}>
-            <Cover storyId="visitor-collage-1" hue={240} ratio="auto" size="lg" noLabel />
+        {/* Right: 3-tile cover collage · staggered offsets per designer's mock */}
+        <div className="hidden md:block relative" style={{ height: 480 }}>
+          {/* Tile 1 · top-left larger · early */}
+          <div
+            className="absolute"
+            style={{
+              left: 0,
+              top: 0,
+              width: 200,
+              height: 267,
+            }}
+          >
+            <Cover storyId="visitor-collage-1" hue={240} ratio="3 / 4" size="lg" noLabel />
           </div>
-          <div style={{ aspectRatio: "3 / 4", marginTop: 32 }}>
-            <Cover storyId="visitor-collage-2" hue={320} ratio="auto" size="lg" noLabel />
+          {/* Tile 2 · top-right offset down */}
+          <div
+            className="absolute"
+            style={{
+              right: 0,
+              top: 48,
+              width: 200,
+              height: 267,
+            }}
+          >
+            <Cover storyId="visitor-collage-2" hue={320} ratio="3 / 4" size="lg" noLabel />
           </div>
-          <div style={{ aspectRatio: "3 / 4", gridColumn: "span 2", marginTop: -56 }}>
-            <Cover storyId="visitor-collage-3" hue={285} ratio="auto" size="lg" noLabel />
+          {/* Tile 3 · bottom-center · overlapping */}
+          <div
+            className="absolute"
+            style={{
+              left: 100,
+              bottom: 0,
+              width: 220,
+              height: 293,
+            }}
+          >
+            <Cover storyId="visitor-collage-3" hue={285} ratio="3 / 4" size="lg" noLabel />
           </div>
         </div>
       </div>

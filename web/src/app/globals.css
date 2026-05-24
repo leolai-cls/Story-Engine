@@ -222,4 +222,13 @@
   .se-row-scroll::-webkit-scrollbar { height: 6px; }
   .se-row-scroll::-webkit-scrollbar-thumb { background: var(--se-border-strong); border-radius: 3px; }
   .se-row-scroll::-webkit-scrollbar-track { background: transparent; }
+
+  /* A6 audit fix · Story card mobile width (designer w=138 on mobile vs 224 desktop)
+     StoryCard component sets --card-w / --card-w-mobile inline; this rule overrides
+     width on viewports under 768px. */
+  @media (max-width: 767px) {
+    [style*="--card-w-mobile"] {
+      width: var(--card-w-mobile) !important;
+    }
+  }
 }
