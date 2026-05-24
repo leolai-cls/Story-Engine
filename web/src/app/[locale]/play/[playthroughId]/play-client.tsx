@@ -3,9 +3,20 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Send, Loader2, ArrowLeft, Coins, Lock, Shield } from "lucide-react";
+import { Sparkles, Send, Loader2, ArrowLeft, Coins, Lock, Shield, NotebookPen } from "lucide-react";
 import { DynamicStatePanel } from "@/components/state-panel";
 import type { StateSchema } from "@/schemas/state-schema";
+import { NpcCard } from "@/components/se/DispositionAxis";
+
+/**
+ * NPC card data passed in from server.
+ * 4-axis disposition (Hard rule #6) sourced from playthrough_character_states.disposition jsonb.
+ */
+export type NpcData = {
+  name: string;
+  role: string | null;
+  axes: { trust: number; romance: number; respect: number; fear: number };
+};
 
 /**
  * AUDIT FIX (P3-UX-M-13): friendly UX for credit / tier errors.
@@ -104,6 +115,7 @@ export function PlayClient({
   initialState,
   initialTurns,
   characterName,
+  npcs = [],
 }: {
   playthroughId: string;
   storyTitle: string;
@@ -112,6 +124,7 @@ export function PlayClient({
   initialState: Record<string, unknown>;
   initialTurns: Turn[];
   characterName: string;
+  npcs?: NpcData[];
 }) {
   const [turns, setTurns] = useState<Turn[]>(initialTurns);
   const [state, setState] = useState<Record<string, unknown>>(initialState);
@@ -300,8 +313,23 @@ export function PlayClient({
             <Sparkles className="h-4 w-4 text-primary" />
             <span className="truncate max-w-[300px]">{storyTitle}</span>
           </div>
-          <div className="ml-auto text-xs text-muted-foreground">
-            玩緊：<span className="font-medium text-foreground">{characterName}</span>
+          <div className="ml-auto flex items-center gap-3">
+            <Link
+              href={`/play/${playthroughId}/memory` as never}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium"
+              style={{
+                background: "var(--se-surface)",
+                border: "1px solid var(--se-border)",
+                color: "var(--se-fg-2)",
+              }}
+              title="呢個 playthrough 嘅 4 層獨立記憶"
+            >
+              <NotebookPen className="h-3.5 w-3.5" />
+              記憶
+            </Link>
+            <div className="text-xs text-muted-foreground">
+              玩緊：<span className="font-medium text-foreground">{characterName}</span>
+            </div>
           </div>
         </div>
       </header>
@@ -396,8 +424,29 @@ export function PlayClient({
           </form>
         </div>
 
-        {/* State panel */}
-        <div className="lg:sticky lg:top-16 lg:self-start">
+        {/* Right rail · NPC dispositions + State panel */}
+        <div className="lg:sticky lg:top-16 lg:self-start flex flex-col gap-4 max-h-[calc(100vh-5rem)] overflow-y-auto">
+          {/* NPC cards — Hard rule #6: 4-axis disposition visible per NPC */}
+          {npcs.length > 0 && (
+            <div className="flex flex-col gap-2.5">
+              <div
+                className="se-mono uppercase flex items-center gap-1.5"
+                style={{ fontSize: 10, color: "var(--se-fg-dim)", letterSpacing: "0.08em" }}
+              >
+                NPC · {npcs.length}
+              </div>
+              {npcs.map((npc) => (
+                <NpcCard
+                  key={npc.name}
+                  name={npc.name}
+                  role={npc.role}
+                  axes={npc.axes}
+                  hue={(npc.name.charCodeAt(0) * 13) % 360}
+                />
+              ))}
+            </div>
+          )}
+          {/* Adaptive state panel · 9 atomic renderers */}
           <DynamicStatePanel
             schema={stateSchema}
             state={state}

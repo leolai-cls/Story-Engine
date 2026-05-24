@@ -62,6 +62,38 @@ export default async function PlayPage({
     .eq("playthrough_id", playthroughId)
     .order("turn_index", { ascending: true });
 
+  // Fetch NPCs + per-playthrough disposition (Hard rule #6: 4-axis surface).
+  // 4-axis stored in playthrough_character_states.disposition jsonb.
+  const [{ data: characters }, { data: charStates }] = await Promise.all([
+    supabase
+      .from("story_characters")
+      .select("id, name, role")
+      .eq("story_id", pt.story_id),
+    supabase
+      .from("playthrough_character_states")
+      .select("character_id, disposition")
+      .eq("playthrough_id", playthroughId),
+  ]);
+
+  // Merge characters + states into a single array for PlayClient
+  type DispJson = { trust?: number; romance?: number; respect?: number; fear?: number } | null;
+  const stateMap = new Map<string, DispJson>(
+    (charStates ?? []).map((s) => [s.character_id as string, s.disposition as DispJson]),
+  );
+  const npcs = (characters ?? []).map((c) => {
+    const d = stateMap.get(c.id as string) ?? {};
+    return {
+      name: c.name as string,
+      role: (c.role as string | null) ?? null,
+      axes: {
+        trust: typeof d?.trust === "number" ? d!.trust! : 0,
+        romance: typeof d?.romance === "number" ? d!.romance! : 0,
+        respect: typeof d?.respect === "number" ? d!.respect! : 0,
+        fear: typeof d?.fear === "number" ? d!.fear! : 0,
+      },
+    };
+  });
+
   return (
     <PlayClient
       playthroughId={playthroughId}
@@ -75,6 +107,7 @@ export default async function PlayPage({
         index: t.turn_index,
       }))}
       characterName={pt.character_name ?? "主角"}
+      npcs={npcs}
     />
   );
 }
