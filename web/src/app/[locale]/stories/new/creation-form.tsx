@@ -6,9 +6,31 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Loader2, AlertCircle, Coins } from "lucide-react";
+import {
+  Sparkles,
+  Loader2,
+  AlertCircle,
+  Coins,
+  BookOpen,
+  Settings as SettingsIcon,
+  Gem,
+  Users,
+} from "lucide-react";
 import { createStoryFromPrompt } from "./actions";
 import { estimateStoryCreationCredits } from "@/lib/billing/credits";
+
+/**
+ * E4/E5 audit fix · Generation 4-parallel-task progress UI ("peak Grok moment")
+ * Backend uses Promise.all so we can't get per-task progress events without SSE.
+ * UI mocks all 4 tasks as concurrently running · all flip to done on form return.
+ * Indeterminate spinners + mono task labels reinforce the「AI dashboard」feel.
+ */
+const TASKS = [
+  { id: "meta", label: "故事 meta + opening 敘事", icon: BookOpen },
+  { id: "schema", label: "自適應 state schema", icon: SettingsIcon },
+  { id: "bible", label: "Story Bible · 世界規則", icon: Gem },
+  { id: "chars", label: "NPC character cards", icon: Users },
+] as const;
 
 // AUDIT FIX (P3-UX-L-16): pre-display cost so user knows what threshold
 // to hit before clicking. Previously they only learned via 402 error.
@@ -158,11 +180,68 @@ export function CreationForm({
           )}
 
           {isPending && (
-            <div className="text-xs text-muted-foreground text-center space-y-1">
-              <div>↳ AI 設計 state_schema（為呢個故事 tailor 嘅介面）</div>
-              <div>↳ 寫 story bible（核心衝突 + 世界規則 + 故事弧）</div>
-              <div>↳ Generate 3-5 個 NPC（每個有 red lines、目標、聲音）</div>
-              <div>↳ 寫開場敘事</div>
+            <div className="space-y-2.5">
+              <div
+                className="flex items-center justify-between text-xs"
+                style={{ color: "var(--se-fg-muted)" }}
+              >
+                <span
+                  className="se-mono uppercase inline-flex items-center gap-1.5"
+                  style={{
+                    color: "var(--se-accent)",
+                    letterSpacing: "0.06em",
+                  }}
+                >
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  GENERATING · 4 PARALLEL TASKS · ~35-50s
+                </span>
+                <span className="se-mono" style={{ color: "var(--se-fg-dim)" }}>
+                  你可以打開新 tab · 完成會自動跳轉
+                </span>
+              </div>
+              <div className="flex flex-col gap-2">
+                {TASKS.map((t) => {
+                  const Ico = t.icon;
+                  return (
+                    <div
+                      key={t.id}
+                      className="flex items-center gap-3 px-3.5 py-2.5 rounded-lg"
+                      style={{
+                        background: "var(--se-surface)",
+                        border: "1px solid var(--se-border)",
+                      }}
+                    >
+                      <span
+                        className="inline-flex items-center justify-center"
+                        style={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: 8,
+                          background: "var(--se-accent-bg)",
+                          color: "var(--se-accent)",
+                        }}
+                      >
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <div
+                          className="text-sm font-medium se-cjk"
+                          style={{ color: "var(--se-fg)" }}
+                        >
+                          {t.label}
+                        </div>
+                        <div
+                          className="se-mono mt-0.5"
+                          style={{ fontSize: 10.5, color: "var(--se-fg-dim)" }}
+                        >
+                          <Ico size={9} className="inline mr-1" />
+                          sonnet-4.6 · 生成中…
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
         </form>

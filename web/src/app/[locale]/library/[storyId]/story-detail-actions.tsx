@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Play, Star, Flag, Globe, Lock, MessageSquare, Shield } from "lucide-react";
+import { Play, Star, Flag, Globe, Lock, MessageSquare, Shield, Coins } from "lucide-react";
 import {
   forkStoryToPlaythrough,
   publishStory,
@@ -70,14 +70,32 @@ export function StoryDetailActions({
     };
   }, [pending]);
 
-  function handleFork() {
+  // B2 audit fix · Fork modal (designer redesign · per-playthrough explainer
+  // + protagonist name input · model picker uses Settings default). Backend
+  // forkStoryToPlaythrough accepts optional characterName.
+  const [forkModalOpen, setForkModalOpen] = useState(false);
+  const [forkProtagonistName, setForkProtagonistName] = useState("");
+
+  function openForkModal() {
+    if (!isAuthenticated) return;
+    setError(null);
+    setForkProtagonistName("");
+    setForkModalOpen(true);
+  }
+
+  function confirmFork() {
     setError(null);
     startTransition(async () => {
-      const result = await forkStoryToPlaythrough({ storyId });
+      const trimmed = forkProtagonistName.trim();
+      const result = await forkStoryToPlaythrough({
+        storyId,
+        characterName: trimmed || undefined,
+      });
       if (result.ok) {
         router.push(`/play/${result.data.playthroughId}`);
       } else {
         setError(`唔可以開始故事：${result.error}`);
+        setForkModalOpen(false);
       }
     });
   }
@@ -150,12 +168,16 @@ export function StoryDetailActions({
       {/* Primary action row */}
       <div className="flex flex-wrap items-center gap-2">
         <button
-          onClick={handleFork}
+          onClick={openForkModal}
           disabled={pending || !isAuthenticated}
-          className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-md px-5 py-2.5 text-sm font-semibold disabled:opacity-50"
+          style={{
+            background: "var(--se-fg)",
+            color: "var(--se-bg)",
+          }}
         >
           <Play className="h-4 w-4" />
-          {isAuthenticated ? "Play This Story" : "登入之後可以玩"}
+          {isAuthenticated ? "開始扮演" : "登入之後可以玩"}
         </button>
 
         {isAuthenticated && (
@@ -340,6 +362,129 @@ export function StoryDetailActions({
             >
               取消
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* B2 audit fix · Fork modal */}
+      {forkModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{
+            background: "var(--se-overlay)",
+            backdropFilter: "blur(6px)",
+          }}
+          onClick={() => !pending && setForkModalOpen(false)}
+        >
+          <div
+            className="w-full max-w-[520px] rounded-2xl p-7"
+            style={{
+              background: "var(--se-surface)",
+              border: "1px solid var(--se-border-strong)",
+              boxShadow: "var(--se-shadow-modal)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <span
+              className="se-mono uppercase"
+              style={{
+                fontSize: 10.5,
+                color: "var(--se-accent)",
+                letterSpacing: "0.06em",
+              }}
+            >
+              FORK · NEW PLAYTHROUGH
+            </span>
+            <h2
+              className="text-xl font-semibold m-0 mt-2 mb-2 se-cjk"
+              style={{
+                letterSpacing: "-0.015em",
+                color: "var(--se-fg)",
+              }}
+            >
+              開始扮演
+            </h2>
+            <p
+              className="m-0 text-sm se-cjk"
+              style={{
+                color: "var(--se-fg-muted)",
+                lineHeight: 1.6,
+              }}
+            >
+              你嘅 playthrough 完全獨立 · 唔會影響其他玩家嘅故事。記憶 + state 100% 自己嘅。
+            </p>
+            <div className="mt-5">
+              <label
+                className="text-xs block mb-1.5 se-cjk"
+                style={{ color: "var(--se-fg-muted)" }}
+              >
+                主角名字{" "}
+                <span style={{ color: "var(--se-fg-dim)" }}>· 留空 = 「主角」default</span>
+              </label>
+              <input
+                type="text"
+                value={forkProtagonistName}
+                onChange={(e) => setForkProtagonistName(e.target.value)}
+                placeholder="例：陳 Sir / 阿傑 / 你嘅名"
+                maxLength={50}
+                disabled={pending}
+                className="w-full px-3.5 h-11 rounded-md text-sm se-cjk"
+                style={{
+                  background: "var(--se-bg)",
+                  border: "1px solid var(--se-border-strong)",
+                  color: "var(--se-fg)",
+                }}
+              />
+            </div>
+            <div
+              className="mt-5 p-3 rounded-lg flex items-center gap-2.5 text-xs se-cjk"
+              style={{
+                background: "var(--se-surface-2)",
+                border: "1px solid var(--se-border)",
+                color: "var(--se-fg-muted)",
+              }}
+            >
+              <Coins size={13} color="var(--se-fg-muted)" />
+              <span>
+                每 turn 約 <span className="se-mono" style={{ color: "var(--se-fg)" }}>2 credits</span>
+                {" · 玩到滿意為止 · "}
+                <a
+                  href="/settings"
+                  className="underline"
+                  style={{ color: "var(--se-fg-muted)" }}
+                >
+                  Settings 改 default model
+                </a>
+              </span>
+            </div>
+            <div className="flex gap-2.5 mt-5">
+              <button
+                type="button"
+                onClick={() => !pending && setForkModalOpen(false)}
+                disabled={pending}
+                className="flex-1 h-11 rounded-md text-sm font-medium se-cjk"
+                style={{
+                  background: "var(--se-surface-2)",
+                  color: "var(--se-fg-2)",
+                  border: "1px solid var(--se-border)",
+                }}
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                onClick={confirmFork}
+                disabled={pending}
+                className="flex-1 h-11 rounded-md text-sm font-semibold se-cjk inline-flex items-center justify-center gap-1.5 disabled:opacity-50"
+                style={{
+                  background: "var(--se-fg)",
+                  color: "var(--se-bg)",
+                }}
+              >
+                <Play size={13} />
+                {pending ? "開緊…" : "開始扮演"}
+              </button>
+            </div>
           </div>
         </div>
       )}
