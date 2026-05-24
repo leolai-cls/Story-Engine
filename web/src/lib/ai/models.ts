@@ -31,7 +31,7 @@ export type ModelEntry = {
 };
 
 export const MODELS: Record<string, ModelEntry> = {
-  // ─── Anthropic ──────────────────────────────────────────────────────
+  // ─── Anthropic (direct API) ─────────────────────────────────────────
   "claude-sonnet-4-6": {
     id: "claude-sonnet-4-6",
     provider: "anthropic",
@@ -41,7 +41,7 @@ export const MODELS: Record<string, ModelEntry> = {
     credit_multiplier: 3.0,
     allows_nsfw: false,
     min_tier: "adventurer",
-    description: "中文敘事最強。情感細膩。Phase 1 預設。",
+    description: "中文敘事最強。情感細膩。預設 narrator。",
   },
   "claude-haiku-4-5": {
     id: "claude-haiku-4-5",
@@ -65,7 +65,69 @@ export const MODELS: Record<string, ModelEntry> = {
     min_tier: "storyteller",
     description: "最深層敘事。複雜情節 + 多角色互動。",
   },
-  // ─── OpenRouter (Phase 6 adult mode) ────────────────────────────────
+
+  // ─── OpenAI (via OpenRouter) ────────────────────────────────────────
+  "gpt-4o": {
+    id: "gpt-4o",
+    provider: "openrouter",
+    model_id: "openai/gpt-4o",
+    display_name: "GPT-4o",
+    role: "narrator",
+    credit_multiplier: 2.5,
+    allows_nsfw: false,
+    min_tier: "adventurer",
+    description: "OpenAI 旗艦。對白自然、英文混雜寫得順。",
+  },
+  "gpt-4o-mini": {
+    id: "gpt-4o-mini",
+    provider: "openrouter",
+    model_id: "openai/gpt-4o-mini",
+    display_name: "GPT-4o mini",
+    role: "narrator",
+    credit_multiplier: 0.5,
+    allows_nsfw: false,
+    min_tier: "free",
+    description: "OpenAI 平價版。Free tier 可用。",
+  },
+
+  // ─── Google (via OpenRouter) ────────────────────────────────────────
+  "gemini-pro-1-5": {
+    id: "gemini-pro-1-5",
+    provider: "openrouter",
+    model_id: "google/gemini-pro-1.5",
+    display_name: "Gemini Pro 1.5",
+    role: "narrator",
+    credit_multiplier: 2.0,
+    allows_nsfw: false,
+    min_tier: "adventurer",
+    description: "Google 旗艦。1M context · 適合長 playthrough。",
+  },
+  "gemini-flash-1-5": {
+    id: "gemini-flash-1-5",
+    provider: "openrouter",
+    model_id: "google/gemini-flash-1.5",
+    display_name: "Gemini Flash 1.5",
+    role: "narrator",
+    credit_multiplier: 0.5,
+    allows_nsfw: false,
+    min_tier: "free",
+    description: "Google 平價版。長 context · Free tier 可用。",
+  },
+
+  // ─── xAI (via OpenRouter) ───────────────────────────────────────────
+  "grok-2": {
+    id: "grok-2",
+    provider: "openrouter",
+    model_id: "x-ai/grok-2-1212",
+    display_name: "Grok 2",
+    role: "narrator",
+    credit_multiplier: 2.5,
+    allows_nsfw: false,
+    min_tier: "adventurer",
+    description: "xAI · 對話風格活潑 · 多元觀點。",
+  },
+
+  // ─── OpenRouter NSFW (Phase 6 adult mode · CLAUDE.md hard rule #5) ─
   "llama-3-1-405b-uncensored": {
     id: "llama-3-1-405b-uncensored",
     provider: "openrouter",
@@ -75,7 +137,7 @@ export const MODELS: Record<string, ModelEntry> = {
     credit_multiplier: 2.5,
     allows_nsfw: true,
     min_tier: "storyteller",
-    description: "Open source，成人模式可用。",
+    description: "Open source · 成人模式可用 (NSFW)。",
   },
 };
 

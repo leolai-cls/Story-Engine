@@ -64,15 +64,36 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
     inputPerMillion: 0.02,
     outputPerMillion: 0, // embeddings have no output tokens
   },
-  // ─── OpenRouter (Phase 6 adult mode) ───────────────────────────────
-  // Llama 3.1 405B via OpenRouter — pricing varies; using upper bound.
+  // ─── OpenAI narrators (via OpenRouter · Session 9 multi-LLM expansion) ─
+  "gpt-4o": {
+    inputPerMillion: 2.5,
+    outputPerMillion: 10.0,
+  },
+  "gpt-4o-mini": {
+    inputPerMillion: 0.15,
+    outputPerMillion: 0.6,
+  },
+  // ─── Google narrators (via OpenRouter) ─────────────────────────────
+  "gemini-pro-1-5": {
+    inputPerMillion: 1.25,
+    outputPerMillion: 5.0,
+  },
+  "gemini-flash-1-5": {
+    inputPerMillion: 0.075,
+    outputPerMillion: 0.3,
+  },
+  // ─── xAI Grok (via OpenRouter) ─────────────────────────────────────
+  "grok-2": {
+    inputPerMillion: 2.0,
+    outputPerMillion: 10.0,
+  },
+  // ─── OpenRouter NSFW (Phase 6 adult mode · Hard rule #5 LLM isolation) ─
+  // Llama 3.1 405B · only NSFW-allowed narrator · uncensored variant.
   // P6-CRIT-01 fix (Phase 6 + 1.5/2 polish audit): key MUST match the
   // internal Story Engine id from MODELS catalog, NOT the OpenRouter
   // provider id. Every consumer (ModelPicker · estimateTurnCredits in
   // turn route · computeTurnCredits onFinish) calls with the internal
-  // id `llama-3-1-405b-uncensored`. Previously keyed by the provider id
-  // `meta-llama/llama-3.1-405b-instruct` — computeCredits threw on
-  // unknown key, crashing Settings page for any adult-mode-on user.
+  // id `llama-3-1-405b-uncensored`.
   "llama-3-1-405b-uncensored": {
     inputPerMillion: 2.5,
     outputPerMillion: 2.5,
