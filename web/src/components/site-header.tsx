@@ -5,6 +5,7 @@ import { Sparkles, Library, BookMarked } from "lucide-react";
 import { LocaleSwitcher } from "@/components/se/LocaleSwitcher";
 import { SignOutButton } from "@/components/settings/sign-out-button";
 import { getCachedUser } from "@/lib/supabase/cached-user";
+import { marketingUrl } from "@/lib/urls";
 
 /**
  * Top nav — auth-aware.
@@ -24,14 +25,28 @@ export async function SiteHeader() {
   // auth roundtrips. Saves ~30-80ms per page render on cold cookies.
   const user = await getCachedUser();
 
-  const authedNav: Array<{ href: string; label: string; icon: typeof Library }> = [
-    { href: "/library", label: t("library"), icon: Library },
-    { href: "/my", label: t("myGames"), icon: BookMarked },
-    { href: "/pricing", label: t("pricing"), icon: Sparkles },
+  // Pricing is a MARKETING route (per lib/urls.ts classification) — when
+  // founder splits to xxx.com / app.xxx.com it'll move off the product domain.
+  // Use marketingUrl() so the link auto-expands to absolute origin in split
+  // world; today it returns "/pricing" relative.
+  const pricingHref = marketingUrl("/pricing");
+  // Marker so we know whether to render as internal i18n <Link> (same-origin)
+  // or plain <a> (cross-origin to marketing domain).
+  const pricingIsExternal = pricingHref.startsWith("http");
+
+  const authedNav: Array<{
+    href: string;
+    label: string;
+    icon: typeof Library;
+    external: boolean;
+  }> = [
+    { href: "/library", label: t("library"), icon: Library, external: false },
+    { href: "/my", label: t("myGames"), icon: BookMarked, external: false },
+    { href: pricingHref, label: t("pricing"), icon: Sparkles, external: pricingIsExternal },
   ];
-  const anonNav: Array<{ href: string; label: string }> = [
-    { href: "/library", label: t("library") },
-    { href: "/pricing", label: t("pricing") },
+  const anonNav: Array<{ href: string; label: string; external: boolean }> = [
+    { href: "/library", label: t("library"), external: false },
+    { href: pricingHref, label: t("pricing"), external: pricingIsExternal },
   ];
 
   return (
@@ -57,28 +72,56 @@ export async function SiteHeader() {
           {user
             ? authedNav.map((item) => {
                 const Ico = item.icon;
-                return (
+                const linkClass =
+                  "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-colors hover:bg-[color:var(--se-surface-2)]";
+                const linkStyle = { color: "var(--se-fg-muted)" };
+                // External (cross-subdomain to marketing) → plain <a>.
+                // Same-origin (today + product routes always) → i18n <Link>.
+                return item.external ? (
+                  <a
+                    key={item.href}
+                    href={item.href}
+                    className={linkClass}
+                    style={linkStyle}
+                  >
+                    <Ico size={14} />
+                    {item.label}
+                  </a>
+                ) : (
                   <Link
                     key={item.href}
                     href={item.href as never}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-colors hover:bg-[color:var(--se-surface-2)]"
-                    style={{ color: "var(--se-fg-muted)" }}
+                    className={linkClass}
+                    style={linkStyle}
                   >
                     <Ico size={14} />
                     {item.label}
                   </Link>
                 );
               })
-            : anonNav.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href as never}
-                  className="px-3 py-1.5 rounded-md transition-colors hover:bg-[color:var(--se-surface-2)]"
-                  style={{ color: "var(--se-fg-muted)" }}
-                >
-                  {item.label}
-                </Link>
-              ))}
+            : anonNav.map((item) => {
+                const linkClass = "px-3 py-1.5 rounded-md transition-colors hover:bg-[color:var(--se-surface-2)]";
+                const linkStyle = { color: "var(--se-fg-muted)" };
+                return item.external ? (
+                  <a
+                    key={item.href}
+                    href={item.href}
+                    className={linkClass}
+                    style={linkStyle}
+                  >
+                    {item.label}
+                  </a>
+                ) : (
+                  <Link
+                    key={item.href}
+                    href={item.href as never}
+                    className={linkClass}
+                    style={linkStyle}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
         </nav>
 
         <div className="ml-auto flex items-center gap-2">

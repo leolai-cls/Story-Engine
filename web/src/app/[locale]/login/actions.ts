@@ -170,8 +170,14 @@ export async function signInAsGuest(formData: FormData) {
     });
   }
 
-  // AUDIT FIX MG-UX-HIGH-01: respect `next` so guests pulled in from /my,
-  // /memory, /play/[id], etc. land on their original destination. Default
-  // remains /stories/new for the "I came to try the product" landing.
-  redirect({ href: (next || "/stories/new") as never, locale });
+  // Founder product-flow rule (2026-05-25 · per CHANGE 4 of product-flow-
+  // redesign.html): Guest first step = browse stories, NOT immediate creation.
+  // /stories/new is too high-friction for a try-the-product first impression —
+  // they don't yet know what kinds of stories exist. /library is browse-first
+  // (Netflix takeover · "Continue Playing" carousel is empty for new Guest ·
+  // public stories surface).
+  //
+  // `next` is still respected when caller explicitly passed it (Guest pulled
+  // in from /my / /memory / /play/[id]).
+  redirect({ href: (next || "/library") as never, locale });
 }

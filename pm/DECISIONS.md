@@ -7,6 +7,38 @@
 
 ---
 
+## ADR-017 — Product 同 Marketing 分 subdomain（xxx.com + app.xxx.com）
+**Date**: 2026-05-25 · **Status**: ✅ Accepted (architectural prep · 實際 split 之後 ship)
+
+**Decision**: 將來 marketing 同 product 用兩個 subdomain — `xxx.com` 放 `/` `/pricing` `/about` `/blog` `/terms` `/privacy`（marketing · SEO-friendly · public）；`app.xxx.com` 放 `/login` `/auth/callback` `/library` `/my` `/play/*` `/stories/new` `/settings` `/profile`（product · auth-gated · 真正 app surface）。今日仍係單一 origin · 但 code 已 architect 好等 env 一改即 split。
+
+**Context**: Founder 觀察 SaaS standard pattern — Linear / Notion / Stripe / Vercel 全部都係 marketing vs product 分 subdomain。Pre-login 體驗（marketing）同 logged-in app 體驗本質唔同，cookie scope 都唔同。Founder 講「請 make sure 產品同 website 係分別之後會係 xxx.com and app.xxx.com」。
+
+**Consequences**:
+- 新增 `lib/urls.ts` · `appUrl()` / `marketingUrl()` helpers · env-driven · 今日 no-op
+- 新增環境變數 `NEXT_PUBLIC_APP_URL` 同 `NEXT_PUBLIC_MARKETING_URL`（split 之前留空就單一 origin）
+- Cross-subdomain link 用 plain `<a>` (e.g. Pricing in product nav) · 同 origin 用 `next-intl` `<Link>`
+- Auth cookies 將來 scope `.xxx.com`（parent domain）等兩個 subdomain 都讀到 session
+- 一次過拆只係 Vercel 加多個 domain + 設兩個 env var · 唔需要 code refactor
+
+---
+
+## ADR-016 — Post-login 永遠 ChatGPT-style smart landing
+**Date**: 2026-05-25 · **Status**: ✅ Accepted
+
+**Decision**: 用戶完成 login（任何方法 — Google OAuth / email magic link / Guest）之後，redirect 邏輯：有 playthrough → `/my`（回頭客 · ChatGPT-style「your conversations」）· 冇 playthrough → `/library`（新客 · Netflix-style browse）· **永遠唔再 default 去 `/profile`**。Root URL `/` 對 logged-in 用戶都 follow 同一個 logic。
+
+**Context**: Founder 試用 Google login 之後扔咗去 `/profile`（empty placeholder · 1 個 title + 1 句 body）· 投訴「the product's flow logic is fucked」· 要求研究 Claude / ChatGPT / Grok 點做。三個 LLM apps 共同 pattern：登入 = 即刻入產品 · sidebar = past sessions · main = ready-to-use prompt 或 last session。Profile / Settings 永遠 secondary（avatar dropdown）。
+
+**Consequences**:
+- 新增 `lib/auth/landing.ts:getLandingPath(supabase, userId)` 做 single source of truth
+- `/auth/callback` 同 `/[locale]/page.tsx` (root) 都用呢個 helper
+- Guest sign-in default 由 `/stories/new` 改去 `/library`（browse 先 · creation 高 friction）
+- `/profile` 仍存在但唔再做 default landing；遲啲 merge 入 `/settings` 或加 avatar dropdown surface
+- 視覺 plan 見 `pm/product-flow-redesign.html`
+
+---
+
 ## ADR-015 — Orchestrator Pattern 正式 lock
 **Date**: 2026-05-21 · **Status**: ✅ Accepted
 

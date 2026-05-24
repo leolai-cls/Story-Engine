@@ -1,11 +1,14 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { Link } from "@/i18n/navigation";
+import { Link, redirect } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Brain, Sparkles, Shield, ArrowRight } from "lucide-react";
+import { getCachedUser } from "@/lib/supabase/cached-user";
+import { createClient } from "@/lib/supabase/server";
+import { getLandingPath } from "@/lib/auth/landing";
 
 export default async function HomePage({
   params,
@@ -15,6 +18,21 @@ export default async function HomePage({
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations("marketing");
+
+  // Founder product-flow rule (2026-05-25): logged-in users hitting `/` should
+  // NEVER see the marketing landing — they're already a user, drop them into
+  // the product. ChatGPT / Claude / Grok all do this. Anon users still see
+  // marketing.
+  //
+  // Future xxx.com / app.xxx.com split: this branch becomes redundant on
+  // xxx.com (marketing-only domain) but stays useful on app.xxx.com root
+  // (some users may bookmark the bare app origin).
+  const user = await getCachedUser();
+  if (user) {
+    const supabase = await createClient();
+    const landingPath = await getLandingPath(supabase, user.id);
+    redirect({ href: landingPath as never, locale });
+  }
 
   return (
     <>

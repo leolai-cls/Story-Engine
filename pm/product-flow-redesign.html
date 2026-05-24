@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Story Engine — Product Flow 重新設計</title>
+<style>
+  :root {
+    --primary: #4F46E5;
+    --primary-soft: #EEF2FF;
+    --bg: #FAFAF7;
+    --card: #FFFFFF;
+    --ink: #18181B;
+    --ink-soft: #3F3F46;
+    --muted: #71717A;
+    --border: #E4E4E7;
+    --green: #10B981;
+    --green-soft: #D1FAE5;
+    --rose: #E11D48;
+    --rose-soft: #FFE4E6;
+    --amber: #D97706;
+    --amber-soft: #FEF3C7;
+    --gray-soft: #F4F4F5;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.6;
+    padding: 48px 24px 120px;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; }
+  h1 {
+    font-size: 36px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 4px;
+  }
+  .eyebrow {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--primary);
+    background: var(--primary-soft);
+    padding: 5px 10px;
+    border-radius: 999px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .lede { font-size: 17px; color: var(--muted); max-width: 640px; margin-bottom: 16px; }
+
+  h2 {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    margin: 52px 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  h2 .icon { font-size: 28px; }
+  .h2-sub { font-size: 14px; color: var(--muted); margin-bottom: 20px; }
+
+  /* Flow row: horizontal chain of boxes connected by arrows */
+  .flow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+  .flow-box {
+    flex: 1;
+    min-width: 140px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .flow-box .ico { font-size: 22px; line-height: 1; }
+  .flow-box .head { font-size: 14px; font-weight: 700; color: var(--ink); }
+  .flow-box .sub { font-size: 12px; color: var(--muted); }
+  .flow-box.broken { background: var(--rose-soft); border-color: #FDA4AF; }
+  .flow-box.broken .head { color: #9F1239; }
+  .flow-box.broken .sub { color: #BE123C; }
+  .flow-box.good { background: var(--green-soft); border-color: #6EE7B7; }
+  .flow-box.good .head { color: #065F46; }
+  .flow-box.good .sub { color: #047857; }
+  .flow-box.start { background: #F5F3FF; border-color: #C4B5FD; }
+  .flow-box.start .head { color: #5B21B6; }
+  .flow-arrow {
+    color: var(--muted);
+    font-weight: 700;
+    flex-shrink: 0;
+    font-size: 22px;
+    user-select: none;
+  }
+  .flow-branch {
+    background: var(--gray-soft);
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    margin: 12px 0;
+  }
+  .flow-branch-title {
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 12px;
+  }
+
+  /* Callout for broken behaviors */
+  .broken-list {
+    background: var(--rose-soft);
+    border: 1px solid #FDA4AF;
+    border-radius: 14px;
+    padding: 20px 24px;
+    margin-bottom: 12px;
+  }
+  .broken-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 8px 0;
+  }
+  .broken-item:not(:last-child) { border-bottom: 1px dashed #FDA4AF; }
+  .broken-item .ico { font-size: 18px; flex-shrink: 0; line-height: 1.3; }
+  .broken-item .text { font-size: 14.5px; color: #881337; }
+  .broken-item .text strong { color: #9F1239; }
+
+  /* LLM Apps comparison */
+  .llm-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+  @media (max-width: 800px) {
+    .llm-grid { grid-template-columns: 1fr; }
+  }
+  .llm-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+  }
+  .llm-card .name {
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--ink);
+    margin-bottom: 4px;
+  }
+  .llm-card .meta {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+  .llm-card .step {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 13.5px;
+    color: var(--ink-soft);
+  }
+  .llm-card .step .num {
+    background: var(--ink);
+    color: white;
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  /* Pattern summary */
+  .pattern {
+    background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+    border: 1px solid #FCD34D;
+    border-radius: 14px;
+    padding: 18px 22px;
+    margin: 14px 0;
+  }
+  .pattern .label {
+    font-size: 11px;
+    font-weight: 800;
+    color: #92400E;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 6px;
+  }
+  .pattern .body {
+    font-size: 15px;
+    color: #78350F;
+    line-height: 1.55;
+  }
+
+  /* Proposed change cards */
+  .change-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-top: 14px;
+  }
+  @media (max-width: 700px) {
+    .change-grid { grid-template-columns: 1fr; }
+  }
+  .change {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 18px;
+  }
+  .change .pill {
+    display: inline-block;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--ink);
+    background: var(--gray-soft);
+    padding: 2px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.04em;
+    margin-bottom: 8px;
+  }
+  .change .head { font-size: 15.5px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+  .change .body { font-size: 13.5px; color: var(--muted); line-height: 1.5; }
+
+  /* Next-step CTA */
+  .cta {
+    background: var(--ink);
+    color: white;
+    border-radius: 14px;
+    padding: 22px 24px;
+    margin-top: 36px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+  .cta .text {
+    flex: 1;
+  }
+  .cta .label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    opacity: 0.6;
+    margin-bottom: 4px;
+  }
+  .cta .body { font-size: 16px; font-weight: 600; }
+  .cta .badge {
+    font-size: 12px;
+    background: rgba(255,255,255,0.18);
+    padding: 6px 14px;
+    border-radius: 999px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <span class="eyebrow">🔧 Product flow 重新設計</span>
+  <h1>Login 完 · 應該扔人去產品入面</h1>
+  <p class="lede">而家係扔人去空白嘅 Profile 頁。一齊睇 ChatGPT / Claude / Grok 點做 · 然後抄。</p>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <h2><span class="icon">🔴</span>而家壞咗嘅嘢</h2>
+  <p class="h2-sub">登入後嘅 default redirect 鏈</p>
+
+  <div class="flow">
+    <div class="flow-box start">
+      <div class="ico">👤</div>
+      <div class="head">用戶</div>
+      <div class="sub">click 登入</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box">
+      <div class="ico">🔐</div>
+      <div class="head">/login</div>
+      <div class="sub">3 個 sign-in 方法</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box">
+      <div class="ico">🔁</div>
+      <div class="head">/auth/callback</div>
+      <div class="sub">Supabase exchange</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box broken">
+      <div class="ico">💀</div>
+      <div class="head">/profile</div>
+      <div class="sub">空白頁 · dead end</div>
+    </div>
+  </div>
+
+  <div class="broken-list">
+    <div class="broken-item">
+      <div class="ico">❌</div>
+      <div class="text"><strong>/profile 個頁淨係 1 個 title + 1 句 body</strong> — 冇 content · 冇 next step · 用戶睇完唔知做乜</div>
+    </div>
+    <div class="broken-item">
+      <div class="ico">❌</div>
+      <div class="text"><strong>root URL「/」永遠 serve marketing landing</strong> — 即使已登入用戶刷新都見到「Sign up」cards · 似乎你未登入</div>
+    </div>
+    <div class="broken-item">
+      <div class="ico">❌</div>
+      <div class="text"><strong>Guest 登入後扔去 /stories/new</strong> — Guest 試玩第一步應該係睇返「現有故事」 · 唔係叫佢即刻創作（高 friction）</div>
+    </div>
+    <div class="broken-item">
+      <div class="ico">❌</div>
+      <div class="text"><strong>冇「continue last playthrough」shortcut</strong> — 回頭用戶想 resume 都要：登入 → /profile（!?）→ click 我嘅遊戲 → 揀邊個</div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <h2><span class="icon">🤖</span>LLM Apps 點做 (我哋抄)</h2>
+  <p class="h2-sub">ChatGPT · Claude · Grok 三隻嘢用戶登入後嘅 flow</p>
+
+  <div class="llm-grid">
+
+    <div class="llm-card">
+      <div class="name">ChatGPT</div>
+      <div class="meta">chatgpt.com</div>
+      <div class="step"><span class="num">1</span><span>登入</span></div>
+      <div class="step"><span class="num">2</span><span><strong>直接見到 chat interface</strong> · sidebar 列住 past chats</span></div>
+      <div class="step"><span class="num">3</span><span>Main area: "Message ChatGPT..." prompt 即刻可以打字</span></div>
+      <div class="step"><span class="num">4</span><span>冇 profile 步驟 · 設定喺右上 avatar dropdown</span></div>
+    </div>
+
+    <div class="llm-card">
+      <div class="name">Claude</div>
+      <div class="meta">claude.ai</div>
+      <div class="step"><span class="num">1</span><span>登入</span></div>
+      <div class="step"><span class="num">2</span><span><strong>跳去 claude.ai/new</strong> · sidebar 列住 recent conversations</span></div>
+      <div class="step"><span class="num">3</span><span>Main: "How can I help you today?" · 直接打字</span></div>
+      <div class="step"><span class="num">4</span><span>Profile / Settings 都係 secondary · avatar dropdown</span></div>
+    </div>
+
+    <div class="llm-card">
+      <div class="name">Grok</div>
+      <div class="meta">grok.com / x.com/i/grok</div>
+      <div class="step"><span class="num">1</span><span>登入</span></div>
+      <div class="step"><span class="num">2</span><span><strong>跳去 main chat</strong> · sidebar 列 history</span></div>
+      <div class="step"><span class="num">3</span><span>Main: Hero prompt area · 可揀模式 (Think / DeepSearch)</span></div>
+      <div class="step"><span class="num">4</span><span>同 ChatGPT pattern 一樣</span></div>
+    </div>
+
+  </div>
+
+  <div class="pattern">
+    <div class="label">🎯 共同 pattern</div>
+    <div class="body">
+      <strong>登入 → 即刻入產品</strong> · 唔停喺 profile / dashboard / settings。<br>
+      Sidebar = past sessions · Main area = either 「new」prompt 或者 last session。Profile/Settings 永遠 secondary。
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <h2><span class="icon">🟢</span>Story Engine 應該咁做</h2>
+  <p class="h2-sub">直接套用上面個 pattern · 適配翻互動小說</p>
+
+  <div class="flow-branch">
+    <div class="flow-branch-title">情況 A — 已有 playthrough 嘅用戶 (回頭客)</div>
+    <div class="flow">
+      <div class="flow-box start">
+        <div class="ico">👤</div>
+        <div class="head">用戶</div>
+        <div class="sub">回嚟玩</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box">
+        <div class="ico">🔐</div>
+        <div class="head">登入</div>
+        <div class="sub">Google / email / Guest</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box good">
+        <div class="ico">📑</div>
+        <div class="head">/my「我嘅遊戲」</div>
+        <div class="sub">列 playthrough · 「繼續」按鈕</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow-branch">
+    <div class="flow-branch-title">情況 B — 新註冊用戶 (零 playthrough)</div>
+    <div class="flow">
+      <div class="flow-box start">
+        <div class="ico">✨</div>
+        <div class="head">新用戶</div>
+        <div class="sub">第一次來</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box">
+        <div class="ico">🔐</div>
+        <div class="head">登入</div>
+        <div class="sub">Google / email / Guest</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box good">
+        <div class="ico">📚</div>
+        <div class="head">/library「故事庫」</div>
+        <div class="sub">Netflix-style 揀故事</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow-branch">
+    <div class="flow-branch-title">情況 C — 已登入用戶 直接打 「/」 root URL</div>
+    <div class="flow">
+      <div class="flow-box start">
+        <div class="ico">🔄</div>
+        <div class="head">已登入</div>
+        <div class="sub">輸入 root URL</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box good">
+        <div class="ico">📑</div>
+        <div class="head">redirect /my 或 /library</div>
+        <div class="sub">同情況 A/B logic 一樣</div>
+      </div>
+    </div>
+    <p style="font-size: 12.5px; color: var(--muted); margin-top: 8px;">
+      唔再 serve marketing landing · marketing 只俾未登入用戶睇。
+    </p>
+  </div>
+
+  <div class="pattern">
+    <div class="label">🔑 一條 rule</div>
+    <div class="body">
+      <strong>有 playthrough → 去 /my (回頭客)。冇 → 去 /library (新客)。</strong> 永遠唔再 default 去 /profile 或者 marketing 頁。
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <h2><span class="icon">🔧</span>Code 要改邊度</h2>
+  <p class="h2-sub">5 個小改動 · 全部係 redirect 邏輯 · 唔touch 核心 product code</p>
+
+  <div class="change-grid">
+
+    <div class="change">
+      <span class="pill">CHANGE 1</span>
+      <div class="head">/auth/callback default</div>
+      <div class="body">由 default <code>/profile</code> 改做：問 DB「呢個 user 有冇 playthrough?」· 有 → /my · 冇 → /library</div>
+    </div>
+
+    <div class="change">
+      <span class="pill">CHANGE 2</span>
+      <div class="head">root「/」 — 登入分流</div>
+      <div class="body">未登入 → marketing landing (現狀)。登入 → 同 callback 一樣 logic · /my 或 /library</div>
+    </div>
+
+    <div class="change">
+      <span class="pill">CHANGE 3</span>
+      <div class="head">/profile → 變 secondary</div>
+      <div class="body">刪 default 用嘅 entry · 喺 SiteHeader avatar dropdown 入面先有 link 入。或者直接 merge 入 /settings。</div>
+    </div>
+
+    <div class="change">
+      <span class="pill">CHANGE 4</span>
+      <div class="head">Guest sign-in redirect</div>
+      <div class="body">由 /stories/new 改做 /library — Guest 第一步應該係 browse · 唔係即刻創作</div>
+    </div>
+
+    <div class="change">
+      <span class="pill">CHANGE 5</span>
+      <div class="head">Settings 入面加 logout / profile link</div>
+      <div class="body">用戶想登出 / 改 profile 時揾得到 · 但唔再係 default landing</div>
+    </div>
+
+  </div>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <div class="cta">
+    <div class="text">
+      <div class="label">下一步</div>
+      <div class="body">你 ok 呢個 plan 嘅話我即刻落手改 · 5 個小 change · 1 個 commit</div>
+    </div>
+    <span class="badge">~15 min</span>
+  </div>
+
+</div>
+</body>
+</html>

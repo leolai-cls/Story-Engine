@@ -129,6 +129,8 @@ DB：`story_characters` (模板) + `playthrough_character_states` (per-playthrou
 | Analytics / Errors | PostHog + Sentry |
 | Hosting | Vercel + Supabase |
 | i18n | next-intl，繁中 default，簡中 + EN day-1 ready |
+| **Domain split** (planned) | **xxx.com** = marketing (`/` `/pricing` `/about` `/blog` `/terms` `/privacy`) · **app.xxx.com** = product (`/login` `/auth/callback` `/library` `/my` `/play/*` `/stories/new` `/settings` `/profile`) · today single origin · env vars `NEXT_PUBLIC_APP_URL` + `NEXT_PUBLIC_MARKETING_URL` enable split · `lib/urls.ts` helpers (`appUrl` / `marketingUrl`) used at cross-domain links |
+| **Post-login landing** | Has playthrough → `/my` · zero → `/library` · **NEVER** `/profile` · `lib/auth/landing.ts:getLandingPath` is single source of truth · `/auth/callback` + root `/` both branch on it |
 
 ---
 
