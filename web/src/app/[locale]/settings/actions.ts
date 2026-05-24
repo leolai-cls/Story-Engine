@@ -45,7 +45,7 @@ export async function setAdultMode(
     if (!profile?.is_age_verified) {
       return {
         ok: false,
-        error: "需要先完成年齡驗證 (KYC) — Phase 6 money tier 嚟緊先可以開啟。",
+        error: "需要先完成身份驗證 — Phase 6 money tier 嚟緊先可以開啟。",
       };
     }
   }

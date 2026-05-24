@@ -106,7 +106,7 @@ export function AdultModeToggle({
               <div className="flex-1 text-xs space-y-2">
                 <p className="font-semibold text-foreground">需要年齡驗證</p>
                 <p className="text-muted-foreground">
-                  根據平台政策 · 成人模式需要 Stripe Identity 驗證年齡（KYC）·
+                  根據平台政策 · 成人模式需要 Stripe Identity 完成身份驗證 ·
                   確保只有 18+ 用戶 access。呢個 flow Phase 6 money tier 開放
                   之後就可以做。
                 </p>

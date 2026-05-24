@@ -97,7 +97,7 @@ export async function createStoryFromPrompt(
       return {
         ok: false,
         error:
-          "Adult-rated 故事需要先喺 Settings 開啟「成人模式」(KYC 驗證後)。請揀 SFW 或 Soft rating。",
+          "Adult-rated 故事需要先喺 設定 開啟「成人模式」(需身份驗證)。請揀 SFW 或 Soft rating。",
       };
     }
   }
