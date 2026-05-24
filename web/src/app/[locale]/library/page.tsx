@@ -31,6 +31,7 @@ import { Carousel } from "@/components/se/Carousel";
 import { Cover } from "@/components/se/Cover";
 import { RatingBadge, GenreChip, Avatar } from "@/components/se/Badges";
 import { CsamStrip } from "@/components/se/CsamStrip";
+import { VisitorLanding } from "@/components/se/VisitorLanding";
 import { GENRE, type GenreKey } from "@/components/se/genre";
 
 export const dynamic = "force-dynamic";
@@ -195,8 +196,11 @@ export default async function LibraryPage({
         {/* A4 audit fix · Hard rule #2 CSAM reminder always visible in adult mode UI */}
         {adultModeEnabled && <CsamStrip variant="banner" />}
 
-        {/* HERO — cinematic Netflix takeover */}
-        {!searchMode && heroStory && (
+        {/* A2 audit fix · Visitor landing for anon users (3-pillar pitch + collage) */}
+        {!user && !searchMode && <VisitorLanding locale={locale} />}
+
+        {/* HERO — cinematic Netflix takeover (skipped for anon · landing replaces) */}
+        {!searchMode && heroStory && user && (
           <LibraryHero locale={locale} story={heroStory} adultModeEnabled={adultModeEnabled} />
         )}
 
@@ -324,28 +328,7 @@ export default async function LibraryPage({
           </>
         )}
 
-        {/* Visitor landing CTA (footer-style · only for anon visitors) */}
-        {!user && !searchMode && (
-          <section className="px-6 sm:px-14 py-12 mt-8 text-center">
-            <h2 className="text-2xl font-bold mb-3 se-cjk" style={{ color: "var(--se-fg)" }}>
-              想做主角？
-            </h2>
-            <p className="text-sm mb-6 se-cjk" style={{ color: "var(--se-fg-muted)" }}>
-              一鍵 Guest 試玩 · 無需信用卡 · 之後可以 sign up 用 email 保存
-            </p>
-            <Link
-              href={"/login" as never}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-md text-sm font-semibold"
-              style={{
-                background: "var(--se-fg)",
-                color: "var(--se-bg)",
-              }}
-            >
-              <Sparkles size={14} />
-              免費試玩
-            </Link>
-          </section>
-        )}
+        {/* Anon visitor: VisitorLanding renders above instead of this footer-CTA */}
 
         <div style={{ height: 80 }} />
       </main>
