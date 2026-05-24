@@ -19,6 +19,142 @@ export type NpcData = {
 };
 
 /**
+ * Skill check inline badge (4 outcomes · Hard rule #5 permanent · no retry).
+ * Renders below the AI turn text when backend stored a skill_check result.
+ * Inline (not modal) — simpler · still surfaces the dice + outcome legibly.
+ * NAT 20 / NAT 1 highlighted for critical outcomes (Phase B design spec).
+ */
+function SkillCheckInline({
+  check,
+}: {
+  check: {
+    d20_roll: number;
+    skill_value: number;
+    difficulty: number;
+    total: number;
+    outcome: "critical_success" | "success" | "failure" | "critical_failure";
+    skill_key?: string;
+  };
+}) {
+  const cfg = (
+    {
+      critical_success: {
+        label: "完美成功",
+        stamp: "CRITICAL SUCCESS",
+        color: "var(--se-accent)",
+        bg: "var(--se-accent-bg)",
+        line: "var(--se-accent-line)",
+        sparkle: true,
+      },
+      success: {
+        label: "成功",
+        stamp: "SUCCESS",
+        color: "var(--se-ok)",
+        bg: "var(--se-ok-bg)",
+        line: "oklch(0.55 0.13 160 / 0.4)",
+        sparkle: false,
+      },
+      failure: {
+        label: "失敗",
+        stamp: "FAILURE",
+        color: "var(--se-danger)",
+        bg: "var(--se-danger-bg)",
+        line: "var(--se-danger)",
+        sparkle: false,
+      },
+      critical_failure: {
+        label: "大敗局",
+        stamp: "CRITICAL FAILURE",
+        color: "var(--se-danger)",
+        bg: "var(--se-danger-bg)",
+        line: "var(--se-danger)",
+        sparkle: false,
+      },
+    } as const
+  )[check.outcome];
+  const natBadge =
+    check.d20_roll === 20
+      ? { label: "NAT 20", bg: "var(--se-accent)" }
+      : check.d20_roll === 1
+        ? { label: "NAT 1", bg: "var(--se-danger)" }
+        : null;
+  return (
+    <div
+      className="mt-3 inline-flex items-center gap-2.5 p-2.5 rounded-md"
+      style={{
+        background: cfg.bg,
+        border: `1px solid ${cfg.line}`,
+        fontSize: 11,
+      }}
+    >
+      <span
+        className="se-mono uppercase flex items-center gap-1.5"
+        style={{ color: cfg.color, fontWeight: 600, letterSpacing: "0.04em" }}
+      >
+        {cfg.sparkle && <Sparkles size={11} />}
+        SKILL · {cfg.stamp}
+      </span>
+      <div className="flex items-center gap-1.5">
+        <span
+          className="se-mono inline-flex items-center justify-center relative"
+          style={{
+            width: 22,
+            height: 22,
+            borderRadius: 4,
+            background: "var(--se-surface-2)",
+            border: "1px solid var(--se-border-strong)",
+            color: "var(--se-fg-2)",
+            fontSize: 11,
+          }}
+        >
+          {check.d20_roll}
+        </span>
+        {natBadge && (
+          <span
+            className="se-mono"
+            style={{
+              fontSize: 8.5,
+              padding: "1px 4px",
+              borderRadius: 2,
+              background: natBadge.bg,
+              color: "#fff",
+            }}
+          >
+            {natBadge.label}
+          </span>
+        )}
+        <span className="se-mono" style={{ color: "var(--se-fg-dim)" }}>
+          +{check.skill_value} ={" "}
+        </span>
+        <span
+          className="se-mono"
+          style={{
+            color: cfg.color,
+            fontWeight: 600,
+          }}
+        >
+          {check.total} vs {check.difficulty}
+        </span>
+      </div>
+      <span
+        className="se-mono"
+        style={{
+          fontSize: 9.5,
+          padding: "1px 5px",
+          borderRadius: 3,
+          background: "rgba(0,0,0,0.05)",
+          color: "var(--se-fg-dim)",
+          letterSpacing: "0.04em",
+        }}
+        title="Hard rule #5 · 唔可以同一 turn 再試"
+      >
+        PERMANENT
+      </span>
+    </div>
+  );
+}
+
+/**
  * AUDIT FIX (P3-UX-M-13): friendly UX for credit / tier errors.
  * Parses prefixed error strings into actionable cards with Settings link.
  */
@@ -101,10 +237,36 @@ function PlayErrorCard({ error }: { error: string }) {
   );
 }
 
-type Turn = {
+/**
+ * Skill check shape — mirrors lib/ai/skill-check.ts SkillCheckResult.
+ * Backend stores on turns.skill_check (jsonb) when Director required a roll.
+ */
+export type SkillCheckSnapshot = {
+  d20_roll: number;
+  skill_value: number;
+  difficulty: number;
+  total: number;
+  outcome: "critical_success" | "success" | "failure" | "critical_failure";
+  skill_key?: string;
+};
+
+/**
+ * Director verdict snapshot — backend stores on turns.director_verdict (jsonb).
+ * Subset used by UI to drive Director amber border.
+ */
+export type DirectorVerdictSnapshot = {
+  verdict: "allow" | "reject" | "allow_with_constraint" | "require_skill_check";
+  reason?: string;
+};
+
+export type Turn = {
   role: "user" | "ai";
   text: string;
   index: number;
+  /** When Director required a skill check on this turn · backend rolls + stores. */
+  skillCheck?: SkillCheckSnapshot | null;
+  /** Verdict that drove this AI turn · used to render Director amber side-border. */
+  directorVerdict?: DirectorVerdictSnapshot | null;
 };
 
 export function PlayClient({
@@ -349,13 +511,16 @@ export function PlayClient({
           >
             {turns.map((turn) => {
               // C6 audit fix · Hard rule #4: Director re-interpreted player
-              // action signal. Detect refusal fallback text — backend's
-              // turn-runner.refusalFallbackNarrative starts with specific
-              // phrases. If matched, render subtle amber side-border (no
-              // system jargon · tooltip-only explainer per designer spec).
+              // action — backend exposes verdict on turns.director_verdict
+              // (jsonb). 'reject' or 'allow_with_constraint' means the AI
+              // diverged from literal player intent. Render subtle amber
+              // side-border + tooltip 「NPC 反應與你預期不同」(no system
+              // jargon per designer spec).
               const isSoftDirector =
                 turn.role === "ai" &&
-                /^(對唔住|抱歉|呢個唔係|系統|Sorry|对不起)/.test(turn.text.trim().slice(0, 8));
+                turn.directorVerdict?.verdict &&
+                turn.directorVerdict.verdict !== "allow" &&
+                turn.directorVerdict.verdict !== "require_skill_check";
               return (
                 <div
                   key={turn.index}
@@ -378,6 +543,11 @@ export function PlayClient({
                     {turn.role === "user" ? `→ ${characterName}` : "↳ 敘事"}
                   </div>
                   <div className="text-sm whitespace-pre-wrap">{turn.text}</div>
+                  {/* C5a-d audit fix · Skill check 4 outcomes inline badge.
+                      Backend rolls + stores on turns.skill_check. Hard rule #5:
+                      PERMANENT · no retry · 4 outcomes (crit success / success
+                      / failure / crit failure). */}
+                  {turn.skillCheck && <SkillCheckInline check={turn.skillCheck} />}
                 </div>
               );
             })}
@@ -397,14 +567,36 @@ export function PlayClient({
             {streaming && !streamText && (
               <div className="flex items-center gap-2 text-xs text-muted-foreground py-3">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                {showSafetyHint ? (
-                  <span className="inline-flex items-center gap-1.5">
-                    <Shield className="h-3.5 w-3.5" />
-                    內容審核 + AI 思考中...
-                  </span>
-                ) : (
-                  "AI 諗緊..."
-                )}
+                {!showSafetyHint && "AI 諗緊..."}
+              </div>
+            )}
+            {/* C3 audit fix · floating moderation pill chip after 600ms safety hint */}
+            {streaming && !streamText && showSafetyHint && (
+              <div
+                className="fixed left-1/2 -translate-x-1/2 z-30 flex items-center gap-3"
+                style={{
+                  bottom: 120,
+                  padding: "12px 18px",
+                  borderRadius: 999,
+                  background: "var(--se-surface)",
+                  border: "1px solid var(--se-border-strong)",
+                  boxShadow: "var(--se-shadow-pop)",
+                  fontSize: 13,
+                  color: "var(--se-fg-2)",
+                }}
+              >
+                <span
+                  className="inline-flex items-center justify-center"
+                  style={{
+                    width: 22,
+                    height: 22,
+                    borderRadius: 11,
+                    background: "var(--se-ok-bg)",
+                  }}
+                >
+                  <Shield size={12} color="var(--se-ok)" />
+                </span>
+                <span className="se-cjk">內容審核 + AI 思考中…</span>
               </div>
             )}
 

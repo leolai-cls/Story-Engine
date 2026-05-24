@@ -58,7 +58,7 @@ export default async function PlayPage({
 
   const { data: turns } = await supabase
     .from("turns")
-    .select("turn_index, role, text")
+    .select("turn_index, role, text, skill_check, director_verdict")
     .eq("playthrough_id", playthroughId)
     .order("turn_index", { ascending: true });
 
@@ -105,9 +105,14 @@ export default async function PlayPage({
         role: t.role as "user" | "ai",
         text: t.text,
         index: t.turn_index,
+        skillCheck: t.skill_check as Turn["skillCheck"] | undefined,
+        directorVerdict: t.director_verdict as Turn["directorVerdict"] | undefined,
       }))}
       characterName={pt.character_name ?? "主角"}
       npcs={npcs}
     />
   );
 }
+
+// Local alias so the cast above doesn't need to import the full type from client
+type Turn = import("./play-client").Turn;
