@@ -539,6 +539,175 @@
     .status-grid, .quick-links { grid-template-columns: 1fr; }
     .top-meta { flex-direction: column; gap: 6px; }
   }
+
+  /* ─── NEW visual primitives (Session 10 dashboard refresh) ─── */
+  .tier-bar {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    margin-top: 20px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: rgba(255,255,255,0.12);
+  }
+  .tier-step {
+    flex: 1;
+    padding: 14px 16px;
+    text-align: center;
+    position: relative;
+  }
+  .tier-step + .tier-step { border-left: 1px solid rgba(255,255,255,0.18); }
+  .tier-step .dot {
+    font-size: 18px;
+    line-height: 1;
+    margin-bottom: 4px;
+    display: block;
+  }
+  .tier-step .name {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    opacity: 0.85;
+  }
+  .tier-step .state {
+    font-size: 11px;
+    opacity: 0.7;
+    margin-top: 2px;
+  }
+  .tier-step.done { background: rgba(16,185,129,0.18); }
+  .tier-step.now  { background: rgba(255,255,255,0.18); outline: 2px solid rgba(255,255,255,0.5); outline-offset: -2px; }
+  .tier-step.next { background: rgba(245,158,11,0.16); }
+
+  .player-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 14px;
+  }
+  @media (max-width: 800px) {
+    .player-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  .player-cell {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .player-cell.new {
+    border-color: var(--primary);
+    background: var(--primary-soft);
+  }
+  .player-cell .ico { font-size: 22px; line-height: 1; margin-bottom: 4px; }
+  .player-cell .head {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .player-cell .sub {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.45;
+  }
+  .player-cell .tag {
+    display: inline-block;
+    align-self: flex-start;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: var(--primary);
+    background: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-top: 6px;
+  }
+
+  .shipped-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-top: 14px;
+  }
+  @media (max-width: 800px) {
+    .shipped-row { grid-template-columns: 1fr; }
+  }
+  .shipped-chip {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+  }
+  .shipped-chip .ico {
+    font-size: 26px;
+    line-height: 1;
+    margin-bottom: 10px;
+  }
+  .shipped-chip .head {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 4px;
+  }
+  .shipped-chip .body {
+    font-size: 13.5px;
+    color: var(--ink-soft);
+    line-height: 1.5;
+  }
+
+  .next-block {
+    margin-top: 18px;
+    background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+    border: 1px solid #FCD34D;
+    border-radius: 14px;
+    padding: 18px 22px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+  .next-block .label {
+    font-size: 11px;
+    font-weight: 800;
+    color: #92400E;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .next-block .name {
+    font-size: 18px;
+    font-weight: 800;
+    color: #78350F;
+    margin-top: 2px;
+  }
+  .next-block .detail {
+    font-size: 13.5px;
+    color: #92400E;
+    margin-top: 4px;
+  }
+  .next-block .eta {
+    margin-left: auto;
+    font-size: 12px;
+    font-weight: 700;
+    color: #92400E;
+    background: white;
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid #FCD34D;
+  }
+
+  .audit-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--green);
+    background: var(--green-soft);
+    padding: 4px 10px;
+    border-radius: 999px;
+    margin-top: 8px;
+  }
 </style>
 </head>
 <body>
@@ -565,39 +734,113 @@
       <p class="section-sub">每次新 session 開始，由呢度睇起。</p>
 
       <div class="top-meta">
-        <div><strong>Last updated</strong> 2026-05-25 · Session 10 (🟣 UI tier 延伸 — Multi-LLM expansion (10 models · 2-per-vendor) + My Games dedicated page + ChatGPT-style sidebar · audit wave 1 converged · 落 🟡 Money tier)</div>
-        <div><strong>Phase</strong> Phase 0/1/1.5/2/3/5/6 ✅ · 8 migrations (0001-0018) · UI tier ✅ (v5 designer ~100% match + Session 10 My Games surface) · Multi-LLM ✅ (10 models routed via Anthropic direct + OpenRouter) · <strong>backend + UI both complete</strong> · 落 🟡 MONEY tier (Phase 4 Stripe + Phase 6 KYC)</div>
-        <div><strong>Live</strong> <a href="https://story-engine-drab.vercel.app" target="_blank" style="color: var(--primary);">story-engine-drab.vercel.app</a></div>
+        <div><strong>更新</strong> 2026-05-25 · Session 10</div>
+        <div><strong>狀態</strong> 後台 + UI 都完成 · 接住做收錢</div>
+        <div><strong>網址</strong> <a href="https://story-engine-drab.vercel.app" target="_blank" style="color: var(--primary);">story-engine-drab.vercel.app</a></div>
       </div>
 
       <div class="status-hero">
-        <div class="label">🟣 UI TIER EXTENDED · Multi-LLM (10 models · 2-per-vendor) + My Games dedicated page + ChatGPT-style sidebar · 4 commits Session 10 · audit wave 1 converged · 落 🟡 Money tier</div>
-        <div class="phase">Session 10 founder feedback「呢個產品冇 main menu / chat record / model picker?」直接 surface 兩個 UX gap 加 model catalog opportunity。Shipped: <strong>(a) Multi-LLM expansion</strong> 10 models 2-per-vendor (Anthropic direct + OpenRouter aggregate) · <strong>(b) My Games dedicated page</strong> /[locale]/my list 全部 playthroughs (active/archived/abandoned) + auth-aware SiteHeader · <strong>(c) ChatGPT-style PlaythroughSidebar</strong> 喺 /play 入面 (desktop 240px 永遠 visible + mobile drawer via hamburger) · <strong>(d) Audit wave 1 fixes</strong> (5 HIGH + 1 MED · 0 CRIT after 2-agent parallel audit)</div>
+        <div class="label">🟣 而家狀態</div>
+        <div class="phase">後台同 UI 都完成 · 可以畀朋友試玩</div>
         <div class="focus">
-          Session 10 嘅 4 個 commit (<code>3a4092d → c580a1b → c26c9ba → 37e9a13</code>) 落咗三大塊：<strong>(1) Multi-LLM expansion</strong> — 10 models 2-per-vendor pattern。Anthropic 直連: Sonnet 4.6 / Opus 4.7 / Haiku 4.5。OpenRouter aggregate: GPT-4o + 4o-mini · Gemini 3.1 Pro Preview + 3.5 Flash · Grok 2 + Grok 2 Mini · Llama 405B NSFW。每 model 有 credit_multiplier + min_tier gate (free/adventurer/storyteller/legend) + allows_nsfw flag (CLAUDE.md hard rule #5 isolation enforced — 只 Llama NSFW vendor)。<strong>(2) My Games + Sidebar</strong> — founder「where the F is the main menu?」嘅 ChatGPT-style 答案。<code>/my</code> dedicated route 列全部 playthroughs · 3 status tab (進行中/已封存/棄置) · status badge + 角色名 + turn count + relative time · empty state CTAs。Site header 變 auth-aware (anon: Library/Pricing + Login/Sign up · authed: Library/我嘅遊戲/Pricing + Settings/Log out)。Mobile bottom nav 進行中 link 修返指 /my。PlaythroughSidebar 喺 /play 嘅 240px persistent rail (lg+) + mobile drawer · 12 個最近 run · current 高亮 · 「查看全部 (N)」link 去 /my。<strong>(3) Audit wave 1</strong> — 2 parallel agent (Security + UX/Cost) catch 0 CRIT · 5 HIGH + 7 MED + 9 LOW。Wave 1 inline 修咗: 全部 5 HIGH (login next param chain · count query into Promise.all · mobile play header overflow 360px · React cache() on auth.getUser 6 site dedupe · narrative width regression max-w bump) + 1 MED (/my?tab=X dead-end redirect)。NEW <code>lib/supabase/cached-user.ts</code> 慳 ~30-80ms/page render 喺 SiteHeader-included page。<strong>下一步：🟡 Money tier</strong> — Phase 4 Stripe (subscription + checkout + top-up) · Phase 6 KYC (Stripe Identity) · Phase 3 deferred (refund saga · OpenRouter pricing) · ~2 sessions。
+          要正式 launch HK + TW 仲差兩件事：收錢 (Stripe 訂閱) 同寫 5 條官方故事。其餘全部 ready。
+        </div>
+        <div class="tier-bar">
+          <div class="tier-step done"><span class="dot">🟢</span><span class="name">後台</span><span class="state">完成</span></div>
+          <div class="tier-step done"><span class="dot">🟣</span><span class="name">UI</span><span class="state">完成</span></div>
+          <div class="tier-step next"><span class="dot">🟡</span><span class="name">收錢</span><span class="state">接住做</span></div>
+          <div class="tier-step"><span class="dot">🏁</span><span class="name">官方故事</span><span class="state">最後</span></div>
         </div>
       </div>
 
-      <div class="status-grid">
-        <div class="status-card good">
-          <div class="status-card-title">🟣 Session 10 — Multi-LLM + My Games + Sidebar + Audit wave 1 (4 commits · 1 audit converged)</div>
-          <ul>
-            <li><strong>Multi-LLM catalog</strong> (commits <code>3a4092d</code>+<code>c580a1b</code>): <code>web/src/lib/ai/models.ts</code> expand 到 10 models 2-per-vendor — Sonnet 4.6 / Opus 4.7 / Haiku 4.5 (Anthropic direct) · GPT-4o + 4o-mini · Gemini 3.1 Pro Preview + 3.5 Flash · Grok 2 + Mini · Llama 405B NSFW (all via OpenRouter)。Each entry: <code>credit_multiplier</code> + <code>min_tier</code> + <code>allows_nsfw</code> · MODEL_PRICING aligned。Tier gating: free / adventurer / storyteller / legend</li>
-            <li><strong>My Games page</strong> (commit <code>c26c9ba</code>): NEW <code>/[locale]/my/page.tsx</code> · list ALL playthroughs · status filter tabs · empty state CTAs · auth-gated server redirect。Site header rewritten <strong>auth-aware</strong> (anon vs authed branches) · MobileBottomNav 進行中 link 修。i18n keys 加 nav.myGames × 3 locales</li>
-            <li><strong>ChatGPT-style Sidebar</strong>: NEW <code>components/se/PlaythroughSidebar.tsx</code> client · desktop 240px persistent rail (lg+) · mobile drawer via hamburger button in slim header · 12 個最近 run · current 高亮 · "查看全部 (N)" footer link to /my。Integration: <code>play/[id]/page.tsx</code> fetch + count query · <code>play-client.tsx</code> sidebar wrapper layout · <code>getMyPlaythroughs</code> query extended with <code>story.genre</code> + <code>cover_image_url</code> join</li>
-            <li><strong>Audit wave 1 converged</strong> (commit <code>37e9a13</code> · 2-agent parallel · Security/Correctness + UX/Cost/Regression): 0 CRIT · 5 HIGH + 7 MED + 9 LOW · all 5 HIGH + 1 MED inline-fixed</li>
-            <li>✅ <strong>MG-UX-HIGH-01</strong> Login <code>?next=</code> param chain — page hidden input + sanitize + actions FormData + emailRedirectTo forward to callback + memory page locale prefix fix</li>
-            <li>✅ <strong>MG-PERF-HIGH-02</strong> totalPlaythroughCount into Promise.all batch — saves ~50-80ms / play page render</li>
-            <li>✅ <strong>MG-UX-HIGH-03</strong> mobile play header overflow — icon-only 返回 + 記憶 on mobile · "玩緊：" hidden lg only · gap-1.5 sm/lg breakpoint · 360px viewport no overflow</li>
-            <li>✅ <strong>MG-PERF-HIGH-04</strong> NEW <code>lib/supabase/cached-user.ts</code> React <code>cache()</code> wrap · migrated 6 server pages (site-header + library + library/[id] + my + settings + stories/new) · ~30-80ms saved / authed page · estimated ~500K Supabase auth call / month saved @ 10k MAU</li>
-            <li>✅ <strong>MG-REG-HIGH-05</strong> narrative width regression — max-w-7xl → max-w-[1520px] compensates for 240px sidebar · designer v5 pixel intent restored on 1440-1520 viewports</li>
-            <li>✅ <strong>MG-UX-MED-02</strong> /my?tab=X dead-end — server redirect to /my if counts[tab]===0 && counts.all&gt;0</li>
-            <li>Audit reports saved: <code>pm/my-games-audit-security.html</code> · <code>pm/my-games-audit-ux.html</code></li>
-            <li>TypeScript clean · Vercel auto-deployed each commit · live at https://story-engine-drab.vercel.app</li>
-            <li><strong>下一步:</strong> 🟡 Money tier (Phase 4 Stripe + Phase 6 KYC) OR 第二輪 audit on Session 10 fix surface (3-cycle convergence pattern per CLAUDE.md #29)</li>
-          </ul>
+      <h3 style="margin-top: 36px; margin-bottom: 4px;">✅ 用戶而家可以做嘅嘢</h3>
+      <p class="meta" style="margin-bottom: 4px;">登入之後試呢啲 flow · 全部 live</p>
+      <div class="player-grid">
+        <div class="player-cell">
+          <div class="ico">📚</div>
+          <div class="head">瀏覽故事</div>
+          <div class="sub">Netflix-style · 熱門 / 最新 / 6 個分類 · 中文搜尋</div>
         </div>
+        <div class="player-cell">
+          <div class="ico">✨</div>
+          <div class="head">創作故事</div>
+          <div class="sub">寫個 prompt · AI 即場整世界觀 + NPC + 介面 + 開場</div>
+        </div>
+        <div class="player-cell">
+          <div class="ico">🎮</div>
+          <div class="head">玩 + 擲骰</div>
+          <div class="sub">流式敘事 · NPC 4-軸好感度 · Skill check 4 個結果</div>
+        </div>
+        <div class="player-cell">
+          <div class="ico">🧠</div>
+          <div class="head">Memory Journal</div>
+          <div class="sub">每個 playthrough 獨立記憶 · 4 個 tab · AI 唔會忘記</div>
+        </div>
+        <div class="player-cell new">
+          <div class="ico">📑</div>
+          <div class="head">我嘅遊戲頁</div>
+          <div class="sub">全部 playthrough 一覽 · 進行中 / 已封存 / 棄置</div>
+          <span class="tag">SESSION 10 NEW</span>
+        </div>
+        <div class="player-cell new">
+          <div class="ico">🤖</div>
+          <div class="head">揀 AI Model</div>
+          <div class="sub">10 個揀: Claude · GPT · Gemini · Grok · 開源 (成人)</div>
+          <span class="tag">SESSION 10 NEW</span>
+        </div>
+        <div class="player-cell">
+          <div class="ico">⭐</div>
+          <div class="head">社群</div>
+          <div class="sub">評分 · 留言 · Fork 別人故事玩自己版本</div>
+        </div>
+        <div class="player-cell">
+          <div class="ico">🔞</div>
+          <div class="head">成人模式</div>
+          <div class="sub">Settings 開關 · consent · 隔離 LLM 防 ban</div>
+        </div>
+        <div class="player-cell">
+          <div class="ico">🌐</div>
+          <div class="head">多語言 + 手機</div>
+          <div class="sub">繁中 / 简中 / English · mobile 專屬 layout</div>
+        </div>
+      </div>
 
+      <h3 style="margin-top: 36px; margin-bottom: 4px;">🎯 今次 Session 做咗 3 樣嘢</h3>
+      <p class="meta" style="margin-bottom: 4px;">4 個 commit · 2 個 AI agent parallel audit · 0 個 critical bug</p>
+      <div class="shipped-row">
+        <div class="shipped-chip">
+          <div class="ico">🤖</div>
+          <div class="head">多 AI Model 揀</div>
+          <div class="body">由 1 個 model 變 10 個 · 每個 vendor 2 個版本 (高級 + 平價)。免費 user 都用到 GPT-4o mini · Gemini Flash · Grok Mini · Haiku。</div>
+          <span class="audit-pill">✓ Anthropic 隔離 NSFW</span>
+        </div>
+        <div class="shipped-chip">
+          <div class="ico">📑</div>
+          <div class="head">「我嘅遊戲」頁 + Sidebar</div>
+          <div class="body">想睇返舊 playthrough? 頂部 nav「我嘅遊戲」link 列晒。玩緊嗰陣左邊有 sidebar 直接 switch 第二個 playthrough (mobile drawer)。</div>
+          <span class="audit-pill">✓ ChatGPT-style</span>
+        </div>
+        <div class="shipped-chip">
+          <div class="ico">🔬</div>
+          <div class="head">2 個 AI Agent Audit</div>
+          <div class="body">Security + UX 兩個 agent 同時審計新 code · 揾到 0 個 critical bug · 5 個 high 已即場修 (登入跳轉 · 手機 header · 速度等)。</div>
+          <span class="audit-pill">✓ Audit converged</span>
+        </div>
+      </div>
+
+      <div class="next-block">
+        <div>
+          <div class="label">🟡 接住做</div>
+          <div class="name">收錢 (Money tier)</div>
+          <div class="detail">Stripe 訂閱 + 月度 credits + 一次性 top-up · 成人模式年齡驗證 (Stripe Identity)</div>
+        </div>
+        <div class="eta">~2 sessions</div>
+      </div>
+
+      <h3 style="margin-top: 44px;">📜 較早之前嘅 session log</h3>
+      <p class="meta">舊 session 紀錄落面，新 session 留喺上面。</p>
+
+      <div class="status-grid">
         <div class="status-card good">
           <div class="status-card-title">🟣 Session 9 — UI TIER SHIPPED · 14 commits · v5 mockup ~100% pixel-match</div>
           <ul>
