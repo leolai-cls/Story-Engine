@@ -7,9 +7,9 @@
 
 ## 🎯 而家狀態
 
-**Phase**: **🟣 UI TIER complete · 47 artboards · Grok+Netflix light · 14 implementation commits · all hard rules + audit fixes + critical/visual gaps closed · 落 🟡 MONEY tier (Phase 4 Stripe + Phase 6 KYC)**
+**Phase**: **🟣 UI TIER complete + Session 10 extensions (Multi-LLM 10 models · My Games + ChatGPT Sidebar · audit wave 1 converged) · 落 🟡 MONEY tier (Phase 4 Stripe + Phase 6 KYC)**
 **Live URL**: https://story-engine-drab.vercel.app
-**Last updated**: 2026-05-24 (Session 9 — UI tier 10 chunks (foundation + 8 pages + final gap-close) shipped · designer's v5 mockup ~100% pixel-match)
+**Last updated**: 2026-05-25 (Session 10 — Multi-LLM expansion + My Games dedicated page + sidebar + audit wave 1)
 
 ## 🎯 Founder priority rule（鎖死）
 
@@ -63,7 +63,51 @@
 
 **Migrated to backlog** (per pm/BACKLOG.md「Phase 5 deferred polish」section · 20 IDs 跨 4 sub-bucket)：W2.5-GENRE-M-02 alias gap · W2.5-FTS-L-03/L-04 tokenizer polish · W2-COST-H-04 anon ISR · W2.6-MIG-L-02 'curated' enum doc · W2.6-PLAY-L-03/L-04 defensive · W2.6-LIB-L-05 1-char Latin hint · W2.6-LIB-I-06 Settings display_name trim · W2.6-UX-L-03 English error strings · W2.6-MIG-I-07 createStory+trigger origin redundancy · W2.6-INFO-03 getCommentReplies UI TODO · W2.6-MIGRATION-L-04 sanity check pattern · 等等。
 
-## ✅ Just completed (Session 9 — 🟣 UI tier shipped · 14 commits · ~100% pixel-match to v5 design)
+## ✅ Just completed (Session 10 — Multi-LLM + My Games + ChatGPT Sidebar + Audit wave 1)
+
+### Session 10 — 4 commits · 0 CRIT audit verdict
+
+| Commit | Delivery |
+|---|---|
+| `3a4092d` | Multi-LLM catalog expand to 10 models (2-per-vendor pattern · Anthropic direct + OpenRouter aggregate) |
+| `c580a1b` | Gemini 3.1 Pro slug fix: `google/gemini-3.1-pro-preview` (founder provided URL proof) |
+| `c26c9ba` | NEW `/[locale]/my` page + `PlaythroughSidebar` component · auth-aware SiteHeader · MobileBottomNav 進行中 repoint |
+| `37e9a13` | Audit wave 1 fixes (5 HIGH + 1 MED · 0 CRIT) · NEW `lib/supabase/cached-user.ts` |
+
+### Multi-LLM expansion (10 models · 2-per-vendor)
+- **Anthropic direct**: Claude Sonnet 4.6 (narrator · 3.0x · adventurer) · Claude Opus 4.7 (narrator · 5.0x · storyteller) · Claude Haiku 4.5 (director · 1.0x · free)
+- **OpenAI via OpenRouter**: GPT-4o (2.5x · adventurer) · GPT-4o mini (0.5x · free)
+- **Google via OpenRouter**: Gemini 3.1 Pro Preview (2.0x · adventurer) · Gemini 3.5 Flash (0.5x · free)
+- **xAI via OpenRouter**: Grok 2 (2.5x · adventurer) · Grok 2 Mini (0.8x · free)
+- **Meta NSFW via OpenRouter**: Llama 3.1 405B (2.5x · storyteller · allows_nsfw=true · CLAUDE.md hard rule #5 isolation)
+- Tier gating: free / adventurer / storyteller / legend
+- Model selection locked at story creation (not switchable mid-game) — Director model also locked
+
+### My Games dedicated page + ChatGPT-style Sidebar (founder UX gap)
+- Founder feedback: "where the F is my chat record? no main menu like LLM apps?" — Library was Netflix-style (browse-first), needed your-work-first surface
+- NEW `/[locale]/my/page.tsx` — list ALL playthroughs · 3 status tab (進行中/已封存/棄置) · status badge + 角色名 + turn count + relative time · empty state CTAs (去 Library / 創作新故事)
+- NEW `components/se/PlaythroughSidebar.tsx` — desktop 240px persistent rail (lg+) + mobile drawer via hamburger button in slim header · 12 個最近 run · current 高亮 · "查看全部 (N)" footer link
+- Site header rewritten **auth-aware** — anon (Library/Pricing + Log in/Sign up) vs authed (Library/我嘅遊戲/Pricing + Settings/Log out)
+- `getMyPlaythroughs` query extended with `story.genre` + `cover_image_url` join (non-breaking)
+- i18n keys added (nav.myGames × 繁中/简中/EN)
+- MobileBottomNav 進行中 link 修返指 /my (was broken /library?continue=1)
+
+### Audit wave 1 — 2-agent parallel · 0 CRIT verdict
+**Findings**: 0 CRIT · 5 HIGH (overlap-deduped) · 7 MED · 9 LOW · saved to `pm/my-games-audit-security.html` + `pm/my-games-audit-ux.html`
+
+**Inline-fixed (all 5 HIGH + 1 MED)**:
+- ✅ **MG-UX-HIGH-01** Login `?next=` chain — login page hidden input + sanitize + actions FormData + emailRedirectTo forward to callback · 4-file chain · also fixes pre-existing memory page locale prefix bug
+- ✅ **MG-PERF-HIGH-02** totalPlaythroughCount into Promise.all batch · saves ~50-80ms / play page render
+- ✅ **MG-UX-HIGH-03** mobile play header overflow — 返回 + 記憶 icon-only on mobile · "玩緊：" hidden lg+ only · 360px viewport no overflow
+- ✅ **MG-PERF-HIGH-04** React `cache()` wrap on `auth.getUser()` — NEW `lib/supabase/cached-user.ts` · migrated 6 server pages (site-header + library + library/[id] + my + settings + stories/new) · ~30-80ms saved / authed page · estimated ~500K Supabase auth call/月 saved @ 10k MAU
+- ✅ **MG-REG-HIGH-05** narrative width regression — max-w-7xl → max-w-[1520px] compensates for 240px sidebar · designer v5 pixel intent restored on 1440-1520 viewports
+- ✅ **MG-UX-MED-02** /my?tab=X dead-end — server redirect to /my if counts[tab]===0 && counts.all>0
+
+**Deferred to BACKLOG** (10 LOW from UX agent + 3 INFO from security agent): mostly polish items (loading skeleton on /my · auto-scroll-to-current-item in sidebar · pagination/virtualization once user has >50 plays · etc).
+
+---
+
+## ✅ Earlier (Session 9 — 🟣 UI tier shipped · 14 commits · ~100% pixel-match to v5 design)
 
 ### UI tier implementation summary
 - **Designer**: Claude Design produced v5 mockup (Grok × Netflix light theme · 47 artboards across 3 phases · audited 5 cycles)
