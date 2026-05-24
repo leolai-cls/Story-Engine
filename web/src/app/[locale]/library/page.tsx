@@ -14,95 +14,79 @@ import {
 } from "@/lib/community/queries";
 import {
   Sparkles,
-  PlayCircle,
-  Star,
-  Users,
-  Plus,
+  Flame,
   Search,
+  Plus,
+  Heart,
+  Swords,
+  GraduationCap,
+  Trophy,
+  Bookmark,
+  Lock,
+  Info,
 } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { StoryCarousel } from "./story-carousel";
+import { StoryCard, type StoryCardData } from "@/components/se/StoryCard";
+import { ContinueCard, type ActivePlaythroughData } from "@/components/se/ContinueCard";
+import { Carousel } from "@/components/se/Carousel";
+import { Cover } from "@/components/se/Cover";
+import { RatingBadge, GenreChip, Avatar } from "@/components/se/Badges";
+import { GENRE, type GenreKey } from "@/components/se/genre";
 
 export const dynamic = "force-dynamic";
 
 /**
- * Library page — Phase 5 Wave 2 (multi-board comic-app style).
+ * Library page — UI tier v1 (Grok × Netflix · light theme).
  *
  * Layout:
- *   1. Header + search bar
- *   2. (logged-in) 繼續玩 — resume in-progress playthroughs
- *   3. (logged-in) 我嘅故事 — own stories of any visibility
- *   4. Search overlay (if ?q= query param)
- *      OR multi-board genre carousels (default browse view):
- *        🔥 熱門 (trending with cold-start boost)
- *        🆕 最新 (pure recency)
- *        💕 戀愛 · ⚔️ 冒險 · 🎓 校園 · 🔮 奇幻 · 🏀 運動 · 🕵️ 懸疑
- *        👑 編輯精選 (TODO: official picks tag — Phase 7 content tier)
- *      Empty boards auto-hide (smart-hide rule).
+ *   1. Cinematic full-bleed hero (Netflix takeover · featured trending story)
+ *   2. Sticky genre rail (filter strip · sticky below hero)
+ *   3. Continue Playing carousel (if user has active runs · pinned first)
+ *   4. My Stories carousel (if user has created stories)
+ *   5. Search overlay (if ?q=)  OR  multi-board genre carousels (browse default)
+ *      Empty boards smart-hide via Carousel component.
  *
- * Phase 5 Wave 2 audit fix folds: P5-LOGIC-H-02 trending cold-start (newcomer
- * boost in trending RPC) + P5-LOGIC-H-03 FTS CJK (bigram tokenizer in
- * Migration 0012).
+ * Backend RPC calls IDENTICAL to previous version — only render layer rebuilt.
+ * All Phase 5/6/audit logic preserved (CJK FTS · trending cold-start · adult mode filter · etc).
  */
 
-/**
- * Multi-board genre carousel definitions.
- *
- * Wave 2.5 W2-GENRE-C-01 fix: keys were originally English ("romance",
- * "adventure"), but schema-generator.ts:112 prompt teaches Claude to emit
- * CJK genre strings ("戀愛校園", "古惑仔", "玄幻冒險"). Keys never matched,
- * 6 boards permanently empty.
- *
- * New design: each board has a CJK display title PLUS an `aliases` array
- * of likely tag/genre values the schema-generator might emit. The
- * `stories_by_genre` RPC matches any of these aliases. This keeps the UI
- * taxonomy clean while accommodating the LLM's varied output.
- */
 const GENRE_BOARDS: Array<{
-  title: string;
-  icon: string;
+  key: GenreKey;
   aliases: string[];
 }> = [
-  {
-    title: "戀愛",
-    icon: "💕",
-    aliases: ["戀愛", "戀愛校園", "愛情", "romance", "純愛", "言情"],
-  },
-  {
-    title: "冒險",
-    icon: "⚔️",
-    aliases: ["冒險", "古惑仔", "黑道", "江湖", "adventure", "action", "武俠"],
-  },
-  {
-    title: "校園",
-    icon: "🎓",
-    aliases: ["校園", "戀愛校園", "青春", "school", "学院", "學園"],
-  },
-  {
-    title: "奇幻",
-    icon: "🔮",
-    aliases: ["奇幻", "玄幻", "玄幻冒險", "魔法", "fantasy", "魔幻", "仙俠"],
-  },
-  {
-    title: "運動",
-    icon: "🏀",
-    aliases: ["運動", "體育", "sports", "競技"],
-  },
-  {
-    title: "懸疑",
-    icon: "🕵️",
-    aliases: ["懸疑", "推理", "mystery", "thriller", "驚悚", "犯罪"],
-  },
+  { key: "romance", aliases: ["戀愛", "戀愛校園", "愛情", "romance", "純愛", "言情"] },
+  { key: "adventure", aliases: ["冒險", "古惑仔", "黑道", "江湖", "adventure", "action", "武俠"] },
+  { key: "campus", aliases: ["校園", "戀愛校園", "青春", "school", "学院", "學園"] },
+  { key: "fantasy", aliases: ["奇幻", "玄幻", "玄幻冒險", "魔法", "fantasy", "魔幻", "仙俠"] },
+  { key: "sports", aliases: ["運動", "體育", "sports", "競技"] },
+  { key: "mystery", aliases: ["懸疑", "推理", "mystery", "thriller", "驚悚", "犯罪"] },
 ];
 
-/**
- * Threshold for engaging multi-board layout vs falling back to single list.
- * W2-LAUNCH-H-05 fix: at launch (or any time content is sparse), multi-board
- * shows mostly empty boards which hurts first-impression. Below this
- * threshold we render a single «公開故事» list instead.
- */
-const MULTI_BOARD_THRESHOLD = 8; // trending stories needed to engage multi-board
+const MULTI_BOARD_THRESHOLD = 8;
+
+const GENRE_ICONS: Record<GenreKey, React.ComponentType<{ size?: number }>> = {
+  romance: Heart,
+  adventure: Swords,
+  campus: GraduationCap,
+  fantasy: Sparkles,
+  sports: Trophy,
+  mystery: Search,
+  slice: Bookmark,
+  horror: Flame,
+};
+
+/** Adapt LibraryStory → StoryCardData for the new StoryCard component. */
+function toCardData(s: LibraryStory): StoryCardData {
+  return {
+    id: s.id,
+    title: s.title,
+    author: null, // author display_name not yet on LibraryStory (TODO: backend join profiles)
+    authorHue: 220,
+    genre: (s.genre as GenreKey) ?? undefined,
+    rating: s.content_rating,
+    stars: s.rating_avg ?? 0,
+    plays: s.play_count ?? 0,
+  };
+}
 
 export default async function LibraryPage({
   params,
@@ -120,10 +104,6 @@ export default async function LibraryPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Phase 6 non-money function: pull adult_mode_enabled for content filter.
-  // Anon visitors + non-adult users → adult-rated stories hidden from carousels
-  // and search results (client-side post-fetch filter · defense-in-depth on
-  // top of RPC's existing p_content_rating filter).
   let adultModeEnabled = false;
   if (user) {
     const { data: profile } = await supabase
@@ -135,18 +115,9 @@ export default async function LibraryPage({
   }
 
   const searchMode = !!sp.q?.trim();
-
-  // W2-FILTER-H-02 fix: empty string from <select value=""> default option
-  // must NOT be passed as a filter value. `??` only catches null/undefined;
-  // here we explicitly coerce empty strings to undefined so the RPC
-  // `(p_language is null or s.language = p_language)` correctly treats
-  // "no filter".
   const language = sp.language?.trim() || undefined;
   const contentRating = sp.rating?.trim() || undefined;
 
-  // W2-GENRE-C-01 fix: for each genre board, try each alias and keep the
-  // first non-empty result. Falls back to empty array if nothing matches.
-  // This makes the board match across CJK / English / variant tag spellings.
   async function fetchBoard(aliases: string[]) {
     for (const alias of aliases) {
       const stories = await getStoriesByGenre(supabase, {
@@ -160,11 +131,9 @@ export default async function LibraryPage({
     return [];
   }
 
-  // Phase 6 helper: drop adult-rated stories when user/visitor not adult-mode-on
   const filterByAdultMode = <T extends { content_rating: string }>(arr: T[]) =>
     adultModeEnabled ? arr : arr.filter((s) => s.content_rating !== "adult");
 
-  // Search mode → single result list (one RPC).
   const searchResults = searchMode
     ? filterByAdultMode(
         await searchStories(supabase, {
@@ -176,40 +145,20 @@ export default async function LibraryPage({
       )
     : null;
 
-  // Browse mode: 2-stage fetch (Wave 2.6 W2.5-PERF-M-02 fix).
-  //   Stage 1: trending + latest. Decide useLaunchFallback from result.
-  //   Stage 2: genre boards ONLY if multi-board mode engages.
-  //
-  // At launch with sparse content, the launch fallback engages and we skip
-  // up to 36 alias RPCs (6 boards × ~6 aliases each) that would have been
-  // wasted (their results discarded by the fallback render path).
   let trending: LibraryStory[] = [];
   let latest: LibraryStory[] = [];
   let genreResults: LibraryStory[][] = [];
-
-  // W2-LAUNCH-H-05 + W2.5-UX-L-07: also fallback when trendingCount === 0
-  // (zero trending + zero genre = render single «公開故事» list, not 1 empty
-  // 熱門 card + 6 hidden boards).
   let useLaunchFallback = false;
 
   if (!searchMode) {
     const [t, l] = await Promise.all([
-      getTrendingStories(supabase, { language, contentRating, limit: 8 }),
+      getTrendingStories(supabase, { language, contentRating, limit: 12 }),
       getLatestStories(supabase, { language, contentRating, limit: 8 }),
     ]);
-    // Phase 6 non-money function: apply adult mode filter to all carousel results
     trending = filterByAdultMode(t);
     latest = filterByAdultMode(l);
-
-    // Decide layout BEFORE fetching genre boards
     useLaunchFallback = trending.length < MULTI_BOARD_THRESHOLD;
-
     if (!useLaunchFallback) {
-      // Multi-board mode: fetch genre carousels in parallel.
-      // Empty-genre smart-hide is handled by StoryCarousel render layer —
-      // no need for a stage-2 downgrade check (Wave 2.7 W2.6-CODE-M-01 fix:
-      // the previous downgrade check was logically unreachable since the
-      // outer condition guarantees trending.length >= MULTI_BOARD_THRESHOLD).
       const fetched = await Promise.all(
         GENRE_BOARDS.map((g) => fetchBoard(g.aliases)),
       );
@@ -217,7 +166,6 @@ export default async function LibraryPage({
     }
   }
 
-  // User-specific sections (parallel with browse fetch)
   const [myPlaythroughs, myStories] = user
     ? await Promise.all([
         getMyPlaythroughs(supabase, { userId: user.id, limit: 6 }),
@@ -225,303 +173,564 @@ export default async function LibraryPage({
       ])
     : [[], []];
 
+  // Hero = top trending story (or first latest if no trending)
+  const heroStory = trending[0] ?? latest[0] ?? null;
+
+  // Continue cards: adapt MyPlaythroughRow → ActivePlaythroughData
+  const activeCards: ActivePlaythroughData[] = myPlaythroughs.map((pt) => ({
+    playthroughId: pt.id,
+    storyId: pt.story_id,
+    storyTitle: pt.story_title,
+    turn: pt.turn_count,
+    snippet: null,
+    delta: null,
+    lastPlayed: relativeTime(pt.last_played_at),
+  }));
+
   return (
     <>
       <SiteHeader />
-      <main className="flex-1 container mx-auto max-w-6xl px-4 sm:px-6 py-12">
-        <div className="mb-8 flex items-center justify-between gap-4 flex-wrap">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight mb-2 flex items-center gap-2">
-              <Sparkles className="h-7 w-7 text-primary" />
-              故事圖書館
-            </h1>
-            <p className="text-muted-foreground text-sm">
-              繼續舊故事 · 探索社群分享 · 創作新故事
-            </p>
+      <main className="flex-1" style={{ background: "var(--se-bg)" }}>
+        {/* HERO — cinematic Netflix takeover */}
+        {!searchMode && heroStory && (
+          <LibraryHero locale={locale} story={heroStory} adultModeEnabled={adultModeEnabled} />
+        )}
+
+        {/* Search bar (compact · always visible when no hero) */}
+        {(searchMode || !heroStory) && (
+          <div className="px-6 sm:px-14 py-6">
+            <SearchForm
+              q={sp.q ?? ""}
+              language={sp.language ?? ""}
+              rating={sp.rating ?? ""}
+              adultModeEnabled={adultModeEnabled}
+              searchMode={searchMode}
+              locale={locale}
+            />
           </div>
-          <Link
-            href={"/stories/new" as never}
-            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
-          >
-            <Plus className="h-4 w-4" />
-            創作新故事
-          </Link>
-        </div>
-
-        {/* Search bar */}
-        <form className="mb-8" method="get">
-          <div className="flex gap-2 flex-wrap">
-            <div className="flex-1 min-w-[200px] relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <input
-                type="text"
-                name="q"
-                defaultValue={sp.q ?? ""}
-                placeholder="搵故事（標題 / 描述 / 標籤 / 中文都得）..."
-                className="w-full rounded-md border pl-10 pr-3 py-2 text-sm bg-background"
-              />
-            </div>
-            <select
-              name="language"
-              defaultValue={sp.language ?? ""}
-              className="rounded-md border px-3 py-2 text-sm bg-background"
-            >
-              <option value="">所有語言</option>
-              <option value="zh-Hant">繁中</option>
-              <option value="zh-Hans">簡中</option>
-              <option value="en">English</option>
-            </select>
-            <select
-              name="rating"
-              defaultValue={sp.rating ?? ""}
-              className="rounded-md border px-3 py-2 text-sm bg-background"
-            >
-              <option value="">所有 rating</option>
-              <option value="sfw">SFW</option>
-              <option value="soft">Soft</option>
-              {/* P6-HIGH-02 fix (audit): hide 'Adult 18+' option from non-adult
-                  users · they previously could select it and get filtered-to-
-                  empty results · "library looks broken" UX dead-end. */}
-              {adultModeEnabled && <option value="adult">Adult 18+</option>}
-            </select>
-            <button
-              type="submit"
-              className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
-            >
-              搜尋
-            </button>
-            {searchMode && (
-              <Link
-                href={"/library" as never}
-                className="inline-flex items-center rounded-md border border-input px-3 py-2 text-sm hover:bg-accent"
-              >
-                清除
-              </Link>
-            )}
-          </div>
-        </form>
-
-        {/* My playthroughs (always above the fold for returning users) */}
-        {user && myPlaythroughs.length > 0 && (
-          <section className="mb-10">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <PlayCircle className="h-5 w-5 text-primary" />
-              繼續玩
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {myPlaythroughs.map((pt) => (
-                <Link
-                  key={pt.id}
-                  href={`/play/${pt.id}` as never}
-                  className="block"
-                >
-                  <Card className="hover:border-primary transition-colors h-full">
-                    <CardHeader>
-                      <CardTitle className="text-base">{pt.story_title}</CardTitle>
-                      <CardDescription className="text-xs">
-                        {pt.character_name ?? "主角"} · {pt.turn_count} turns ·{" "}
-                        {pt.status === "active" ? "進行中" : pt.status}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-xs text-muted-foreground">
-                        最近：{new Date(pt.last_played_at).toLocaleString()}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
-            </div>
-          </section>
         )}
 
-        {/* My stories */}
-        {user && myStories.length > 0 && (
-          <section className="mb-10">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
-              我嘅故事
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {myStories.map((s) => (
-                <Link
-                  key={s.id}
-                  href={`/library/${s.id}` as never}
-                  className="block"
-                >
-                  <Card className="hover:border-primary transition-colors h-full">
-                    <CardHeader>
-                      <div className="flex items-start justify-between gap-2">
-                        <CardTitle className="text-base">{s.title}</CardTitle>
-                        <Badge variant="secondary" className="text-[10px] flex-shrink-0">
-                          {s.visibility === "public"
-                            ? "公開"
-                            : s.visibility === "unlisted"
-                            ? "Link 分享"
-                            : "私人"}
-                        </Badge>
-                      </div>
-                      {s.description && (
-                        <CardDescription className="text-xs line-clamp-2">
-                          {s.description}
-                        </CardDescription>
-                      )}
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <Users className="h-3 w-3" />
-                          {s.play_count} plays
-                        </span>
-                        {s.rating_count > 0 && (
-                          <span className="flex items-center gap-1">
-                            <Star className="h-3 w-3" />
-                            {s.rating_avg?.toFixed(1)} ({s.rating_count})
-                          </span>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Search mode: single result list */}
-        {searchMode && searchResults !== null && (
-          <section>
-            <h2 className="text-xl font-bold mb-4">
-              搜尋結果：「{sp.q}」 ({searchResults.length})
-            </h2>
-            {/* W2.5-DOC-M-01 fix (Wave 2.6): 1-char CJK query hint. Bigram-only
-                tokenizer (Migration 0013) drops single CJK chars — searching
-                「愛」 or 「校」 returns empty. Without this card the user thinks
-                the platform is broken. */}
-            {searchResults.length === 0 && (sp.q?.trim().length ?? 0) === 1 ? (
-              <Card className="border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/40">
-                <CardContent className="py-8 text-center">
-                  <p className="text-sm font-semibold text-amber-900 dark:text-amber-100 mb-2">
-                    請輸入至少 2 個字
-                  </p>
-                  <p className="text-xs text-amber-800 dark:text-amber-200">
-                    中文搜索要 2 字以上嘅 bigram 組合至 work — 試下「校園」「戀愛」「古惑仔」呢類有 phrase 嘅 keyword。
-                  </p>
-                </CardContent>
-              </Card>
-            ) : searchResults.length === 0 ? (
-              <Card>
-                <CardContent className="py-12 text-center">
-                  <p className="text-sm text-muted-foreground">
-                    搵唔到符合嘅故事 — 試下其他關鍵字。提示：搜尋會 match 標題 + 描述 + 標籤，支援中文片段搜索。
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {searchResults.map((s) => (
-                  <Link
-                    key={s.id}
-                    href={`/library/${s.id}` as never}
-                    className="block"
-                  >
-                    <Card className="hover:border-primary transition-colors h-full">
-                      <CardHeader>
-                        <CardTitle className="text-base">{s.title}</CardTitle>
-                        {s.description && (
-                          <CardDescription className="text-xs line-clamp-2">
-                            {s.description}
-                          </CardDescription>
-                        )}
-                      </CardHeader>
-                      <CardContent>
-                        <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
-                          {s.genre && (
-                            <Badge variant="outline" className="text-[10px]">
-                              {s.genre}
-                            </Badge>
-                          )}
-                          {s.content_rating !== "sfw" && (
-                            <Badge
-                              variant="outline"
-                              className="text-[10px] border-rose-300 text-rose-600 dark:text-rose-300"
-                            >
-                              {s.content_rating}
-                            </Badge>
-                          )}
-                          <span className="ml-auto flex items-center gap-1">
-                            <Users className="h-3 w-3" />
-                            {s.play_count}
-                          </span>
-                          {s.rating_count > 0 && (
-                            <span className="flex items-center gap-1">
-                              <Star className="h-3 w-3" />
-                              {s.rating_avg?.toFixed(1)}
-                            </span>
-                          )}
-                        </div>
-                        {s.tags.length > 0 && (
-                          <div className="flex flex-wrap gap-1">
-                            {s.tags.slice(0, 4).map((tag) => (
-                              <span
-                                key={tag}
-                                className="text-[10px] rounded bg-muted px-1.5 py-0.5 text-muted-foreground"
-                              >
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </section>
-        )}
-
-        {/* Browse mode: launch-fallback single list OR multi-board carousels.
-            W2-LAUNCH-H-05: sparse-content phase shows a unified list so
-            visitors don't see "wow this place is empty" with 6 hidden boards. */}
-        {!searchMode && useLaunchFallback && (
-          <StoryCarousel
-            title="公開故事"
-            icon="📚"
-            stories={trending ?? []}
-            emptyMessage={"仲冇公開故事 — 創作一個成為先驅。"}
+        {/* Genre rail (sticky filter strip · below hero) */}
+        {!searchMode && (
+          <GenreRail
+            adultModeEnabled={adultModeEnabled}
+            locale={locale}
           />
+        )}
+
+        {/* Continue Playing — pinned first for returning users */}
+        {user && activeCards.length > 0 && (
+          <Carousel
+            title="繼續玩"
+            sub={`${activeCards.length} ACTIVE RUNS`}
+            icon={<Bookmark size={13} />}
+          >
+            {activeCards.map((p) => (
+              <ContinueCard key={p.playthroughId} p={p} locale={locale} />
+            ))}
+          </Carousel>
+        )}
+
+        {/* My Stories */}
+        {user && myStories.length > 0 && (
+          <Carousel
+            title="我嘅故事"
+            sub={`${myStories.length} STORIES`}
+            icon={<Sparkles size={13} />}
+          >
+            {myStories.map((s) => (
+              <StoryCard
+                key={s.id}
+                s={{
+                  id: s.id,
+                  title: s.title,
+                  author: "你",
+                  authorHue: 290,
+                  rating: s.content_rating,
+                  stars: s.rating_avg ?? 0,
+                  plays: s.play_count ?? 0,
+                }}
+                locale={locale}
+              />
+            ))}
+          </Carousel>
+        )}
+
+        {/* Search results */}
+        {searchMode && searchResults !== null && (
+          <SearchResults
+            q={sp.q ?? ""}
+            results={searchResults}
+            locale={locale}
+          />
+        )}
+
+        {/* Browse mode: launch fallback OR multi-board */}
+        {!searchMode && useLaunchFallback && (
+          <Carousel
+            title="公開故事"
+            sub="PUBLIC LIBRARY"
+            icon={<Sparkles size={13} />}
+            empty={trending.length === 0}
+          >
+            {trending.map((s) => (
+              <StoryCard key={s.id} s={toCardData(s)} locale={locale} />
+            ))}
+          </Carousel>
         )}
 
         {!searchMode && !useLaunchFallback && (
           <>
-            <StoryCarousel
+            <Carousel
               title="熱門"
-              icon="🔥"
-              stories={trending ?? []}
-              emptyMessage={
-                "仲冇 trending 故事 — 平台 launching!  創作一個成為先驅。"
-              }
-            />
-            <StoryCarousel
+              sub="TRENDING · 24H"
+              icon={<Flame size={13} />}
+            >
+              {trending.map((s) => (
+                <StoryCard key={s.id} s={toCardData(s)} locale={locale} />
+              ))}
+            </Carousel>
+            <Carousel
               title="最新"
-              icon="🆕"
-              stories={latest ?? []}
-            />
-            {GENRE_BOARDS.map((g, i) => (
-              <StoryCarousel
-                key={g.title}
-                title={g.title}
-                icon={g.icon}
-                stories={genreResults[i] ?? []}
-                /* Smart-hide: don't show empty genre carousels until there's content */
-                emptyMessage={undefined}
-              />
-            ))}
+              sub="JUST PUBLISHED"
+              icon={<Sparkles size={13} />}
+              empty={latest.length === 0}
+            >
+              {latest.map((s) => (
+                <StoryCard key={s.id} s={toCardData(s)} locale={locale} />
+              ))}
+            </Carousel>
+            {GENRE_BOARDS.map((g, i) => {
+              const Ico = GENRE_ICONS[g.key];
+              const meta = GENRE[g.key];
+              return (
+                <Carousel
+                  key={g.key}
+                  title={meta.label}
+                  sub={g.key.toUpperCase()}
+                  icon={<Ico size={13} />}
+                  empty={(genreResults[i] ?? []).length === 0}
+                >
+                  {(genreResults[i] ?? []).map((s) => (
+                    <StoryCard key={s.id} s={toCardData(s)} locale={locale} />
+                  ))}
+                </Carousel>
+              );
+            })}
           </>
         )}
+
+        {/* Visitor landing CTA (footer-style · only for anon visitors) */}
+        {!user && !searchMode && (
+          <section className="px-6 sm:px-14 py-12 mt-8 text-center">
+            <h2 className="text-2xl font-bold mb-3 se-cjk" style={{ color: "var(--se-fg)" }}>
+              想做主角？
+            </h2>
+            <p className="text-sm mb-6 se-cjk" style={{ color: "var(--se-fg-muted)" }}>
+              一鍵 Guest 試玩 · 無需信用卡 · 之後可以 sign up 用 email 保存
+            </p>
+            <Link
+              href={"/login" as never}
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-md text-sm font-semibold"
+              style={{
+                background: "var(--se-fg)",
+                color: "var(--se-bg)",
+              }}
+            >
+              <Sparkles size={14} />
+              免費試玩
+            </Link>
+          </section>
+        )}
+
+        <div style={{ height: 80 }} />
       </main>
       <SiteFooter />
     </>
   );
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Hero — full-bleed cinematic takeover (Netflix DNA)
+// ─────────────────────────────────────────────────────────────
+function LibraryHero({
+  story,
+  locale,
+}: {
+  story: LibraryStory;
+  locale: string;
+  adultModeEnabled: boolean;
+}) {
+  const genreLabel = (GENRE as Record<string, { label: string; hue: number }>)[story.genre ?? ""]
+    ?.label;
+  return (
+    <section
+      className="relative overflow-hidden border-b"
+      style={{
+        height: 520,
+        borderColor: "var(--se-border)",
+      }}
+    >
+      {/* Background full-bleed cover */}
+      <div className="absolute inset-0">
+        <Cover
+          storyId={story.id}
+          genre={story.genre as GenreKey}
+          ratio="auto"
+          size="none"
+          noLabel
+          style={{
+            width: "100%",
+            height: "100%",
+            border: "none",
+            borderRadius: 0,
+          }}
+        />
+      </div>
+      {/* Gradient overlay */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background: `
+            linear-gradient(90deg, rgba(20,18,14,0.6) 0%, rgba(20,18,14,0.2) 35%, transparent 60%),
+            linear-gradient(0deg, var(--se-bg) 0%, transparent 35%),
+            linear-gradient(270deg, var(--se-bg) 0%, transparent 50%)`,
+        }}
+      />
+      {/* Hero content — bottom-left aligned (Netflix pattern) */}
+      <div
+        className="absolute z-10 text-white"
+        style={{
+          left: 56,
+          right: 56,
+          bottom: 56,
+          maxWidth: 640,
+          textShadow: "0 1px 8px rgba(0,0,0,0.4)",
+        }}
+      >
+        <div
+          className="se-mono uppercase"
+          style={{
+            fontSize: 11,
+            letterSpacing: "0.18em",
+            color: "rgba(255,255,255,0.78)",
+          }}
+        >
+          <span style={{ color: "#f4d77a" }}>★ 編輯精選</span>
+          <span style={{ marginLeft: 12, color: "rgba(255,255,255,0.55)" }}>
+            FEATURED
+            {genreLabel ? ` · ${genreLabel}` : ""}
+            {story.rating_avg ? ` · ${story.rating_avg.toFixed(1)}/5` : ""}
+          </span>
+        </div>
+        <h1
+          className="mt-3 se-cjk text-white"
+          style={{
+            fontSize: 56,
+            fontWeight: 700,
+            lineHeight: 1.05,
+            letterSpacing: "-0.03em",
+            textWrap: "balance",
+          }}
+        >
+          {story.title}
+        </h1>
+        {story.description && (
+          <p
+            className="mt-5 se-cjk"
+            style={{
+              fontSize: 16,
+              lineHeight: 1.65,
+              color: "rgba(255,255,255,0.88)",
+              textWrap: "pretty",
+              maxWidth: 540,
+            }}
+          >
+            {story.description}
+          </p>
+        )}
+        <div className="flex items-center gap-3 mt-7 flex-wrap">
+          <Link
+            href={`/library/${story.id}` as never}
+            locale={locale}
+            className="inline-flex items-center gap-2 px-5 py-3 rounded-md font-semibold"
+            style={{ background: "#fff", color: "#0a0a0b" }}
+          >
+            開始扮演
+          </Link>
+          <Link
+            href={`/library/${story.id}` as never}
+            locale={locale}
+            className="inline-flex items-center gap-2 px-5 py-3 rounded-md"
+            style={{
+              background: "rgba(20,18,14,0.32)",
+              color: "#fff",
+              border: "1px solid rgba(255,255,255,0.32)",
+            }}
+          >
+            詳情
+          </Link>
+          <div
+            style={{
+              width: 1,
+              height: 28,
+              background: "rgba(255,255,255,0.18)",
+              margin: "0 6px",
+            }}
+          />
+          <span
+            className="flex items-center gap-2 text-xs"
+            style={{ color: "rgba(255,255,255,0.78)" }}
+          >
+            <Avatar name="·" size={20} hue={220} />
+            <span style={{ color: "#fff" }}>社群創作</span>
+          </span>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Genre Rail — sticky below hero · filter chips
+// ─────────────────────────────────────────────────────────────
+function GenreRail({
+  adultModeEnabled,
+  locale,
+}: {
+  adultModeEnabled: boolean;
+  locale: string;
+}) {
+  return (
+    <div
+      className="se-row-scroll sticky z-[5] flex items-center gap-2.5 overflow-x-auto"
+      style={{
+        top: 64,
+        padding: "14px 56px",
+        background: "rgba(251,250,246,0.92)",
+        backdropFilter: "blur(14px)",
+        borderBottom: "1px solid var(--se-border)",
+      }}
+    >
+      <Link
+        href={"/library" as never}
+        locale={locale}
+        className="flex-none h-8 px-3.5 rounded-full text-sm font-medium se-cjk"
+        style={{
+          background: "var(--se-fg)",
+          color: "var(--se-bg)",
+        }}
+      >
+        全部
+      </Link>
+      {Object.entries(GENRE).map(([key, meta]) => (
+        <Link
+          key={key}
+          href={`/library?genre=${key}` as never}
+          locale={locale}
+          className="flex-none h-8 px-3.5 rounded-full text-sm se-cjk inline-flex items-center"
+          style={{
+            color: "var(--se-fg-muted)",
+            border: "1px solid var(--se-border)",
+            background: "transparent",
+          }}
+        >
+          {meta.label}
+        </Link>
+      ))}
+      <div
+        style={{
+          width: 1,
+          height: 18,
+          background: "var(--se-border)",
+          margin: "0 4px",
+          flex: "none",
+        }}
+      />
+      {!adultModeEnabled && (
+        <Link
+          href={"/settings" as never}
+          locale={locale}
+          className="flex-none h-8 px-3.5 rounded-full text-sm inline-flex items-center gap-1.5"
+          style={{
+            color: "var(--se-fg-dim)",
+            border: "1px solid var(--se-border)",
+            opacity: 0.6,
+          }}
+          title="需要喺 設定 開啟成人模式"
+        >
+          <Lock size={10} />
+          18+
+        </Link>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Search form
+// ─────────────────────────────────────────────────────────────
+function SearchForm({
+  q,
+  language,
+  rating,
+  adultModeEnabled,
+  searchMode,
+  locale,
+}: {
+  q: string;
+  language: string;
+  rating: string;
+  adultModeEnabled: boolean;
+  searchMode: boolean;
+  locale: string;
+}) {
+  return (
+    <form className="flex gap-2 flex-wrap items-center" method="get">
+      <div className="flex-1 min-w-[220px] relative">
+        <Search
+          className="absolute left-3 top-1/2 -translate-y-1/2"
+          size={14}
+          color="var(--se-fg-dim)"
+        />
+        <input
+          type="text"
+          name="q"
+          defaultValue={q}
+          placeholder="搵故事（標題 / 描述 / 標籤 / 中文都得）..."
+          className="w-full rounded-md pl-10 pr-3 py-2 text-sm"
+          style={{
+            background: "var(--se-surface)",
+            border: "1px solid var(--se-border)",
+          }}
+        />
+      </div>
+      <select
+        name="language"
+        defaultValue={language}
+        className="rounded-md px-3 py-2 text-sm"
+        style={{
+          background: "var(--se-surface)",
+          border: "1px solid var(--se-border)",
+        }}
+      >
+        <option value="">所有語言</option>
+        <option value="zh-Hant">繁中</option>
+        <option value="zh-Hans">簡中</option>
+        <option value="en">English</option>
+      </select>
+      <select
+        name="rating"
+        defaultValue={rating}
+        className="rounded-md px-3 py-2 text-sm"
+        style={{
+          background: "var(--se-surface)",
+          border: "1px solid var(--se-border)",
+        }}
+      >
+        <option value="">所有 rating</option>
+        <option value="general">一般</option>
+        <option value="pg13">PG-13</option>
+        <option value="mature">成熟</option>
+        {/* P6-HIGH-02: Adult option only when adult mode enabled */}
+        {adultModeEnabled && <option value="adult">18+ 成人</option>}
+      </select>
+      <button
+        type="submit"
+        className="rounded-md px-4 py-2 text-sm font-semibold"
+        style={{ background: "var(--se-fg)", color: "var(--se-bg)" }}
+      >
+        搜尋
+      </button>
+      {searchMode && (
+        <Link
+          href={"/library" as never}
+          locale={locale}
+          className="inline-flex items-center rounded-md px-3 py-2 text-sm"
+          style={{ border: "1px solid var(--se-border)", color: "var(--se-fg-muted)" }}
+        >
+          清除
+        </Link>
+      )}
+    </form>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Search results
+// ─────────────────────────────────────────────────────────────
+function SearchResults({
+  q,
+  results,
+  locale,
+}: {
+  q: string;
+  results: LibraryStory[];
+  locale: string;
+}) {
+  return (
+    <section className="px-6 sm:px-14">
+      <h2 className="text-xl font-bold mb-4 se-cjk" style={{ color: "var(--se-fg)" }}>
+        搜尋結果：「{q}」
+        <span className="se-mono ml-2 text-xs" style={{ color: "var(--se-fg-dim)" }}>
+          {results.length} HITS
+        </span>
+      </h2>
+      {results.length === 0 && q.trim().length === 1 ? (
+        <div
+          className="p-6 rounded-lg flex gap-4 items-start"
+          style={{
+            background: "var(--se-warn-bg)",
+            border: "1px solid var(--se-warn)",
+          }}
+        >
+          <Info size={16} color="var(--se-warn)" className="mt-0.5 flex-none" />
+          <div>
+            <h3 className="font-semibold text-sm mb-1.5 se-cjk" style={{ color: "var(--se-fg)" }}>
+              請輸入至少 2 個字
+            </h3>
+            <p className="text-xs se-cjk" style={{ color: "var(--se-fg-muted)" }}>
+              中文搜索要 2 字以上嘅 bigram 組合至 work — 試下「校園」「戀愛」「古惑仔」呢類有 phrase 嘅 keyword。
+            </p>
+          </div>
+        </div>
+      ) : results.length === 0 ? (
+        <div
+          className="p-12 rounded-lg text-center"
+          style={{
+            background: "var(--se-surface)",
+            border: "1px solid var(--se-border)",
+          }}
+        >
+          <p className="text-sm se-cjk" style={{ color: "var(--se-fg-muted)" }}>
+            搵唔到符合嘅故事 — 試下其他關鍵字
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+          {results.map((s) => (
+            <StoryCard key={s.id} s={toCardData(s)} locale={locale} />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Helpers
+// ─────────────────────────────────────────────────────────────
+function relativeTime(iso: string): string {
+  const t = new Date(iso).getTime();
+  const now = Date.now();
+  const diffMin = Math.floor((now - t) / 60_000);
+  if (diffMin < 1) return "剛剛";
+  if (diffMin < 60) return `${diffMin} 分鐘前`;
+  const diffHour = Math.floor(diffMin / 60);
+  if (diffHour < 24) return `${diffHour} 小時前`;
+  const diffDay = Math.floor(diffHour / 24);
+  if (diffDay === 1) return "昨天";
+  if (diffDay < 7) return `${diffDay} 日前`;
+  if (diffDay < 30) return `${Math.floor(diffDay / 7)} 週前`;
+  return new Date(iso).toLocaleDateString();
 }

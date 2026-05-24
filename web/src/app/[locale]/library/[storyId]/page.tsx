@@ -3,9 +3,7 @@ import { Link } from "@/i18n/navigation";
 import { notFound } from "next/navigation";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, BookOpen, Star, Users, MessageSquare, Flag, Play } from "lucide-react";
+import { ArrowLeft, Star, MessageSquare, Lock, Info } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import {
   getStoryById,
@@ -14,16 +12,24 @@ import {
   getMyRating,
 } from "@/lib/community/queries";
 import { StoryDetailActions } from "./story-detail-actions";
+import { Cover } from "@/components/se/Cover";
+import { RatingBadge, GenreChip, Stars, Avatar } from "@/components/se/Badges";
+import type { GenreKey } from "@/components/se/genre";
 
 export const dynamic = "force-dynamic";
 
 /**
- * Story detail page — Phase 5 function tier minimal UI.
+ * Story Detail page — UI tier v1 (Grok × Netflix · light theme).
  *
- * Shows: title + description + stats + top reviews + comments thread.
- * Owner sees publish/unpublish; others see "Play this story" (fork) + Report.
+ * Mental anchor: "scenario landing page", NOT product page.
+ * Story = scenario template. Each playthrough is unique emergent narrative.
+ * NO "完成率" · NO "全程 cost" · NO "建議長度" — length is emergent.
  *
- * Server-rendered for SEO friendliness on public stories.
+ * Layout:
+ *   1. Full-bleed cover hero with gradient overlay · title overlay · CTAs
+ *   2. Below hero · 2-col scroll:
+ *      - Main col: opening narrative preview · cast preview · comments
+ *      - Sidebar: stats (descriptive · NOT prescriptive) · 評分分佈
  */
 export default async function StoryDetailPage({
   params,
@@ -41,14 +47,37 @@ export default async function StoryDetailPage({
   const story = await getStoryById(supabase, storyId);
   if (!story) notFound();
 
-  // Owner check via separate query (getStoryById strips owner_id)
-  const { data: ownerCheck } = await supabase
+  // Phase 6 audit fix (P6-MED-01): if story is adult-rated and user adult_mode
+  // off, show 403-friendly card instead of full page (info-only · no fork
+  // action surfaced).
+  let adultModeEnabled = false;
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("adult_mode_enabled")
+      .eq("id", user.id)
+      .single();
+    adultModeEnabled = profile?.adult_mode_enabled ?? false;
+  }
+  const adultBlocked = story.content_rating === "adult" && !adultModeEnabled;
+
+  // Owner check + extra story fields (opening_narrative)
+  const { data: extra } = await supabase
     .from("stories")
-    .select("owner_id, visibility")
+    .select("owner_id, visibility, opening_narrative")
     .eq("id", storyId)
     .single();
-  const isOwner = !!user && ownerCheck?.owner_id === user.id;
-  const visibility = ownerCheck?.visibility ?? "private";
+  const isOwner = !!user && extra?.owner_id === user.id;
+  const visibility = extra?.visibility ?? "private";
+  const openingNarrative = extra?.opening_narrative as string | null | undefined;
+
+  // Cast preview · query story_characters
+  const { data: characters } = await supabase
+    .from("story_characters")
+    .select("name, role, traits")
+    .eq("story_id", storyId)
+    .order("created_at", { ascending: true })
+    .limit(4);
 
   const [ratings, comments, myRating] = await Promise.all([
     getStoryRatings(supabase, { storyId, limit: 5 }),
@@ -56,176 +85,554 @@ export default async function StoryDetailPage({
     user ? getMyRating(supabase, { storyId, userId: user.id }) : Promise.resolve(null),
   ]);
 
+  // Aggregate stats for sidebar (descriptive only · no completion %).
+  // play_count + rating_avg + rating_count come from LibraryStory.
+  // TODO (backend): median_session_turn_count via view, fork_count via count(*).
+
+  if (adultBlocked) {
+    return <StoryDetail403 locale={locale} />;
+  }
+
   return (
     <>
       <SiteHeader />
-      <main className="flex-1 container mx-auto max-w-4xl px-4 sm:px-6 py-12">
-        <Link
-          href={"/library" as never}
-          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          返回 Library
-        </Link>
-
-        {/* Header card */}
-        <Card className="mb-8">
-          <CardHeader>
-            <div className="flex items-start justify-between gap-3 flex-wrap">
-              <div className="flex items-center gap-3">
-                <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <BookOpen className="h-6 w-6" />
-                </div>
-                <div>
-                  <CardTitle className="text-2xl">{story.title}</CardTitle>
-                  {story.description && (
-                    <CardDescription className="mt-1">
-                      {story.description}
-                    </CardDescription>
-                  )}
-                </div>
-              </div>
-              <Badge
-                variant={visibility === "public" ? "default" : "secondary"}
-                className="text-[10px]"
-              >
-                {visibility === "public" ? "公開" : visibility === "unlisted" ? "Link 分享" : "私人"}
-              </Badge>
-            </div>
-
-            {/* Stats row */}
-            <div className="flex flex-wrap items-center gap-4 mt-4 text-sm text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <Users className="h-4 w-4" />
-                {story.play_count} 次玩過
+      <main className="flex-1" style={{ background: "var(--se-bg)" }}>
+        {/* HERO — full-bleed cover */}
+        <section className="relative overflow-hidden border-b" style={{
+          height: 480,
+          borderColor: "var(--se-border)",
+        }}>
+          {/* Background cover */}
+          <div className="absolute inset-0">
+            <Cover
+              storyId={story.id}
+              genre={story.genre as GenreKey}
+              ratio="auto"
+              size="none"
+              noLabel
+              style={{
+                width: "100%",
+                height: "100%",
+                border: "none",
+                borderRadius: 0,
+              }}
+            />
+          </div>
+          {/* Gradient overlay */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background: `
+                linear-gradient(0deg, var(--se-bg) 0%, transparent 40%),
+                linear-gradient(90deg, rgba(20,18,14,0.55) 0%, transparent 60%)`,
+            }}
+          />
+          {/* Breadcrumb top-left */}
+          <div className="absolute top-5 left-14 z-10">
+            <Link
+              href={"/library" as never}
+              locale={locale}
+              className="inline-flex items-center gap-1.5 text-xs"
+              style={{
+                color: "rgba(255,255,255,0.85)",
+                textShadow: "0 1px 4px rgba(0,0,0,0.4)",
+              }}
+            >
+              <ArrowLeft size={12} />
+              故事庫
+            </Link>
+          </div>
+          {/* Hero content bottom-left */}
+          <div
+            className="absolute z-10 text-white"
+            style={{
+              left: 56,
+              right: 56,
+              bottom: 56,
+              maxWidth: 640,
+              textShadow: "0 1px 8px rgba(0,0,0,0.4)",
+            }}
+          >
+            <div className="flex items-center gap-2 mb-3.5 flex-wrap">
+              {story.genre && <GenreChip genre={story.genre as GenreKey} />}
+              <RatingBadge rating={story.content_rating} />
+              <span className="se-mono text-[10.5px]" style={{ color: "rgba(255,255,255,0.65)", letterSpacing: "0.08em" }}>
+                {(story.language || "zh-Hant").toUpperCase()}
               </span>
-              {story.rating_count > 0 && (
-                <span className="flex items-center gap-1">
-                  <Star className="h-4 w-4 text-amber-500" />
-                  {story.rating_avg?.toFixed(1)} ({story.rating_count} 個評分)
+            </div>
+            <h1
+              className="se-cjk text-white m-0"
+              style={{
+                fontSize: 56,
+                fontWeight: 700,
+                lineHeight: 1.05,
+                letterSpacing: "-0.03em",
+                textWrap: "balance",
+              }}
+            >
+              {story.title}
+            </h1>
+            {story.description && (
+              <p
+                className="mt-5 se-cjk"
+                style={{
+                  fontSize: 16,
+                  lineHeight: 1.65,
+                  color: "rgba(255,255,255,0.88)",
+                  maxWidth: 540,
+                }}
+              >
+                {story.description}
+              </p>
+            )}
+            <div className="mt-6 flex items-center gap-2 flex-wrap" style={{ rowGap: 6 }}>
+              <Avatar name="·" size={20} hue={220} />
+              <span className="text-sm" style={{ color: "#fff" }}>社群創作</span>
+              {isOwner && (
+                <span
+                  className="ml-2 se-mono"
+                  style={{
+                    fontSize: 10,
+                    padding: "2px 7px",
+                    borderRadius: 3,
+                    background: "rgba(255,255,255,0.18)",
+                    color: "#fff",
+                    letterSpacing: "0.05em",
+                  }}
+                >
+                  {visibility === "public" ? "已發佈 PUBLIC" : visibility === "unlisted" ? "LINK 分享" : "PRIVATE"}
                 </span>
               )}
-              {story.genre && <Badge variant="outline" className="text-[10px]">{story.genre}</Badge>}
-              {story.content_rating !== "sfw" && (
-                <Badge variant="outline" className="text-[10px] border-rose-300 text-rose-600 dark:text-rose-300">
-                  {story.content_rating}
-                </Badge>
+            </div>
+          </div>
+        </section>
+
+        {/* Body · 2-col layout: main + sidebar */}
+        <div
+          className="max-w-[1200px] mx-auto px-6 sm:px-14 py-10"
+          style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 48 }}
+        >
+          {/* MAIN column */}
+          <div className="min-w-0">
+            {/* Actions cluster (Fork / Continue / Rate / etc) */}
+            <div className="mb-10">
+              <StoryDetailActions
+                storyId={storyId}
+                isOwner={isOwner}
+                isAuthenticated={!!user}
+                currentVisibility={visibility}
+                myRating={myRating ?? null}
+              />
+            </div>
+
+            {/* Opening narrative preview */}
+            {openingNarrative && (
+              <section className="mb-10">
+                <div className="flex items-baseline gap-3 mb-3.5">
+                  <h2 className="text-base font-semibold m-0 se-cjk" style={{ color: "var(--se-fg)" }}>
+                    開場
+                  </h2>
+                  <span className="se-mono text-[10.5px]" style={{ color: "var(--se-fg-dim)", letterSpacing: "0.08em" }}>
+                    OPENING NARRATIVE
+                  </span>
+                </div>
+                <div
+                  className="relative p-6 rounded-xl se-cjk"
+                  style={{
+                    background: "var(--se-surface)",
+                    border: "1px solid var(--se-border)",
+                  }}
+                >
+                  <p
+                    className="m-0"
+                    style={{
+                      fontSize: 16,
+                      lineHeight: 1.85,
+                      color: "var(--se-fg)",
+                      letterSpacing: "0.01em",
+                      whiteSpace: "pre-wrap",
+                    }}
+                  >
+                    {openingNarrative}
+                  </p>
+                </div>
+                <p
+                  className="mt-3 text-xs se-cjk text-center"
+                  style={{ color: "var(--se-fg-muted)" }}
+                >
+                  所有 playthrough 由呢度起 · 之後每個玩家寫嘅故事都唔同
+                </p>
+              </section>
+            )}
+
+            {/* Cast preview */}
+            {characters && characters.length > 0 && (
+              <section className="mb-10">
+                <div className="flex items-baseline gap-3 mb-3.5">
+                  <h2 className="text-base font-semibold m-0 se-cjk" style={{ color: "var(--se-fg)" }}>
+                    主要角色
+                  </h2>
+                  <span className="se-mono text-[10.5px]" style={{ color: "var(--se-fg-dim)", letterSpacing: "0.08em" }}>
+                    CAST · {characters.length} NPC
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {characters.map((c) => (
+                    <div
+                      key={c.name}
+                      className="p-3.5 rounded-lg flex flex-col gap-2.5"
+                      style={{
+                        background: "var(--se-surface)",
+                        border: "1px solid var(--se-border)",
+                      }}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Avatar name={c.name} size={36} hue={(c.name.charCodeAt(0) * 13) % 360} />
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-medium se-cjk truncate">{c.name}</div>
+                          {c.role && (
+                            <div className="text-[11px] truncate" style={{ color: "var(--se-fg-dim)" }}>
+                              {c.role}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      {Array.isArray(c.traits) && c.traits.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {(c.traits as string[]).slice(0, 3).map((t) => (
+                            <span
+                              key={t}
+                              className="se-mono"
+                              style={{
+                                fontSize: 10,
+                                padding: "2px 6px",
+                                borderRadius: 3,
+                                background: "var(--se-surface-2)",
+                                color: "var(--se-fg-muted)",
+                              }}
+                            >
+                              {t}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Reviews + Comments */}
+            <section className="mb-12">
+              <div className="flex items-baseline gap-3 mb-4">
+                <h2 className="text-base font-semibold m-0 se-cjk" style={{ color: "var(--se-fg)" }}>
+                  評論
+                </h2>
+                <span className="se-mono text-[10.5px]" style={{ color: "var(--se-fg-dim)", letterSpacing: "0.08em" }}>
+                  {comments.length} REPLIES · {story.rating_count} RATINGS
+                </span>
+              </div>
+
+              {ratings.length > 0 && (
+                <div className="space-y-2.5 mb-6">
+                  {ratings.map((r) => (
+                    <div
+                      key={r.user_id + r.created_at}
+                      className="p-4 rounded-lg"
+                      style={{
+                        background: "var(--se-surface)",
+                        border: "1px solid var(--se-border)",
+                      }}
+                    >
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
+                        <Avatar name={r.display_name ?? "?"} size={22} hue={200} />
+                        <span className="text-sm font-medium se-cjk" style={{ color: "var(--se-fg)" }}>
+                          {r.display_name?.trim() || `${r.user_id.slice(0, 8)}…`}
+                        </span>
+                        <span style={{ color: "oklch(0.78 0.13 80)" }}>
+                          {[1, 2, 3, 4, 5].map((n) => (
+                            <span key={n} style={{ fontSize: 12 }}>
+                              {n <= r.score ? "★" : "☆"}
+                            </span>
+                          ))}
+                        </span>
+                        <span
+                          className="se-mono ml-auto text-[10.5px]"
+                          style={{ color: "var(--se-fg-dim)" }}
+                        >
+                          {new Date(r.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                      {r.review_text && (
+                        <p
+                          className="text-sm whitespace-pre-wrap se-cjk"
+                          style={{ color: "var(--se-fg-2)", lineHeight: 1.6 }}
+                        >
+                          {r.review_text}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {comments.length === 0 ? (
+                <div
+                  className="p-8 rounded-lg text-center"
+                  style={{
+                    background: "var(--se-surface)",
+                    border: "1px dashed var(--se-border-strong)",
+                  }}
+                >
+                  <MessageSquare size={20} className="mx-auto mb-2" color="var(--se-fg-dim)" />
+                  <p className="text-sm se-cjk" style={{ color: "var(--se-fg-muted)" }}>
+                    未有留言。{user ? "玩完之後留低你嘅感想。" : "登入之後可以留言。"}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {comments.map((c) => (
+                    <div
+                      key={c.id}
+                      className="p-4 rounded-lg"
+                      style={{
+                        background: "var(--se-surface)",
+                        border: "1px solid var(--se-border)",
+                      }}
+                    >
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
+                        <Avatar name={c.display_name ?? "?"} size={22} hue={150} />
+                        <span className="text-sm font-medium se-cjk">
+                          {c.display_name?.trim() || `${c.user_id.slice(0, 8)}…`}
+                        </span>
+                        <span
+                          className="se-mono ml-auto text-[10.5px]"
+                          style={{ color: "var(--se-fg-dim)" }}
+                        >
+                          {new Date(c.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                      {c.deleted ? (
+                        <p className="text-sm italic se-cjk" style={{ color: "var(--se-fg-dim)" }}>
+                          [已刪除]
+                        </p>
+                      ) : (
+                        <p
+                          className="text-sm whitespace-pre-wrap se-cjk"
+                          style={{ color: "var(--se-fg-2)", lineHeight: 1.6 }}
+                        >
+                          {c.body}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          </div>
+
+          {/* SIDEBAR · stats (descriptive only) */}
+          <aside style={{ alignSelf: "start", position: "sticky", top: 76 }}>
+            <div
+              className="p-5 rounded-xl"
+              style={{
+                background: "var(--se-surface)",
+                border: "1px solid var(--se-border)",
+              }}
+            >
+              {/* Rating headline */}
+              <div className="flex items-baseline gap-2">
+                <span
+                  className="se-mono"
+                  style={{
+                    fontSize: 32,
+                    fontWeight: 600,
+                    color: "oklch(0.55 0.13 80)",
+                    letterSpacing: "-0.02em",
+                  }}
+                >
+                  {(story.rating_avg ?? 0).toFixed(1)}
+                </span>
+                <Stars value={story.rating_avg ?? 0} size={13} />
+              </div>
+              <div className="text-[11.5px] mt-0.5" style={{ color: "var(--se-fg-dim)" }}>
+                {story.rating_count} 個評分
+              </div>
+
+              <div
+                style={{
+                  height: 1,
+                  background: "var(--se-border)",
+                  margin: "18px 0",
+                }}
+              />
+
+              {/* Descriptive stats grid · NO completion % · NO 建議長度 */}
+              <div className="grid grid-cols-2 gap-3.5 text-xs">
+                <StatTile label="累計開過 playthrough" value={story.play_count.toLocaleString()} />
+                <StatTile label="評分數" value={String(story.rating_count)} />
+                <StatTile label="留言數" value={String(comments.length)} />
+                <StatTile label="發佈日期" value={new Date(story.created_at).toLocaleDateString()} />
+              </div>
+
+              {/* Cost framing · per-turn only · NO 全程 estimate */}
+              <div
+                style={{
+                  marginTop: 18,
+                  padding: "10px 12px",
+                  borderRadius: 7,
+                  background: "var(--se-surface-2)",
+                  border: "1px solid var(--se-border)",
+                  fontSize: 11.5,
+                  color: "var(--se-fg-muted)",
+                  lineHeight: 1.55,
+                }}
+              >
+                <div className="se-mono uppercase mb-1 text-[10px]" style={{ color: "var(--se-fg-dim)", letterSpacing: "0.06em" }}>
+                  COST
+                </div>
+                <span className="se-mono" style={{ color: "var(--se-fg-2)" }}>~2 credits / turn</span>
+                <span className="se-cjk"> · 玩到滿意為止</span>
+              </div>
+
+              {/* Tags */}
+              {story.tags.length > 0 && (
+                <>
+                  <div
+                    style={{
+                      height: 1,
+                      background: "var(--se-border)",
+                      margin: "18px 0 14px",
+                    }}
+                  />
+                  <div className="se-mono uppercase text-[10px] mb-2" style={{ color: "var(--se-fg-dim)", letterSpacing: "0.06em" }}>
+                    TAGS
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {story.tags.slice(0, 8).map((tag) => (
+                      <span
+                        key={tag}
+                        className="se-cjk"
+                        style={{
+                          fontSize: 11.5,
+                          padding: "3px 8px",
+                          borderRadius: 4,
+                          background: "var(--se-surface-2)",
+                          color: "var(--se-fg-muted)",
+                          border: "1px solid var(--se-border)",
+                        }}
+                      >
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+                </>
               )}
             </div>
-            {story.tags.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-3">
-                {story.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="text-[11px] rounded bg-muted px-1.5 py-0.5 text-muted-foreground"
-                  >
-                    #{tag}
-                  </span>
-                ))}
+          </aside>
+        </div>
+      </main>
+      <SiteFooter />
+    </>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Stat tile (sidebar)
+// ─────────────────────────────────────────────────────────────
+function StatTile({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div
+        className="se-mono uppercase"
+        style={{
+          fontSize: 10,
+          color: "var(--se-fg-dim)",
+          letterSpacing: "0.06em",
+        }}
+      >
+        {label}
+      </div>
+      <div className="se-mono mt-1" style={{ fontSize: 16, color: "var(--se-fg)" }}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Adult 403 friendly card (P6-UX-L-03 backlog · UI tier addressed)
+// ─────────────────────────────────────────────────────────────
+function StoryDetail403({ locale }: { locale: string }) {
+  return (
+    <>
+      <SiteHeader />
+      <main className="flex-1" style={{ background: "var(--se-bg)" }}>
+        <div className="max-w-[560px] mx-auto px-6 pt-20 pb-12 text-center">
+          <span
+            className="inline-flex items-center justify-center mb-4"
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: 14,
+              background: "var(--se-warn-bg)",
+              color: "var(--se-warn)",
+            }}
+          >
+            <Lock size={22} />
+          </span>
+          <div className="se-mono uppercase text-xs" style={{ color: "var(--se-warn)", letterSpacing: "0.06em" }}>
+            HTTP 403 · ADULT MODE REQUIRED
+          </div>
+          <h1 className="text-[22px] font-semibold mt-3.5 mb-2.5 se-cjk" style={{ letterSpacing: "-0.015em" }}>
+            呢個故事鎖咗喺成人模式入面
+          </h1>
+          <p className="text-sm se-cjk max-w-[440px] mx-auto" style={{ color: "var(--se-fg-muted)", lineHeight: 1.65 }}>
+            作者標記咗呢個故事為{" "}
+            <span className="se-mono" style={{ color: "var(--se-fg)" }}>18+</span>{" "}
+            內容。要繼續，請喺
+            <span style={{ color: "var(--se-fg)" }}>設定</span>
+            開啟成人模式（需要完成身份驗證）。
+          </p>
+          <div className="flex gap-2.5 justify-center mt-6">
+            <Link
+              href={"/settings" as never}
+              locale={locale}
+              className="px-4 py-2 rounded-md text-sm font-medium"
+              style={{ background: "var(--se-fg)", color: "var(--se-bg)" }}
+            >
+              前往設定 →
+            </Link>
+            <Link
+              href={"/library" as never}
+              locale={locale}
+              className="px-4 py-2 rounded-md text-sm"
+              style={{ border: "1px solid var(--se-border)", color: "var(--se-fg-muted)" }}
+            >
+              返回故事庫
+            </Link>
+          </div>
+          <div
+            className="mt-8 p-4 rounded-lg text-left text-xs se-cjk"
+            style={{
+              background: "var(--se-surface)",
+              border: "1px solid var(--se-border)",
+              color: "var(--se-fg-muted)",
+              lineHeight: 1.65,
+            }}
+          >
+            <div className="flex items-start gap-2.5">
+              <Info size={14} color="var(--se-fg-muted)" className="mt-0.5 flex-none" />
+              <div>
+                <div className="font-medium mb-1" style={{ color: "var(--se-fg-2)" }}>
+                  點解需要身份驗證？
+                </div>
+                平台必須確認用戶為成年人，方可解鎖 18+ 內容。身份驗證由 Stripe Identity 處理 · 一次性 · 唔會儲低身份證件影像。
+                <span style={{ color: "var(--se-fg-dim)" }}>（此功能 Phase 6 money tier 上線）</span>
               </div>
-            )}
-          </CardHeader>
-          <CardContent>
-            {/* Actions */}
-            <StoryDetailActions
-              storyId={storyId}
-              isOwner={isOwner}
-              isAuthenticated={!!user}
-              currentVisibility={visibility}
-              myRating={myRating ?? null}
-            />
-          </CardContent>
-        </Card>
-
-        {/* Reviews */}
-        <section className="mb-12">
-          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-            <Star className="h-5 w-5 text-amber-500" />
-            玩家評論 ({story.rating_count})
-          </h2>
-          {ratings.length === 0 ? (
-            <Card>
-              <CardContent className="py-8 text-center text-sm text-muted-foreground">
-                未有評論。{user ? "玩完之後留低你嘅評論。" : "登入之後可以評論。"}
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-3">
-              {ratings.map((r) => (
-                <Card key={r.user_id + r.created_at}>
-                  <CardContent className="py-4">
-                    <div className="flex items-center gap-2 mb-2 flex-wrap">
-                      <span className="text-xs font-semibold text-foreground">
-                        {/* W2.5-UX-L-06 fix (Wave 2.6): `.trim() ||` catches
-                            whitespace-only display_name; bare `||` renders
-                            blank. */}
-                        {r.display_name?.trim() || `${r.user_id.slice(0, 8)}…`}
-                      </span>
-                      <div className="flex">
-                        {[1, 2, 3, 4, 5].map((n) => (
-                          <Star
-                            key={n}
-                            className={`h-4 w-4 ${
-                              n <= r.score
-                                ? "fill-amber-400 text-amber-400"
-                                : "text-muted-foreground/30"
-                            }`}
-                          />
-                        ))}
-                      </div>
-                      <span className="text-xs text-muted-foreground ml-auto">
-                        {new Date(r.created_at).toLocaleDateString()}
-                      </span>
-                    </div>
-                    {r.review_text && (
-                      <p className="text-sm text-foreground whitespace-pre-wrap">
-                        {r.review_text}
-                      </p>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
             </div>
-          )}
-        </section>
-
-        {/* Comments */}
-        <section>
-          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-            <MessageSquare className="h-5 w-5" />
-            留言 ({comments.length})
-          </h2>
-          {comments.length === 0 ? (
-            <Card>
-              <CardContent className="py-8 text-center text-sm text-muted-foreground">
-                仲冇留言。{user ? "做第一個留言。" : "登入之後可以留言。"}
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-3">
-              {comments.map((c) => (
-                <Card key={c.id}>
-                  <CardContent className="py-3">
-                    <div className="flex items-center justify-between gap-2 mb-1.5">
-                      <span className="text-xs font-semibold text-foreground">
-                        {/* W2.5-UX-L-06 fix (Wave 2.6): trim whitespace-only. */}
-                        {c.display_name?.trim() || (
-                          <span className="font-mono text-muted-foreground">
-                            {c.user_id.slice(0, 8)}…
-                          </span>
-                        )}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(c.created_at).toLocaleString()}
-                      </span>
-                    </div>
-                    <p className="text-sm whitespace-pre-wrap">{c.body}</p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </section>
+          </div>
+        </div>
       </main>
       <SiteFooter />
     </>
