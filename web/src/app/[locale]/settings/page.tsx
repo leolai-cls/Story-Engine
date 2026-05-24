@@ -13,6 +13,7 @@ import {
   Info,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { getCachedUser } from "@/lib/supabase/cached-user";
 import { TIER_CONFIG, type Tier } from "@/lib/billing/credits";
 import { ModelPicker } from "@/components/settings/model-picker";
 import { SignOutButton } from "@/components/settings/sign-out-button";
@@ -38,15 +39,14 @@ export default async function SettingsPage({
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // AUDIT FIX MG-PERF-HIGH-01: cached — SiteHeader dedupes against this call.
+  const user = await getCachedUser();
   if (!user) {
     const l = await getLocale();
     redirect({ href: "/login", locale: l });
     throw new Error("unreachable");
   }
+  const supabase = await createClient();
 
   const [profileRes, ledgerRes, subRes] = await Promise.all([
     supabase

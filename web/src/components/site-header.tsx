@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Sparkles, Library, BookMarked } from "lucide-react";
 import { LocaleSwitcher } from "@/components/se/LocaleSwitcher";
 import { SignOutButton } from "@/components/settings/sign-out-button";
-import { createClient } from "@/lib/supabase/server";
+import { getCachedUser } from "@/lib/supabase/cached-user";
 
 /**
  * Top nav — auth-aware.
@@ -19,11 +19,10 @@ import { createClient } from "@/lib/supabase/server";
 
 export async function SiteHeader() {
   const t = await getTranslations("nav");
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // AUDIT FIX MG-PERF-HIGH-01: dedupe via React cache() — if the page that
+  // wraps this header already called getCachedUser(), zero extra Supabase
+  // auth roundtrips. Saves ~30-80ms per page render on cold cookies.
+  const user = await getCachedUser();
 
   const authedNav: Array<{ href: string; label: string; icon: typeof Library }> = [
     { href: "/library", label: t("library"), icon: Library },

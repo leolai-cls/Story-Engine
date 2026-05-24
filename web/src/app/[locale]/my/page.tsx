@@ -6,6 +6,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { MobileBottomNav } from "@/components/se/MobileBottomNav";
 import { Cover } from "@/components/se/Cover";
 import { createClient } from "@/lib/supabase/server";
+import { getCachedUser } from "@/lib/supabase/cached-user";
 import { getMyPlaythroughs, type MyPlaythroughRow } from "@/lib/community/queries";
 import { Play, Sparkles, Archive, Trash2, BookOpen, Plus } from "lucide-react";
 import type { GenreKey } from "@/components/se/genre";
@@ -40,13 +41,12 @@ export default async function MyGamesPage({
       ? sp.tab
       : "all";
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // AUDIT FIX MG-PERF-HIGH-01: cached — SiteHeader dedupes against this call.
+  const user = await getCachedUser();
   if (!user) {
     redirect(`/${locale}/login?next=/${locale}/my`);
   }
+  const supabase = await createClient();
 
   // High limit — realistic ceiling for a solo user's lifetime playthroughs.
   // RLS auto-scopes to user.id even though query passes it explicitly.
@@ -61,6 +61,14 @@ export default async function MyGamesPage({
     archived: all.filter((p) => p.status === "archived").length,
     abandoned: all.filter((p) => p.status === "abandoned").length,
   };
+
+  // AUDIT FIX MG-UX-MED-02: if user lands on /my?tab=archived but archived=0
+  // (and they DO have other playthroughs), the archived tab pill is hidden,
+  // so they have no obvious way back. Redirect to /my so they see the active
+  // tab + the playthroughs they actually have.
+  if (tab !== "all" && counts[tab] === 0 && counts.all > 0) {
+    redirect(`/${locale}/my`);
+  }
 
   const filtered =
     tab === "all" ? all : all.filter((p) => p.status === tab);

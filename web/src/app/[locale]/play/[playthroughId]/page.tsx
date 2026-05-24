@@ -66,8 +66,15 @@ export default async function PlayPage({
 
   // Fetch NPCs + per-playthrough disposition (Hard rule #6: 4-axis surface).
   // 4-axis stored in playthrough_character_states.disposition jsonb.
-  // Also fetch user's recent playthroughs for the sidebar rail.
-  const [{ data: characters }, { data: charStates }, recentPlaythroughs] = await Promise.all([
+  // Also fetch user's recent playthroughs for the sidebar rail + total count
+  // for "see all (N)" footer. AUDIT FIX MG-PERF-HIGH-02: total count is now
+  // batched into Promise.all instead of running sequentially (~+80ms saved).
+  const [
+    { data: characters },
+    { data: charStates },
+    recentPlaythroughs,
+    { count: totalPlaythroughCount },
+  ] = await Promise.all([
     supabase
       .from("story_characters")
       .select("id, name, role")
@@ -77,6 +84,10 @@ export default async function PlayPage({
       .select("character_id, disposition")
       .eq("playthrough_id", playthroughId),
     getMyPlaythroughs(supabase, { userId: user.id, limit: 12 }),
+    supabase
+      .from("playthroughs")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id),
   ]);
 
   // Merge characters + states into a single array for PlayClient
@@ -99,11 +110,6 @@ export default async function PlayPage({
   });
 
   // Sidebar payload: adapt MyPlaythroughRow → SidebarPlaythrough.
-  // Total count is a separate exact-count query so the footer link can show "see all (N)".
-  const { count: totalPlaythroughCount } = await supabase
-    .from("playthroughs")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", user.id);
   const sidebarPlaythroughs: SidebarPlaythrough[] = recentPlaythroughs.map((p) => ({
     id: p.id,
     storyId: p.story_id,

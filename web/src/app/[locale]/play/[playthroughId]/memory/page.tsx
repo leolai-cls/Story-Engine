@@ -36,7 +36,10 @@ export default async function MemoryJournalPage({
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    redirect(`/${locale}/login?next=/play/${playthroughId}/memory`);
+    // AUDIT FIX MG-UX-HIGH-01: include locale prefix in `next` so the safe-
+    // relative check in login + auth callback returns the user back to the
+    // SAME-locale memory page (was dropping locale before, landing on /profile).
+    redirect(`/${locale}/login?next=/${locale}/play/${playthroughId}/memory`);
   }
 
   const { data: pt } = await supabase

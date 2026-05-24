@@ -3,6 +3,7 @@ import { Link } from "@/i18n/navigation";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { createClient } from "@/lib/supabase/server";
+import { getCachedUser } from "@/lib/supabase/cached-user";
 import {
   getTrendingStories,
   getLatestStories,
@@ -103,9 +104,8 @@ export default async function LibraryPage({
   setRequestLocale(locale);
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // AUDIT FIX MG-PERF-HIGH-01: cached so SiteHeader doesn't repeat the call.
+  const user = await getCachedUser();
 
   let adultModeEnabled = false;
   if (user) {

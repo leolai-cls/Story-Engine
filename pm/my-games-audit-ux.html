@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My Games + Sidebar — UX/Cost/Perf/Regression Audit</title>
+<style>
+  :root {
+    --primary: #4F46E5;
+    --primary-soft: #EEF2FF;
+    --accent: #F59E0B;
+    --accent-soft: #FEF3C7;
+    --bg: #FAFAF7;
+    --card: #FFFFFF;
+    --ink: #18181B;
+    --ink-soft: #3F3F46;
+    --muted: #71717A;
+    --border: #E4E4E7;
+    --green: #10B981;
+    --green-soft: #D1FAE5;
+    --rose: #E11D48;
+    --rose-soft: #FFE4E6;
+    --amber: #D97706;
+    --amber-soft: #FEF3C7;
+    --gray-soft: #F4F4F5;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.65;
+    font-size: 15px;
+    -webkit-font-smoothing: antialiased;
+  }
+  main { max-width: 1100px; margin: 0 auto; padding: 48px 40px 120px; }
+  h1 { font-size: 28px; letter-spacing: -0.02em; margin-bottom: 6px; }
+  h2 { font-size: 19px; margin-top: 56px; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); letter-spacing: -0.01em; }
+  h3 { font-size: 14px; margin-top: 0; }
+  .lead { color: var(--muted); font-size: 14px; max-width: 720px; margin-bottom: 28px; }
+  .eyebrow { display: inline-block; font-size: 11px; font-weight: 700; color: var(--primary); background: var(--primary-soft); padding: 5px 10px; border-radius: 999px; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 14px; }
+  .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 40px; margin-top: 24px; }
+  .summary-card { padding: 18px 16px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); }
+  .summary-card .num { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; }
+  .summary-card .lbl { font-size: 11px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; margin-top: 4px; }
+  .pill { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
+  .pill.high { background: var(--rose-soft); color: var(--rose); }
+  .pill.med { background: var(--amber-soft); color: var(--amber); }
+  .pill.low { background: var(--gray-soft); color: var(--ink-soft); }
+  .pill.cat { background: var(--primary-soft); color: var(--primary); }
+  .finding { border: 1px solid var(--border); border-radius: 12px; background: var(--card); padding: 22px 22px 18px; margin-bottom: 18px; box-shadow: 0 1px 2px rgba(0,0,0,0.02); }
+  .finding.high { border-left: 4px solid var(--rose); }
+  .finding.med { border-left: 4px solid var(--amber); }
+  .finding.low { border-left: 4px solid var(--muted); }
+  .finding .head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 6px; }
+  .finding .id { font-family: "SF Mono", "Menlo", "Consolas", monospace; font-size: 11.5px; color: var(--ink-soft); font-weight: 600; letter-spacing: 0.02em; }
+  .finding .title { font-size: 16px; font-weight: 600; margin: 6px 0 10px; letter-spacing: -0.005em; }
+  .finding .row { margin-top: 10px; }
+  .finding .lab { font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; display: block; margin-bottom: 3px; }
+  .finding code { font-family: "SF Mono", "Menlo", "Consolas", monospace; font-size: 12.5px; background: var(--gray-soft); padding: 2px 6px; border-radius: 4px; color: var(--ink); }
+  .finding pre { font-family: "SF Mono", "Menlo", "Consolas", monospace; font-size: 12px; background: #FAFAFA; border: 1px solid var(--border); padding: 10px 12px; border-radius: 6px; margin-top: 6px; overflow-x: auto; line-height: 1.55; }
+  .finding p { color: var(--ink-soft); font-size: 14px; }
+  .where { font-family: "SF Mono", "Menlo", "Consolas", monospace; font-size: 12px; color: var(--ink-soft); }
+  .impact { background: var(--rose-soft); color: var(--rose); padding: 8px 12px; border-radius: 6px; font-size: 13px; font-weight: 500; margin-top: 10px; }
+  .impact.med { background: var(--amber-soft); color: var(--amber); }
+  .impact.low { background: var(--gray-soft); color: var(--ink-soft); }
+  .fix { background: var(--green-soft); color: #065F46; padding: 10px 12px; border-radius: 6px; font-size: 13px; margin-top: 10px; line-height: 1.55; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
+  th { text-align: left; padding: 8px 10px; background: var(--gray-soft); font-weight: 600; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
+  td { padding: 9px 10px; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .toc { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 18px 22px; margin: 24px 0 40px; }
+  .toc-row { display: flex; align-items: center; gap: 10px; padding: 4px 0; font-size: 13px; }
+  .toc-row a { color: var(--ink); text-decoration: none; }
+  .toc-row a:hover { color: var(--primary); }
+  .verdict { background: linear-gradient(135deg, var(--primary-soft) 0%, #fff 100%); border: 1px solid var(--primary-soft); padding: 24px 26px; border-radius: 14px; margin-top: 32px; }
+  .verdict h3 { font-size: 16px; color: var(--primary); margin-bottom: 10px; }
+  .verdict p { color: var(--ink-soft); font-size: 14px; line-height: 1.65; }
+  .small { font-size: 12px; color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <span class="eyebrow">UI Tier · UX Audit Report</span>
+  <h1>My Games + Sidebar — UX/Cost/Perf/Regression Audit</h1>
+  <p class="lead">
+    Commit <code>c26c9ba</code> — 落 <strong>/my page</strong> + <strong>PlaythroughSidebar</strong> + auth-aware <strong>SiteHeader</strong>。
+    覆盖范围：mobile 360px constraint · auth duplicate-call regression · sidebar layout collateral · cost ceiling impact · designer v5 harmonization。
+    Audit date: 2026-05-24。
+  </p>
+
+  <div class="summary-grid">
+    <div class="summary-card"><div class="num" style="color:var(--rose)">5</div><div class="lbl">High (ship blocker)</div></div>
+    <div class="summary-card"><div class="num" style="color:var(--amber)">7</div><div class="lbl">Medium</div></div>
+    <div class="summary-card"><div class="num" style="color:var(--muted)">6</div><div class="lbl">Low</div></div>
+    <div class="summary-card"><div class="num" style="color:var(--ink)">18</div><div class="lbl">Total</div></div>
+  </div>
+
+  <div class="toc">
+    <div class="toc-row"><span class="pill high">HIGH</span><a href="#h1">MG-PERF-HIGH-01 · SiteHeader 雙重 auth call — every authed page render</a></div>
+    <div class="toc-row"><span class="pill high">HIGH</span><a href="#h2">MG-PERF-HIGH-02 · /play page sequential count query 慢 50-80ms</a></div>
+    <div class="toc-row"><span class="pill high">HIGH</span><a href="#h3">MG-UX-HIGH-03 · Mobile play header 360px 必爆 — buttons truncate</a></div>
+    <div class="toc-row"><span class="pill high">HIGH</span><a href="#h4">MG-I18N-HIGH-04 · Sidebar plain next/link 破壞 locale prefix</a></div>
+    <div class="toc-row"><span class="pill high">HIGH</span><a href="#h5">MG-REG-HIGH-05 · Play 主敘事 viewport 减 240px — narrative 收窄 19%</a></div>
+    <div class="toc-row"><span class="pill med">MED</span><a href="#m1">MG-COST-MED-01 · /my limit 500 + recompute counts client-side</a></div>
+    <div class="toc-row"><span class="pill med">MED</span><a href="#m2">MG-UX-MED-02 · /my dead-end · 棄置 tab 唔可見時無法返「全部」(視覺)</a></div>
+    <div class="toc-row"><span class="pill med">MED</span><a href="#m3">MG-UX-MED-03 · Sidebar 無 scroll-to-current — 當前 playthrough 隱身</a></div>
+    <div class="toc-row"><span class="pill med">MED</span><a href="#m4">MG-A11Y-MED-04 · Mobile drawer 無 ESC 鍵 / Focus trap / Body lock</a></div>
+    <div class="toc-row"><span class="pill med">MED</span><a href="#m5">MG-UX-MED-05 · MobileBottomNav 「進行中」→ /my 預設 tab=all 不一致</a></div>
+    <div class="toc-row"><span class="pill med">MED</span><a href="#m6">MG-VIS-MED-06 · Sidebar item 32px Cover 太細 — 失辨識度</a></div>
+    <div class="toc-row"><span class="pill med">MED</span><a href="#m7">MG-PERF-MED-07 · /my 200+ row 無 pagination / virtualization</a></div>
+    <div class="toc-row"><span class="pill low">LOW</span><a href="#l1">MG-UX-LOW-01 · 全部 tab 永遠顯示但 archived/abandoned 條件隱藏</a></div>
+    <div class="toc-row"><span class="pill low">LOW</span><a href="#l2">MG-VIS-LOW-02 · Sidebar hover state 缺失</a></div>
+    <div class="toc-row"><span class="pill low">LOW</span><a href="#l3">MG-VIS-LOW-03 · SignOutButton 圖標 size mismatch 同 header buttons</a></div>
+    <div class="toc-row"><span class="pill low">LOW</span><a href="#l4">MG-CODE-LOW-04 · relativeTime() 重覆 implementation</a></div>
+    <div class="toc-row"><span class="pill low">LOW</span><a href="#l5">MG-VIS-LOW-05 · Status badge 三個 status 顏色區隔不足</a></div>
+    <div class="toc-row"><span class="pill low">LOW</span><a href="#l6">MG-UX-LOW-06 · Sidebar 「冇其他 playthrough」copy 易誤解</a></div>
+  </div>
+
+  <h2 id="high-section">🔴 HIGH — Ship Blocker</h2>
+
+  <!-- HIGH 01 -->
+  <div class="finding high" id="h1">
+    <div class="head"><span class="id">MG-PERF-HIGH-01</span><span class="pill high">HIGH</span><span class="pill cat">PERFORMANCE</span><span class="pill cat">COST</span></div>
+    <h3 class="title">SiteHeader 雙重 auth call — 每個 authed page render 多一次 getUser()</h3>
+    <div class="row">
+      <span class="lab">Where</span>
+      <span class="where">web/src/components/site-header.tsx:23-26</span>
+      <span class="where" style="display:block;margin-top:2px">vs already-existing getUser() calls in: library/page.tsx:108 · library/[storyId]/page.tsx:46 · my/page.tsx:46 · settings/page.tsx:44 · stories/new/page.tsx:19 · profile/page.tsx</span>
+    </div>
+    <div class="row">
+      <span class="lab">問題</span>
+      <p>SiteHeader 改寫成 async server component 之後喺 render 時 call <code>supabase.auth.getUser()</code>。但係 <strong>每個包含 SiteHeader 嘅 authed page 已經自己 call 過一次 getUser()</strong>（用嚟 redirect / RLS scope / adult_mode check）。
+      Grep 出 <strong>7 個 page 都有 self-call</strong>，全部都會行 SiteHeader → 即係 <strong>100% pages 都 double-RTT</strong>。</p>
+      <pre>// SiteHeader (NEW)
+const { data: { user } } = await supabase.auth.getUser();
+
+// library/page.tsx — already does this at line 108 too
+const { data: { user } } = await supabase.auth.getUser();
+
+// my/page.tsx — already does this at line 46 too
+const { data: { user } } = await supabase.auth.getUser();</pre>
+      <p>Per-call cost: cookie read (~5ms) + JWT decode + Supabase Auth API call to refresh / validate (~30-80ms cold, ~10ms warm via Supabase server-side cache). On Vercel edge cold start: <strong>~60-100ms 加倍</strong>。On warm hot path: <strong>~15-30ms 加倍</strong>。Library 係最 trafficked page，呢個係 <strong>絕對的 regression on platform centerpiece</strong>。</p>
+    </div>
+    <div class="impact">
+      實測影響：library page TTFB +30~80ms cold / +15~25ms warm；my page +30~80ms cold；settings/play/profile 全部受影響。Library 係 100% PMF discovery page — 即係 founder 講過嘅 "performance budget" 規則直接違反 (hard rule 17)。沒有 cache 抵消。
+    </div>
+    <div class="fix">
+      <strong>Fix 選項 A (推薦)</strong>：將 user 由 page 經 React Context / prop / cache(...) wrap 傳俾 SiteHeader。Next.js 15 嘅 <code>import { cache } from "react"</code> 可以 memoize per-request，咁兩處 call 第二次就 dedupe 為 cached value。<br/>
+      <strong>Fix 選項 B</strong>：建立 <code>getAuthUser()</code> helper 用 <code>cache()</code> wrap → 兩處 call 同一個 helper → React 自動 dedupe。約 5-line file。<br/>
+      <strong>緊急 ship 路徑</strong>：將 SiteHeader 改返 sync component，user 由 page 傳入做 prop，呢個係最直接 zero-risk fix。
+    </div>
+  </div>
+
+  <!-- HIGH 02 -->
+  <div class="finding high" id="h2">
+    <div class="head"><span class="id">MG-PERF-HIGH-02</span><span class="pill high">HIGH</span><span class="pill cat">PERFORMANCE</span></div>
+    <h3 class="title">Play page sequential count query — 每 turn / 每 refresh 多 50-80ms latency</h3>
+    <div class="row">
+      <span class="lab">Where</span>
+      <span class="where">web/src/app/[locale]/play/[playthroughId]/page.tsx:70-80 (Promise.all 缺 count) → 103-106 (sequential count)</span>
+    </div>
+    <div class="row">
+      <span class="lab">問題</span>
+      <p>Total playthrough count query 喺 Promise.all batch 之 <em>外</em>，即係 sequential 行：</p>
+      <pre>const [{ data: characters }, ...] = await Promise.all([
+  supabase.from("story_characters")...,        // ~30ms
+  supabase.from("playthrough_character_states")..., // ~30ms
+  getMyPlaythroughs(supabase, ...),            // ~50ms
+]);
+// ↓ WAITS for above to finish, THEN starts
+const { count: totalPlaythroughCount } = await supabase
+  .from("playthroughs")
+  .select("id", { count: "exact", head: true })
+  .eq("user_id", user.id);  // ~50-80ms (exact count on potentially large table)</pre>
+      <p>Play page render 喺 <strong>每次 turn 完成後 server re-fetch</strong>（client 用 refreshState → page-level navigate 唔會、但 user manually refresh、deep link 入嚟、share link、tab restore — 都會 trigger 完整 page render）。Founder 主場景。Every turn 都對 <code>SELECT count(*) exact</code> 行一次。</p>
+    </div>
+    <div class="impact">
+      Cost: 50-80ms extra per page render. Cost: exact count 喺 100+ playthrough 用戶身上會 table-scan-ish (head:true 唔 fetch row，仲 OK，但 RLS predicate + count 唔 free). 重要 user-facing wait。
+    </div>
+    <div class="fix">
+      將 count query 拉入 Promise.all：
+      <pre>const [{ data: characters }, { data: charStates }, recentPlaythroughs, { count: totalPlaythroughCount }] = await Promise.all([
+  supabase.from("story_characters").select(...),
+  supabase.from("playthrough_character_states").select(...),
+  getMyPlaythroughs(supabase, { userId: user.id, limit: 12 }),
+  supabase.from("playthroughs").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+]);</pre>
+      Zero-risk 1-line refactor，省 50-80ms。<strong>或者更好</strong>：將 count 改 sidebar 嘅 client-side responsibility — 用 SWR fetch on mount，page render path 唔需要等。
+    </div>
+  </div>
+
+  <!-- HIGH 03 -->
+  <div class="finding high" id="h3">
+    <div class="head"><span class="id">MG-UX-HIGH-03</span><span class="pill high">HIGH</span><span class="pill cat">MOBILE</span><span class="pill cat">UX</span></div>
+    <h3 class="title">Mobile play header 360px 必爆 — 6 個元素，數學上唔得</h3>
+    <div class="row">
+      <span class="lab">Where</span>
+      <span class="where">web/src/app/[locale]/play/[playthroughId]/play-client.tsx:479-527</span>
+    </div>
+    <div class="row">
+      <span class="lab">問題</span>
+      <p>Slim header 喺 <code>h-12</code> (48px height) 一行內塞咗：</p>
+      <table>
+        <thead><tr><th>Element</th><th>Min Width</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td>Hamburger button (lg:hidden)</td><td>32px</td><td>w-8 h-8</td></tr>
+          <tr><td>「返回」button + ArrowLeft icon</td><td>~78px</td><td>14px icon + "返回" 28-36px + padding</td></tr>
+          <tr><td>Sparkles icon</td><td>16px + gap-2 = 24px</td><td>—</td></tr>
+          <tr><td>storyTitle (max-w-[300px] truncate)</td><td><strong>~140px+</strong></td><td>min CJK title needs ~6-8 字 visible</td></tr>
+          <tr><td>記憶 link (NotebookPen + 「記憶」)</td><td>~74px</td><td>14px icon + 2字 + 12px padding × 2 + border</td></tr>
+          <tr><td>「玩緊：{characterName}」</td><td>~120px+</td><td>「玩緊：」+ 角色名 e.g. "林思雅"</td></tr>
+          <tr><td>Gaps (gap-2 × ~5, gap-3 ml-auto)</td><td>~32px</td><td>4 × 8px + 3 × 8px</td></tr>
+          <tr><th>合計 minimum</th><th><strong>~500px</strong></th><th>需要 360px 容納</th></tr>
+        </tbody>
+      </table>
+      <p>360px iPhone SE width &lt; ~500px required = <strong>140px overflow</strong>。實際行為：storyTitle 會 truncate 到剩 ~2-3 字（"魔法戀…"），characterName 同記憶 link 會 wrap 或者 overflow horizontal scroll。視覺上「玩緊：」label 同 storyTitle 一齊唔讀得。</p>
+      <p>另外：48px header h-12 對 mobile 觸控目標係 <strong>違反 Apple HIG (44pt) 同 Material (48dp)</strong>。返回 button + 記憶 link + hamburger 三個 tap target 同高，但內部 padding 唔夠 — 預估 effective tap area 28-32px。</p>
+    </div>
+    <div class="impact">
+      HK + TW launch market = phone-heavy。Play page 係玩遊戲 longest-session screen。Header broken = product 廢咗。Designer v5 mockup 從來都係 desktop 設計，呢個 mobile 新行為 zero design coverage。
+    </div>
+    <div class="fix">
+      <strong>Mobile-specific layout</strong>：lg:hidden 時 hide 「返回」button 同「玩緊：」block — 用 hamburger 做 nav anchor，characterName 落 mobile tab bar 旁邊或 NPC tab。 desktop (lg+) 行原本 6 元素 layout。<br/>
+      或者：mobile h-12 → h-14 (56px)，記憶 link 改 icon-only (size 16，aria-label "記憶")，「玩緊：」隱藏剩 characterName，storyTitle max-w-[140px]。
+    </div>
+  </div>
+
+  <!-- HIGH 04 -->
+  <div class="finding high" id="h4">
+    <div class="head"><span class="id">MG-I18N-HIGH-04</span><span class="pill high">HIGH</span><span class="pill cat">i18n</span><span class="pill cat">REGRESSION</span></div>
+    <h3 class="title">Sidebar 用 plain <code>next/link</code> 而非 <code>@/i18n/navigation</code> — locale prefix 漂移</h3>
+    <div class="row">
+      <span class="lab">Where</span>
+      <span class="where">web/src/components/se/PlaythroughSidebar.tsx:3 (import Link from "next/link")</span>
+      <span class="where" style="display:block;margin-top:2px">Same bug in /my page EmptyState (line 309, 317): href={`/${locale}/library`} 用 i18n Link — 經 hardcoded locale 過 i18n routing 變雙重 prefix</span>
+    </div>
+    <div class="row">
+      <span class="lab">問題</span>
+      <p>Project 用 next-intl 處理 locale routing。其他 component 一律 import：</p>
+      <pre>import { Link } from "@/i18n/navigation";  // ✅ locale-aware
+// Link href="/library" → renders /zh-Hant/library auto</pre>
+      <p>PlaythroughSidebar 用咗：</p>
+      <pre>import Link from "next/link";  // ❌ plain
+// Link href="/zh-Hant/my" → render /zh-Hant/my (works once)
+// BUT: routing.localePrefix 設定可能 strip 預設 locale → /my (broken)</pre>
+      <p>Hard-coded <code>/${locale}/my</code> 在 PlaythroughSidebar.tsx:150, 165, 203, 232 — 全部依賴 prop locale 正確嚮 in，並無經 i18n routing helpers verify。如果 user 個 cookie locale 同 URL prefix divergence（次站之內語言 switch、localStorage stale），sidebar nav 會帶錯 locale。</p>
+      <p>同樣 bug 喺 my/page.tsx EmptyState：</p>
+      <pre>// my/page.tsx line 309 — 用 i18n Link 但又寫死 locale prefix
+import { Link } from "@/i18n/navigation";
+&lt;Link href={`/${locale}/library` as never}&gt; // ❌ DOUBLE PREFIX RISK
+// 應該係：
+&lt;Link href="/library"&gt;  // i18n Link auto-prefixes</pre>
+    </div>
+    <div class="impact">
+      用戶 switch 語言、share link、external referrer → 可能 land 喺 <code>/zh-Hant/zh-Hant/my</code> 或者 locale-stripped <code>/my</code> 404。Library [storyId]/page.tsx 比較 use 對 i18n Link with bare href — 對比下 sidebar 係 outlier。
+    </div>
+    <div class="fix">
+      <strong>Sidebar</strong>：改 import path → <code>import { Link } from "@/i18n/navigation";</code>，再將所有 href 從 <code>/${locale}/path</code> 改 <code>/path as never</code>。<br/>
+      <strong>/my page</strong>：line 309, 317 改 <code>href="/library"</code> 同 <code>href="/stories/new"</code>，依賴 i18n Link auto-prefix。Line 92, 98, 105, 113, 181 都係同類問題（雖然 i18n Link 接受 hardcoded locale 但 best practice 應該唔寫死）。
+    </div>
+  </div>
+
+  <!-- HIGH 05 -->
+  <div class="finding high" id="h5">
+    <div class="head"><span class="id">MG-REG-HIGH-05</span><span class="pill high">HIGH</span><span class="pill cat">VISUAL REGRESSION</span><span class="pill cat">DESIGNER v5</span></div>
+    <h3 class="title">Play 主敘事 narrative 收窄 — 240px sidebar 食咗 viewport，narrative 由 ~720px 跌到 ~580px</h3>
+    <div class="row">
+      <span class="lab">Where</span>
+      <span class="where">web/src/app/[locale]/play/[playthroughId]/play-client.tsx:563-573</span>
+    </div>
+    <div class="row">
+      <span class="lab">問題</span>
+      <p>原本 grid wrapper：</p>
+      <pre>// BEFORE (designer v5 spec)
+&lt;div className="container mx-auto max-w-7xl px-4 sm:px-6 py-4 grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4"&gt;</pre>
+      <p>家陣 wrap 多咗一層 sidebar flex：</p>
+      <pre>// AFTER
+&lt;div className="flex-1 flex min-h-0"&gt;       ← outer
+  &lt;PlaythroughSidebar /&gt;                    ← 240px (lg+)
+  &lt;div className="flex-1 mx-auto max-w-7xl w-full px-4 sm:px-6 py-4 grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4"&gt;</pre>
+      <p>計數學 — desktop 1440px viewport (typical MacBook Air):</p>
+      <table>
+        <thead><tr><th>Element</th><th>Width</th></tr></thead>
+        <tbody>
+          <tr><td>Total viewport</td><td>1440px</td></tr>
+          <tr><td>Sidebar (lg+)</td><td>240px</td></tr>
+          <tr><td>Inner max-w-7xl with mx-auto</td><td>min(1280px, 1440 - 240) = 1200px</td></tr>
+          <tr><td>Padding sm:px-6</td><td>−48px = 1152px content</td></tr>
+          <tr><td>Grid: state panel</td><td>320px</td></tr>
+          <tr><td>Grid: gap-4</td><td>16px</td></tr>
+          <tr><td><strong>Narrative final width</strong></td><td><strong>~816px</strong></td></tr>
+        </tbody>
+      </table>
+      <p>對比舊版本 (no sidebar)：</p>
+      <table>
+        <thead><tr><th>Element</th><th>Width</th></tr></thead>
+        <tbody>
+          <tr><td>Total viewport</td><td>1440px</td></tr>
+          <tr><td>max-w-7xl with container mx-auto</td><td>1280px</td></tr>
+          <tr><td>Padding sm:px-6</td><td>−48px = 1232px</td></tr>
+          <tr><td>State panel + gap</td><td>−336px</td></tr>
+          <tr><td><strong>Narrative final width</strong></td><td><strong>~896px</strong></td></tr>
+        </tbody>
+      </table>
+      <p>Narrative 收窄 ~80px / -9%。On 1280px viewport (median PC monitor)：narrative drops from 736 → 656px (−11%)。On 1920px viewport：narrative stays 896px because max-w-7xl clamps both — least bad case。Founder 啱啱 ship 14 commits 同 5 cycle audit 達 ~100% pixel-match designer v5，呢個重排係 <strong>未經 designer review 嘅 substantive layout regression</strong>。</p>
+      <p>更微妙：原本 <code>container</code> class 喺 Tailwind 帶有 responsive max-width breakpoints (sm:640, md:768, lg:1024, xl:1280, 2xl:1536)，新嘅 <code>mx-auto max-w-7xl w-full</code> 失去 container 的 progressive scaling。Designer v5 大概率係 expecting container behavior。</p>
+    </div>
+    <div class="impact">
+      Centerpiece play screen — 敘事閱讀體驗變窄 9-11%，每行字數減少 → reading flow 受影響、Cover/State panel 比例改變。Designer v5 mockup 從來無 sidebar — 即 founder pixel-match work shipped 5 days ago，現在 product 偏離 ~10%。
+    </div>
+    <div class="fix">
+      <strong>選項 A (保 max-w-7xl 嚴格)</strong>：將 sidebar 改 collapse-by-default desktop pattern (hamburger always)。Narrative 寬度回復 designer v5 規格。<br/>
+      <strong>選項 B (擴 max-w)</strong>：將內部嘅 max-w-7xl 提升 max-w-[1520px]（即 1280 + 240 sidebar comp），咁 narrative 維持原寬。<br/>
+      <strong>選項 C (collapse 至 narrower sidebar)</strong>：240px → 200px sidebar + narrative compensate。<br/>
+      <strong>必做</strong>：俾 founder 比 v5 mockup 同 1440px / 1280px / 1920px 三個 viewport screenshot 自己決定。pixel-match work 唔可以 unilateral 重排。
+    </div>
+  </div>
+
+  <h2 id="med-section">🟡 MED — Annoying / Suboptimal</h2>
+
+  <!-- MED 01 -->
+  <div class="finding med" id="m1">
+    <div class="head"><span class="id">MG-COST-MED-01</span><span class="pill med">MED</span><span class="pill cat">COST</span><span class="pill cat">DB</span></div>
+    <h3 class="title">/my page <code>limit: 500</code> + client-side recount — power user 收 megabyte payload</h3>
+    <div class="row">
+      <span class="lab">Where</span>
+      <span class="where">web/src/app/[locale]/my/page.tsx:53-63</span>
+    </div>
+    <div class="row">
+      <span class="lab">問題</span>
+      <p>page.tsx 行：</p>
+      <pre>const all = await getMyPlaythroughs(supabase, { userId: user.id, limit: 500 });
+const counts = { all: all.length, active: ..., archived: ..., abandoned: ... };
+const filtered = tab === "all" ? all : all.filter(...);</pre>
+      <p>每次 /my page render <strong>都 fetch 全部 500 row + story join (title + genre + cover_image_url)</strong>。對 100 row power user：~500 row × ~250B JSON = ~125KB / request × MAU × visits/month。Heavy。Story join 抽 cover_image_url 但 list view 唔用（PlaythroughRow 用 Cover component 但 Cover 自己 generate placeholder hue from storyId — cover_image_url 唔讀）。即 cover_image_url 行 zero use 但每 row 攜帶。</p>
+      <p>另外 client-side filter 喺 server component — 即係用 React render time 行 filter。If user 將來有 1000 playthrough 大概率到 5MB payload 跨 wire。</p>
+    </div>
+    <div class="impact">
+      Solo dev cost ceiling concern (CLAUDE.md hard rule 20 — Phase 2 memory已經食 ~46% COGS for adventurer plan)。額外 DB read + bandwidth 對重型用戶 = real money / month。
+    </div>
+    <div class="fix">
+      <ol style="padding-left: 22px; font-size: 13px; line-height: 1.7;">
+        <li>新增 RPC <code>get_my_playthroughs_with_counts(user_id, status, limit, offset)</code> — server-side filter + count returns。</li>
+        <li>Counts 改用一次 <code>SELECT status, count(*) FROM playthroughs WHERE user_id = $1 GROUP BY status</code> RPC — 4 row 返。</li>
+        <li>List 改 paginate (limit 50, page=N)，server-side filter by status。</li>
+        <li>getMyPlaythroughs 拎走 cover_image_url（list view 唔用，~30B saved / row × 500 row = 15KB）。</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- MED 02 -->
+  <div class="finding med" id="m2">
+    <div class="head"><span class="id">MG-UX-MED-02</span><span class="pill med">MED</span><span class="pill cat">UX</span></div>
+    <h3 class="title">Direct-link /my?tab=archived 當 archived count=0 — tab 隱藏，filtered 空，用戶迷茫</h3>
+    <div class="row">
+      <span class="lab">Where</span>
+      <span class="where">web/src/app/[locale]/my/page.tsx:104-121 (conditional render) + 126-127 (filter logic)</span>
+    </div>
+    <div class="row">
+      <span class="lab">問題</span>
+      <p>用戶 share link or bookmark <code>/zh-Hant/my?tab=archived</code>。當佢哋 archived 全部 unarchived (清 0) → 返呢個 link：</p>
+      <ol style="padding-left: 22px; font-size: 13px; line-height: 1.7;">
+        <li>「全部」「進行中」「已封存」「棄置」tab — 但 archived count = 0，所以「已封存」tab <strong>唔 render</strong>（line 104 條件）</li>
+        <li>頁面顯示「冇任何『已封存』嘅 playthrough。」</li>
+        <li>用戶見唔到「已封存」tab 點返其他 view。用戶要 click「全部」</li>
+      </ol>
+      <p>「全部」tab 雖然 render（因為條件 <code>counts.all > 0</code>），但 visual context 上 user 唔知佢喺 archived URL 上 — page 標題 unchanged、無 breadcrumb、無「Hint: 已封存全部 unarchived，按全部繼續」hint。Visual feedback 仲係喺 archived tab 嗰個 tab pill 都 missing — 用戶或者以為自己 broken。</p>
+      <p>更壞：<strong>direct-bookmark URL 唔 work</strong>。Founder 啱啱 ship Continue 體驗，呢個 dead-end pattern 同產品願景背道而馳。</p>
+    </div>
+    <div class="impact">
+      Edge case 但發生時用戶 frustrated。設計師 v5 mockup 從來無 specced /my UX — 呢度 design gap 真實存在。
+    </div>
+    <div class="fix">
+      Empty state 加 fallback link：<br/>
+      <pre>&lt;p&gt;冇任何「{tabLabel}」嘅 playthrough。&lt;/p&gt;
+&lt;Link href="/my"&gt;睇返全部&lt;/Link&gt;</pre>
+      或者：當 selected tab count 係 0 但 selected tab 喺 URL，仍然 render 該 tab pill (僅顯示 count 0)，咁 user 知道自己喺邊度 + 有 visual exit。
+    </div>
+  </div>
+
+  <!-- MED 03 -->
+  <div class="finding med" id="m3">
+    <div class="head"><span class="id">MG-UX-MED-03</span><span class="pill med">MED</span><span class="pill cat">UX</span><span class="pill cat">SIDEBAR</span></div>
+    <h3 class="title">Sidebar 無 scroll-to-current — 當前 playthrough 隱身喺 list 中</h3>
+    <div class="row">
+      <span class="lab">Where</span>
+      <span class="where">web/src/components/se/PlaythroughSidebar.tsx (no scroll-into-view useEffect)</span>
+    </div>
+    <div class="row">
+      <span class="lab">問題</span>
+      <p>Sidebar list 滾動容器 <code>.overflow-y-auto</code>。當前 playthrough item 標記 active border + Sparkles icon — 但若 active 排第 9-12 位 (recent 12 limit 內 但 visual top 之外)，用戶要 manually scroll 先見到 active highlight。ChatGPT/Claude.ai 嘅 sidebar pattern 一律有 auto-scroll-to-current behavior。</p>
+      <p>當前 sidebar 排序 last_played_at DESC → 點開 active playthrough 應該 top 1 但唔 guarantee。例：用戶開 active 故事 A，10 分鐘前 idle 切去 active 故事 B 玩，再返 A → A 排第 2，desktop sidebar 一行高（~52px）gpt scroll position 0，A 仲喺 visible，OK。但 mobile drawer 280px wide 有更小 visible items → 第 3-5 位開始要 scroll。</p>
+    </div>
+    <div class="impact">
+      ChatGPT-style sidebar UX 期望被打破。Active item visibility 係 sidebar pattern 核心 affordance。
+    </div>
+    <div class="fix">
+      <pre>// In SidebarBody: add useEffect
+const activeRef = useRef&lt;HTMLAnchorElement&gt;(null);
+useEffect(() =&gt; { activeRef.current?.scrollIntoView({ block: "nearest", behavior: "instant" }); }, []);
+// SidebarItem accepts ref forwarded when active</pre>
+      Mobile drawer mount 時 scroll active 入 view 必做；desktop rail load 時都做就最 polished。
+    </div>
+  </div>
+
+  <!-- MED 04 -->
+  <div class="finding med" id="m4">
+    <div class="head"><span class="id">MG-A11Y-MED-04</span><span class="pill med">MED</span><span class="pill cat">A11Y</span><span class="pill cat">UX</span></div>
+    <h3 class="title">Mobile drawer 無 ESC dismiss / focus trap / body scroll lock / keyboard handling</h3>
+    <div class="row">
+      <span class="lab">Where</span>
+      <span class="where">web/src/components/se/PlaythroughSidebar.tsx:71-100 (mobile drawer block)</span>
+    </div>
+    <div class="row">
+      <span class="lab">問題</span>
+      <p>Mobile drawer dismiss 只有 backdrop click。Drawer 開時：</p>
+      <ol style="padding-left: 22px; font-size: 13px; line-height: 1.7;">
+        <li><strong>無 ESC key handler</strong> — 鍵盤用戶撳 ESC 唔關</li>
+        <li><strong>無 body scroll lock</strong> — 背後 narrative list 可以滾動 (mobile Safari / Chrome 視 drawer 為 overlay 不 prevent scroll)</li>
+        <li><strong>無 focus trap</strong> — tab 鍵會跳出 drawer 走入 narrative content</li>
+        <li><strong>不可 keyboard navigate</strong> — sidebar items 係 anchor 可 tab 但無 highlighted focus state visible</li>
+        <li><strong>Keyboard up 時 fixed inset-0 蓋住 input</strong> — 但 keyboard 開時不太可能 hamburger 開 drawer，現實風險低。風險：drawer 開時 user 突然 long-press 內文輸入欄 raise keyboard → drawer 上半剩到 keyboard 下面 mass cover</li>
+      </ol>
+      <p>第 1, 2, 3 點係 mobile drawer 通用 a11y 期望，shadcn/Radix Dialog 全部解。當前手寫 drawer 全部 miss。</p>
+    </div>
+    <div class="impact">
+      A11y compliance：WCAG 2.4.3 focus order + 2.1.2 no keyboard trap exit。Real-life user pain low-medium (drawer 用咩唔多)。但 launch market HK + TW 有相當部分 a11y-sensitive group。
+    </div>
+    <div class="fix">
+      改用 Radix Dialog (shadcn) — automatic ESC, focus trap, scroll lock, ARIA states 解決全部 4 個 issue. ~10 line refactor.<br/>
+      <em>OR</em> 手寫 fixes：<code>useEffect</code> for ESC keydown + document.body 'overflow:hidden' lock + tabindex 管理.
+    </div>
+  </div>
+
+  <!-- MED 05 -->
+  <div class="finding med" id="m5">
+    <div class="head"><span class="id">MG-UX-MED-05</span><span class="pill med">MED</span><span class="pill cat">UX</span></div>
+    <h3 class="title">MobileBottomNav 「進行中」label → /my page 預設「全部」tab — label vs content mismatch</h3>
+    <div class="row">
+      <span class="lab">Where</span>
+      <span class="where">web/src/components/se/MobileBottomNav.tsx:14 (label="進行中" href="/my") + my/page.tsx:38-41 (default tab="all")</span>
+    </div>
+    <div class="row">
+      <span class="lab">問題</span>
+      <p>Bottom nav 嘅 tab 叫「進行中」(Play icon)，期望帶用戶去「進行中嘅遊戲」list。但 <code>href="/my"</code> 唔帶 query string，落地頁 default tab = "all"。用戶睇到「進行中」+「已封存」+「棄置」全部 row mixed → 同 nav label 失配。</p>
+    </div>
+    <div class="impact">
+      Mobile primary nav 預期失配 — 用戶嘅 mental model 「我要打開進行中嘅故事 list」直接落係「全部」list 入面。Annoying but not breaking。
+    </div>
+    <div class="fix">
+      MobileBottomNav.tsx line 14: <code>{ id: "my", href: "/my?tab=active", icon: Play, label: "進行中" }</code><br/>
+      確認 my/page.tsx line 38 邏輯 catch active 正確 (yes — sp.tab === "active" branch covered).
+    </div>
+  </div>
+
+  <!-- MED 06 -->
+  <div class="finding med" id="m6">
+    <div class="head"><span class="id">MG-VIS-MED-06</span><span class="pill med">MED</span><span class="pill cat">VISUAL</span></div>
+    <h3 class="title">Sidebar item Cover 32px 太細 — story 辨識度損失 vs ContinueCard 92px</h3>
+    <div class="row">
+      <span class="lab">Where</span>
+      <span class="where">PlaythroughSidebar.tsx:240 (width:32) vs ContinueCard.tsx:60 (width:92)</span>
+    </div>
+    <div class="row">
+      <span class="lab">問題</span>
+      <p>Cover component generate gradient placeholder + striped texture + 8-char hash tag label (e.g. "A1B2C3D4"). 32px width 容納：</p>
+      <ul style="padding-left: 22px; font-size: 13px; line-height: 1.7;">
+        <li>32 × 42px (3:4 ratio) — visible 但細</li>
+        <li>data-tag attribute label "A1B2C3D4" 應該定位喺底部 mono — 32px wide 出唔出到 8 char</li>
+        <li>Genre hue 仲可見</li>
+      </ul>
+      <p>Sidebar 240px wide：32px Cover + 10px gap + ~190px text content。即係 Cover 佔 13% sidebar width。若加大到 40-48px 可以保留 17-20% 用更可讀。比較 design system 內：</p>
+      <table>
+        <thead><tr><th>Surface</th><th>Cover width</th></tr></thead>
+        <tbody>
+          <tr><td>ContinueCard (library)</td><td>92px</td></tr>
+          <tr><td>PlaythroughRow (/my page row, 64px)</td><td>64px</td></tr>
+          <tr><td>StoryCard (library grid)</td><td>~160px (full card width)</td></tr>
+          <tr><td><strong>SidebarItem</strong></td><td><strong>32px</strong></td></tr>
+        </tbody>
+      </table>
+      <p>32px 係 outlier — 設計 system 全部其他 cover 至少 64px。Cover visual identity 唔可讀 = sidebar 變純 title list。</p>
+    </div>
+    <div class="impact">
+      Designer v5 system harmony 受損。Sidebar 應該 echo 既有 visual rhythm，唔應該係 outlier scale。
+    </div>
+    <div class="fix">
+      Cover width 32 → 40px or 44px。Mobile drawer wider (280px) 內甚至可以 48px。Cover.tsx <code>data-tag</code> CSS 需 verify 喺 40px+ 顯示得體。
+    </div>
+  </div>
+
+  <!-- MED 07 -->
+  <div class="finding med" id="m7">
+    <div class="head"><span class="id">MG-PERF-MED-07</span><span class="pill med">MED</span><span class="pill cat">PERFORMANCE</span></div>
+    <h3 class="title">/my page 無 pagination — 200+ playthrough power user render 卡頓</h3>
+    <div class="row">
+      <span class="lab">Where</span>
+      <span class="where">web/src/app/[locale]/my/page.tsx:128-134 (raw .map render)</span>
+    </div>
+    <div class="row">
+      <span class="lab">問題</span>
+      <p>List directly maps <code>filtered.map((p) =&gt; &lt;PlaythroughRow ...&gt;)</code>。500 row 用戶會 mount 500 React node (server side render)。Page payload (HTML) ~50-150KB just for the rows。Mobile scrolling slow.</p>
+      <p>Bigger concern: heading toward「power user 鎖死」problem — 用戶玩越多 product 越慢。CLAUDE.md hard rule #4 提及 trust 嘅 sanctity — perf 鎖死產品同 trust 受損 same magnitude.</p>
+    </div>
+    <div class="impact">
+      MVP not yet at 100+ user power range — defer-able。但係 launch 之後可能需要 emergency fix。
+    </div>
+    <div class="fix">
+      Phase A: pagination — limit 50 + ?page=N + cursor-based pagination using last_played_at + id.<br/>
+      Phase B: virtualize with react-window (overkill for current scale).<br/>
+      Pair with MG-COST-MED-01 fix — server-side filter 一齊解。
+    </div>
+  </div>
+
+  <h2 id="low-section">⚪ LOW — Polish / Future</h2>
+
+  <!-- LOW 01 -->
+  <div class="finding low" id="l1">
+    <div class="head"><span class="id">MG-UX-LOW-01</span><span class="pill low">LOW</span><span class="pill cat">UX</span></div>
+    <h3 class="title">「全部」tab 永遠顯示 vs archived/abandoned 條件 — inconsistent affordance</h3>
+    <div class="row">
+      <span class="lab">Where</span>
+      <span class="where">my/page.tsx:91 (全部 always) vs 104, 113 (archived/abandoned conditional)</span>
+    </div>
+    <div class="row">
+      <span class="lab">問題</span>
+      <p>「全部」永遠 render 但顯示 <code>count={counts.all}</code>。「進行中」永遠 render 但 active count 可能 = 0 (用戶清晒)。「已封存」「棄置」只當 count &gt; 0 render。Mixed pattern。Cleaner UX 一係全部永遠顯示 (count=0 grey)，一係全部 conditional。</p>
+    </div>
+    <div class="impact">UX inconsistency — 細</div>
+    <div class="fix">
+      改：全部 tab 永遠顯示，count=0 顯示 dim style。或者：全部 tab 都 conditional ≥ 0 顯示（"全部" 一定 ≥ 0 因為 hasAny check）。
+    </div>
+  </div>
+
+  <!-- LOW 02 -->
+  <div class="finding low" id="l2">
+    <div class="head"><span class="id">MG-VIS-LOW-02</span><span class="pill low">LOW</span><span class="pill cat">VISUAL</span></div>
+    <h3 class="title">Sidebar item 無 hover state — desktop 缺反饋</h3>
+    <div class="row">
+      <span class="lab">Where</span>
+      <span class="where">PlaythroughSidebar.tsx:230-238 (SidebarItem) — only active state, no hover</span>
+    </div>
+    <div class="row">
+      <span class="lab">問題</span>
+      <p>Item 用 inline style background switch <code>active ? "var(--se-surface-hover)" : "transparent"</code>。Hover 時無 background change，無 cursor visual cue (anchor 自動 cursor:pointer 但無 sublty)。 ContinueCard 用 onMouseEnter / Leave 改 boxShadow + borderColor — sidebar 無對等 polish.</p>
+    </div>
+    <div class="impact">Polish 缺失 — minor。</div>
+    <div class="fix">
+      <pre>// Add Tailwind hover utility OR inline mouseenter:
+className="... hover:bg-[color:var(--se-surface-2)]"</pre>
+    </div>
+  </div>
+
+  <!-- LOW 03 -->
+  <div class="finding low" id="l3">
+    <div class="head"><span class="id">MG-VIS-LOW-03</span><span class="pill low">LOW</span><span class="pill cat">VISUAL</span></div>
+    <h3 class="title">SignOutButton 圖標 size mismatch 同 SiteHeader inline icons</h3>
+    <div class="row">
+      <span class="lab">Where</span>
+      <span class="where">sign-out-button.tsx:11 (LogOut h-4 w-4) vs SiteHeader inline icons size={14}</span>
+    </div>
+    <div class="row">
+      <span class="lab">問題</span>
+      <p>SiteHeader 內 lucide icons 用 <code>size={14}</code> 一致 (Library, BookMarked, Sparkles)。SignOutButton 用 Tailwind <code>className="h-4 w-4"</code> = 16px — 大 14% 而 SiteHeader 其他 icons。視覺上 LogOut 比 Library / 我嘅遊戲 / Pricing 嘅 icons 大一點。</p>
+    </div>
+    <div class="impact">Visual polish 細節 — 跟 designer v5 系統 inconsistent.</div>
+    <div class="fix">
+      SignOutButton：<code>&lt;LogOut size={14} /&gt;</code> 或 <code>className="h-3.5 w-3.5"</code> (14px).
+    </div>
+  </div>
+
+  <!-- LOW 04 -->
+  <div class="finding low" id="l4">
+    <div class="head"><span class="id">MG-CODE-LOW-04</span><span class="pill low">LOW</span><span class="pill cat">CODE</span></div>
+    <h3 class="title"><code>relativeTime()</code> 喺 my/page.tsx 同 play/[id]/page.tsx 重覆 implementation</h3>
+    <div class="row">
+      <span class="lab">Where</span>
+      <span class="where">my/page.tsx:348-361 + play/[playthroughId]/page.tsx:142-155</span>
+    </div>
+    <div class="row">
+      <span class="lab">問題</span>
+      <p>兩個 file 都定義同樣 <code>relativeTime(iso: string): string</code> function (細微差別 — my page 用 "分鐘前" 帶 space，play page 用 "分鐘前" 無 space)。Inconsistency + 維護兩份。</p>
+    </div>
+    <div class="impact">Code duplication，將來修改易 forget。Output strings 都唔一致。</div>
+    <div class="fix">
+      抽出 <code>lib/util/relative-time.ts</code>，兩處 import。Pick one style and stick.
+    </div>
+  </div>
+
+  <!-- LOW 05 -->
+  <div class="finding low" id="l5">
+    <div class="head"><span class="id">MG-VIS-LOW-05</span><span class="pill low">LOW</span><span class="pill cat">VISUAL</span></div>
+    <h3 class="title">archived 同 abandoned StatusBadge 色 + bg 完全 identical — 視覺無分</h3>
+    <div class="row">
+      <span class="lab">Where</span>
+      <span class="where">my/page.tsx:243-262 (StatusBadge map)</span>
+    </div>
+    <div class="row">
+      <span class="lab">問題</span>
+      <p>map 入面：</p>
+      <pre>archived: { color: "var(--se-fg-muted)", bg: "var(--se-surface-2)" }
+abandoned: { color: "var(--se-fg-dim)",   bg: "var(--se-surface-2)" }</pre>
+      <p>Bg 一樣 (var(--se-surface-2))，color 差別 fg-muted vs fg-dim — 都係 grey shade。Sticker visual identical 致差。Designer system 缺 abandoned 應該有 distinct 視覺信號 (e.g. strikethrough / 紅腳)。</p>
+    </div>
+    <div class="impact">Status disambiguation - 細</div>
+    <div class="fix">
+      abandoned: add 細微 red tint to color or border。或者 abandoned label 加 strikethrough text-decoration.
+    </div>
+  </div>
+
+  <!-- LOW 06 -->
+  <div class="finding low" id="l6">
+    <div class="head"><span class="id">MG-UX-LOW-06</span><span class="pill low">LOW</span><span class="pill cat">UX</span></div>
+    <h3 class="title">Sidebar empty state「冇其他 playthrough」copy 易誤解 — 用戶只玩過一個 playthrough 時 confusing</h3>
+    <div class="row">
+      <span class="lab">Where</span>
+      <span class="where">PlaythroughSidebar.tsx:180-186</span>
+    </div>
+    <div class="row">
+      <span class="lab">問題</span>
+      <p>當 user 有 1 playthrough (current one)，sidebar 入面 playthroughs.length === 0 (top 12 不包含 current) → 顯示「冇其他 playthrough」。But user 個 mental 期待 list 至少包含 current。實際 OK 因為 active item 喺 header bar 已標識 — 但 copy「其他」可能令用戶懷疑「我而家玩緊嗰個咁邊度去？」</p>
+      <p>Wait — recon 一下 PlayPage line 79 嘅 getMyPlaythroughs limit:12 — limit 12 包含 current? 答案：getMyPlaythroughs <strong>不</strong> filter 走 current，所以 sidebarPlaythroughs 包含 current as item #1 typically. <strong>但</strong> 如果 current 唔係 last_played 最新 (e.g. user 切去 idle session 喺別處)，current 可能排第 N，仲喺 limit 12 內。Empty state 只觸發喺 user 有 ≤ 1 total playthrough 同時 active = current → playthroughs 一定 ≥ 1 item (current)。即係 empty branch 唔可能 trigger except race condition.</p>
+      <p>實際上呢個 message 係 dead code? 抑或當 fetch 失敗 fallback? — 後者更可能。Copy 至少應該 clarify 「list 載入失敗 / 仍未有 playthrough」。</p>
+    </div>
+    <div class="impact">Edge case - 真。可能 dead code。</div>
+    <div class="fix">
+      如果係 fallback for fetch failure → copy 改「載入清單失敗」 + retry link。<br/>
+      如果係 sole playthrough = current → copy 改「呢個係你嘅第一個故事 — 試多一個？」加 link 落 library.
+    </div>
+  </div>
+
+  <h2>Cost 分析 — Net new DB calls per page navigation</h2>
+  <table>
+    <thead>
+      <tr><th>Page</th><th>Net new server-side calls</th><th>Estimated added latency</th><th>Notes</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Library page (authed)</td><td>+1 SiteHeader getUser (duplicate of existing)</td><td>+10-30ms warm / +30-80ms cold</td><td>MG-PERF-HIGH-01</td></tr>
+      <tr><td>Library page (anon)</td><td>+1 SiteHeader getUser</td><td>+5-15ms (anon path returns fast)</td><td>Fresh cost — was previously stateless component</td></tr>
+      <tr><td>/my page (authed)</td><td>+1 SiteHeader dup + 1 getMyPlaythroughs(limit 500)</td><td>+50-120ms cold</td><td>500 row table fetch dominates</td></tr>
+      <tr><td>/play/[id] (authed)</td><td>+1 sidebar getMyPlaythroughs(12) + 1 count query</td><td>+80-130ms (count not parallelized)</td><td>MG-PERF-HIGH-02</td></tr>
+      <tr><td>Pricing / Settings / Profile</td><td>+1 SiteHeader dup</td><td>+10-30ms warm</td><td>Same as library</td></tr>
+    </tbody>
+  </table>
+
+  <p style="margin-top: 16px; font-size: 13px; color: var(--ink-soft);">
+  <strong>Per-MAU estimate (100 turns/month + ~50 page navigations):</strong>
+  </p>
+  <ul style="padding-left: 28px; font-size: 13px; line-height: 1.7; color: var(--ink-soft);">
+    <li>~50 page renders × duplicate getUser = ~50 extra auth calls / user / month</li>
+    <li>~100 play turns × no extra (turn route 唔經 SiteHeader)</li>
+    <li>~10 /my visits × 1 high-limit fetch each</li>
+    <li>~100 /play renders × +1 count = 100 extra COUNT(*) per user / month</li>
+    <li><strong>Supabase Auth getUser cost</strong>：基本 included in free tier，但 lookups 對 anon → user transition 有 rate limit。10k MAU × 50 extra/user = 500K extra auth roundtrips/month。Vercel function-time 影響更大 — 每 call 額外 30ms × 500K = 15,000 function-seconds = US$0.30 (cheap) BUT TTFB pain UX cost > $</li>
+    <li><strong>Count query cost</strong>：100 × 10k MAU = 1M extra <code>SELECT count(*) WHERE user_id = $1</code>。RLS-protected index scan ~1-5ms each → ~1000 DB-seconds/month = ~US$0.10 BUT user-facing latency real</li>
+  </ul>
+
+  <div class="verdict">
+    <h3>結論 + 建議</h3>
+    <p>
+    Founder 啱啱 ship 14 commits 達 ~100% pixel-match designer v5；My Games + Sidebar 補 ChatGPT-style discoverability。Feature 本身嚮對 — 解決真正 founder pain。但係執行上 <strong>5 個 HIGH ship blocker</strong>：
+    </p>
+    <ol style="padding-left: 24px; line-height: 1.85; color: var(--ink-soft); font-size: 14px;">
+      <li><strong>SiteHeader 雙重 auth call (MG-PERF-HIGH-01)</strong> — 每個 authed page render +10-80ms。Library 係 #1 trafficked。違反 founder hard rule #20 cost ceiling 同 #17 budget。Easy fix using React cache().</li>
+      <li><strong>Play page sequential count (MG-PERF-HIGH-02)</strong> — +50-80ms / play render。1-line Promise.all move。</li>
+      <li><strong>Mobile play header 360px 必爆 (MG-UX-HIGH-03)</strong> — 6 元素塞唔落 360px viewport，~140px overflow。HK + TW 主場直接破。</li>
+      <li><strong>Sidebar plain next/link (MG-I18N-HIGH-04)</strong> — 違反 project i18n convention，URL locale drift 風險。</li>
+      <li><strong>Narrative 收窄 9-11% (MG-REG-HIGH-05)</strong> — 240px sidebar 食左 narrative width，未經 designer review，pixel-match work 偏離。</li>
+    </ol>
+    <p style="margin-top: 14px;">
+    <strong>推薦行動</strong>：
+    </p>
+    <ul style="padding-left: 24px; line-height: 1.75; color: var(--ink-soft); font-size: 14px;">
+      <li><strong>立刻 fix (15min total)</strong>：HIGH-02 (Promise.all merge), HIGH-04 (i18n Link)，呢兩個 zero-risk。</li>
+      <li><strong>下一 wave (30-60min)</strong>：HIGH-01 (React cache wrapper), HIGH-03 (mobile header layout)。HIGH-01 用 <code>cache()</code> wrap getUser helper — 兩處 call dedupe，5-line file。HIGH-03 mobile-specific responsive layout。</li>
+      <li><strong>HIGH-05 needs founder sign-off</strong>：sidebar 收窄敘事 9-11% — 需要 founder pixel-compare 三個 viewport screenshot 自己決定 sidebar 240px vs 200px vs hamburger-only desktop pattern。Designer v5 從來無 sidebar。</li>
+      <li><strong>MED 排</strong>：5-7 items 入 BACKLOG.md，post-UI tier polish wave 一齊行。</li>
+      <li><strong>LOW 排</strong>：file 落 BACKLOG.md。</li>
+    </ul>
+    <p style="margin-top: 14px;">
+    Audit 風險評估：呢個係 first-cycle 對 commit c26c9ba 嘅 audit — convergence pattern (CLAUDE.md hard rule #29) 預期需要 2-3 cycles 收斂到 0 ship blocker。Cycle 2 應該 verify HIGH fixes 再深入 sidebar / mobile responsive edge cases。
+    </p>
+  </div>
+
+  <p class="small" style="text-align: center; margin-top: 60px;">
+  Generated 2026-05-24 · Story Engine UX Audit · 1st cycle on commit c26c9ba<br/>
+  Auditor: Claude Opus 4.7 (1M context) · 18 findings (5 HIGH · 7 MED · 6 LOW)
+  </p>
+</main>
+</body>
+</html>

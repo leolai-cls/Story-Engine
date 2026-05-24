@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Story Engine — My Games / Sidebar Security + Correctness Audit (commit c26c9ba)</title>
+<style>
+  :root { --primary: #4F46E5; --primary-soft: #EEF2FF; --accent: #F59E0B; --accent-soft: #FEF3C7; --bg: #FAFAF7; --card: #FFFFFF; --ink: #18181B; --ink-soft: #3F3F46; --muted: #71717A; --border: #E4E4E7; --green: #10B981; --green-soft: #D1FAE5; --rose: #E11D48; --amber: #D97706; --code-bg: #F4F4F5; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif; background: var(--bg); color: var(--ink); line-height: 1.65; font-size: 15px; -webkit-font-smoothing: antialiased; }
+  main { max-width: 1080px; margin: 0 auto; padding: 48px 32px 120px; }
+  .hero { text-align: center; margin-bottom: 36px; }
+  .eyebrow { display: inline-block; font-size: 11px; font-weight: 700; color: var(--primary); background: var(--primary-soft); padding: 5px 12px; border-radius: 999px; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 16px; }
+  h1 { font-size: 30px; font-weight: 800; letter-spacing: -0.025em; margin-bottom: 10px; }
+  .hero p { color: var(--muted); font-size: 15.5px; max-width: 760px; margin: 0 auto; }
+  .meta { color: var(--muted); font-size: 13px; margin-top: 14px; }
+  .summary { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin: 32px 0 28px; }
+  .stat { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px; text-align: center; }
+  .stat-num { font-size: 36px; font-weight: 800; line-height: 1; }
+  .stat-label { font-size: 11px; color: var(--muted); margin-top: 8px; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700; }
+  .stat.crit .stat-num { color: var(--rose); }
+  .stat.high .stat-num { color: var(--amber); }
+  .stat.med .stat-num { color: var(--primary); }
+  .stat.low .stat-num { color: var(--muted); }
+  .stat.info .stat-num { color: var(--green); }
+  .stat .zero { color: var(--green); font-size: 32px; }
+  h2 { font-size: 22px; font-weight: 700; margin: 44px 0 14px; display: flex; align-items: center; gap: 10px; }
+  h2 .icon { font-size: 26px; }
+  .verdict { background: linear-gradient(135deg, #fef3c7, #fffbeb); border: 2px solid var(--amber); padding: 22px 26px; border-radius: 14px; margin: 18px 0 36px; }
+  .verdict h3 { color: var(--amber); font-size: 17px; font-weight: 800; margin-bottom: 10px; }
+  .verdict p { font-size: 14.5px; line-height: 1.75; }
+  .verdict ol { margin: 10px 0 0 22px; }
+  .verdict ol li { font-size: 14px; margin: 4px 0; }
+  .priority-list { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 22px; margin: 16px 0 32px; }
+  .priority-row { display: grid; grid-template-columns: 50px 1fr auto; gap: 14px; align-items: start; padding: 12px 0; border-bottom: 1px dashed var(--border); }
+  .priority-row:last-child { border-bottom: none; }
+  .priority-rank { font-size: 20px; font-weight: 800; color: var(--primary); }
+  .priority-content strong { font-weight: 700; font-size: 14.5px; display: block; margin-bottom: 4px; }
+  .priority-content small { font-size: 12.5px; color: var(--muted); line-height: 1.55; }
+  .priority-refs { font-size: 11px; color: var(--primary); font-weight: 700; background: var(--primary-soft); padding: 4px 8px; border-radius: 6px; white-space: nowrap; align-self: center; }
+  details.dim-section { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 0; margin-bottom: 14px; overflow: hidden; }
+  details.dim-section[open] { box-shadow: 0 2px 12px rgba(0,0,0,0.04); }
+  details.dim-section summary { cursor: pointer; padding: 20px 24px; font-weight: 700; font-size: 17px; display: flex; align-items: center; gap: 12px; user-select: none; }
+  details.dim-section summary::-webkit-details-marker { display: none; }
+  details.dim-section summary::after { content: "▼"; margin-left: auto; color: var(--muted); font-size: 12px; transition: transform .2s; }
+  details.dim-section[open] summary::after { transform: rotate(180deg); }
+  .dim-content { padding: 0 24px 24px; }
+  .issue { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin-bottom: 12px; }
+  .issue.crit { border-left: 4px solid var(--rose); background: #fef2f2; }
+  .issue.high { border-left: 4px solid var(--amber); background: #fffbf4; }
+  .issue.med { border-left: 4px solid var(--primary); }
+  .issue.low { border-left: 4px solid var(--muted); }
+  .issue-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+  .issue-id { font-weight: 800; font-size: 12.5px; color: var(--primary); flex-shrink: 0; font-family: "SF Mono", Monaco, monospace; }
+  .issue-title { font-weight: 700; font-size: 14.5px; flex: 1; min-width: 220px; }
+  .sev-tag { font-size: 10px; padding: 3px 9px; border-radius: 999px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
+  .sev-crit { background: var(--rose); color: white; }
+  .sev-high { background: var(--amber); color: white; }
+  .sev-med { background: var(--primary-soft); color: var(--primary); }
+  .sev-low { background: var(--code-bg); color: var(--muted); }
+  .issue-loc { font-family: "SF Mono", Monaco, monospace; font-size: 11.5px; color: var(--muted); margin-bottom: 8px; word-break: break-all; }
+  .issue-body { font-size: 13.5px; color: var(--ink-soft); margin-bottom: 8px; line-height: 1.7; }
+  .issue-body strong { color: var(--ink); }
+  .issue-fix { background: rgba(16, 185, 129, 0.06); border-left: 3px solid var(--green); padding: 10px 14px; border-radius: 6px; font-size: 13px; color: var(--ink-soft); margin-top: 10px; }
+  .issue-fix strong { color: var(--green); font-weight: 700; }
+  pre { background: var(--code-bg); padding: 10px 14px; border-radius: 6px; font-family: "SF Mono", Monaco, monospace; font-size: 12px; overflow-x: auto; margin: 8px 0; line-height: 1.5; color: var(--ink-soft); }
+  code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; font-family: "SF Mono", Monaco, monospace; font-size: 12px; }
+  .rule-badge { display: inline-block; font-size: 10px; padding: 2px 7px; border-radius: 4px; background: var(--primary-soft); color: var(--primary); font-weight: 700; margin-left: 6px; letter-spacing: 0.03em; }
+  @media (max-width: 768px) { .summary { grid-template-columns: repeat(2, 1fr); } main { padding: 24px 16px 80px; } }
+</style>
+</head>
+<body>
+<main>
+
+<div class="hero">
+  <span class="eyebrow">🔍 commit c26c9ba · Security + Correctness audit · 1 agent</span>
+  <h1>My Games + PlaythroughSidebar Audit — 1 HIGH ship-blocker + 6 polish</h1>
+  <p>新加咗 <code>/[locale]/my</code> 頁、<code>PlaythroughSidebar</code>、auth-aware <code>SiteHeader</code> 同埋 <code>getMyPlaythroughs</code> 加 join。Audit 揾到 <strong>1 個 HIGH 直接影響真實用戶（登入後跳錯地方）+ 5 個 MED/LOW polish + 1 個 INFO doc</strong>。RLS posture 安全（無 data leak、cross-user data 接觸唔到）。冇 hard rule #11/#14/#15/#16/#17 違反。</p>
+  <div class="meta">Audit date: 2026-05-24 · Scope: 8 files in commit c26c9ba · Method: read actual code + actual schema + actual call paths (no speculation)</div>
+</div>
+
+<div class="summary">
+  <div class="stat crit"><div class="stat-num zero">0</div><div class="stat-label">Critical</div></div>
+  <div class="stat high"><div class="stat-num">1</div><div class="stat-label">High</div></div>
+  <div class="stat med"><div class="stat-num">3</div><div class="stat-label">Medium</div></div>
+  <div class="stat low"><div class="stat-num">3</div><div class="stat-label">Low</div></div>
+  <div class="stat info"><div class="stat-num">1</div><div class="stat-label">Info</div></div>
+</div>
+
+<div class="verdict">
+  <h3>⚠️ Verdict: ship-safe after fixing MG-UX-HIGH-01 · 唔影響 launch 但會掉 login UX trust</h3>
+  <p><strong>RLS audit clean</strong> — <code>playthroughs_own_all</code>（<code>auth.uid()=user_id</code>）+ <code>stories</code> 嘅三條 select policy 自動處理「story 變 private 之後 user 仲有 playthrough」呢個 case：FK join 返 null · 我哋 code 已經有 <code>?? "(無標題)"</code> fallback。Count query (<code>head:true, count:'exact'</code>) RLS 自動 scope · 唔會洩漏其他 user 嘅 playthrough。冇 jsonb cast bypass、冇 <code>"use server"</code> 喺 lib/、冇 fire-and-forget <code>void async</code>、冇 hard rule violation。</p>
+  <p>但 <strong>MG-UX-HIGH-01 (login next param dropped)</strong> 影響每個 anon visitor 試圖直接行入 <code>/my</code> 或 deep-link share 自己 playthrough screenshot 嘅 case — 登入後 跳 <code>/profile</code> 而唔係原本想去嘅 <code>/my</code>。修十分鐘。</p>
+  <p>建議 fix order:</p>
+  <ol>
+    <li><strong>MG-UX-HIGH-01</strong> — login flow 接收 + 轉發 <code>next</code> param（10分鐘）</li>
+    <li><strong>MG-PERF-MED-01</strong> — count query 移入 <code>Promise.all</code>（5分鐘）</li>
+    <li><strong>MG-UX-MED-02</strong> — empty tab trap 增加「全部」recovery hint（10分鐘）</li>
+    <li>其他 LOW + INFO 可以 batch 或者 defer 到下個 polish wave</li>
+  </ol>
+</div>
+
+<h2><span class="icon">🎯</span>Top findings (ordered by severity)</h2>
+
+<div class="priority-list">
+  <div class="priority-row">
+    <div class="priority-rank">1</div>
+    <div class="priority-content">
+      <strong>MG-UX-HIGH-01 — Login 唔接收 <code>next</code> param · user 跳去 <code>/profile</code> 而非原本目的</strong>
+      <small>Anon user 入 <code>/my</code> → redirect 加 <code>next=/zh-Hant/my</code> · 但 <code>login/page.tsx</code> 同 <code>signInWithEmail</code> 完全冇讀 <code>sp.next</code> · <code>emailRedirectTo: ${origin}/auth/callback</code>（冇帶 next）· auth callback fallback 用 <code>/profile</code>。修：login page 讀 <code>sp.next</code> + form hidden input + action 轉發到 callback URL。</small>
+    </div>
+    <div class="priority-refs">HIGH · 10min fix</div>
+  </div>
+  <div class="priority-row">
+    <div class="priority-rank">2</div>
+    <div class="priority-content">
+      <strong>MG-PERF-MED-01 — Count query 跑喺 <code>Promise.all</code> batch 之後 · 多咗 1 個 sequential roundtrip</strong>
+      <small><code>play/[id]/page.tsx:103</code> 嘅 count query 跑 <code>await Promise.all([...])</code> 之後 · 加咗 ~80-150ms latency。要塞入 batch (4-promise instead of 3-promise)。</small>
+    </div>
+    <div class="priority-refs">MED · 5min fix</div>
+  </div>
+  <div class="priority-row">
+    <div class="priority-rank">3</div>
+    <div class="priority-content">
+      <strong>MG-PERF-MED-02 — SiteHeader getUser() 同 page getUser() 重複 call</strong>
+      <small>每 request 而家係 middleware getUser + page getUser + SiteHeader getUser = 3 個 network call 落 Supabase Auth。React <code>cache()</code> 唔會 share（每個 <code>createClient()</code> 開新 instance）。喺 hot pages (<code>/library</code>, <code>/my</code>, <code>/settings</code>) 加 25-50ms。</small>
+    </div>
+    <div class="priority-refs">MED · 15min fix</div>
+  </div>
+  <div class="priority-row">
+    <div class="priority-rank">4</div>
+    <div class="priority-content">
+      <strong>MG-UX-MED-03 — Empty tab trap: 用戶喺 <code>/my?tab=archived</code> 但 archived=0 · tab pill 消失</strong>
+      <small>用 <code>{counts.archived > 0 && ...}</code> 條件 render pill。如果 tab 喺 URL 但 count=0 · pill 消失、empty state 出現但唔解釋。Recovery path 存在（click「全部」）但唔明顯。</small>
+    </div>
+    <div class="priority-refs">MED · 10min fix</div>
+  </div>
+  <div class="priority-row">
+    <div class="priority-rank">5</div>
+    <div class="priority-content">
+      <strong>MG-CODE-LOW-01 — PlaythroughSidebar 用 plain <code>next/link</code> + 手動 locale 前綴</strong>
+      <small>同 <code>ContinueCard</code>/<code>StoryCard</code>/<code>VisitorLanding</code> 一致 pattern · <strong>唔係新 regression</strong>。但同 my/page.tsx 用 <code>@/i18n/navigation</code> 不一致 · 將來 type-safe routing migration 時要 sweep。</small>
+    </div>
+    <div class="priority-refs">LOW · doc</div>
+  </div>
+</div>
+
+<h2><span class="icon">🛡️</span>Security · RLS · Hard rule violations</h2>
+
+<details class="dim-section" open>
+  <summary>🛡️ Security findings (0 CRIT · 0 HIGH · 1 MED · 2 LOW)</summary>
+  <div class="dim-content">
+
+    <div class="issue med">
+      <div class="issue-head">
+        <span class="issue-id">MG-SEC-MED-01</span>
+        <span class="issue-title">SiteHeader auth.getUser() x 每個 page render · 3-call duplication</span>
+        <span class="sev-tag sev-med">Med</span>
+      </div>
+      <div class="issue-loc">web/src/components/site-header.tsx:23-26 · web/src/lib/supabase/server.ts:4</div>
+      <div class="issue-body">
+        SiteHeader 而家係 async server component · 每次 render 都 call <code>supabase.auth.getUser()</code>。問題：
+        <ol style="margin:6px 0 6px 22px;">
+          <li>middleware (<code>updateSession</code>) 已經 call 過一次 (lib/supabase/middleware.ts:32)</li>
+          <li>多個 page (<code>/my</code>, <code>/library</code>, <code>/settings</code>, <code>/play/[id]</code>) 自己再 call 一次做 auth gate</li>
+          <li>SiteHeader 再 call 第 3 次</li>
+        </ol>
+        因為每個 <code>createClient()</code> 開新 supabase instance · @supabase/ssr 嘅 per-instance getUser cache 唔會 share 跨 createClient call。<code>getUser()</code> 係 Supabase Auth API call（驗 JWT signature） · 唔係 cookie read。Hot pages 每 request 多咗 50-100ms。
+      </div>
+      <div class="issue-fix">
+        <strong>Fix:</strong> 抽 user fetch 入 <code>React.cache()</code> wrapped helper · 或者 SiteHeader 改成接受 <code>user</code> prop 從 layout 傳入。Simpler short term：layout-level cache wrapper：
+        <pre>// lib/auth/current-user.ts
+import { cache } from "react";
+import { createClient } from "@/lib/supabase/server";
+
+export const getCurrentUser = cache(async () => {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  return user;
+});</pre>
+        SiteHeader + pages 都 import <code>getCurrentUser()</code> · React cache de-dupes within request。
+      </div>
+    </div>
+
+    <div class="issue low">
+      <div class="issue-head">
+        <span class="issue-id">MG-SEC-LOW-01</span>
+        <span class="issue-title">RLS posture verified safe — story FK join handles cross-user case correctly</span>
+        <span class="sev-tag sev-low">Verified safe</span>
+      </div>
+      <div class="issue-loc">queries.ts:359 join · 0001_initial.sql:228-233 stories RLS</div>
+      <div class="issue-body">
+        Specifically asked to investigate. Verdict: <strong>safe</strong>. <code>stories</code> 有 3 條 SELECT policy: <code>stories_owner_all (auth.uid()=owner_id)</code>, <code>stories_public_read (visibility public/unlisted)</code>, <code>stories_official_read (origin='official')</code>。Case analysis:
+        <ul style="margin:6px 0 6px 22px;">
+          <li><strong>Story 變 private 之後 user 仲玩緊 fork</strong>: user 唔係 owner · visibility 唔係 public · 三條 policy 全失敗 → join 返 null。Code line 382 處理 <code>storyRow?.title ?? "(無標題)"</code> ✓</li>
+          <li><strong>Story 被 owner delete</strong>: <code>playthroughs.story_id ... on delete cascade</code> · playthrough 一齊 delete · 唔會見到 orphan row（呢個係 Phase 5 既有 design · 唔係新 regression · 但 founder 應該知）</li>
+          <li><strong>Cross-user data leak via FK</strong>: 否 · RLS evaluated per row · user 只見自己 playthrough · 自己 playthrough 對應 story 嘅 join 結果係 null 或者 user 有權見嘅 story</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="issue low">
+      <div class="issue-head">
+        <span class="issue-id">MG-SEC-LOW-02</span>
+        <span class="issue-title">Count query (<code>head:true, count:'exact'</code>) RLS-scoped correctly</span>
+        <span class="sev-tag sev-low">Verified safe</span>
+      </div>
+      <div class="issue-loc">play/[playthroughId]/page.tsx:103-106</div>
+      <div class="issue-body">
+        Specifically asked. <code>head:true</code> 唔 return data · 淨返 count header。Count 喺 RLS 之後 evaluate · <code>playthroughs_own_all</code> (<code>auth.uid()=user_id</code>) 自動 filter。加埋 explicit <code>.eq("user_id", user.id)</code> 雙重保險。冇 double-count（每個 row 計一次）· 冇 leak 其他 user count。
+        <br><br>
+        Hard rule check: <strong>#11 (memory per-playthrough)</strong> 唔 apply（呢度淨係 list playthrough metadata · 唔讀 memory）。<strong>#15 (with check on write)</strong> 唔 apply（read-only）。<strong>#16 (Zod parse at DB boundary)</strong>: 呢個 query 唔處理 jsonb · 唔需要 parse。
+      </div>
+    </div>
+
+    <div class="issue low">
+      <div class="issue-head">
+        <span class="issue-id">MG-SEC-LOW-03</span>
+        <span class="issue-title">No <code>"use server"</code> in lib/ · no fire-and-forget · no jsonb cast bypass</span>
+        <span class="sev-tag sev-low">Verified safe</span>
+      </div>
+      <div class="issue-loc">queries.ts:1-414 整個 file</div>
+      <div class="issue-body">
+        Specifically asked to check hard rule #14 / #16 / #17:
+        <ul style="margin:6px 0 6px 22px;">
+          <li>#14: queries.ts line 12 注釋已經明寫「NO <code>"use server"</code>」· 全 file 冇 directive。✓</li>
+          <li>#16: <code>getMyPlaythroughs</code> 唔處理 jsonb · 淨係 select scalar field + 1-level join · 唔需要 Zod parse。play page 嘅 <code>state_schema</code> Zod parse 早已存在（page.tsx:51） · 呢個 PR 冇引入新 cast。✓</li>
+          <li>#17: 全部 await 同步 · 冇 <code>void (async () => ...)</code> 或者 unawaited promise · 冇 Vercel lambda silent-kill 風險。✓</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+</details>
+
+<h2><span class="icon">🎨</span>UX · Correctness · Performance</h2>
+
+<details class="dim-section" open>
+  <summary>🎨 UX + Correctness findings (1 HIGH · 2 MED · 1 LOW)</summary>
+  <div class="dim-content">
+
+    <div class="issue high">
+      <div class="issue-head">
+        <span class="issue-id">MG-UX-HIGH-01</span>
+        <span class="issue-title">Login flow 完全 drop <code>next</code> param · user 永遠跳去 <code>/profile</code></span>
+        <span class="sev-tag sev-high">High</span>
+      </div>
+      <div class="issue-loc">my/page.tsx:48 · login/page.tsx:17-29 · login/actions.ts:18-51</div>
+      <div class="issue-body">
+        <strong>Real user impact</strong>: 每個 anon visitor 試圖 deep-link 入 <code>/my</code>（或者將來 <code>/play/[id]</code> shared screenshot · <code>/play/[id]/memory</code>）登入後跳 wrong destination。Trace:
+        <ol style="margin:6px 0 6px 22px;">
+          <li>my/page.tsx:48 redirect <code>/${locale}/login?next=/${locale}/my</code> ✓</li>
+          <li>login/page.tsx 嘅 <code>searchParams</code> type 只有 <code>{ sent?: string; error?: string }</code> · <strong>從來冇讀 sp.next</strong></li>
+          <li>signInWithEmail action 接收 FormData · 都係冇睇 <code>next</code></li>
+          <li><code>emailRedirectTo: ${origin}/auth/callback</code> · <strong>冇帶 <code>?next=...</code></strong></li>
+          <li>auth/callback/route.ts:36 嘅 <code>searchParams.get("next")</code> 永遠 null · fallback <code>/profile</code></li>
+        </ol>
+        memory/page.tsx:39 都有同個問題（<code>?next=/play/...</code> 一樣會 drop）。
+      </div>
+      <div class="issue-fix">
+        <strong>Fix:</strong> 三 step。(a) login/page.tsx 加 <code>next?: string</code> 入 searchParams type · render 時放 <code>&lt;input type="hidden" name="next" value={sp.next ?? ""}&gt;</code> 入 form。(b) signInWithEmail 讀 <code>const next = String(formData.get("next") ?? "")</code> · safeRelativeNext sanitize · 傳入 <code>emailRedirectTo: `${origin}/auth/callback${next ? `?next=${encodeURIComponent(next)}` : ""}`</code>。(c) auth/callback/route.ts 已經有 <code>safeRelativeNext</code> validator · 已經 OK。
+        <pre>// login/page.tsx
+searchParams: Promise&lt;{ sent?: string; error?: string; next?: string }&gt;;
+// inside form
+&lt;input type="hidden" name="next" value={sp.next ?? ""} /&gt;
+
+// login/actions.ts signInWithEmail
+const next = String(formData.get("next") ?? "").trim();
+const safeNext = next.startsWith("/") &amp;&amp; !next.startsWith("//") ? next : "";
+const callbackUrl = `${origin}/auth/callback${safeNext ? `?next=${encodeURIComponent(safeNext)}` : ""}`;
+await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: callbackUrl } });</pre>
+      </div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-head">
+        <span class="issue-id">MG-PERF-MED-01</span>
+        <span class="issue-title">Count query 喺 Promise.all 之後 · 額外 sequential DB roundtrip</span>
+        <span class="sev-tag sev-med">Med</span>
+      </div>
+      <div class="issue-loc">play/[playthroughId]/page.tsx:103-106</div>
+      <div class="issue-body">
+        Specifically asked. Confirmed: line 70-80 嘅 <code>Promise.all([characters, charStates, recentPlaythroughs])</code> 跑 3 個 query 平行。Line 103-106 嘅 <code>count: "exact", head: true</code> 跑 SEQUENTIAL 之後 · 加 1 roundtrip。Sidebar 載入時間 +1 RTT (Supabase RTT 一般 80-200ms 喺 Vercel)。
+      </div>
+      <div class="issue-fix">
+        <strong>Fix:</strong> 4-promise batch:
+        <pre>const [{ data: characters }, { data: charStates }, recentPlaythroughs, { count: totalPlaythroughCount }] = await Promise.all([
+  supabase.from("story_characters").select("id, name, role").eq("story_id", pt.story_id),
+  supabase.from("playthrough_character_states").select("character_id, disposition").eq("playthrough_id", playthroughId),
+  getMyPlaythroughs(supabase, { userId: user.id, limit: 12 }),
+  supabase.from("playthroughs").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+]);</pre>
+      </div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-head">
+        <span class="issue-id">MG-UX-MED-02</span>
+        <span class="issue-title">Empty-tab UX trap: <code>/my?tab=archived</code> with archived count = 0</span>
+        <span class="sev-tag sev-med">Med</span>
+      </div>
+      <div class="issue-loc">my/page.tsx:104-122 · 126</div>
+      <div class="issue-body">
+        Specifically asked. Confirmed: 用戶 bookmark 咗 <code>/my?tab=archived</code> · 之後 unarchive 晒 → archived count = 0 → <code>{counts.archived > 0 && ...}</code> 條件 hide pill → URL 仲係 <code>?tab=archived</code> · 但 pill row 只有「全部」+「進行中」+ 可能「棄置」。Empty state 出現「冇任何『已封存』嘅 playthrough」但唔 prompt 用戶點返 default tab。
+        <br><br>
+        Recovery exists (click 全部 pill) 但 visually unclear · 老用戶可能會 confused。
+      </div>
+      <div class="issue-fix">
+        <strong>Fix:</strong> EmptyState component 加返「全部」link · 或者 server-side fallback：當 <code>tab</code> 對應嘅 count=0 且 <code>counts.all>0</code> 時 redirect 去 <code>/my</code> (without ?tab=)。
+        <pre>// my/page.tsx 前置 check
+if (counts[tab] === 0 &amp;&amp; counts.all > 0 &amp;&amp; tab !== "all") {
+  redirect(`/${locale}/my`);
+}</pre>
+        Server redirect 簡單 · 無需改 EmptyState UI。
+      </div>
+    </div>
+
+    <div class="issue low">
+      <div class="issue-head">
+        <span class="issue-id">MG-UX-LOW-01</span>
+        <span class="issue-title">PlaythroughSidebar 用 plain <code>next/link</code> + 手動 <code>${locale}</code> · 同 i18n routing 不一致</span>
+        <span class="sev-tag sev-low">Low</span>
+      </div>
+      <div class="issue-loc">PlaythroughSidebar.tsx:3 · 149-216</div>
+      <div class="issue-body">
+        Specifically asked. Sidebar import <code>Link from "next/link"</code> + 手動 <code>/${locale}/my</code>。其他新 file (<code>my/page.tsx</code>, <code>site-header.tsx</code>) 用 <code>@/i18n/navigation</code> Link。但 sidebar pattern 對齊 <strong>既有</strong> components: <code>ContinueCard</code> · <code>StoryCard</code> · <code>VisitorLanding</code> · <code>Carousel</code> 都係 plain next/link + manual prefix。
+        <br><br>
+        以 <code>localePrefix: "as-needed"</code> 同 zh-Hant default 計: 用戶喺 <code>/play/X</code>（locale=zh-Hant · 冇前綴）· <code>useLocale()</code> 返 "zh-Hant" · sidebar Link 去 <code>/zh-Hant/my</code> · middleware redirect 去 <code>/my</code>。Works · 但 hop。zh-Hans user 喺 <code>/zh-Hans/play/X</code> · Link 去 <code>/zh-Hans/my</code> · works directly。Locale preserved ✓。
+      </div>
+      <div class="issue-fix">
+        <strong>Fix optional:</strong> 將來統一用 <code>@/i18n/navigation</code> Link · 消除 zh-Hant default 用戶 嘅 redirect hop。但呢個係 codebase-wide migration · 唔係呢個 PR 嘅 regression。<strong>建議 backlog · 唔 block ship</strong>。
+      </div>
+    </div>
+
+  </div>
+</details>
+
+<h2><span class="icon">📐</span>Type safety + minor</h2>
+
+<details class="dim-section">
+  <summary>📐 Type safety + minor (2 LOW · 1 INFO)</summary>
+  <div class="dim-content">
+
+    <div class="issue low">
+      <div class="issue-head">
+        <span class="issue-id">MG-TYPE-LOW-01</span>
+        <span class="issue-title">Loose GenreKey cast · <code>(p.storyGenre as GenreKey)</code> for CJK genre values</span>
+        <span class="sev-tag sev-low">Low</span>
+      </div>
+      <div class="issue-loc">PlaythroughSidebar.tsx:23, 243 · my/page.tsx:192</div>
+      <div class="issue-body">
+        Specifically asked. <code>storyGenre?: GenreKey | string | null</code> 寬鬆 · cast 落 Cover <code>genre={(p.storyGenre as GenreKey) ?? undefined}</code>。如果 DB 存「戀愛校園」(CJK) · runtime cast 通過但 Cover.tsx:52 <code>genre && GENRE[genre]</code> 失敗 → fallback <code>hueFromId(storyId)</code>。<strong>Runtime gracefully handles</strong> · 唔會 crash · 但 hue 唔反映 genre semantic。
+        <br><br>
+        系統性問題: schema-generator 教 LLM 出 CJK genre · 但 GenreKey enum 全 English（CLAUDE.md 規則 #28 已記錄呢類 LLM-vs-code enum mismatch）。
+      </div>
+      <div class="issue-fix">
+        <strong>Fix optional:</strong> Library 已有 CJK→English alias array · sidebar 可以 reuse 嗰個 normalize function。或者 Cover 加 CJK alias table directly。<strong>建議 defer · 由 W2 alias work 統一處理</strong>。
+      </div>
+    </div>
+
+    <div class="issue low">
+      <div class="issue-head">
+        <span class="issue-id">MG-COVER-LOW-02</span>
+        <span class="issue-title">Cover component 唔 leak story data · storyId 淨係 derive hue + label</span>
+        <span class="sev-tag sev-low">Verified safe</span>
+      </div>
+      <div class="issue-loc">se/Cover.tsx:31-82</div>
+      <div class="issue-body">
+        Specifically asked. Read Cover.tsx 全 file: pure server-renderable static SVG-ish placeholder · 唔 import Supabase · 唔 fetch story metadata · <code>storyId</code> 純粹做 <code>hueFromId()</code> hash + <code>storyId.slice(0,8).toUpperCase()</code> label。Zero data leak risk。
+      </div>
+    </div>
+
+    <div class="issue low">
+      <div class="issue-head">
+        <span class="issue-id">MG-INFO-01</span>
+        <span class="issue-title">Pages now opt-out of static rendering via SiteHeader cookies() · perf shift but no bug</span>
+        <span class="sev-tag sev-low">Info</span>
+      </div>
+      <div class="issue-loc">site-header.tsx:23 · 7 pages using SiteHeader without force-dynamic</div>
+      <div class="issue-body">
+        <code>/[locale]/page.tsx</code> · <code>/pricing</code> · <code>/stories/new</code> · <code>/profile</code> · <code>/library/[storyId]</code> 用 SiteHeader 但冇 declare <code>force-dynamic</code>。Next.js 16 行為：<code>cookies()</code>（透過 supabase server client）會 auto opt-out static / ISR · 整個 page 變 dynamic on every request。
+        <br><br>
+        <strong>呢個唔係 bug</strong> · Next.js 設計 expected behavior。但係影響：原本可能 PPR cache 嘅 marketing page (<code>/</code> · <code>/pricing</code>) 而家每 request 都 SSR + getUser network call。Vercel function invocation 計算成本上升 · TTFB 增加 50-200ms。
+      </div>
+      <div class="issue-fix">
+        <strong>Fix optional:</strong> 如果 marketing page 要 SEO + edge cache · 可以 split SiteHeader: server shell (static) + client-side auth probe component (suspense fallback) 後 hydrate。但呢個係 perf optimization · 唔係 correctness issue。Backlog if marketing page TTFB / Vercel cost 變問題。
+      </div>
+    </div>
+
+  </div>
+</details>
+
+<h2><span class="icon">✅</span>Hard rule compliance summary</h2>
+
+<div class="priority-list">
+  <div class="priority-row">
+    <div class="priority-rank" style="font-size:14px;">#5 #6</div>
+    <div class="priority-content">
+      <strong>NSFW LLM isolation + CSAM/illegal pre-filter</strong>
+      <small>Read-only page · 唔 call LLM · 唔 write user content · 完全唔 touch moderation 路徑。Sidebar / /my 列表淨係 metadata。</small>
+    </div>
+    <div class="priority-refs">N/A · safe</div>
+  </div>
+  <div class="priority-row">
+    <div class="priority-rank" style="font-size:14px;">#11</div>
+    <div class="priority-content">
+      <strong>Memory per-playthrough · 唯讀 · user 不能 mutate</strong>
+      <small>Scope 唔 touch memory 表 (summaries/lorebook/embeddings)。Sidebar 只 select playthrough metadata。冇 cross-playthrough leak surface。</small>
+    </div>
+    <div class="priority-refs">N/A · safe</div>
+  </div>
+  <div class="priority-row">
+    <div class="priority-rank" style="font-size:14px;">#14</div>
+    <div class="priority-content">
+      <strong><code>"use server"</code> 唔可以喺 lib/</strong>
+      <small>queries.ts line 12 注釋明寫「NO 'use server'」。全 file 冇 directive · 無 attack surface 新增。</small>
+    </div>
+    <div class="priority-refs">✓ verified</div>
+  </div>
+  <div class="priority-row">
+    <div class="priority-rank" style="font-size:14px;">#15</div>
+    <div class="priority-content">
+      <strong>All write policies need <code>with check</code></strong>
+      <small>Scope 唔 write DB。Read-only joins。RLS posture 早已 verified (Phase 5 audit cycles)。</small>
+    </div>
+    <div class="priority-refs">N/A · safe</div>
+  </div>
+  <div class="priority-row">
+    <div class="priority-rank" style="font-size:14px;">#16</div>
+    <div class="priority-content">
+      <strong>Zod parse at DB boundary · never cast</strong>
+      <small>getMyPlaythroughs 唔處理 jsonb · 淨返 scalar + 1-level join · 唔需要 Zod parse。play page 嘅 state_schema Zod parse 已存在（page.tsx:51）。Disposition jsonb 處理 (page.tsx:83-99) 用 typeof guard · 唔係 cast。</small>
+    </div>
+    <div class="priority-refs">✓ verified</div>
+  </div>
+  <div class="priority-row">
+    <div class="priority-rank" style="font-size:14px;">#17</div>
+    <div class="priority-content">
+      <strong>冇 <code>void (async () => ...)</code> 喺 Vercel serverless</strong>
+      <small>page.tsx + queries.ts 全部 await synchronously · 冇 unawaited promise · 冇 fire-and-forget。</small>
+    </div>
+    <div class="priority-refs">✓ verified</div>
+  </div>
+</div>
+
+<h2><span class="icon">📋</span>Files audited (commit c26c9ba)</h2>
+
+<div class="priority-list">
+  <div class="priority-row">
+    <div class="priority-rank" style="font-size:13px;">NEW</div>
+    <div class="priority-content">
+      <strong>web/src/app/[locale]/my/page.tsx</strong>
+      <small>362 lines · server component · auth-gated · status-tab filter。Findings: MG-UX-HIGH-01 (login next) · MG-UX-MED-02 (empty tab trap) · MG-TYPE-LOW-01 (GenreKey cast)</small>
+    </div>
+    <div class="priority-refs">3 findings</div>
+  </div>
+  <div class="priority-row">
+    <div class="priority-rank" style="font-size:13px;">NEW</div>
+    <div class="priority-content">
+      <strong>web/src/components/se/PlaythroughSidebar.tsx</strong>
+      <small>279 lines · client · desktop rail + mobile drawer。Findings: MG-UX-LOW-01 (plain next/link · existing pattern) · MG-TYPE-LOW-01</small>
+    </div>
+    <div class="priority-refs">2 findings</div>
+  </div>
+  <div class="priority-row">
+    <div class="priority-rank" style="font-size:13px;">MOD</div>
+    <div class="priority-content">
+      <strong>web/src/app/[locale]/play/[playthroughId]/page.tsx</strong>
+      <small>156 lines · added sidebar data fetch + count query。Findings: MG-PERF-MED-01 (count not in Promise.all)</small>
+    </div>
+    <div class="priority-refs">1 finding</div>
+  </div>
+  <div class="priority-row">
+    <div class="priority-rank" style="font-size:13px;">MOD</div>
+    <div class="priority-content">
+      <strong>web/src/components/site-header.tsx</strong>
+      <small>116 lines · 重寫為 auth-aware async。Findings: MG-SEC-MED-01 (3-call auth duplication) · MG-INFO-01 (static→dynamic shift)</small>
+    </div>
+    <div class="priority-refs">2 findings</div>
+  </div>
+  <div class="priority-row">
+    <div class="priority-rank" style="font-size:13px;">MOD</div>
+    <div class="priority-content">
+      <strong>web/src/lib/community/queries.ts (getMyPlaythroughs)</strong>
+      <small>+ MyPlaythroughRow · + story FK join (title, genre, cover_image_url)。RLS-clean · array vs object FK join shape 正確處理。</small>
+    </div>
+    <div class="priority-refs">0 findings</div>
+  </div>
+  <div class="priority-row">
+    <div class="priority-rank" style="font-size:13px;">MOD</div>
+    <div class="priority-content">
+      <strong>web/src/app/[locale]/play/[playthroughId]/play-client.tsx</strong>
+      <small>+ sidebar props + layout wrapper + Menu trigger button。Client component · 無 server-side issue。</small>
+    </div>
+    <div class="priority-refs">0 findings</div>
+  </div>
+  <div class="priority-row">
+    <div class="priority-rank" style="font-size:13px;">MOD</div>
+    <div class="priority-content">
+      <strong>web/src/components/se/MobileBottomNav.tsx</strong>
+      <small>1-line repoint /library?continue=1 → /my。Existing pathname startsWith check 自然 handle。</small>
+    </div>
+    <div class="priority-refs">0 findings</div>
+  </div>
+  <div class="priority-row">
+    <div class="priority-rank" style="font-size:13px;">MOD</div>
+    <div class="priority-content">
+      <strong>web/messages/{en,zh-Hans,zh-Hant}.json</strong>
+      <small>nav.myGames key 三語齊全（My Games · 我的游戏 · 我嘅遊戲）。</small>
+    </div>
+    <div class="priority-refs">0 findings</div>
+  </div>
+</div>
+
+<a href="../pm-dashboard.html" class="back-link" style="display: inline-block; margin-top: 40px; color: var(--primary); text-decoration: none; font-size: 13px; font-weight: 700; padding: 8px 14px; background: var(--primary-soft); border-radius: 8px;">← PM Dashboard</a>
+
+</main>
+</body>
+</html>

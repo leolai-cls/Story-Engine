@@ -475,9 +475,12 @@ export function PlayClient({
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      {/* Slim header */}
+      {/* Slim header — AUDIT FIX MG-UX-HIGH-03: mobile 360px viewport had
+          ~140px overflow with all 6 elements visible at full size. Now:
+          mobile shows [Menu] [back-icon-only] [title-truncate] [memory-icon-only],
+          desktop adds back-label + memory-label + "玩緊：characterName". */}
       <header className="border-b border-border/40 bg-card/80 backdrop-blur sticky top-0 z-20">
-        <div className="mx-auto max-w-[1600px] px-4 sm:px-6 h-12 flex items-center gap-2">
+        <div className="mx-auto max-w-[1600px] px-3 sm:px-6 h-12 flex items-center gap-1.5 sm:gap-2">
           {/* Mobile sidebar trigger (lg:hidden) */}
           <button
             type="button"
@@ -492,34 +495,37 @@ export function PlayClient({
           >
             <Menu size={14} />
           </button>
-          <Button
-            variant="ghost"
-            size="sm"
-            render={<Link href="/library" />}
-            className="text-xs"
+          {/* Back: icon-only on mobile, icon+label on sm+ */}
+          <Link
+            href="/library"
+            className="inline-flex items-center gap-1 px-1.5 sm:px-2.5 py-1.5 rounded-md text-xs flex-none"
+            style={{ color: "var(--se-fg-muted)" }}
+            aria-label="返回 Library"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            返回
-          </Button>
-          <div className="flex items-center gap-2 font-bold text-sm">
-            <Sparkles className="h-4 w-4 text-primary" />
-            <span className="truncate max-w-[300px]">{storyTitle}</span>
+            <span className="hidden sm:inline">返回</span>
+          </Link>
+          <div className="flex items-center gap-1.5 sm:gap-2 font-bold text-sm min-w-0 flex-1">
+            <Sparkles className="h-4 w-4 text-primary flex-none" />
+            <span className="truncate min-w-0">{storyTitle}</span>
           </div>
-          <div className="ml-auto flex items-center gap-3">
+          <div className="ml-auto flex items-center gap-2 sm:gap-3 flex-none">
             <Link
               href={`/play/${playthroughId}/memory` as never}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium"
+              className="inline-flex items-center gap-1.5 px-1.5 sm:px-3 py-1.5 rounded-md text-xs font-medium"
               style={{
                 background: "var(--se-surface)",
                 border: "1px solid var(--se-border)",
                 color: "var(--se-fg-2)",
               }}
+              aria-label="記憶"
               title="呢個 playthrough 嘅 4 層獨立記憶"
             >
               <NotebookPen className="h-3.5 w-3.5" />
-              記憶
+              <span className="hidden sm:inline">記憶</span>
             </Link>
-            <div className="text-xs text-muted-foreground">
+            {/* "玩緊：characterName" — desktop-only (mobile hides to save ~100px) */}
+            <div className="hidden lg:block text-xs text-muted-foreground">
               玩緊：<span className="font-medium text-foreground">{characterName}</span>
             </div>
           </div>
@@ -569,8 +575,12 @@ export function PlayClient({
           open={sidebarOpen}
           onOpenChange={setSidebarOpen}
         />
-        {/* Two-column layout: narrative left, state panel right · mobile uses tabs */}
-        <div className="flex-1 mx-auto max-w-7xl w-full px-4 sm:px-6 py-4 grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 min-h-0">
+        {/* Two-column layout: narrative left, state panel right · mobile uses tabs.
+            AUDIT FIX MG-REG-HIGH-05: max-w bumped from 7xl (1280) → 1520 so
+            sidebar (240) doesn't steal width from the narrative+state grid.
+            Net effect on lg viewports: narrative recovers ~80px lost to sidebar,
+            matching designer v5 pixel intent (designer never had a sidebar). */}
+        <div className="flex-1 mx-auto max-w-[1520px] w-full px-4 sm:px-6 py-4 grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 min-h-0">
         {/* Narrative + input · mobile: only when tab="narrative" */}
         <div className={`flex-col min-h-0 ${mobileTab === "narrative" ? "flex" : "hidden lg:flex"}`}>
           <div className="text-xs text-muted-foreground mb-2 line-clamp-1">

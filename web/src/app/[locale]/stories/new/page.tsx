@@ -1,6 +1,7 @@
 import { setRequestLocale } from "next-intl/server";
 import { redirect } from "@/i18n/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCachedUser } from "@/lib/supabase/cached-user";
 import { getLocale } from "next-intl/server";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -14,13 +15,14 @@ export default async function NewStoryPage({
   const { locale } = await params;
   setRequestLocale(locale);
 
-  // Gate: require login
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  // Gate: require login. AUDIT FIX MG-PERF-HIGH-01: cached — SiteHeader
+  // dedupes against this call (saves a Supabase auth roundtrip).
+  const user = await getCachedUser();
   if (!user) {
     const l = await getLocale();
     redirect({ href: "/login", locale: l });
   }
+  const supabase = await createClient();
 
   // Phase 6 non-money function: gate adult content_rating on adult_mode_enabled
   const { data: profile } = await supabase

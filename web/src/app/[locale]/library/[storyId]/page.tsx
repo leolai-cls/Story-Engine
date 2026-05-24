@@ -5,6 +5,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { ArrowLeft, Star, MessageSquare, Lock, Info } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { getCachedUser } from "@/lib/supabase/cached-user";
 import {
   getStoryById,
   getStoryRatings,
@@ -41,9 +42,8 @@ export default async function StoryDetailPage({
   setRequestLocale(locale);
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // AUDIT FIX MG-PERF-HIGH-01: cached — SiteHeader piggybacks on same call.
+  const user = await getCachedUser();
 
   const story = await getStoryById(supabase, storyId);
   if (!story) notFound();

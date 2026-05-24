@@ -15,20 +15,48 @@ function authRedirectBase(): string {
   return process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3001";
 }
 
+/**
+ * AUDIT FIX MG-UX-HIGH-01: Validate the `next` param from FormData using the
+ * same safety contract as auth/callback's safeRelativeNext (≤200 chars,
+ * starts with single "/", not protocol-relative, no protocol-scheme prefix).
+ * Returns "" if invalid so callers can decide the default destination.
+ */
+function safeRelativeNextFromForm(formData: FormData): string {
+  const raw = String(formData.get("next") || "");
+  if (!raw) return "";
+  if (raw.length > 200) return "";
+  if (!raw.startsWith("/")) return "";
+  if (raw.startsWith("//") || raw.startsWith("/\\")) return "";
+  if (/^\/?[a-z]+:/i.test(raw)) return "";
+  return raw;
+}
+
 export async function signInWithEmail(formData: FormData) {
   const email = String(formData.get("email") || "").trim();
+  const next = safeRelativeNextFromForm(formData);
   if (!email) {
     const locale = await getLocale();
-    redirect({ href: "/login?error=email_required", locale });
+    // Bounce back to login preserving the next so user doesn't lose context.
+    const errHref = next
+      ? `/login?error=email_required&next=${encodeURIComponent(next)}`
+      : "/login?error=email_required";
+    redirect({ href: errHref, locale });
   }
 
   const supabase = await createClient();
   const origin = authRedirectBase();
 
+  // Forward `next` to auth/callback so the magic-link landing returns the
+  // user to their original destination (e.g. /my, /memory) instead of
+  // /profile default. auth/callback re-validates via safeRelativeNext.
+  const callbackUrl = next
+    ? `${origin}/auth/callback?next=${encodeURIComponent(next)}`
+    : `${origin}/auth/callback`;
+
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: {
-      emailRedirectTo: `${origin}/auth/callback`,
+      emailRedirectTo: callbackUrl,
     },
   });
 
@@ -39,15 +67,15 @@ export async function signInWithEmail(formData: FormData) {
     // Log server-side, return generic message to client. The "sent" path
     // is also taken on error so attacker can't distinguish via response.
     console.warn("[auth] signInWithOtp error:", error.message);
-    redirect({
-      href: `/login?error=otp_failed`,
-      locale,
-    });
+    const errHref = next
+      ? `/login?error=otp_failed&next=${encodeURIComponent(next)}`
+      : `/login?error=otp_failed`;
+    redirect({ href: errHref, locale });
   }
-  redirect({
-    href: `/login?sent=${encodeURIComponent(email)}`,
-    locale,
-  });
+  const sentHref = next
+    ? `/login?sent=${encodeURIComponent(email)}&next=${encodeURIComponent(next)}`
+    : `/login?sent=${encodeURIComponent(email)}`;
+  redirect({ href: sentHref, locale });
 }
 
 export async function signOut() {
@@ -65,9 +93,10 @@ export async function signOut() {
  *
  * Anonymous users can later "upgrade" by linking an email — Phase 6 feature.
  */
-export async function signInAsGuest() {
+export async function signInAsGuest(formData: FormData) {
   const supabase = await createClient();
   const locale = await getLocale();
+  const next = safeRelativeNextFromForm(formData);
 
   const { error } = await supabase.auth.signInAnonymously();
   if (error) {
@@ -77,6 +106,8 @@ export async function signInAsGuest() {
     });
   }
 
-  // Send guest straight to story creation — they're here to try the product
-  redirect({ href: "/stories/new" as never, locale });
+  // AUDIT FIX MG-UX-HIGH-01: respect `next` so guests pulled in from /my,
+  // /memory, /play/[id], etc. land on their original destination. Default
+  // remains /stories/new for the "I came to try the product" landing.
+  redirect({ href: (next || "/stories/new") as never, locale });
 }

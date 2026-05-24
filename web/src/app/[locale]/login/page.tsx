@@ -19,13 +19,25 @@ export default async function LoginPage({
   searchParams,
 }: {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ sent?: string; error?: string }>;
+  searchParams: Promise<{ sent?: string; error?: string; next?: string }>;
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations("auth.login");
   const tMagic = await getTranslations("auth.magicLink");
   const sp = await searchParams;
+  // AUDIT FIX MG-UX-HIGH-01: forward ?next= into the action so anon users who
+  // hit /my, /memory, etc. get returned to their destination after login. Same
+  // safety contract as auth/callback (relative path only, ≤200 chars).
+  const safeNext =
+    typeof sp.next === "string" &&
+    sp.next.startsWith("/") &&
+    !sp.next.startsWith("//") &&
+    !sp.next.startsWith("/\\") &&
+    sp.next.length <= 200 &&
+    !/^\/?[a-z]+:/i.test(sp.next)
+      ? sp.next
+      : "";
 
   return (
     <main className="flex-1 flex items-center justify-center px-4 py-12">
@@ -63,6 +75,9 @@ export default async function LoginPage({
                   autoComplete="email"
                 />
               </div>
+              {safeNext && (
+                <input type="hidden" name="next" value={safeNext} />
+              )}
               <Button type="submit" className="w-full">
                 {t("submit")}
               </Button>
@@ -91,6 +106,9 @@ export default async function LoginPage({
 
           <div className="pt-2">
             <form action={signInAsGuest}>
+              {safeNext && (
+                <input type="hidden" name="next" value={safeNext} />
+              )}
               <Button
                 type="submit"
                 variant="outline"
