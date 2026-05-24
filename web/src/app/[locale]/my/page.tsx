@@ -3,7 +3,6 @@ import { setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { MobileBottomNav } from "@/components/se/MobileBottomNav";
 import { Cover } from "@/components/se/Cover";
 import { createClient } from "@/lib/supabase/server";
 import { getCachedUser } from "@/lib/supabase/cached-user";
@@ -76,7 +75,7 @@ export default async function MyGamesPage({
   return (
     <>
       <SiteHeader />
-      <main className="flex-1 pb-24 md:pb-12" style={{ background: "var(--se-bg)" }}>
+      <main className="flex-1 pb-12" style={{ background: "var(--se-bg)" }}>
         <div className="mx-auto max-w-[1200px] px-6 sm:px-14 py-8 sm:py-12">
           {/* Header */}
           <div className="mb-8">
@@ -143,7 +142,6 @@ export default async function MyGamesPage({
         </div>
       </main>
       <SiteFooter />
-      <MobileBottomNav />
     </>
   );
 }
