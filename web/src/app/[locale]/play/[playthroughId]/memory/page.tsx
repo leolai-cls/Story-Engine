@@ -46,11 +46,23 @@ export default async function MemoryJournalPage({
     .single();
   if (!pt) notFound();
 
+  // D5 audit fix · Hard rule #2 CSAM reach from Memory Journal in adult mode
+  // Adult mode flag pulled from profile · passed to client for footer strip.
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("adult_mode_enabled")
+    .eq("id", user!.id)
+    .single();
+  const adultModeEnabled = profile?.adult_mode_enabled ?? false;
+
+  // Determine story is adult-rated (CSAM strip only needed when actually in
+  // adult content context · per Phase 6 design)
   const { data: storyMeta } = await supabase
     .from("stories")
-    .select("title")
+    .select("title, content_rating")
     .eq("id", pt.story_id)
     .single();
+  const showCsam = adultModeEnabled && storyMeta?.content_rating === "adult";
 
   // Fetch memory data server-side (initial render)
   const [{ data: summaries }, { data: lorebookRows }] = await Promise.all([
@@ -80,6 +92,7 @@ export default async function MemoryJournalPage({
       protagonist={protagonist}
       storyTitle={storyTitle}
       locale={locale}
+      showCsam={showCsam}
       summaries={(summaries ?? []).map((s) => ({
         id: s.id as string,
         range: s.turn_range as string,

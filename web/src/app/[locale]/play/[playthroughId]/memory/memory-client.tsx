@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Link } from "@/i18n/navigation";
 import { X, Sparkles, BookOpen, NotebookPen, Info, Play, Clock, Lock } from "lucide-react";
+import { CsamStrip } from "@/components/se/CsamStrip";
 
 type Summary = {
   id: string;
@@ -48,6 +49,7 @@ export function MemoryJournalClient({
   locale,
   summaries,
   lorebook,
+  showCsam = false,
 }: {
   playthroughId: string;
   turnCount: number;
@@ -56,6 +58,8 @@ export function MemoryJournalClient({
   locale: string;
   summaries: Summary[];
   lorebook: LoreRow[];
+  /** D5 audit · show CSAM strip when in adult content context */
+  showCsam?: boolean;
 }) {
   // Default tab = active (the killer demo per CLAUDE.md hard rule #7)
   const [tab, setTab] = useState<Tab>("active");
@@ -219,6 +223,9 @@ export function MemoryJournalClient({
           {tab === "lorebook" && <TabLorebook grouped={grouped} types={types} />}
         </main>
       </div>
+
+      {/* D5 audit · Hard rule #2 CSAM strip footer (adult content context only) */}
+      {showCsam && <CsamStrip variant="footer" />}
     </div>
   );
 }

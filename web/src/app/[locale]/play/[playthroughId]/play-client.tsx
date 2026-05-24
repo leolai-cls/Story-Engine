@@ -347,21 +347,40 @@ export function PlayClient({
             ref={scrollRef}
             className="flex-1 overflow-y-auto rounded-xl border border-border/60 bg-card/30 p-4 space-y-4 min-h-[400px]"
           >
-            {turns.map((turn) => (
-              <div
-                key={turn.index}
-                className={
-                  turn.role === "user"
-                    ? "rounded-lg bg-primary/8 border border-primary/20 p-3"
-                    : "rounded-lg bg-card border border-border/40 p-4 leading-relaxed"
-                }
-              >
-                <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
-                  {turn.role === "user" ? `→ ${characterName}` : "↳ 敘事"}
+            {turns.map((turn) => {
+              // C6 audit fix · Hard rule #4: Director re-interpreted player
+              // action signal. Detect refusal fallback text — backend's
+              // turn-runner.refusalFallbackNarrative starts with specific
+              // phrases. If matched, render subtle amber side-border (no
+              // system jargon · tooltip-only explainer per designer spec).
+              const isSoftDirector =
+                turn.role === "ai" &&
+                /^(對唔住|抱歉|呢個唔係|系統|Sorry|对不起)/.test(turn.text.trim().slice(0, 8));
+              return (
+                <div
+                  key={turn.index}
+                  title={isSoftDirector ? "NPC 反應與你預期不同" : undefined}
+                  className={
+                    turn.role === "user"
+                      ? "rounded-lg bg-primary/8 border border-primary/20 p-3"
+                      : "rounded-lg bg-card border border-border/40 p-4 leading-relaxed"
+                  }
+                  style={
+                    isSoftDirector
+                      ? {
+                          borderLeft: "2px solid var(--se-warn)",
+                          paddingLeft: 16,
+                        }
+                      : undefined
+                  }
+                >
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
+                    {turn.role === "user" ? `→ ${characterName}` : "↳ 敘事"}
+                  </div>
+                  <div className="text-sm whitespace-pre-wrap">{turn.text}</div>
                 </div>
-                <div className="text-sm whitespace-pre-wrap">{turn.text}</div>
-              </div>
-            ))}
+              );
+            })}
 
             {streaming && streamText && (
               <div className="rounded-lg bg-card border border-primary/30 p-4 leading-relaxed">

@@ -30,6 +30,7 @@ import { ContinueCard, type ActivePlaythroughData } from "@/components/se/Contin
 import { Carousel } from "@/components/se/Carousel";
 import { Cover } from "@/components/se/Cover";
 import { RatingBadge, GenreChip, Avatar } from "@/components/se/Badges";
+import { CsamStrip } from "@/components/se/CsamStrip";
 import { GENRE, type GenreKey } from "@/components/se/genre";
 
 export const dynamic = "force-dynamic";
@@ -191,6 +192,9 @@ export default async function LibraryPage({
     <>
       <SiteHeader />
       <main className="flex-1" style={{ background: "var(--se-bg)" }}>
+        {/* A4 audit fix · Hard rule #2 CSAM reminder always visible in adult mode UI */}
+        {adultModeEnabled && <CsamStrip variant="banner" />}
+
         {/* HERO — cinematic Netflix takeover */}
         {!searchMode && heroStory && (
           <LibraryHero locale={locale} story={heroStory} adultModeEnabled={adultModeEnabled} />
