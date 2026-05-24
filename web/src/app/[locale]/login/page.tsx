@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Sparkles, CheckCircle2, AlertCircle, Zap } from "lucide-react";
-import { signInWithEmail, signInAsGuest } from "./actions";
+import { signInWithEmail, signInAsGuest, signInWithGoogle } from "./actions";
 
 export default async function LoginPage({
   params,
@@ -38,6 +38,19 @@ export default async function LoginPage({
     !/^\/?[a-z]+:/i.test(sp.next)
       ? sp.next
       : "";
+
+  // Map raw error codes from server actions / auth callback into user-friendly
+  // 繁中 messages. Unknown codes fall through to raw display (existing pattern).
+  const ERROR_MESSAGES: Record<string, string> = {
+    email_required: "請輸入 email",
+    otp_failed: "Magic link 發送失敗，請稍後再試",
+    callback_failed: "登入回呼失敗，請重新登入",
+    missing_code: "登入連結唔正確或過期",
+    google_unavailable: "Google 登入暫未啟用，請用 email magic link",
+  };
+  const errorText = sp.error
+    ? (ERROR_MESSAGES[sp.error] ?? decodeURIComponent(sp.error))
+    : null;
 
   return (
     <main className="flex-1 flex items-center justify-center px-4 py-12">
@@ -81,10 +94,10 @@ export default async function LoginPage({
               <Button type="submit" className="w-full">
                 {t("submit")}
               </Button>
-              {sp.error && (
+              {errorText && (
                 <div className="rounded-md border border-red-200 bg-red-50 p-3 text-xs text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
                   <AlertCircle className="h-3.5 w-3.5 inline mr-1" />
-                  {decodeURIComponent(sp.error)}
+                  {errorText}
                 </div>
               )}
             </form>
@@ -97,12 +110,47 @@ export default async function LoginPage({
             </span>
           </div>
 
-          <Button variant="outline" className="w-full" disabled>
-            {t("googleButton")}{" "}
-            <span className="text-muted-foreground text-xs ml-1">
-              (Phase 6)
-            </span>
-          </Button>
+          {/* Google OAuth · Supabase native provider · config in Supabase
+              dashboard + Google Cloud Console (one-time founder setup). */}
+          <form action={signInWithGoogle}>
+            {safeNext && (
+              <input type="hidden" name="next" value={safeNext} />
+            )}
+            <Button
+              type="submit"
+              variant="outline"
+              className="w-full gap-2"
+            >
+              {/* Inline Google brand mark — lucide-react doesn't ship one and
+                  Google's brand guidelines require the full multi-color "G"
+                  for OAuth buttons. */}
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                width="16"
+                height="16"
+                aria-hidden="true"
+              >
+                <path
+                  fill="#4285F4"
+                  d="M21.35 11.1H12v3.2h5.35c-.24 1.27-.96 2.34-2.04 3.06v2.55h3.3c1.93-1.78 3.04-4.4 3.04-7.51 0-.66-.07-1.32-.2-1.97z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M12 22c2.76 0 5.07-.91 6.76-2.46l-3.3-2.55c-.92.61-2.09.98-3.46.98-2.66 0-4.92-1.79-5.72-4.2H2.86v2.63A9.99 9.99 0 0012 22z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M6.28 13.77a5.99 5.99 0 010-3.79V7.35H2.86a10 10 0 000 9.05l3.42-2.63z"
+                />
+                <path
+                  fill="#EA4335"
+                  d="M12 5.96c1.5 0 2.85.52 3.91 1.53l2.93-2.93C17.06 2.96 14.76 2 12 2 7.7 2 3.99 4.47 2.86 7.94l3.42 2.63C7.08 7.75 9.34 5.96 12 5.96z"
+                />
+              </svg>
+              {t("googleButton")}
+            </Button>
+          </form>
 
           <div className="pt-2">
             <form action={signInAsGuest}>

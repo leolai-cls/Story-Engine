@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "@/i18n/navigation";
+import { redirect as nextRedirect } from "next/navigation";
 import { getLocale } from "next-intl/server";
 
 /**
@@ -93,6 +94,69 @@ export async function signOut() {
  *
  * Anonymous users can later "upgrade" by linking an email — Phase 6 feature.
  */
+/**
+ * Google OAuth sign-in (Supabase native provider).
+ *
+ * Flow:
+ *   1. User clicks 「用 Google 繼續」on /login
+ *   2. We call signInWithOAuth({ provider: 'google' }) — Supabase returns a
+ *      consent URL pointing at Google
+ *   3. nextRedirect(data.url) sends user out to Google's consent screen
+ *   4. Google completes auth → redirects to Supabase's project callback
+ *      (https://oivhvdfjmthydxqpcncp.supabase.co/auth/v1/callback)
+ *   5. Supabase exchanges Google's code for a session, then redirects to our
+ *      app's /auth/callback?code=...&next=... (the `redirectTo` we set below)
+ *   6. /auth/callback route exchanges code → cookie → redirects to ${next}
+ *
+ * Config dependencies (founder one-time setup):
+ *   - Google Cloud Console: OAuth 2.0 Client ID with authorized redirect URI:
+ *     https://oivhvdfjmthydxqpcncp.supabase.co/auth/v1/callback
+ *   - Supabase Dashboard → Auth → Providers → Google: enable + paste client
+ *     id + secret
+ *
+ * Without config: Supabase returns "provider is not enabled" error → user
+ * lands back on /login?error=google_unavailable (generic — don't leak provider).
+ */
+export async function signInWithGoogle(formData: FormData) {
+  const next = safeRelativeNextFromForm(formData);
+  const supabase = await createClient();
+  const origin = authRedirectBase();
+
+  // Round-trip the `next` param through the OAuth flow so user lands back at
+  // their intended destination (e.g. /zh-Hant/my). Supabase preserves the
+  // redirectTo across Google's hop. Our /auth/callback handler re-validates
+  // safe-relative again before final redirect (defense in depth).
+  const callbackUrl = next
+    ? `${origin}/auth/callback?next=${encodeURIComponent(next)}`
+    : `${origin}/auth/callback`;
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: callbackUrl,
+    },
+  });
+
+  if (error) {
+    console.warn("[auth] signInWithOAuth(google) error:", error.message);
+    const locale = await getLocale();
+    const errHref = next
+      ? `/login?error=google_unavailable&next=${encodeURIComponent(next)}`
+      : "/login?error=google_unavailable";
+    redirect({ href: errHref, locale });
+  }
+
+  if (data?.url) {
+    // External redirect to Google consent screen. Must use nextRedirect (not
+    // the locale-wrapped one) since this is an absolute URL on google.com.
+    nextRedirect(data.url);
+  }
+
+  // Unreachable — both branches above redirect. Defensive fallback only.
+  const locale = await getLocale();
+  redirect({ href: "/login?error=google_unavailable", locale });
+}
+
 export async function signInAsGuest(formData: FormData) {
   const supabase = await createClient();
   const locale = await getLocale();
