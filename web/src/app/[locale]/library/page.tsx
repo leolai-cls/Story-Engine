@@ -32,6 +32,7 @@ import { Cover } from "@/components/se/Cover";
 import { RatingBadge, GenreChip, Avatar } from "@/components/se/Badges";
 import { CsamStrip } from "@/components/se/CsamStrip";
 import { VisitorLanding } from "@/components/se/VisitorLanding";
+import { MobileBottomNav } from "@/components/se/MobileBottomNav";
 import { GENRE, type GenreKey } from "@/components/se/genre";
 
 export const dynamic = "force-dynamic";
@@ -333,6 +334,8 @@ export default async function LibraryPage({
         <div style={{ height: 80 }} />
       </main>
       <SiteFooter />
+      {/* A6 audit fix · Mobile bottom tab nav (md:hidden) */}
+      {user && <MobileBottomNav />}
     </>
   );
 }

@@ -14,6 +14,7 @@ import {
 import { StoryDetailActions } from "./story-detail-actions";
 import { Cover } from "@/components/se/Cover";
 import { RatingBadge, GenreChip, Stars, Avatar } from "@/components/se/Badges";
+import { MobileStickyForkCta } from "./mobile-sticky-cta";
 import type { GenreKey } from "@/components/se/genre";
 
 export const dynamic = "force-dynamic";
@@ -215,7 +216,7 @@ export default async function StoryDetailPage({
           {/* MAIN column */}
           <div className="min-w-0">
             {/* Actions cluster (Fork / Continue / Rate / etc) */}
-            <div className="mb-10">
+            <div id="story-actions" className="mb-10 scroll-mt-20">
               <StoryDetailActions
                 storyId={storyId}
                 isOwner={isOwner}
@@ -533,6 +534,8 @@ export default async function StoryDetailPage({
         </div>
       </main>
       <SiteFooter />
+      {/* B3 audit fix · Mobile sticky bottom CTA · jumps to actions section */}
+      <MobileStickyForkCta disabled={!user} />
     </>
   );
 }

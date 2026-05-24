@@ -126,14 +126,48 @@ export function MemoryJournalClient({
         </Link>
       </div>
 
-      {/* Layout: left nav + main */}
+      {/* D6 audit fix · mobile top tab bar (md:hidden · sidebar→horizontal scroll) */}
       <div
-        className="flex-1 min-h-0"
-        style={{ display: "grid", gridTemplateColumns: "260px 1fr" }}
+        className="md:hidden se-row-scroll flex items-center gap-1 overflow-x-auto px-4 py-2"
+        style={{
+          background: "var(--se-bg-elev)",
+          borderBottom: "1px solid var(--se-border)",
+        }}
       >
-        {/* Left nav */}
+        {(
+          [
+            { id: "active", label: "當前活躍", icon: Sparkles },
+            { id: "summaries", label: `回憶錄 · ${summaries.length}`, icon: BookOpen },
+            { id: "lorebook", label: `角色記事 · ${lorebookCount}`, icon: NotebookPen },
+          ] as const
+        ).map((t) => {
+          const Ico = t.icon;
+          const a = tab === t.id;
+          return (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id as Tab)}
+              className="flex-none inline-flex items-center gap-1.5 px-3 h-8 rounded-full text-xs se-cjk"
+              style={{
+                background: a ? "var(--se-fg)" : "transparent",
+                color: a ? "var(--se-bg)" : "var(--se-fg-muted)",
+                border: `1px solid ${a ? "var(--se-fg)" : "var(--se-border)"}`,
+              }}
+            >
+              <Ico size={11} />
+              {t.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Layout: left nav + main · desktop only · mobile collapses to single col */}
+      <div
+        className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-[260px_1fr]"
+      >
+        {/* Left nav · hidden on mobile (replaced by top tab bar above) */}
         <nav
-          className="p-4"
+          className="hidden md:block p-4"
           style={{
             background: "var(--se-bg-elev)",
             borderRight: "1px solid var(--se-border)",

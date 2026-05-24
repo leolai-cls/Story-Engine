@@ -146,9 +146,51 @@ export function CreationForm({
           </div>
 
           {error && (
-            <div className="rounded-md border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300">
-              <AlertCircle className="h-3.5 w-3.5 inline mr-1" />
-              {error}
+            <div
+              className="rounded-lg p-4 flex items-start gap-3"
+              style={{
+                background: "var(--se-warn-bg)",
+                border: "1px solid var(--se-warn)",
+              }}
+            >
+              <AlertCircle
+                size={16}
+                color="var(--se-warn)"
+                className="mt-0.5 flex-none"
+              />
+              <div className="flex-1">
+                <div
+                  className="se-mono uppercase mb-1"
+                  style={{
+                    fontSize: 10,
+                    color: "var(--se-warn)",
+                    letterSpacing: "0.06em",
+                  }}
+                >
+                  403 · MODERATION REJECTED
+                </div>
+                <div
+                  className="text-sm font-medium mb-1 se-cjk"
+                  style={{ color: "var(--se-fg)" }}
+                >
+                  呢個 premise 觸發咗安全規則
+                </div>
+                <div
+                  className="text-xs se-cjk"
+                  style={{
+                    color: "var(--se-fg-muted)",
+                    lineHeight: 1.6,
+                  }}
+                >
+                  {error}
+                </div>
+                <div
+                  className="mt-2 text-[11px] se-cjk"
+                  style={{ color: "var(--se-fg-dim)" }}
+                >
+                  💡 Tip: 描寫犯罪故事可以將主角設為<em>觀察者</em>或<em>受害者</em>角度 · 唔好做加害者。
+                </div>
+              </div>
             </div>
           )}
 
