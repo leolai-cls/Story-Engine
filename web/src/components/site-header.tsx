@@ -6,6 +6,13 @@ import { LocaleSwitcher } from "@/components/se/LocaleSwitcher";
 import { SignOutButton } from "@/components/settings/sign-out-button";
 import { getCachedUser } from "@/lib/supabase/cached-user";
 import { marketingUrl } from "@/lib/urls";
+import { createClient } from "@/lib/supabase/server";
+import { getMyPlaythroughs } from "@/lib/community/queries";
+import {
+  MobileNavDrawer,
+  type DrawerPlaythrough,
+} from "@/components/se/MobileNavDrawer";
+import { getLocale } from "next-intl/server";
 
 /**
  * Top nav — auth-aware.
@@ -20,10 +27,36 @@ import { marketingUrl } from "@/lib/urls";
 
 export async function SiteHeader() {
   const t = await getTranslations("nav");
+  const locale = await getLocale();
   // AUDIT FIX MG-PERF-HIGH-01: dedupe via React cache() — if the page that
   // wraps this header already called getCachedUser(), zero extra Supabase
   // auth roundtrips. Saves ~30-80ms per page render on cold cookies.
   const user = await getCachedUser();
+
+  // Fetch recent playthroughs for the mobile drawer (ChatGPT-style side menu
+  // · founder request 2026-05-25). Authed only · server-side · cheap query.
+  // Total count is exact-count for "全部 (N)" footer link.
+  let drawerPlaythroughs: DrawerPlaythrough[] = [];
+  let totalPlaythroughCount = 0;
+  if (user) {
+    const supabase = await createClient();
+    const [recent, { count }] = await Promise.all([
+      getMyPlaythroughs(supabase, { userId: user.id, limit: 5 }),
+      supabase
+        .from("playthroughs")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id),
+    ]);
+    drawerPlaythroughs = recent.map((p) => ({
+      id: p.id,
+      storyId: p.story_id,
+      storyTitle: p.story_title,
+      storyGenre: p.story_genre,
+      turnCount: p.turn_count,
+      relativeTime: shortRelativeTime(p.last_played_at),
+    }));
+    totalPlaythroughCount = count ?? recent.length;
+  }
 
   // Pricing is a MARKETING route (per lib/urls.ts classification) — when
   // founder splits to xxx.com / app.xxx.com it'll move off the product domain.
@@ -57,7 +90,24 @@ export async function SiteHeader() {
         borderBottom: "1px solid var(--se-border)",
       }}
     >
-      <div className="mx-auto flex h-16 max-w-[1600px] items-center px-6 sm:px-14">
+      <div className="mx-auto flex h-16 max-w-[1600px] items-center px-4 sm:px-14">
+        {/* Mobile hamburger + slide-out drawer (lg:hidden internally).
+            ChatGPT / Claude / Grok pattern — top-left burger → left drawer
+            with playthroughs list + nav links + settings/logout. */}
+        <MobileNavDrawer
+          locale={locale}
+          isAuthed={!!user}
+          playthroughs={drawerPlaythroughs}
+          totalPlaythroughCount={totalPlaythroughCount}
+          labels={{
+            library: t("library"),
+            myGames: t("myGames"),
+            pricing: t("pricing"),
+            settings: t("settings"),
+            login: t("login"),
+            signup: t("signup"),
+          }}
+        />
         <Link href="/" className="mr-7 flex items-center gap-2 font-bold">
           <Sparkles className="h-5 w-5" style={{ color: "var(--se-accent)" }} />
           <span
@@ -127,15 +177,25 @@ export async function SiteHeader() {
         <div className="ml-auto flex items-center gap-2">
           <LocaleSwitcher />
           {user ? (
-            <>
+            // Authed: settings + logout exist in the mobile drawer too · hide
+            // duplicate buttons on small screens to avoid crowding the header.
+            <div className="hidden lg:flex items-center gap-2">
               <Button variant="ghost" size="sm" render={<Link href="/settings" />}>
                 {t("settings")}
               </Button>
               <SignOutButton />
-            </>
+            </div>
           ) : (
+            // Anon: keep Sign up CTA visible on mobile too — primary conversion
+            // surface. Hide the secondary "Log in" button on small screens
+            // (drawer has it).
             <>
-              <Button variant="ghost" size="sm" render={<Link href="/login" />}>
+              <Button
+                variant="ghost"
+                size="sm"
+                render={<Link href="/login" />}
+                className="hidden lg:inline-flex"
+              >
                 {t("login")}
               </Button>
               <Button
@@ -154,4 +214,25 @@ export async function SiteHeader() {
       </div>
     </header>
   );
+}
+
+/**
+ * Compact relative time for the mobile drawer (no spaces — fits the 270px
+ * drawer width nicely). Mirrors `/play/[id]/page.tsx` relativeTime but
+ * trims whitespace. Could be DRY'd with that helper later · for now keeping
+ * local to avoid premature abstraction.
+ */
+function shortRelativeTime(iso: string): string {
+  const t = new Date(iso).getTime();
+  const now = Date.now();
+  const diffMin = Math.floor((now - t) / 60_000);
+  if (diffMin < 1) return "剛剛";
+  if (diffMin < 60) return `${diffMin}分鐘前`;
+  const diffHour = Math.floor(diffMin / 60);
+  if (diffHour < 24) return `${diffHour}小時前`;
+  const diffDay = Math.floor(diffHour / 24);
+  if (diffDay === 1) return "昨天";
+  if (diffDay < 7) return `${diffDay}日前`;
+  if (diffDay < 30) return `${Math.floor(diffDay / 7)}週前`;
+  return new Date(iso).toLocaleDateString();
 }
