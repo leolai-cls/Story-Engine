@@ -100,7 +100,7 @@ export function CreationForm({
                     disabled={isPending || adultDisabled}
                     title={
                       adultDisabled
-                        ? "需要喺 Settings 開啟成人模式 (KYC 後)"
+                        ? "需要喺 設定 開啟成人模式（需身份驗證）"
                         : undefined
                     }
                     className={`px-3 py-1.5 rounded-md text-xs font-medium border transition ${
@@ -115,7 +115,7 @@ export function CreationForm({
                         ? "輕度暗示"
                         : adultModeEnabled
                           ? "成人 (18+)"
-                          : "成人 (需 KYC)"}
+                          : "成人 (需身份驗證)"}
                   </button>
                 );
               })}

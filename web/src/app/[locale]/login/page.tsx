@@ -93,15 +93,21 @@ export default async function LoginPage({
             <form action={signInAsGuest}>
               <Button
                 type="submit"
-                variant="secondary"
-                className="w-full bg-amber-100 hover:bg-amber-200 dark:bg-amber-950/40 dark:hover:bg-amber-950/60 border-amber-300/60 dark:border-amber-800/60"
+                variant="outline"
+                className="w-full"
               >
-                <Zap className="h-4 w-4 text-amber-600" />
-                🎮 Guest 試玩 — 即刻入去
+                <Zap className="h-4 w-4" />
+                一鍵 Guest 試玩
               </Button>
             </form>
+            {/* Honest copy (UI tier audit fix · designer 2.3):
+                anonymous-to-permanent upgrade flow not yet wired (Supabase
+                auth.linkIdentity() API exists but app hasn't built migration
+                UX). Don't promise data link until backend supports it. */}
             <p className="text-[11px] text-center text-muted-foreground mt-2">
-              無需 email · 直接體驗創作 + play loop · 數據儲存喺 guest account
+              無需信用卡 · 即時開始 · Guest 用獨立 credit
+              <br />
+              想長期保存 playthrough · sign up 用 email 開新 account
             </p>
           </div>
         </CardContent>
