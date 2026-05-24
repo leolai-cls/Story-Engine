@@ -90,31 +90,31 @@ export const MODELS: Record<string, ModelEntry> = {
     description: "OpenAI 平價版。Free tier 可用。",
   },
 
-  // ─── Google (via OpenRouter) ────────────────────────────────────────
-  "gemini-pro-1-5": {
-    id: "gemini-pro-1-5",
+  // ─── Google (via OpenRouter · 2.5 series · current latest) ─────────
+  "gemini-2-5-pro": {
+    id: "gemini-2-5-pro",
     provider: "openrouter",
-    model_id: "google/gemini-pro-1.5",
-    display_name: "Gemini Pro 1.5",
+    model_id: "google/gemini-2.5-pro",
+    display_name: "Gemini 2.5 Pro",
     role: "narrator",
     credit_multiplier: 2.0,
     allows_nsfw: false,
     min_tier: "adventurer",
-    description: "Google 旗艦。1M context · 適合長 playthrough。",
+    description: "Google 旗艦。1M+ context · 適合長 playthrough · 強推理。",
   },
-  "gemini-flash-1-5": {
-    id: "gemini-flash-1-5",
+  "gemini-2-5-flash": {
+    id: "gemini-2-5-flash",
     provider: "openrouter",
-    model_id: "google/gemini-flash-1.5",
-    display_name: "Gemini Flash 1.5",
+    model_id: "google/gemini-2.5-flash",
+    display_name: "Gemini 2.5 Flash",
     role: "narrator",
     credit_multiplier: 0.5,
     allows_nsfw: false,
     min_tier: "free",
-    description: "Google 平價版。長 context · Free tier 可用。",
+    description: "Google 平價版。快 · 長 context · Free tier 可用。",
   },
 
-  // ─── xAI (via OpenRouter) ───────────────────────────────────────────
+  // ─── xAI (via OpenRouter · 2 versions) ──────────────────────────────
   "grok-2": {
     id: "grok-2",
     provider: "openrouter",
@@ -124,7 +124,18 @@ export const MODELS: Record<string, ModelEntry> = {
     credit_multiplier: 2.5,
     allows_nsfw: false,
     min_tier: "adventurer",
-    description: "xAI · 對話風格活潑 · 多元觀點。",
+    description: "xAI 旗艦。對話風格活潑 · 多元觀點。",
+  },
+  "grok-2-mini": {
+    id: "grok-2-mini",
+    provider: "openrouter",
+    model_id: "x-ai/grok-2-mini",
+    display_name: "Grok 2 Mini",
+    role: "narrator",
+    credit_multiplier: 0.8,
+    allows_nsfw: false,
+    min_tier: "free",
+    description: "xAI 平價版。快 · 同 Grok 2 同 family。",
   },
 
   // ─── OpenRouter NSFW (Phase 6 adult mode · CLAUDE.md hard rule #5) ─

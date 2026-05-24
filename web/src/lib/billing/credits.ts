@@ -73,19 +73,23 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
     inputPerMillion: 0.15,
     outputPerMillion: 0.6,
   },
-  // ─── Google narrators (via OpenRouter) ─────────────────────────────
-  "gemini-pro-1-5": {
+  // ─── Google narrators (via OpenRouter · 2.5 series) ────────────────
+  "gemini-2-5-pro": {
     inputPerMillion: 1.25,
-    outputPerMillion: 5.0,
+    outputPerMillion: 10.0,
   },
-  "gemini-flash-1-5": {
-    inputPerMillion: 0.075,
-    outputPerMillion: 0.3,
+  "gemini-2-5-flash": {
+    inputPerMillion: 0.30,
+    outputPerMillion: 2.5,
   },
-  // ─── xAI Grok (via OpenRouter) ─────────────────────────────────────
+  // ─── xAI Grok (via OpenRouter · 2 versions) ────────────────────────
   "grok-2": {
     inputPerMillion: 2.0,
     outputPerMillion: 10.0,
+  },
+  "grok-2-mini": {
+    inputPerMillion: 0.3,
+    outputPerMillion: 0.5,
   },
   // ─── OpenRouter NSFW (Phase 6 adult mode · Hard rule #5 LLM isolation) ─
   // Llama 3.1 405B · only NSFW-allowed narrator · uncensored variant.
