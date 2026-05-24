@@ -11,7 +11,7 @@ import { Grid3X3, Play, Plus, User } from "lucide-react";
 
 const TABS = [
   { id: "library", href: "/library", icon: Grid3X3, label: "故事" },
-  { id: "play", href: "/library?continue=1", icon: Play, label: "進行中" },
+  { id: "my", href: "/my", icon: Play, label: "進行中" },
   { id: "new", href: "/stories/new", icon: Plus, label: "創作" },
   { id: "settings", href: "/settings", icon: User, label: "我" },
 ] as const;

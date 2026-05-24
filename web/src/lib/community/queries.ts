@@ -55,6 +55,8 @@ export type MyPlaythroughRow = {
   id: string;
   story_id: string;
   story_title: string;
+  story_genre: string | null;
+  story_cover_image_url: string | null;
   character_name: string | null;
   turn_count: number;
   status: string;
@@ -354,7 +356,7 @@ export async function getMyPlaythroughs(
   let q = supabase
     .from("playthroughs")
     .select(
-      "id, story_id, character_name, turn_count, status, last_played_at, story:stories!playthroughs_story_id_fkey(title)",
+      "id, story_id, character_name, turn_count, status, last_played_at, story:stories!playthroughs_story_id_fkey(title, genre, cover_image_url)",
     )
     .eq("user_id", params.userId);
   if (params.status) {
@@ -365,14 +367,21 @@ export async function getMyPlaythroughs(
     .limit(params.limit ?? 12);
   if (error || !data) return [];
   return data.map((r) => {
-    const storyJoin = (r as { story?: { title?: string } | { title?: string }[] | null }).story;
-    const storyTitle = Array.isArray(storyJoin)
-      ? (storyJoin[0]?.title ?? "(無標題)")
-      : (storyJoin?.title ?? "(無標題)");
+    type StoryJoinShape = {
+      title?: string;
+      genre?: string | null;
+      cover_image_url?: string | null;
+    };
+    const storyJoin = (r as { story?: StoryJoinShape | StoryJoinShape[] | null }).story;
+    const storyRow: StoryJoinShape | null = Array.isArray(storyJoin)
+      ? (storyJoin[0] ?? null)
+      : (storyJoin ?? null);
     return {
       id: r.id as string,
       story_id: r.story_id as string,
-      story_title: storyTitle,
+      story_title: storyRow?.title ?? "(無標題)",
+      story_genre: storyRow?.genre ?? null,
+      story_cover_image_url: storyRow?.cover_image_url ?? null,
       character_name: r.character_name as string | null,
       turn_count: r.turn_count as number,
       status: r.status as string,

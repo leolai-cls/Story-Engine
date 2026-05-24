@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { PlayClient } from "./play-client";
 import { StateSchemaShape } from "@/schemas/state-schema";
+import { getMyPlaythroughs } from "@/lib/community/queries";
+import type { SidebarPlaythrough } from "@/components/se/PlaythroughSidebar";
 
 export default async function PlayPage({
   params,
@@ -64,7 +66,8 @@ export default async function PlayPage({
 
   // Fetch NPCs + per-playthrough disposition (Hard rule #6: 4-axis surface).
   // 4-axis stored in playthrough_character_states.disposition jsonb.
-  const [{ data: characters }, { data: charStates }] = await Promise.all([
+  // Also fetch user's recent playthroughs for the sidebar rail.
+  const [{ data: characters }, { data: charStates }, recentPlaythroughs] = await Promise.all([
     supabase
       .from("story_characters")
       .select("id, name, role")
@@ -73,6 +76,7 @@ export default async function PlayPage({
       .from("playthrough_character_states")
       .select("character_id, disposition")
       .eq("playthrough_id", playthroughId),
+    getMyPlaythroughs(supabase, { userId: user.id, limit: 12 }),
   ]);
 
   // Merge characters + states into a single array for PlayClient
@@ -94,6 +98,22 @@ export default async function PlayPage({
     };
   });
 
+  // Sidebar payload: adapt MyPlaythroughRow → SidebarPlaythrough.
+  // Total count is a separate exact-count query so the footer link can show "see all (N)".
+  const { count: totalPlaythroughCount } = await supabase
+    .from("playthroughs")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id);
+  const sidebarPlaythroughs: SidebarPlaythrough[] = recentPlaythroughs.map((p) => ({
+    id: p.id,
+    storyId: p.story_id,
+    storyTitle: p.story_title,
+    storyGenre: p.story_genre,
+    turnCount: p.turn_count,
+    status: p.status,
+    relativeTime: relativeTime(p.last_played_at),
+  }));
+
   return (
     <PlayClient
       playthroughId={playthroughId}
@@ -110,9 +130,26 @@ export default async function PlayPage({
       }))}
       characterName={pt.character_name ?? "主角"}
       npcs={npcs}
+      sidebarPlaythroughs={sidebarPlaythroughs}
+      sidebarTotalCount={totalPlaythroughCount ?? sidebarPlaythroughs.length}
     />
   );
 }
 
 // Local alias so the cast above doesn't need to import the full type from client
 type Turn = import("./play-client").Turn;
+
+function relativeTime(iso: string): string {
+  const t = new Date(iso).getTime();
+  const now = Date.now();
+  const diffMin = Math.floor((now - t) / 60_000);
+  if (diffMin < 1) return "剛剛";
+  if (diffMin < 60) return `${diffMin}分鐘前`;
+  const diffHour = Math.floor(diffMin / 60);
+  if (diffHour < 24) return `${diffHour}小時前`;
+  const diffDay = Math.floor(diffHour / 24);
+  if (diffDay === 1) return "昨天";
+  if (diffDay < 7) return `${diffDay}日前`;
+  if (diffDay < 30) return `${Math.floor(diffDay / 7)}週前`;
+  return new Date(iso).toLocaleDateString();
+}

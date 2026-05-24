@@ -2,11 +2,16 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "@/i18n/navigation";
+import { useLocale } from "next-intl";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Send, Loader2, ArrowLeft, Coins, Lock, Shield, NotebookPen } from "lucide-react";
+import { Sparkles, Send, Loader2, ArrowLeft, Coins, Lock, Shield, NotebookPen, Menu } from "lucide-react";
 import { DynamicStatePanel } from "@/components/state-panel";
 import type { StateSchema } from "@/schemas/state-schema";
 import { NpcCard } from "@/components/se/DispositionAxis";
+import {
+  PlaythroughSidebar,
+  type SidebarPlaythrough,
+} from "@/components/se/PlaythroughSidebar";
 
 /**
  * NPC card data passed in from server.
@@ -278,6 +283,8 @@ export function PlayClient({
   initialTurns,
   characterName,
   npcs = [],
+  sidebarPlaythroughs = [],
+  sidebarTotalCount = 0,
 }: {
   playthroughId: string;
   storyTitle: string;
@@ -287,7 +294,12 @@ export function PlayClient({
   initialTurns: Turn[];
   characterName: string;
   npcs?: NpcData[];
+  /** Top N of user's recent playthroughs for the sidebar rail. */
+  sidebarPlaythroughs?: SidebarPlaythrough[];
+  /** Total playthrough count (sidebar shows "see all" link if > visible). */
+  sidebarTotalCount?: number;
 }) {
+  const locale = useLocale();
   const [turns, setTurns] = useState<Turn[]>(initialTurns);
   const [state, setState] = useState<Record<string, unknown>>(initialState);
   const [input, setInput] = useState("");
@@ -296,6 +308,8 @@ export function PlayClient({
   const [error, setError] = useState<string | null>(null);
   // C10 audit fix · mobile 3-tab pattern (敘事 / 角色 / 狀態)
   const [mobileTab, setMobileTab] = useState<"narrative" | "npc" | "state">("narrative");
+  // Sidebar mobile drawer state (desktop rail always visible)
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // W2-UX-M-07: show "正在審核 + 思考..." indicator during the moderation +
@@ -462,8 +476,22 @@ export function PlayClient({
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {/* Slim header */}
-      <header className="border-b border-border/40 bg-card/80 backdrop-blur sticky top-0 z-10">
-        <div className="container mx-auto max-w-7xl px-4 sm:px-6 h-12 flex items-center gap-3">
+      <header className="border-b border-border/40 bg-card/80 backdrop-blur sticky top-0 z-20">
+        <div className="mx-auto max-w-[1600px] px-4 sm:px-6 h-12 flex items-center gap-2">
+          {/* Mobile sidebar trigger (lg:hidden) */}
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(true)}
+            className="lg:hidden inline-flex items-center justify-center w-8 h-8 rounded-md flex-none"
+            style={{
+              color: "var(--se-fg-2)",
+              background: "var(--se-surface)",
+              border: "1px solid var(--se-border)",
+            }}
+            aria-label="開啟遊戲清單"
+          >
+            <Menu size={14} />
+          </button>
           <Button
             variant="ghost"
             size="sm"
@@ -531,8 +559,18 @@ export function PlayClient({
         })}
       </div>
 
-      {/* Two-column layout: narrative left, state panel right · mobile uses tabs */}
-      <div className="flex-1 container mx-auto max-w-7xl px-4 sm:px-6 py-4 grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 min-h-0">
+      {/* Outer flex: sidebar (lg+) | main (narrative + state panel) */}
+      <div className="flex-1 flex min-h-0">
+        <PlaythroughSidebar
+          locale={locale}
+          currentPlaythroughId={playthroughId}
+          playthroughs={sidebarPlaythroughs}
+          totalCount={sidebarTotalCount}
+          open={sidebarOpen}
+          onOpenChange={setSidebarOpen}
+        />
+        {/* Two-column layout: narrative left, state panel right · mobile uses tabs */}
+        <div className="flex-1 mx-auto max-w-7xl w-full px-4 sm:px-6 py-4 grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 min-h-0">
         {/* Narrative + input · mobile: only when tab="narrative" */}
         <div className={`flex-col min-h-0 ${mobileTab === "narrative" ? "flex" : "hidden lg:flex"}`}>
           <div className="text-xs text-muted-foreground mb-2 line-clamp-1">
@@ -705,6 +743,9 @@ export function PlayClient({
             />
           </div>
         </div>
+        {/* /grid (narrative + state panel) */}
+        </div>
+        {/* /outer flex (sidebar + main) */}
       </div>
     </div>
   );
