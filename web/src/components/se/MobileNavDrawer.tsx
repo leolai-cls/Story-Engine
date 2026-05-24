@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { Cover } from "./Cover";
 import {
@@ -61,31 +62,44 @@ export function MobileNavDrawer({
   };
 }) {
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const close = () => setOpen(false);
 
-  return (
-    <>
-      {/* Hamburger trigger — left side of header on mobile only */}
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="lg:hidden inline-flex items-center justify-center w-9 h-9 rounded-md mr-2"
-        style={{
-          color: "var(--se-fg-2)",
-          background: "transparent",
-        }}
-        aria-label="開啟選單"
-      >
-        <Menu size={18} />
-      </button>
+  // Track mount status so createPortal only runs client-side (avoids SSR
+  // hydration mismatch · document.body doesn't exist on server).
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
-      {/* Drawer + backdrop */}
-      {open && (
-        <div
-          className="lg:hidden fixed inset-0 z-50 flex"
-          role="dialog"
-          aria-modal="true"
-        >
+  // Lock body scroll while drawer open — otherwise mobile users can scroll
+  // the page behind the backdrop, which feels broken.
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open]);
+
+  /**
+   * SHIP BUG FIX (2026-05-25): drawer was rendered as descendant of
+   * SiteHeader which has `backdrop-blur`. Per CSS spec, `backdrop-filter`
+   * creates a NEW containing block for descendants with `position: fixed`,
+   * so `fixed inset-0` resolved to the SiteHeader's 64px box instead of
+   * the viewport — drawer was squashed to header height, body collapsed,
+   * footer crammed under header. Founder saw "only menu's text".
+   *
+   * Fix: portal the overlay to document.body so it escapes the
+   * containing-block trap. Hamburger trigger button stays inside header
+   * (no fixed positioning · normal flow OK).
+   */
+  const drawerOverlay = open ? (
+    <div
+      className="fixed inset-0 z-[100] flex"
+      role="dialog"
+      aria-modal="true"
+    >
           {/* Drawer (slides in from left) */}
           <aside
             className="flex flex-col w-[290px] max-w-[85vw] h-full"
@@ -167,16 +181,36 @@ export function MobileNavDrawer({
                 </form>
               </div>
             )}
-          </aside>
+      </aside>
 
-          {/* Backdrop (click to close) */}
-          <div
-            className="flex-1 bg-black/40"
-            onClick={close}
-            aria-label="關閉抽屜"
-          />
-        </div>
-      )}
+      {/* Backdrop (click to close) */}
+      <div
+        className="flex-1 bg-black/40"
+        onClick={close}
+        aria-label="關閉抽屜"
+      />
+    </div>
+  ) : null;
+
+  return (
+    <>
+      {/* Hamburger trigger — stays inside SiteHeader (no fixed positioning) */}
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="lg:hidden inline-flex items-center justify-center w-9 h-9 rounded-md mr-2"
+        style={{
+          color: "var(--se-fg-2)",
+          background: "transparent",
+        }}
+        aria-label="開啟選單"
+      >
+        <Menu size={18} />
+      </button>
+
+      {/* Drawer overlay rendered into document.body to escape any
+          containing-block trap (SiteHeader's backdrop-blur). */}
+      {mounted && drawerOverlay && createPortal(drawerOverlay, document.body)}
     </>
   );
 }
