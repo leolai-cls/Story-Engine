@@ -73,12 +73,12 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
     inputPerMillion: 0.15,
     outputPerMillion: 0.6,
   },
-  // ─── Google narrators (via OpenRouter · 2.5 series) ────────────────
-  "gemini-2-5-pro": {
+  // ─── Google narrators (via OpenRouter · founder-specified versions) ─
+  "gemini-3-1-pro": {
     inputPerMillion: 1.25,
     outputPerMillion: 10.0,
   },
-  "gemini-2-5-flash": {
+  "gemini-3-5-flash": {
     inputPerMillion: 0.30,
     outputPerMillion: 2.5,
   },

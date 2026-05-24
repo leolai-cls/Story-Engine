@@ -90,23 +90,23 @@ export const MODELS: Record<string, ModelEntry> = {
     description: "OpenAI 平價版。Free tier 可用。",
   },
 
-  // ─── Google (via OpenRouter · 2.5 series · current latest) ─────────
-  "gemini-2-5-pro": {
-    id: "gemini-2-5-pro",
+  // ─── Google (via OpenRouter · founder-specified versions) ──────────
+  "gemini-3-1-pro": {
+    id: "gemini-3-1-pro",
     provider: "openrouter",
-    model_id: "google/gemini-2.5-pro",
-    display_name: "Gemini 2.5 Pro",
+    model_id: "google/gemini-3.1-pro",
+    display_name: "Gemini 3.1 Pro",
     role: "narrator",
     credit_multiplier: 2.0,
     allows_nsfw: false,
     min_tier: "adventurer",
-    description: "Google 旗艦。1M+ context · 適合長 playthrough · 強推理。",
+    description: "Google 旗艦。長 context · 適合長 playthrough · 強推理。",
   },
-  "gemini-2-5-flash": {
-    id: "gemini-2-5-flash",
+  "gemini-3-5-flash": {
+    id: "gemini-3-5-flash",
     provider: "openrouter",
-    model_id: "google/gemini-2.5-flash",
-    display_name: "Gemini 2.5 Flash",
+    model_id: "google/gemini-3.5-flash",
+    display_name: "Gemini 3.5 Flash",
     role: "narrator",
     credit_multiplier: 0.5,
     allows_nsfw: false,
