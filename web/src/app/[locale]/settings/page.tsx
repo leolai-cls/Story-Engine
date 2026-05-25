@@ -15,7 +15,8 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { getCachedUser } from "@/lib/supabase/cached-user";
 import { TIER_CONFIG, type Tier } from "@/lib/billing/credits";
-import { ModelPicker } from "@/components/settings/model-picker";
+import { TierPicker } from "@/components/settings/tier-picker";
+import { type ModelTier, DEFAULT_TIER } from "@/lib/ai/models";
 import { SignOutButton } from "@/components/settings/sign-out-button";
 import { AdultModeToggle } from "@/components/settings/adult-mode-toggle";
 
@@ -52,7 +53,7 @@ export default async function SettingsPage({
     supabase
       .from("profiles")
       .select(
-        "display_name, locale, avatar_url, subscription_tier, credit_balance, credit_period_end, default_llm_provider, default_model, created_at, adult_mode_enabled, is_age_verified",
+        "display_name, locale, avatar_url, subscription_tier, credit_balance, credit_period_end, default_llm_provider, default_model, default_tier, created_at, adult_mode_enabled, is_age_verified",
       )
       .eq("id", user.id)
       .single(),
@@ -236,12 +237,13 @@ export default async function SettingsPage({
               <SettingsSection
                 id="preferences"
                 title="偏好"
-                sub="預設敘事 model · 新開 playthrough 嘅 default · adult mode 影響 NSFW 可選性"
+                sub="揀 tier · 我哋幫你揀最啱嘅 model（中文 vs 英文 · vendor 可用性）· adult tier 需要先開成人模式"
               >
-                <ModelPicker
-                  currentModelId={profile?.default_model ?? "claude-sonnet-4-6"}
-                  tier={tier}
+                <TierPicker
+                  currentTier={(profile?.default_tier as ModelTier) ?? DEFAULT_TIER}
+                  subscriptionTier={tier}
                   adultModeEnabled={profile?.adult_mode_enabled ?? false}
+                  ageVerified={profile?.is_age_verified ?? false}
                 />
               </SettingsSection>
 

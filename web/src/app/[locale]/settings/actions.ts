@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { MODELS, DEFAULT_NARRATOR } from "@/lib/ai/models";
+import { MODELS, DEFAULT_NARRATOR, TIER_GATE, type ModelTier } from "@/lib/ai/models";
 import { userTierAllowsModel } from "@/lib/billing/credits";
 import { revalidatePath } from "next/cache";
 
@@ -152,6 +152,80 @@ export async function setDefaultModel(
 
   if (error) {
     console.error("[settings] setDefaultModel failed:", error.message);
+    return { ok: false, error: "save_failed" };
+  }
+
+  revalidatePath("/settings");
+  return { ok: true };
+}
+
+/**
+ * Session 10 · set user-facing model tier (Standard / Pro / Pro Max / Adult).
+ *
+ * Replaces direct model selection per founder rule (2026-05-25 · "唔需要畀
+ * 咁多 LLM 用家揀 · just standard/pro"). The actual underlying LLM is picked
+ * by lib/ai/tier-router.ts at turn time based on content language + vendor
+ * availability.
+ *
+ * Gating:
+ *   - subscription tier must be ≥ TIER_GATE[tier] (Free can't pick Pro etc.)
+ *   - 'adult' tier additionally requires adult_mode_enabled + is_age_verified
+ *     (CLAUDE.md hard rule #5 LLM isolation enforced at DB CHECK constraint)
+ *
+ * NOTE: depends on Migration 0019 (profiles.default_tier column) being
+ * applied. Until then this action will fail with "save_failed" — apply
+ * via Supabase dashboard SQL Editor.
+ */
+export async function setDefaultTier(
+  tier: ModelTier,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, error: "unauthorized" };
+  }
+
+  // Validate tier enum.
+  const validTiers: ModelTier[] = ["standard", "pro", "pro-max", "adult"];
+  if (!validTiers.includes(tier)) {
+    return { ok: false, error: "unknown_tier" };
+  }
+
+  // Subscription gate.
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("subscription_tier, adult_mode_enabled, is_age_verified")
+    .eq("id", user.id)
+    .single();
+  const userSubTier = profile?.subscription_tier ?? "free";
+  const requiredSubTier = TIER_GATE[tier];
+  const tierOrder = ["free", "adventurer", "storyteller", "legend"] as const;
+  if (tierOrder.indexOf(userSubTier as (typeof tierOrder)[number]) < tierOrder.indexOf(requiredSubTier)) {
+    return {
+      ok: false,
+      error: `${tier} tier 需要 ${requiredSubTier} 訂閱 — 你而家係 ${userSubTier}`,
+    };
+  }
+
+  // Adult tier extra gate.
+  if (tier === "adult") {
+    if (!profile?.adult_mode_enabled || !profile?.is_age_verified) {
+      return {
+        ok: false,
+        error: "Adult tier 需要先開啟成人模式 + 完成身份驗證。",
+      };
+    }
+  }
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ default_tier: tier })
+    .eq("id", user.id);
+
+  if (error) {
+    console.error("[settings] setDefaultTier failed:", error.message);
     return { ok: false, error: "save_failed" };
   }
 

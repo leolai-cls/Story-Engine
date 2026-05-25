@@ -1,13 +1,25 @@
 /**
  * Model catalog — single source of truth for LLM choices.
  *
- * Each entry maps a Story Engine internal model ID to:
- *   - provider: which Vercel AI SDK provider to call
- *   - model_id: the provider's actual model identifier
- *   - role hint: "director" (cheap) vs "narrator" (premium)
- *   - credit_multiplier: per ADR-003 + credit_meter — relative cost vs base
- *   - allows_nsfw: per ADR-004 — adult mode gating
- *   - min_tier: subscription tier gating
+ * Session 10 (2026-05-25) curation 10 → 7 + tier-pool abstraction per founder
+ * rule "我哋冇必要畀咁多公司 LLM 用家去選擇, 不如 just change it to something
+ * like standard, pro to let user to choose":
+ *
+ *   - Users pick a TIER (Standard / Pro / Pro Max / Adult), NOT a specific model
+ *   - Each tier has a POOL of underlying models (vendor diversification)
+ *   - `lib/ai/tier-router.ts` picks the actual model based on context
+ *     (language detection, vendor availability, cost optimization)
+ *   - Credit charge per turn = actual usage (computeCredits in credits.ts)
+ *     so internal model swap is transparent in billing
+ *
+ * Catalog rationale (research backing in pm/memory-architecture-v2.html):
+ *   - DROPPED: GPT-4o, GPT-4o mini, Grok 2, Grok 2 Mini, Gemini 3.1 Pro
+ *     (outdated · not roleplay leaders per 2026 benchmarks)
+ *   - ADDED: GLM-5.1 ("Best for roleplay & creative writing" per BenchLM ·
+ *     中文 leaderboard #3), GPT-5.4 Pro (current flagship · replaces GPT-4o)
+ *   - KEPT: Claude Sonnet 4.6 (中文 #1 narrative), Opus 4.7 (#1 EQ),
+ *     Haiku 4.5 (Director · cheap), Gemini 3.5 Flash (free value),
+ *     Llama 3.1 405B (only NSFW per Hard rule #5)
  *
  * Phase 3 will move this to DB (`llm_models` table) for runtime config.
  * For Phase 1 we hardcode to keep things simple.
@@ -15,6 +27,12 @@
 
 export type ModelRole = "director" | "narrator" | "general";
 export type ModelProvider = "anthropic" | "openai" | "google" | "xai" | "openrouter";
+
+/**
+ * User-facing tier names (what they pick in the UI).
+ * Pool model selection is internal — see lib/ai/tier-router.ts.
+ */
+export type ModelTier = "standard" | "pro" | "pro-max" | "adult";
 
 export type ModelEntry = {
   id: string; // internal Story Engine id
@@ -28,38 +46,35 @@ export type ModelEntry = {
   /** Subscription tier gate — null = available to all */
   min_tier: "free" | "adventurer" | "storyteller" | "legend" | null;
   description: string;
+  /** Which tier-pool this model serves (null = internal-only e.g. Director) */
+  tier_pool: ModelTier | null;
 };
 
 export const MODELS: Record<string, ModelEntry> = {
-  // ─── Anthropic (direct API) ─────────────────────────────────────────
-  // credit_multiplier values below are UI ESTIMATES shown pre-turn (e.g.
-  // model picker · "Sonnet costs 2.5× Haiku"). Actual credit charge per
-  // turn is computed precisely via computeCredits() in lib/billing using
-  // real token usage + MODEL_PRICING. Multipliers calibrated 2026-05-25
-  // against orchestrator-pipeline-honest per-turn costs (see credits.ts
-  // docstring). Base = Haiku 4.5 @ $0.024 effective cost / turn = 1.0×.
-
-  "claude-sonnet-4-6": {
-    id: "claude-sonnet-4-6",
-    provider: "anthropic",
-    model_id: "claude-sonnet-4-6",
-    display_name: "Claude Sonnet 4.6",
-    role: "narrator",
-    credit_multiplier: 2.5, // $0.060 cached / $0.024 Haiku = 2.5×
-    allows_nsfw: false,
-    min_tier: "adventurer",
-    description: "中文敘事最強。情感細膩。預設 narrator。",
-  },
+  // ─── Anthropic · Director + Pro pool + Pro Max ──────────────────────
   "claude-haiku-4-5": {
     id: "claude-haiku-4-5",
     provider: "anthropic",
     model_id: "claude-haiku-4-5",
     display_name: "Claude Haiku 4.5",
     role: "director",
-    credit_multiplier: 1.0, // base
+    credit_multiplier: 1.0,
     allows_nsfw: false,
     min_tier: "free",
-    description: "快、平。Director 仲裁專用。",
+    description: "Director 仲裁專用 · 用戶見唔到。",
+    tier_pool: null, // internal · Director only
+  },
+  "claude-sonnet-4-6": {
+    id: "claude-sonnet-4-6",
+    provider: "anthropic",
+    model_id: "claude-sonnet-4-6",
+    display_name: "Claude Sonnet 4.6",
+    role: "narrator",
+    credit_multiplier: 2.5,
+    allows_nsfw: false,
+    min_tier: "adventurer",
+    description: "Pro tier · 中文敘事旗艦 · 情感細膩。",
+    tier_pool: "pro",
   },
   "claude-opus-4-7": {
     id: "claude-opus-4-7",
@@ -67,104 +82,97 @@ export const MODELS: Record<string, ModelEntry> = {
     model_id: "claude-opus-4-7",
     display_name: "Claude Opus 4.7",
     role: "narrator",
-    credit_multiplier: 4.0, // $0.096 cached / $0.024 = 4.0×
+    credit_multiplier: 4.0,
     allows_nsfw: false,
     min_tier: "storyteller",
-    description: "最深層敘事。複雜情節 + 多角色互動。",
+    description: "Pro Max · 最深層敘事 · 複雜情節 + 多角色互動。",
+    tier_pool: "pro-max",
   },
 
-  // ─── OpenAI (via OpenRouter · no prompt caching available) ──────────
-  "gpt-4o": {
-    id: "gpt-4o",
+  // ─── OpenAI · Pro pool (English narrative · structured) ──────────────
+  "gpt-5-4-pro": {
+    id: "gpt-5-4-pro",
     provider: "openrouter",
-    model_id: "openai/gpt-4o",
-    display_name: "GPT-4o",
+    model_id: "openai/gpt-5.4-pro",
+    display_name: "GPT-5.4 Pro",
     role: "narrator",
-    credit_multiplier: 2.5, // $0.054 / $0.024 = 2.25× rounded up for margin
+    credit_multiplier: 2.5,
     allows_nsfw: false,
     min_tier: "adventurer",
-    description: "OpenAI 旗艦。對白自然、英文混雜寫得順。",
-  },
-  "gpt-4o-mini": {
-    id: "gpt-4o-mini",
-    provider: "openrouter",
-    model_id: "openai/gpt-4o-mini",
-    display_name: "GPT-4o mini",
-    role: "narrator",
-    credit_multiplier: 0.5, // $0.009 / $0.024 = 0.4× rounded up
-    allows_nsfw: false,
-    min_tier: "free",
-    description: "OpenAI 平價版。Free tier 可用。",
+    description: "Pro tier · OpenAI 旗艦 · 英文敘事強。",
+    tier_pool: "pro",
   },
 
-  // ─── Google (via OpenRouter · founder-specified versions) ──────────
-  "gemini-3-1-pro": {
-    id: "gemini-3-1-pro",
-    provider: "openrouter",
-    model_id: "google/gemini-3.1-pro-preview",
-    display_name: "Gemini 3.1 Pro",
-    role: "narrator",
-    credit_multiplier: 2.0, // $0.049 / $0.024 = 2.0×
-    allows_nsfw: false,
-    min_tier: "adventurer",
-    description: "Google 旗艦。長 context · 適合長 playthrough · 強推理。",
-  },
+  // ─── Google · Standard pool (free tier value) ────────────────────────
   "gemini-3-5-flash": {
     id: "gemini-3-5-flash",
     provider: "openrouter",
     model_id: "google/gemini-3.5-flash",
     display_name: "Gemini 3.5 Flash",
     role: "narrator",
-    // ⚠️ CRITICAL FIX 2026-05-25: was 0.5× · real cost ratio 1.6×
-    // Previously SEVERELY underpriced · users could burn Flash with
-    // 3× more value than they were paying. See credits.ts MODEL_PRICING
-    // rate fix (was $0.30/$2.5 · actual $1.50/$9).
     credit_multiplier: 1.5,
     allows_nsfw: false,
     min_tier: "free",
-    description: "Google 平價版。快 · 長 context · Free tier 可用。",
+    description: "Standard tier · 快 · 長 context · Free tier 可用。",
+    tier_pool: "standard",
   },
 
-  // ─── xAI (via OpenRouter · 2 versions) ──────────────────────────────
-  "grok-2": {
-    id: "grok-2",
+  // ─── Z.ai · Standard pool · "Best for roleplay" per BenchLM ──────────
+  "glm-5-1": {
+    id: "glm-5-1",
     provider: "openrouter",
-    model_id: "x-ai/grok-2-1212",
-    display_name: "Grok 2",
+    model_id: "z-ai/glm-5.1",
+    display_name: "GLM-5.1",
     role: "narrator",
-    credit_multiplier: 2.0, // $0.047 / $0.024 = 2.0×
-    allows_nsfw: false,
-    min_tier: "adventurer",
-    description: "xAI 旗艦。對話風格活潑 · 多元觀點。",
-  },
-  "grok-2-mini": {
-    id: "grok-2-mini",
-    provider: "openrouter",
-    model_id: "x-ai/grok-2-mini",
-    display_name: "Grok 2 Mini",
-    role: "narrator",
-    credit_multiplier: 0.6, // $0.015 / $0.024 = 0.6×
+    credit_multiplier: 1.0, // $0.024/turn ≈ same as Haiku base
     allows_nsfw: false,
     min_tier: "free",
-    description: "xAI 平價版。快 · 同 Grok 2 同 family。",
+    description: "Standard tier · 「Roleplay & 創意寫作最強」 · 中文 OK · Free tier 可用。",
+    tier_pool: "standard",
   },
 
-  // ─── OpenRouter NSFW (Phase 6 adult mode · CLAUDE.md hard rule #5) ─
+  // ─── Meta via OpenRouter · Adult pool ────────────────────────────────
   "llama-3-1-405b-uncensored": {
     id: "llama-3-1-405b-uncensored",
     provider: "openrouter",
     model_id: "meta-llama/llama-3.1-405b-instruct",
     display_name: "Llama 3.1 405B",
     role: "narrator",
-    credit_multiplier: 1.5, // $0.031 / $0.024 = 1.3× rounded up
+    credit_multiplier: 1.5,
     allows_nsfw: true,
     min_tier: "storyteller",
-    description: "Open source · 成人模式可用 (NSFW)。",
+    description: "Adult tier · 成人模式專用 (NSFW · 唔被 ban 嘅 vendor)。",
+    tier_pool: "adult",
   },
 };
 
+/**
+ * Pool of models that serve each user-facing tier.
+ * tier-router picks one based on language detection + vendor availability.
+ */
+export const TIER_POOLS: Record<ModelTier, string[]> = {
+  standard: ["gemini-3-5-flash", "glm-5-1"],
+  pro: ["claude-sonnet-4-6", "gpt-5-4-pro"],
+  "pro-max": ["claude-opus-4-7"],
+  adult: ["llama-3-1-405b-uncensored"],
+};
+
+/**
+ * Director model always used internally (never user-visible).
+ * Cheapest acceptable Claude for verdict + npc_updates extraction.
+ */
+export const DIRECTOR_MODEL = "claude-haiku-4-5";
+
+/**
+ * Default tier for new accounts (also fallback when user has no preference).
+ * "pro" picked as default because Sonnet 4.6 is our 中文 narrative leader and
+ * matches the founder's pre-Session-10 default (DEFAULT_NARRATOR = sonnet).
+ */
+export const DEFAULT_TIER: ModelTier = "pro";
+
+/** Back-compat exports for code that hasn't migrated to tier abstraction. */
 export const DEFAULT_NARRATOR = "claude-sonnet-4-6";
-export const DEFAULT_DIRECTOR = "claude-haiku-4-5";
+export const DEFAULT_DIRECTOR = DIRECTOR_MODEL;
 
 export function getModel(id: string): ModelEntry {
   const m = MODELS[id];
@@ -185,3 +193,14 @@ export function modelsForTier(tier: "free" | "adventurer" | "storyteller" | "leg
 export function modelsAllowingNsfw(): ModelEntry[] {
   return Object.values(MODELS).filter((m) => m.allows_nsfw);
 }
+
+/**
+ * What subscription tier unlocks each user-facing model tier?
+ * Used by ModelPicker UI to grey out tiers above user's plan.
+ */
+export const TIER_GATE: Record<ModelTier, "free" | "adventurer" | "storyteller" | "legend"> = {
+  standard: "free",
+  pro: "adventurer",
+  "pro-max": "storyteller",
+  adult: "storyteller", // PLUS adult_mode_enabled + is_age_verified
+};

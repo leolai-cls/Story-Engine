@@ -19,26 +19,26 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  *   + state 300 + verdict 300 + action 50 + sys 500). Output ~1K. Director
  *   adds another ~2750 input + 300 output via Haiku.
  *
- *   Effective per-turn raw cost (all-in · Narrator + Director + memory ops):
- *     Haiku 4.5         $0.024 → 48 credits billed @ 2× markup
- *     Sonnet 4.6 cached $0.060 → 120 credits
- *     Opus 4.7 cached   $0.096 → 192 credits
- *     GPT-4o mini       $0.009 → 18 credits
- *     GPT-4o            $0.054 → 108 credits
- *     Gemini Flash      $0.038 → 76 credits
- *     Gemini Pro        $0.049 → 98 credits
- *     Grok 2            $0.047 → 94 credits
- *     Grok 2 Mini       $0.015 → 30 credits
- *     Llama 405B        $0.031 → 62 credits
+ *   Effective per-turn raw cost (all-in · Narrator + Director + memory ops).
+ *   Session 10 catalog curation 10 → 7 + tier-pool abstraction (founder rule
+ *   2026-05-25): users pick tier (Standard / Pro / Pro Max / Adult) · we
+ *   internally route to one of the pool models. Credit charge is computed
+ *   from actual usage so internal model swaps are transparent in billing.
  *
- *   Tier credit allocations sized at 2× markup target ~50% worst-case
- *   gross margin (user burns 100% on Haiku · cheapest model):
- *     Free        500 cr  · ~10 Haiku turns · $0.25 max cost (loss leader)
- *     Adventurer  8000 cr · ~166 Haiku / ~66 Sonnet turns · $4 max cost
- *     Storyteller 18000 cr · ~375 Haiku / ~94 Opus turns · $9 max cost
- *     Legend      48000 cr · ~1000 Haiku / ~250 Opus turns · $24 max cost
+ *     Haiku 4.5 (Director · internal)     $0.024 → 48 credits
+ *     Gemini 3.5 Flash (Standard pool)    $0.038 → 76 credits
+ *     GLM-5.1 (Standard pool)             $0.024 → 48 credits ⭐ NEW
+ *     Claude Sonnet 4.6 (Pro pool · 中文)  $0.060 → 120 credits
+ *     GPT-5.4 Pro (Pro pool · 英文)        $0.058 → 116 credits ⭐ NEW
+ *     Claude Opus 4.7 (Pro Max)           $0.096 → 192 credits
+ *     Llama 3.1 405B (Adult NSFW)         $0.031 → 62 credits
  *
- *   Annual plans (~17% discount · 2 months free): $99 / $199 / $499.
+ *   Tier credit allocations (v3 final · founder priced 2026-05-25):
+ *     Free        1,000 cr  · ~25 Standard turns
+ *     Story       12,000 cr · ~250 Standard or ~100 Pro turns
+ *     Legend      30,000 cr · ~600 Standard / ~250 Pro / ~156 Pro Max turns
+ *
+ *   Annual plans (~17% discount · 2 months free): $99 / $199.
  *
  * All balance changes route through `apply_credit_charge` Postgres RPC —
  * RLS blocks direct INSERT on `credit_ledger`, so this is the ONLY entry
@@ -99,7 +99,13 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
     inputPerMillion: 0.02,
     outputPerMillion: 0, // embeddings have no output tokens
   },
-  // ─── OpenAI narrators (via OpenRouter · Session 9 multi-LLM expansion) ─
+  // ─── Curated narrators (Session 10 · founder model curation · 10 → 7) ─
+  // DROPPED: GPT-4o, GPT-4o mini (outdated · GPT-5 era now) · Grok 2 / Grok 2
+  // Mini (not roleplay leaders) · Gemini 3.1 Pro (overlap with Flash + Sonnet).
+  // KEPT entries below preserved for back-compat with existing playthroughs
+  // (locked at creation per Hard rule) · BUT removed from MODELS catalog so
+  // new playthroughs can't pick them. computeCredits still works on old
+  // playthroughs because MODEL_PRICING lookup unchanged.
   "gpt-4o": {
     inputPerMillion: 2.5,
     outputPerMillion: 10.0,
@@ -108,21 +114,15 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
     inputPerMillion: 0.15,
     outputPerMillion: 0.6,
   },
-  // ─── Google narrators (via OpenRouter · founder-specified versions) ─
   "gemini-3-1-pro": {
-    // RATE FIX 2026-05-25: was $1.25/$10 (old 2.5 Pro era · estimated)
-    // Actual OpenRouter rate for 3.1 Pro Preview · re-verify quarterly
     inputPerMillion: 2.0,
     outputPerMillion: 12.0,
   },
   "gemini-3-5-flash": {
-    // ⚠️ CRITICAL RATE FIX 2026-05-25: was $0.30/$2.5 · actual $1.50/$9
-    // Previous setting was undercharging credits by ~5× on every Flash turn
+    // ⚠️ Rate verified 2026-05-25: was $0.30/$2.5 · actual $1.50/$9
     inputPerMillion: 1.5,
     outputPerMillion: 9.0,
   },
-  // ─── xAI Grok (via OpenRouter · 2 versions) ────────────────────────
-  // Grok 2 rates estimated from Grok 4 family pricing · re-verify before launch
   "grok-2": {
     inputPerMillion: 2.0,
     outputPerMillion: 10.0,
@@ -130,6 +130,20 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
   "grok-2-mini": {
     inputPerMillion: 0.5,
     outputPerMillion: 1.5,
+  },
+  // ─── NEW Session 10 (verified via OpenRouter pricing pages 2026-05-25) ─
+  "glm-5-1": {
+    // GLM-5.1 (Z.ai · released 2026-04-07) · "Best for roleplay & creative
+    // writing" per BenchLM · 中文 leaderboard #3 · 754B MoE · 203K context.
+    // Slug at OpenRouter: z-ai/glm-5.1
+    inputPerMillion: 0.98,
+    outputPerMillion: 3.08,
+  },
+  "gpt-5-4-pro": {
+    // GPT-5.4 Pro (OpenAI · current flagship 2026) · English narrative + tool
+    // calling strength · slug at OpenRouter: openai/gpt-5.4-pro
+    inputPerMillion: 2.5,
+    outputPerMillion: 15.0,
   },
   // ─── OpenRouter NSFW (Phase 6 adult mode · Hard rule #5 LLM isolation) ─
   // Llama 3.1 405B · only NSFW-allowed narrator · uncensored variant.
