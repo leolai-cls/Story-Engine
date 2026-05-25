@@ -53,6 +53,32 @@ export const BASE_CREDITS_PER_USD = 1000;
 export const STORY_ENGINE_MARKUP = 2.0;
 
 /**
+ * Explicit allowlist of narrator-class model ids that are NO LONGER in the
+ * MODELS catalog but had Story Engine playthroughs locked to them in the
+ * past. userTierAllowsModel uses this whitelist when MODELS[modelId] is
+ * undefined — letting old playthroughs continue working without throwing.
+ *
+ * AUDIT FIX P0AW3-CRIT-01 (Wave 3 · 2026-05-25): previously Wave 2 used
+ * `modelId in MODEL_PRICING` as the bypass check, which incorrectly admitted
+ * `text-embedding-3-small` (an embedding model · 99% undercharge if passed
+ * as llm_model). This explicit set is curated to ONLY the 5 narrators we've
+ * historically shipped + dropped. Embeddings + future-added MODEL_PRICING
+ * entries that aren't narrators cannot bypass.
+ *
+ * DO NOT add new ids here unless they're truly legacy narrators that
+ * existing prod playthroughs are locked to. NEW model curation should drop
+ * the id from MODELS catalog AND add it here as part of the same migration
+ * wave so back-compat is explicit.
+ */
+export const LEGACY_NARRATORS = new Set<string>([
+  "gpt-4o",
+  "gpt-4o-mini",
+  "gemini-3-1-pro",
+  "grok-2",
+  "grok-2-mini",
+]);
+
+/**
  * Per-model token pricing — USD per 1M tokens.
  *
  * Source: Anthropic pricing page Jan 2026; OpenAI text-embedding pricing.
@@ -496,32 +522,21 @@ export async function userTierAllowsModel(
   const { MODELS } = await import("@/lib/ai/models");
   const model = MODELS[modelId];
   if (!model) {
-    // AUDIT FIX P0AW2-HIGH-01 (Wave 2 · 2026-05-25): Wave 1's permissive
-    // bypass `{allowed:true}` for ANY unknown model id was too loose · it
-    // opened a credit-undercharge attack vector: malicious user could
-    // `supabase.from('playthroughs').update({llm_model:'gpt-4o-mini'})`
-    // via browser console (RLS permits column write · no column-protection
-    // trigger on llm_model yet). Turn route would pass · providers.ts
-    // silent-fallback to Sonnet 4.6 · but computeCredits would charge at
-    // gpt-4o-mini's $0.15/$0.60 rate (~95% undercharge on every turn).
+    // AUDIT FIX P0AW3-CRIT-01 (Wave 3 · 2026-05-25): tightened back-compat
+    // bypass. Wave 2 used `modelId in MODEL_PRICING` which admitted
+    // text-embedding-3-small (an embedding · not a narrator). Now uses
+    // explicit LEGACY_NARRATORS curated set so only the 5 specific dropped
+    // narrator ids bypass · embedding/future-added MODEL_PRICING entries
+    // cannot escalate to narrator role.
     //
-    // Tightened bypass: ONLY allow legacy ids that have a MODEL_PRICING
-    // entry (= models we've shipped before · still chargeable correctly).
-    // Truly unknown ids (typos · attack injections · future model ids
-    // not yet whitelisted) → reject as before. This is the "curated
-    // whitelist" pattern: MODEL_PRICING IS the implicit allowlist.
-    //
-    // Dropped-from-MODELS-but-kept-in-MODEL_PRICING today:
-    //   gpt-4o · gpt-4o-mini · gemini-3-1-pro · grok-2 · grok-2-mini
-    // Existing playthroughs locked to these still work · all other unknown
-    // ids 403 immediately.
-    const isLegacyPriced = modelId in MODEL_PRICING;
-    if (!isLegacyPriced) {
+    // Wave 2 history: opened bypass too wide (5 mins of fix · 1 attack
+    // vector introduced). Wave 3 closes it with explicit set.
+    if (!LEGACY_NARRATORS.has(modelId)) {
       return { allowed: false, tier, reason: "unknown_model" };
     }
     if (process.env.NODE_ENV !== "production") {
       console.warn(
-        `[userTierAllowsModel] legacy model "${modelId}" not in MODELS catalog · allowing via MODEL_PRICING whitelist`,
+        `[userTierAllowsModel] legacy narrator "${modelId}" allowed via LEGACY_NARRATORS whitelist`,
       );
     }
     return { allowed: true, tier, reason: "legacy_model" };

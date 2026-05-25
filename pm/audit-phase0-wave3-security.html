@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Story Engine — Phase 0 Wave 3 Audit · Security · Correctness · DB</title>
+<style>
+  :root { --primary: #4F46E5; --primary-soft: #EEF2FF; --accent: #F59E0B; --accent-soft: #FEF3C7; --bg: #FAFAF7; --card: #FFFFFF; --ink: #18181B; --ink-soft: #3F3F46; --muted: #71717A; --border: #E4E4E7; --green: #10B981; --green-soft: #D1FAE5; --rose: #E11D48; --amber: #D97706; --code-bg: #F4F4F5; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif; background: var(--bg); color: var(--ink); line-height: 1.65; font-size: 15px; -webkit-font-smoothing: antialiased; }
+  main { max-width: 1080px; margin: 0 auto; padding: 48px 32px 120px; }
+  .hero { text-align: center; margin-bottom: 36px; }
+  .eyebrow { display: inline-block; font-size: 11px; font-weight: 700; color: var(--primary); background: var(--primary-soft); padding: 5px 12px; border-radius: 999px; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 16px; }
+  h1 { font-size: 30px; font-weight: 800; letter-spacing: -0.025em; margin-bottom: 10px; }
+  .hero p { color: var(--muted); font-size: 15.5px; max-width: 760px; margin: 0 auto; }
+  .meta { color: var(--muted); font-size: 13px; margin-top: 14px; }
+  .summary { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin: 32px 0 28px; }
+  .stat { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px; text-align: center; }
+  .stat-num { font-size: 36px; font-weight: 800; line-height: 1; }
+  .stat-label { font-size: 11px; color: var(--muted); margin-top: 8px; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700; }
+  .stat.crit .stat-num { color: var(--rose); }
+  .stat.high .stat-num { color: var(--amber); }
+  .stat.med .stat-num { color: var(--primary); }
+  .stat.low .stat-num { color: var(--muted); }
+  .stat.info .stat-num { color: var(--green); }
+  .stat .zero { color: var(--green); font-size: 32px; }
+  h2 { font-size: 22px; font-weight: 700; margin: 44px 0 14px; display: flex; align-items: center; gap: 10px; }
+  h2 .icon { font-size: 26px; }
+  .verdict { background: linear-gradient(135deg, #fef2f2, #fee2e2); border: 2px solid var(--rose); padding: 22px 26px; border-radius: 14px; margin: 18px 0 36px; }
+  .verdict h3 { color: var(--rose); font-size: 17px; font-weight: 800; margin-bottom: 10px; }
+  .verdict p { font-size: 14.5px; line-height: 1.75; }
+  .verdict ol { margin: 10px 0 0 22px; }
+  .verdict ol li { font-size: 14px; margin: 4px 0; }
+  .priority-list { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 22px; margin: 16px 0 32px; }
+  .priority-row { display: grid; grid-template-columns: 50px 1fr auto; gap: 14px; align-items: start; padding: 12px 0; border-bottom: 1px dashed var(--border); }
+  .priority-row:last-child { border-bottom: none; }
+  .priority-rank { font-size: 20px; font-weight: 800; color: var(--primary); }
+  .priority-content strong { font-weight: 700; font-size: 14.5px; display: block; margin-bottom: 4px; }
+  .priority-content small { font-size: 12.5px; color: var(--muted); line-height: 1.55; }
+  .priority-refs { font-size: 11px; color: var(--primary); font-weight: 700; background: var(--primary-soft); padding: 4px 8px; border-radius: 6px; white-space: nowrap; align-self: center; }
+  details.dim-section { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 0; margin-bottom: 14px; overflow: hidden; }
+  details.dim-section[open] { box-shadow: 0 2px 12px rgba(0,0,0,0.04); }
+  details.dim-section summary { cursor: pointer; padding: 20px 24px; font-weight: 700; font-size: 17px; display: flex; align-items: center; gap: 12px; user-select: none; }
+  details.dim-section summary::-webkit-details-marker { display: none; }
+  details.dim-section summary::after { content: "▼"; margin-left: auto; color: var(--muted); font-size: 12px; transition: transform .2s; }
+  details.dim-section[open] summary::after { transform: rotate(180deg); }
+  .dim-content { padding: 0 24px 24px; }
+  .issue { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin-bottom: 12px; }
+  .issue.crit { border-left: 4px solid var(--rose); background: #fef2f2; }
+  .issue.high { border-left: 4px solid var(--amber); background: #fffbf4; }
+  .issue.med { border-left: 4px solid var(--primary); }
+  .issue.low { border-left: 4px solid var(--muted); }
+  .issue.info { border-left: 4px solid var(--green); background: #f0fdf4; }
+  .issue-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+  .issue-id { font-weight: 800; font-size: 12.5px; color: var(--primary); flex-shrink: 0; font-family: "SF Mono", Monaco, monospace; }
+  .issue-title { font-weight: 700; font-size: 14.5px; flex: 1; min-width: 220px; }
+  .sev-tag { font-size: 10px; padding: 3px 9px; border-radius: 999px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
+  .sev-crit { background: var(--rose); color: white; }
+  .sev-high { background: var(--amber); color: white; }
+  .sev-med { background: var(--primary-soft); color: var(--primary); }
+  .sev-low { background: var(--code-bg); color: var(--muted); }
+  .sev-info { background: var(--green-soft); color: var(--green); }
+  .issue-loc { font-family: "SF Mono", Monaco, monospace; font-size: 11.5px; color: var(--muted); margin-bottom: 8px; word-break: break-all; }
+  .issue-body { font-size: 13.5px; color: var(--ink-soft); margin-bottom: 8px; line-height: 1.7; }
+  .issue-body strong { color: var(--ink); }
+  .issue-fix { background: rgba(16, 185, 129, 0.06); border-left: 3px solid var(--green); padding: 10px 14px; border-radius: 6px; font-size: 13px; color: var(--ink-soft); margin-top: 10px; }
+  .issue-fix strong { color: var(--green); font-weight: 700; }
+  pre { background: var(--code-bg); padding: 10px 14px; border-radius: 6px; font-family: "SF Mono", Monaco, monospace; font-size: 12px; overflow-x: auto; margin: 8px 0; line-height: 1.5; color: var(--ink-soft); }
+  code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; font-family: "SF Mono", Monaco, monospace; font-size: 12px; }
+  .rule-badge { display: inline-block; font-size: 10px; padding: 2px 7px; border-radius: 4px; background: var(--primary-soft); color: var(--primary); font-weight: 700; margin-left: 6px; letter-spacing: 0.03em; }
+  .diff-block { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0; }
+  .diff-bad, .diff-good { padding: 10px 14px; border-radius: 6px; font-family: "SF Mono", Monaco, monospace; font-size: 11.5px; line-height: 1.55; overflow-x: auto; }
+  .diff-bad { background: #fef2f2; border-left: 3px solid var(--rose); }
+  .diff-good { background: #f0fdf4; border-left: 3px solid var(--green); }
+  .diff-label { font-size: 10px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 4px; }
+  .diff-bad .diff-label { color: var(--rose); }
+  .diff-good .diff-label { color: var(--green); }
+  table.findings { width: 100%; border-collapse: collapse; margin: 12px 0 24px; font-size: 13.5px; }
+  table.findings th { text-align: left; background: var(--code-bg); padding: 10px 14px; font-weight: 700; font-size: 12px; letter-spacing: 0.03em; }
+  table.findings td { padding: 10px 14px; border-top: 1px solid var(--border); vertical-align: top; }
+  table.findings tr:hover { background: var(--bg); }
+  .pill { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px; letter-spacing: 0.04em; }
+  .pill-crit { background: var(--rose); color: white; }
+  .pill-high { background: var(--amber); color: white; }
+  .pill-med { background: var(--primary-soft); color: var(--primary); }
+  .pill-low { background: var(--code-bg); color: var(--muted); }
+  .pill-info { background: var(--green-soft); color: var(--green); }
+  .verified { background: linear-gradient(135deg, #d1fae5, #ecfdf5); border: 2px solid var(--green); padding: 22px 26px; border-radius: 14px; margin: 18px 0 36px; }
+  .verified h3 { color: var(--green); font-size: 17px; font-weight: 800; margin-bottom: 10px; }
+  .verified p { font-size: 14.5px; line-height: 1.75; }
+  .verified ul { margin: 10px 0 0 22px; }
+  .verified ul li { font-size: 13.5px; margin: 5px 0; }
+  @media (max-width: 768px) { .summary { grid-template-columns: repeat(2, 1fr); } main { padding: 24px 16px 80px; } .diff-block { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+
+<div class="hero">
+  <div class="eyebrow">Phase 0 · Wave 3 Audit · Cycle 3 of 3 toward convergence</div>
+  <h1>Wave 3 Audit · Security · Correctness · DB</h1>
+  <p>Re-audit of Wave 2 fixes (commit <code>e546991</code>). Focus: MODEL_PRICING-as-allowlist correctness, tier-router context defaults, fork RPC inputs, MODELS catalog dispatch, Wave 1 regression. Cross-checked via Supabase MCP execute_sql.</p>
+  <p class="meta">2026-05-25 · Agent A · Security · Correctness · DB · re-audits 11 finding surface from Wave 2</p>
+</div>
+
+<div class="summary">
+  <div class="stat crit"><div class="stat-num">1</div><div class="stat-label">Critical · Ship blocker</div></div>
+  <div class="stat high"><div class="stat-num">0</div><div class="stat-label">High · Ship blocker</div></div>
+  <div class="stat med"><div class="stat-num">2</div><div class="stat-label">Medium</div></div>
+  <div class="stat low"><div class="stat-num">2</div><div class="stat-label">Low / theoretical</div></div>
+  <div class="stat info"><div class="stat-num">5</div><div class="stat-label">Verified clean</div></div>
+</div>
+
+<div class="verdict">
+  <h3>VERDICT · NOT CONVERGING · Wave 4 required</h3>
+  <p>Wave 2 fix <strong>P0AW2-HIGH-01</strong> introduced a new critical undercharge vector. The "curated whitelist via <code>modelId in MODEL_PRICING</code>" pattern silently admits <code>text-embedding-3-small</code> as a valid narrator model — which costs $0.02/1M input + $0/1M output. An attacker bypasses the fix exactly the same way Wave 1's permissive bypass was bypassed: forks a story with <code>llmModel: "text-embedding-3-small"</code>, gets <strong>Sonnet 4.6 narration (via providers.ts fallback)</strong> while being charged at embedding rate (~99% undercharge per turn). Severity = same class as the original Wave 1 ship blocker. Hard rule #29 convergence trend: Wave 1 → 5 blockers · Wave 2 → 2 blockers (both Wave 1-introduced) · Wave 3 → 1 blocker (Wave 2-introduced). Trend is declining but not yet at 3 consecutive zero-blocker cycles.</p>
+  <ol>
+    <li><strong>P0AW3-CRIT-01</strong> · MODEL_PRICING allowlist admits <code>text-embedding-3-small</code> as narrator → ~99% undercharge with Sonnet quality</li>
+    <li><strong>P0AW3-MED-01</strong> · forkStoryToPlaythrough caller-supplied <code>params.llmModel</code> bypasses tier gate (separate from CRIT-01)</li>
+    <li><strong>P0AW3-MED-02</strong> · No CHECK constraint or BEFORE-UPDATE trigger protecting <code>playthroughs.llm_model</code> column from direct user write (CLAUDE.md hard rule #24)</li>
+    <li><strong>P0AW3-LOW-01</strong> · <code>MODEL_PRICING</code> typed as <code>Record&lt;string, ModelPricing&gt;</code> not <code>as const</code> — runtime mutable</li>
+    <li><strong>P0AW3-LOW-02</strong> · <code>modelId in MODEL_PRICING</code> traverses prototype chain (theoretical pollution)</li>
+  </ol>
+</div>
+
+<h2><span class="icon">🚨</span>Critical · Wave 2 fix bypass</h2>
+
+<div class="issue crit">
+  <div class="issue-head">
+    <span class="issue-id">P0AW3-CRIT-01</span>
+    <span class="issue-title">Wave 2 whitelist allows <code>text-embedding-3-small</code> as narrator → silent undercharge attack reintroduced</span>
+    <span class="sev-tag sev-crit">CRIT</span>
+    <span class="rule-badge">CLAUDE.md #4 · ledger trust</span>
+    <span class="rule-badge">CLAUDE.md #15 · with check</span>
+  </div>
+  <div class="issue-loc">web/src/lib/billing/credits.ts:498-528 · web/src/lib/billing/credits.ts:78-156 (MODEL_PRICING)</div>
+  <div class="issue-body">
+    <strong>Attack:</strong>
+    <ol style="margin: 6px 0 6px 22px;">
+      <li>Malicious user calls Server Action <code>forkStoryToPlaythrough({ storyId, llmModel: "text-embedding-3-small" })</code> (any free-tier authenticated user · the Server Action endpoint accepts arbitrary JSON · no input validation on <code>params.llmModel</code>).</li>
+      <li>Fork RPC <code>fork_story_to_playthrough(p_llm_model: "text-embedding-3-small", ...)</code> creates playthrough with <code>llm_model = "text-embedding-3-small"</code>. RPC has <strong>no CHECK constraint</strong> · no narrator-only validation · no trigger.</li>
+      <li>On turn POST: <code>userTierAllowsModel</code> checks <code>MODELS["text-embedding-3-small"]</code> → undefined → falls through to <code>modelId in MODEL_PRICING</code> → <strong>TRUE</strong> (entry exists at credits.ts:98-101 for legit embed_charge use). Returns <code>{allowed: true, reason: "legacy_model"}</code> · console.warn fires only in non-prod.</li>
+      <li>Turn handler proceeds. <code>estimateTurnCredits("text-embedding-3-small")</code> → input $0.02/1M + output $0/1M → ~0 credits estimate → pre-balance check trivially passes.</li>
+      <li><code>getProviderModel("text-embedding-3-small")</code> at providers.ts:49 → <code>getModel</code> throws → catch → falls back to <code>claude-sonnet-4-6</code>. <strong>Actual narration uses Sonnet</strong>.</li>
+      <li>Post-stream <code>computeTurnCredits</code> at route.ts:920 uses <code>narrator.modelId = pt.llm_model = "text-embedding-3-small"</code> → charges at embedding rate. Sonnet narration (~$0.060/turn = 120 credits) gets billed as ~$0.0001 (negligible) = essentially free turns.</li>
+    </ol>
+    <strong>Impact:</strong> ~99% undercharge per turn. Same severity class as Wave 1's original "permissive bypass". Cost leak scales with user activity. Founder Adventurer tier ($9.99/mo · ~250 turns) becomes free at scale. <strong>Hard rule #4 violation</strong> (credit ledger trust).
+    <div class="diff-block">
+      <div class="diff-bad">
+        <div class="diff-label">Current (Wave 2 fix · still vulnerable)</div>
+        <pre>const isLegacyPriced = modelId in MODEL_PRICING;
+if (!isLegacyPriced) {
+  return { allowed: false, ... };
+}
+// "text-embedding-3-small" passes here ✗
+return { allowed: true, reason: "legacy_model" };</pre>
+      </div>
+      <div class="diff-good">
+        <div class="diff-label">Recommended</div>
+        <pre>// MODEL_PRICING is NOT a curated narrator allowlist —
+// it includes embedding pricing. Define explicit narrator
+// allowlist separate from pricing table:
+const LEGACY_NARRATORS = new Set([
+  "gpt-4o","gpt-4o-mini","gemini-3-1-pro",
+  "grok-2","grok-2-mini",
+]);
+const isLegacy = LEGACY_NARRATORS.has(modelId);
+if (!isLegacy) return { allowed: false, reason: "unknown_model" };
+return { allowed: true, reason: "legacy_model" };</pre>
+      </div>
+    </div>
+    <strong>Why Wave 2 missed this:</strong> the fix mental model was "MODEL_PRICING entries are the chargeable narrators." But <code>text-embedding-3-small</code> sits in the same table for a different reason (embed_charge in computeTurnCredits at credits.ts:266-271). Two unrelated concerns coexist in one Record · neither <code>as const</code> nor enum-shaped · the loose contract is what makes the false-positive possible.
+  </div>
+  <div class="issue-fix"><strong>Fix:</strong> Replace <code>modelId in MODEL_PRICING</code> with an explicit hardcoded <code>LEGACY_NARRATORS</code> Set (gpt-4o · gpt-4o-mini · gemini-3-1-pro · grok-2 · grok-2-mini · the documented "dropped from MODELS catalog" list). Don't reuse the pricing table as an allowlist. Document the invariant: "any narrator id appearing on a turn = MODELS[id] OR LEGACY_NARRATORS.has(id) · never any other source." Defense in depth (Wave 4 should also add a BEFORE INSERT/UPDATE trigger on <code>playthroughs.llm_model</code> validating against the same controlled list).</div>
+</div>
+
+<h2><span class="icon">⚠</span>Medium</h2>
+
+<div class="issue med">
+  <div class="issue-head">
+    <span class="issue-id">P0AW3-MED-01</span>
+    <span class="issue-title">forkStoryToPlaythrough trusts caller-supplied <code>params.llmModel</code> · no tier gate</span>
+    <span class="sev-tag sev-med">MED</span>
+  </div>
+  <div class="issue-loc">web/src/lib/community/actions.ts:437-500</div>
+  <div class="issue-body">
+    Free user calling Server Action <code>forkStoryToPlaythrough({ storyId, llmModel: "claude-opus-4-7" })</code> creates a playthrough locked to Opus. Per-turn <code>userTierAllowsModel</code> blocks the actual turn with 403 <code>tier_too_low</code> · but the playthrough row exists and is unreachable for the Free user (no UI to change llm_model · only Settings touches profile · not playthrough rows). Side-effects:
+    <ul style="margin: 6px 0 0 22px;">
+      <li>DB litter: orphan playthroughs · trigger bumps <code>stories.play_count</code> on INSERT (not DELETE-only via fork). Inflates trending. Plays a smaller version of the same vector ranked HIGH in Phase 5 audit (hard rule #23 · symmetric INSERT+DELETE handlers).</li>
+      <li>Confusing UX if user reaches the playthrough later · sees 403 with no fix path.</li>
+      <li>Tier-gate is bypassable at CREATION time · enforcement only happens at consumption. Tier should also gate creation.</li>
+    </ul>
+    Related to CRIT-01 but distinct: CRIT-01 is an undercharge · MED-01 is a privilege-escalation-at-creation that fails closed at turn time. Lower severity because the turn route catches it · but adds the playthrough-litter side-effect that compounds with Phase 5 trending bugs.
+  </div>
+  <div class="issue-fix"><strong>Fix:</strong> Validate <code>params.llmModel</code> against MODELS catalog AND call <code>userTierAllowsModel</code> before the fork RPC · reject early on tier_too_low / unknown_model. Same pattern as <code>setDefaultModel</code> at settings/actions.ts:128-143. Aligns with the audit fix comment in <code>forkStoryToPlaythrough</code> at line 154-155 — that comment claims tier-routed models are guaranteed in TIER_GATE-respecting pools "so the userTierAllowsModel check is mostly a no-op when tier-routed" · but it's <em>also missing</em> for caller-supplied llmModel.</div>
+</div>
+
+<div class="issue med">
+  <div class="issue-head">
+    <span class="issue-id">P0AW3-MED-02</span>
+    <span class="issue-title">No DB-level protection on <code>playthroughs.llm_model</code> column · violates hard rule #24</span>
+    <span class="sev-tag sev-med">MED</span>
+    <span class="rule-badge">CLAUDE.md #24 · column-level protection</span>
+  </div>
+  <div class="issue-loc">supabase/migrations/0002_audit_hardening.sql:344-346 · playthroughs_own_update policy</div>
+  <div class="issue-body">
+    RLS <code>playthroughs_own_update</code> uses bare <code>using (auth.uid()=user_id) with check (auth.uid()=user_id)</code>. Per <strong>CLAUDE.md hard rule #24</strong> "any UPDATE policy needs column restriction · trigger BEFORE UPDATE 比 RLS column-list 更穩." Without it, an authenticated user can <code>supabase.from('playthroughs').update({llm_model: 'text-embedding-3-small'})</code> via browser console (or via any privileged read of their session) and bypass ALL server-side validation. Even if CRIT-01 is fixed (whitelist tightened), the DB write path remains open.
+    <div class="diff-block">
+      <div class="diff-bad">
+        <div class="diff-label">Direct write attack (browser console)</div>
+        <pre>supabase
+  .from('playthroughs')
+  .update({ llm_model: 'text-embedding-3-small' })
+  .eq('id', myPlaythroughId)
+// RLS allows · no column restriction.</pre>
+      </div>
+      <div class="diff-good">
+        <div class="diff-label">Defense: BEFORE UPDATE trigger</div>
+        <pre>create function lock_playthrough_llm_model()
+returns trigger as $$
+begin
+  if new.llm_model is distinct from old.llm_model
+  then raise exception 'llm_model immutable post-creation';
+  end if;
+  return new;
+end $$ language plpgsql;
+
+create trigger playthroughs_lock_model
+  before update on playthroughs
+  for each row execute function lock_playthrough_llm_model();</pre>
+      </div>
+    </div>
+    Phase 0 BACKLOG already includes "column-protection trigger on llm_model" per audit comment at credits.ts:503. Wave 3 surfaces the consequence: as long as MED-02 is open, fixing CRIT-01 at the code layer is partial. Defense-in-depth needs both code + DB trigger.
+  </div>
+  <div class="issue-fix"><strong>Fix:</strong> Migration 0022 · BEFORE UPDATE trigger on <code>playthroughs</code> that rejects any change to <code>llm_model</code> · <code>llm_provider</code> · <code>story_id</code> · <code>user_id</code> post-INSERT. These four columns should be immutable per the playthrough's lifecycle. (Phase 4 may need a separate path for model migration · do that via SECURITY DEFINER RPC not direct UPDATE.)</div>
+</div>
+
+<h2><span class="icon">·</span>Low / theoretical</h2>
+
+<div class="issue low">
+  <div class="issue-head">
+    <span class="issue-id">P0AW3-LOW-01</span>
+    <span class="issue-title">MODEL_PRICING typed as Record · not <code>as const</code> · runtime mutable</span>
+    <span class="sev-tag sev-low">LOW</span>
+  </div>
+  <div class="issue-loc">web/src/lib/billing/credits.ts:78</div>
+  <div class="issue-body">
+    <code>export const MODEL_PRICING: Record&lt;string, ModelPricing&gt; = { ... }</code>. The <code>const</code> keyword only prevents reassignment of the binding · object mutations (<code>MODEL_PRICING['fake-model'] = {...}</code>) are NOT prevented at runtime · only at TypeScript compile time (and even then, Record is wide-open · would need <code>as const</code> or explicit literal type for compile-time freeze). Exploitable only via code-side compromise (some other vuln writes to the export) · not user input. Low severity for now.
+  </div>
+  <div class="issue-fix"><strong>Fix:</strong> <code>const MODEL_PRICING = Object.freeze({ ... } as const)</code> · or define narrator allowlist separately as <code>Object.freeze(new Set([...]))</code>. Defensive only.</div>
+</div>
+
+<div class="issue low">
+  <div class="issue-head">
+    <span class="issue-id">P0AW3-LOW-02</span>
+    <span class="issue-title"><code>in</code> operator traverses prototype chain · theoretical pollution vector</span>
+    <span class="sev-tag sev-low">LOW</span>
+  </div>
+  <div class="issue-loc">web/src/lib/billing/credits.ts:518</div>
+  <div class="issue-body">
+    JavaScript <code>x in obj</code> returns true for inherited properties · including anything on <code>Object.prototype</code>. If an upstream prototype-pollution vulnerability lands a key like <code>"foo"</code> on <code>Object.prototype</code>, <code>"foo" in MODEL_PRICING</code> returns true. No known pollution vector in current dependencies · Node.js requires explicit polluting code path · theoretical only.
+  </div>
+  <div class="issue-fix"><strong>Fix:</strong> Use <code>Object.prototype.hasOwnProperty.call(MODEL_PRICING, modelId)</code> or move to a <code>Set.has()</code> based allowlist (which doesn't have prototype semantics). Aligns with the CRIT-01 fix (explicit narrator Set replaces the pricing-table lookup entirely).</div>
+</div>
+
+<h2><span class="icon">✓</span>Verified clean (Wave 2 fix surface + Wave 1 regression check)</h2>
+
+<details class="dim-section" open>
+  <summary>5 verified-clean items</summary>
+  <div class="dim-content">
+
+    <div class="issue info">
+      <div class="issue-head"><span class="issue-id">P0AW3-INFO-01</span><span class="issue-title">tier-router <code>pickModelForTier(tier)</code> no-context default = CJK (繁中 market lock)</span><span class="sev-tag sev-info">PASS</span></div>
+      <div class="issue-loc">web/src/lib/ai/tier-router.ts:49-78</div>
+      <div class="issue-body"><code>context ? isChineseContent(context) : true</code> · <code>true</code> default routes Standard → glm-5-1 · Pro → claude-sonnet-4-6. Matches the founder's 繁中-first launch market (CLAUDE.md). Edge cases tested: empty string falsy → CJK default · whitespace-only → isChineseContent returns false (clean) · pure ASCII <code>"abc"</code> → 0% CJK → English route (correct). No correctness issue. forkStoryToPlaythrough correctly omits context to get this default.</div>
+    </div>
+
+    <div class="issue info">
+      <div class="issue-head"><span class="issue-id">P0AW3-INFO-02</span><span class="issue-title">forkStoryToPlaythrough resolvedModel resolution chain · no NULL leakage</span><span class="sev-tag sev-info">PASS</span></div>
+      <div class="issue-loc">web/src/lib/community/actions.ts:453-487</div>
+      <div class="issue-body">Chain: <code>params.llmModel ?? pickModelForTier(tier) ?? default_model ?? "claude-sonnet-4-6"</code>. Every branch sets a non-null string. <code>pickModelForTier</code> throws on empty pool · catches misconfig loudly. <code>profile?.default_model</code> use is gated by truthy check. Final fallback to Sonnet always defined. (NB: this verification is orthogonal to MED-01 · resolvedModel is non-null but can still be a wrong-tier model.)</div>
+    </div>
+
+    <div class="issue info">
+      <div class="issue-head"><span class="issue-id">P0AW3-INFO-03</span><span class="issue-title">Provider derivation MODELS[id]?.provider ?? "openrouter" · correctly attributes legacy ids</span><span class="sev-tag sev-info">PASS</span></div>
+      <div class="issue-loc">web/src/lib/community/actions.ts:494 · stories/new/actions.ts:291 · turn/route.ts:870</div>
+      <div class="issue-body">For known MODELS entries (claude-haiku-4-5 · sonnet · opus · etc.) the lookup returns correct provider. For dropped models (gpt-4o · grok-2 etc.) MODELS[id] is undefined · fallback "openrouter" correctly classifies them for cost ledger attribution. The hypothetical "future Claude model added to MODEL_PRICING but not MODELS" edge case noted in the audit brief is unreached today · would require an explicit code change · low risk if maintainers know the invariant.</div>
+    </div>
+
+    <div class="issue info">
+      <div class="issue-head"><span class="issue-id">P0AW3-INFO-04</span><span class="issue-title">DB regression check · migrations 0001-0021 applied · 6 profiles all default_tier='pro' · 0 rogue playthroughs</span><span class="sev-tag sev-info">PASS</span></div>
+      <div class="issue-loc">supabase mcp execute_sql · live verification</div>
+      <div class="issue-body"><code>list_migrations</code> shows phase0_default_tier · phase0_rag_similarity_floor · phase0_drop_ghost_rag_overloads · phase0_fix_opus_backfill all applied. profiles check constraint = <code>default_tier IN ('standard','pro','pro-max','adult')</code>. All 6 users have <code>default_tier='pro'</code>. No playthroughs in DB with rogue llm_model (queried for anything outside the 13 known MODELS+legacy ids · returned 0 rows). Adult mode check constraint correct.</div>
+    </div>
+
+    <div class="issue info">
+      <div class="issue-head"><span class="issue-id">P0AW3-INFO-05</span><span class="issue-title">Wave 1 fixes preserved · TierPicker estimateTurnCredits · setAdultMode symmetric reset · Migration 0021 Opus backfill</span><span class="sev-tag sev-info">PASS</span></div>
+      <div class="issue-loc">tier-picker.tsx:67-73 · settings/actions.ts:60-92 · migration 0021</div>
+      <div class="issue-body">TierPicker still computes credits dynamically via <code>estimateTurnCredits</code> per pool model (tier-picker.tsx:67-73). <code>setAdultMode</code> still does symmetric default_model + default_tier reset when disabling (settings/actions.ts:62-92 · NSFW model reset + adult tier reset). Migration 0021 (Opus → pro-max) applied per MCP list. No Wave 2 regression on Wave 1 fix surface.</div>
+    </div>
+
+  </div>
+</details>
+
+<h2><span class="icon">📊</span>Convergence trend per Hard rule #29</h2>
+
+<table class="findings">
+  <thead><tr><th>Cycle</th><th>CRIT</th><th>HIGH</th><th>MED</th><th>LOW</th><th>Ship blockers (CRIT+HIGH)</th><th>Trend</th></tr></thead>
+  <tbody>
+    <tr><td>Wave 1</td><td>2</td><td>3</td><td>?</td><td>?</td><td><span class="pill pill-crit">5</span></td><td>—</td></tr>
+    <tr><td>Wave 2</td><td>0</td><td>2</td><td>?</td><td>?</td><td><span class="pill pill-high">2</span></td><td>↓ declining</td></tr>
+    <tr><td><strong>Wave 3</strong></td><td><strong>1</strong></td><td><strong>0</strong></td><td>2</td><td>2</td><td><span class="pill pill-crit">1</span></td><td>↓ declining but NOT 0</td></tr>
+  </tbody>
+</table>
+
+<div class="verdict">
+  <h3>NOT CONVERGED · Wave 4 needed</h3>
+  <p>Per Hard rule #29: "Convergence signal = 3 consecutive cycles 0 CRIT/HIGH + declining finding trend." Wave 3 has <strong>1 ship blocker</strong> (CRIT-01) · cycle is 0/3 toward convergence reset. Pattern recap: <strong>each fix wave has introduced a new blocker tied to the previous wave's fix</strong>. Wave 1 introduced the permissive bypass · Wave 2 narrowed it but used the wrong allowlist source · Wave 3 surfaces that the allowlist source itself was the wrong abstraction (pricing table conflates narrator + embedding). Wave 4 should refactor to an explicit narrator-only Set · add the DB-level trigger (CLAUDE.md hard rule #24) · and avoid the temptation to share data structures across unrelated concerns.</p>
+  <p style="margin-top: 12px; font-size: 13px;"><strong>Wave 4 plan:</strong></p>
+  <ol>
+    <li>Replace <code>modelId in MODEL_PRICING</code> with an explicit <code>LEGACY_NARRATORS</code> Set (~5 ids · documented).</li>
+    <li>Add tier-gate + MODELS validation to <code>forkStoryToPlaythrough</code> when <code>params.llmModel</code> is caller-supplied (P0AW3-MED-01).</li>
+    <li>Migration 0022 · BEFORE UPDATE trigger on <code>playthroughs</code> blocking llm_model / llm_provider / story_id / user_id changes post-INSERT (P0AW3-MED-02 · CLAUDE.md hard rule #24).</li>
+    <li>Optional · Object.freeze + as const on MODEL_PRICING + replace <code>in</code> with <code>Set.has</code> (P0AW3-LOW-01 / LOW-02 · cheap to bundle).</li>
+  </ol>
+</div>
+
+<h2><span class="icon">🔍</span>Methodology notes</h2>
+
+<div class="priority-list">
+  <div class="priority-row"><div class="priority-rank">1</div><div class="priority-content"><strong>Re-traced Wave 2 fix mental model</strong><small>Mapped what MODEL_PRICING actually contains vs what the whitelist comment claims. Discovered embed entry creating false-positive admission.</small></div><div class="priority-refs">5 min</div></div>
+  <div class="priority-row"><div class="priority-rank">2</div><div class="priority-content"><strong>End-to-end attack trace</strong><small>Followed text-embedding-3-small from fork RPC → playthrough row → userTierAllowsModel → estimateTurnCredits → getProviderModel fallback → narrator dispatch → charge metadata. All steps confirmed exploitable.</small></div><div class="priority-refs">10 min</div></div>
+  <div class="priority-row"><div class="priority-rank">3</div><div class="priority-content"><strong>Supabase MCP verification</strong><small>execute_sql · list_migrations · CHECK constraints · triggers · current data state. Confirmed no DB-side mitigation exists for the column-write vector.</small></div><div class="priority-refs">5 min</div></div>
+  <div class="priority-row"><div class="priority-rank">4</div><div class="priority-content"><strong>Wave 1 fix regression sweep</strong><small>Re-read TierPicker tier-router setAdultMode migration 0021 · confirmed all preserved. No Wave 2 collateral.</small></div><div class="priority-refs">5 min</div></div>
+  <div class="priority-row"><div class="priority-rank">5</div><div class="priority-content"><strong>Defensive corner cases</strong><small>Prototype pollution · Record mutability · empty-string context · single-model pool · all examined. Low / theoretical only.</small></div><div class="priority-refs">5 min</div></div>
+</div>
+
+<p style="text-align: center; color: var(--muted); font-size: 13px; margin-top: 60px;">— End of Wave 3 audit · Agent A · Security · Correctness · DB —</p>
+<p style="text-align: center; color: var(--muted); font-size: 13px;">1 ship blocker · Wave 4 needed</p>
+
+</main>
+</body>
+</html>
