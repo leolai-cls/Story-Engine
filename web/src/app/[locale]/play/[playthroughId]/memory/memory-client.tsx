@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Link } from "@/i18n/navigation";
-import { X, Sparkles, BookOpen, NotebookPen, Info, Play, Clock, Lock } from "lucide-react";
+import { X, Sparkles, BookOpen, NotebookPen, Info, Play, Clock, Lock, Drama } from "lucide-react";
 import { CsamStrip } from "@/components/se/CsamStrip";
 
 type Summary = {
@@ -39,7 +39,16 @@ const ENTITY_HUE: Record<string, number> = {
   concept: 280,
 };
 
-type Tab = "active" | "summaries" | "lorebook";
+type Tab = "active" | "summaries" | "lorebook" | "inner-voices";
+
+// Session 14 · NPC L3 inner thought · grouped by NPC name on backend route
+type NpcInnerThought = {
+  id: string;
+  turnIndex: number;
+  innerThought: string;
+  intent: string;
+  createdAt: string;
+};
 
 export function MemoryJournalClient({
   playthroughId,
@@ -49,6 +58,7 @@ export function MemoryJournalClient({
   locale,
   summaries,
   lorebook,
+  npcInnerVoices = {},
   showCsam = false,
 }: {
   playthroughId: string;
@@ -58,6 +68,8 @@ export function MemoryJournalClient({
   locale: string;
   summaries: Summary[];
   lorebook: LoreRow[];
+  /** Session 14 · NPC L3 inner thoughts grouped by NPC name · empty when L3 unused */
+  npcInnerVoices?: Record<string, NpcInnerThought[]>;
   /** D5 audit · show CSAM strip when in adult content context */
   showCsam?: boolean;
 }) {
@@ -72,6 +84,18 @@ export function MemoryJournalClient({
     if (grouped[row.entity_type]) grouped[row.entity_type].push(row);
   });
   const lorebookCount = lorebook.length;
+
+  // Session 14 · NPC inner voices count + ordered NPC names
+  // F-07 audit fix: sort by thought count desc (most-developed NPC first)
+  // instead of alphabetical · improves first-impression for marquee feature
+  const npcNames = Object.keys(npcInnerVoices).sort(
+    (a, b) =>
+      (npcInnerVoices[b]?.length ?? 0) - (npcInnerVoices[a]?.length ?? 0),
+  );
+  const innerVoicesCount = Object.values(npcInnerVoices).reduce(
+    (sum, arr) => sum + arr.length,
+    0,
+  );
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "var(--se-bg)" }}>
@@ -139,6 +163,10 @@ export function MemoryJournalClient({
             { id: "active", label: "當前活躍", icon: Sparkles },
             { id: "summaries", label: `回憶錄 · ${summaries.length}`, icon: BookOpen },
             { id: "lorebook", label: `角色記事 · ${lorebookCount}`, icon: NotebookPen },
+            // Session 14 · NPC L3 Inner Voices (Storyteller tier · hidden when empty)
+            ...(innerVoicesCount > 0
+              ? [{ id: "inner-voices", label: `內心戲 · ${innerVoicesCount}`, icon: Drama }]
+              : []),
           ] as const
         ).map((t) => {
           const Ico = t.icon;
@@ -204,6 +232,17 @@ export function MemoryJournalClient({
               hint="人物 · 地點 · 物品 · 事件 · 概念"
               onClick={() => setTab("lorebook")}
             />
+            {/* Session 14 · NPC L3 Inner Voices (Storyteller tier · only show when data exists) */}
+            {innerVoicesCount > 0 && (
+              <NavItem
+                active={tab === "inner-voices"}
+                icon={<Drama size={14} />}
+                label="NPC 內心戲"
+                sub={`${innerVoicesCount} 段 · ${npcNames.length} 個 NPC`}
+                hint="Storyteller 獨享 · 每個 NPC 嘅 POV + 心理活動"
+                onClick={() => setTab("inner-voices")}
+              />
+            )}
           </div>
           {/* Recent turns layer · listed but read-only · CLAUDE.md hard rule #7 4 layer */}
           <div
@@ -255,6 +294,9 @@ export function MemoryJournalClient({
           {tab === "active" && <TabActive turn={turnCount} />}
           {tab === "summaries" && <TabSummaries summaries={summaries} turnCount={turnCount} />}
           {tab === "lorebook" && <TabLorebook grouped={grouped} types={types} />}
+          {tab === "inner-voices" && (
+            <TabInnerVoices npcInnerVoices={npcInnerVoices} npcNames={npcNames} />
+          )}
         </main>
       </div>
 
@@ -658,6 +700,144 @@ function LoreCard({ entry, type }: { entry: LoreRow; type: string }) {
           <Lock size={10} />
           唯讀
         </span>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Session 14 · NPC L3 Inner Voices tab (Storyteller-tier feature surface).
+ * Per-NPC timeline of inner_thought + intent · grouped by NPC name.
+ * CLAUDE.md hard rule #19: backend differentiator must have UI surface ·
+ * this tab IS the visible value-add for Storyteller tier.
+ */
+function TabInnerVoices({
+  npcInnerVoices,
+  npcNames,
+}: {
+  npcInnerVoices: Record<string, NpcInnerThought[]>;
+  npcNames: string[];
+}) {
+  const [selectedNpc, setSelectedNpc] = useState<string>(npcNames[0] ?? "");
+  const selectedThoughts = selectedNpc ? npcInnerVoices[selectedNpc] ?? [] : [];
+
+  if (npcNames.length === 0) {
+    return (
+      <div className="px-6 sm:px-8 py-8">
+        <div
+          className="rounded-lg border p-6 text-center"
+          style={{
+            background: "var(--se-bg-elev)",
+            borderColor: "var(--se-border)",
+          }}
+        >
+          <Drama size={36} style={{ color: "var(--se-fg-dim)", margin: "0 auto" }} />
+          <div className="mt-3 text-sm font-semibold se-cjk">未有 NPC 內心戲記錄</div>
+          <div
+            className="mt-2 text-xs leading-relaxed se-cjk"
+            style={{ color: "var(--se-fg-dim)" }}
+          >
+            喺 Play 頁啟動「NPC 內心戲」(Storyteller 獨享) ·
+            <br />
+            之後每個 turn 嘅 NPC POV 會 record 喺呢度。
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="px-6 sm:px-8 py-6">
+      {/* NPC selector chips */}
+      <div className="flex flex-wrap gap-2 mb-5">
+        {npcNames.map((name) => {
+          const active = name === selectedNpc;
+          const count = npcInnerVoices[name]?.length ?? 0;
+          return (
+            <button
+              key={name}
+              onClick={() => setSelectedNpc(name)}
+              className="inline-flex items-center gap-1.5 px-3 h-8 rounded-full text-xs se-cjk transition-colors"
+              style={{
+                background: active ? "var(--se-fg)" : "transparent",
+                color: active ? "var(--se-bg)" : "var(--se-fg-muted)",
+                border: `1px solid ${active ? "var(--se-fg)" : "var(--se-border)"}`,
+              }}
+            >
+              <Drama size={11} />
+              {name}
+              <span
+                className="se-mono"
+                style={{
+                  fontSize: 10,
+                  opacity: 0.7,
+                }}
+              >
+                {count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Timeline · most-recent first */}
+      <div className="flex flex-col gap-3">
+        {selectedThoughts.length === 0 ? (
+          <div className="text-xs se-cjk" style={{ color: "var(--se-fg-dim)" }}>
+            未有 inner thought 記錄。
+          </div>
+        ) : (
+          selectedThoughts.map((t) => (
+            <div
+              key={t.id}
+              className="rounded-lg border p-3.5"
+              style={{
+                background: "var(--se-bg-elev)",
+                borderColor: "var(--se-border)",
+              }}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span
+                  className="se-mono"
+                  style={{
+                    fontSize: 10,
+                    color: "var(--se-fg-dim)",
+                    letterSpacing: "0.05em",
+                  }}
+                >
+                  TURN {t.turnIndex}
+                </span>
+                <span
+                  className="text-[10px] inline-flex items-center gap-1"
+                  style={{ color: "var(--se-fg-dim)" }}
+                >
+                  <Lock size={9} /> 內部 POV
+                </span>
+              </div>
+              <div className="se-cjk text-sm leading-relaxed mb-2">
+                <span
+                  className="se-mono uppercase text-[9px] mr-1.5"
+                  style={{ color: "var(--se-fg-dim)", letterSpacing: "0.08em" }}
+                >
+                  心底
+                </span>
+                {t.innerThought}
+              </div>
+              <div
+                className="se-cjk text-xs leading-relaxed"
+                style={{ color: "var(--se-fg-muted)" }}
+              >
+                <span
+                  className="se-mono uppercase text-[9px] mr-1.5"
+                  style={{ color: "var(--se-fg-dim)", letterSpacing: "0.08em" }}
+                >
+                  意圖
+                </span>
+                {t.intent}
+              </div>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );

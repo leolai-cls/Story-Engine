@@ -26,9 +26,10 @@ export default async function PlayPage({
   }
 
   // Load playthrough + story + turns (initial render)
+  // Session 14: include npc_l3_enabled for Storyteller-tier opt-in toggle UI
   const { data: pt } = await supabase
     .from("playthroughs")
-    .select("id, user_id, story_id, character_name, current_state, turn_count")
+    .select("id, user_id, story_id, character_name, current_state, turn_count, npc_l3_enabled")
     .eq("id", playthroughId)
     .single();
 
@@ -74,6 +75,8 @@ export default async function PlayPage({
     { data: charStates },
     recentPlaythroughs,
     { count: totalPlaythroughCount },
+    // Session 14: profile.subscription_tier for NPC L3 toggle visibility
+    { data: profileForTier },
   ] = await Promise.all([
     supabase
       .from("story_characters")
@@ -88,7 +91,17 @@ export default async function PlayPage({
       .from("playthroughs")
       .select("id", { count: "exact", head: true })
       .eq("user_id", user.id),
+    supabase
+      .from("profiles")
+      .select("subscription_tier")
+      .eq("id", user.id)
+      .single(),
   ]);
+  const subscriptionTier = (profileForTier?.subscription_tier ?? "free") as
+    | "free"
+    | "adventurer"
+    | "storyteller"
+    | "legend";
 
   // Merge characters + states into a single array for PlayClient
   type DispJson = { trust?: number; romance?: number; respect?: number; fear?: number } | null;
@@ -138,6 +151,8 @@ export default async function PlayPage({
       npcs={npcs}
       sidebarPlaythroughs={sidebarPlaythroughs}
       sidebarTotalCount={totalPlaythroughCount ?? sidebarPlaythroughs.length}
+      npcL3Enabled={pt.npc_l3_enabled ?? false}
+      subscriptionTier={subscriptionTier}
     />
   );
 }

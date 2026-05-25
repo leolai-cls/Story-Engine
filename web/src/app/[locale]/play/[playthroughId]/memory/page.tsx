@@ -68,7 +68,12 @@ export default async function MemoryJournalPage({
   const showCsam = adultModeEnabled && storyMeta?.content_rating === "adult";
 
   // Fetch memory data server-side (initial render)
-  const [{ data: summaries }, { data: lorebookRows }] = await Promise.all([
+  // Session 14: also fetch NPC L3 inner thoughts (joined with story_characters for name)
+  const [
+    { data: summaries },
+    { data: lorebookRows },
+    { data: innerThoughtsRows },
+  ] = await Promise.all([
     supabase
       .from("memory_summaries")
       .select("id, turn_range, summary_text, created_at")
@@ -82,7 +87,47 @@ export default async function MemoryJournalPage({
       .eq("playthrough_id", playthroughId)
       .order("always_on", { ascending: false })
       .order("updated_at", { ascending: false }),
+    supabase
+      .from("npc_inner_thoughts")
+      .select(
+        "id, character_id, turn_index, inner_thought, intent, created_at, story_characters(name)",
+      )
+      .eq("playthrough_id", playthroughId)
+      .order("turn_index", { ascending: false })
+      .limit(50),
   ]);
+
+  // Session 14 · group inner thoughts by NPC name (join with story_characters)
+  type InnerThoughtGroup = {
+    id: string;
+    turnIndex: number;
+    innerThought: string;
+    intent: string;
+    createdAt: string;
+  };
+  type RawInnerRow = {
+    id: string;
+    character_id: string;
+    turn_index: number;
+    inner_thought: string;
+    intent: string;
+    created_at: string;
+    story_characters: { name: string } | { name: string }[] | null;
+  };
+  const npcInnerVoices: Record<string, InnerThoughtGroup[]> = {};
+  for (const row of (innerThoughtsRows as RawInnerRow[] | null) ?? []) {
+    const charJoin = row.story_characters;
+    const charName = Array.isArray(charJoin) ? charJoin[0]?.name : charJoin?.name;
+    if (!charName) continue;
+    if (!npcInnerVoices[charName]) npcInnerVoices[charName] = [];
+    npcInnerVoices[charName].push({
+      id: row.id,
+      turnIndex: row.turn_index,
+      innerThought: row.inner_thought,
+      intent: row.intent,
+      createdAt: row.created_at,
+    });
+  }
 
   const turnCount = pt.turn_count ?? 0;
   const protagonist = pt.character_name ?? "主角";
@@ -103,6 +148,7 @@ export default async function MemoryJournalPage({
         writtenAt: s.created_at as string,
       }))}
       lorebook={lorebookRows ?? []}
+      npcInnerVoices={npcInnerVoices}
     />
   );
 }

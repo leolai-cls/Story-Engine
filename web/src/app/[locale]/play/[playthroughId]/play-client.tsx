@@ -8,6 +8,7 @@ import { Sparkles, Send, Loader2, ArrowLeft, Coins, Lock, Shield, NotebookPen, M
 import { DynamicStatePanel } from "@/components/state-panel";
 import type { StateSchema } from "@/schemas/state-schema";
 import { NpcCard } from "@/components/se/DispositionAxis";
+import { NpcL3Toggle } from "@/components/se/NpcL3Toggle";
 import {
   PlaythroughSidebar,
   type SidebarPlaythrough,
@@ -285,6 +286,8 @@ export function PlayClient({
   npcs = [],
   sidebarPlaythroughs = [],
   sidebarTotalCount = 0,
+  npcL3Enabled = false,
+  subscriptionTier = "free",
 }: {
   playthroughId: string;
   storyTitle: string;
@@ -298,6 +301,10 @@ export function PlayClient({
   sidebarPlaythroughs?: SidebarPlaythrough[];
   /** Total playthrough count (sidebar shows "see all" link if > visible). */
   sidebarTotalCount?: number;
+  /** Session 14: NPC L3 Agents opt-in flag (Storyteller tier exclusive). */
+  npcL3Enabled?: boolean;
+  /** Session 14: user's subscription tier · controls toggle visibility. */
+  subscriptionTier?: "free" | "adventurer" | "storyteller" | "legend";
 }) {
   const locale = useLocale();
   const [turns, setTurns] = useState<Turn[]>(initialTurns);
@@ -733,6 +740,12 @@ export function PlayClient({
               >
                 NPC · {npcs.length}
               </div>
+              {/* Session 14 · NPC L3 opt-in toggle (Storyteller tier only · button-click per founder Q4) */}
+              <NpcL3Toggle
+                playthroughId={playthroughId}
+                initialEnabled={npcL3Enabled}
+                subscriptionTier={subscriptionTier}
+              />
               {npcs.map((npc) => (
                 <NpcCard
                   key={npc.name}

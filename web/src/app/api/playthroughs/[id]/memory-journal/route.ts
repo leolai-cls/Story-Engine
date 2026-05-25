@@ -57,7 +57,7 @@ export async function GET(
     .eq("id", pt.story_id)
     .single();
 
-  const [summariesResult, lorebookResult] = await Promise.all([
+  const [summariesResult, lorebookResult, innerThoughtsResult] = await Promise.all([
     supabase
       .from("memory_summaries")
       .select("id, turn_range, summary_text, created_at")
@@ -71,6 +71,17 @@ export async function GET(
       .eq("playthrough_id", playthroughId)
       .order("always_on", { ascending: false })
       .order("updated_at", { ascending: false }),
+    // Session 14 · NPC L3 inner thoughts (Storyteller-tier feature surface)
+    // RLS filters to caller's own playthroughs · empty array if L3 never used
+    // Join story_characters to get NPC name for display
+    supabase
+      .from("npc_inner_thoughts")
+      .select(
+        "id, character_id, turn_index, inner_thought, intent, created_at, story_characters(name)",
+      )
+      .eq("playthrough_id", playthroughId)
+      .order("turn_index", { ascending: false })
+      .limit(50),
   ]);
 
   const summaries = (summariesResult.data ?? []).map((s) => ({
@@ -111,6 +122,40 @@ export async function GET(
     }
   }
 
+  // Session 14 · group NPC inner thoughts by character_name for UI display
+  type InnerThought = {
+    id: string;
+    turnIndex: number;
+    innerThought: string;
+    intent: string;
+    createdAt: string;
+  };
+  type RawInnerRow = {
+    id: string;
+    character_id: string;
+    turn_index: number;
+    inner_thought: string;
+    intent: string;
+    created_at: string;
+    story_characters: { name: string } | { name: string }[] | null;
+  };
+  const npcInnerVoices: Record<string, InnerThought[]> = {};
+  for (const row of (innerThoughtsResult.data as RawInnerRow[] | null) ?? []) {
+    const charJoin = row.story_characters;
+    const charName = Array.isArray(charJoin)
+      ? charJoin[0]?.name
+      : charJoin?.name;
+    if (!charName) continue;
+    if (!npcInnerVoices[charName]) npcInnerVoices[charName] = [];
+    npcInnerVoices[charName].push({
+      id: row.id,
+      turnIndex: row.turn_index,
+      innerThought: row.inner_thought,
+      intent: row.intent,
+      createdAt: row.created_at,
+    });
+  }
+
   return NextResponse.json({
     playthroughId,
     storyId: pt.story_id,
@@ -119,9 +164,14 @@ export async function GET(
     turn: pt.turn_count ?? 0,
     summaries,
     lorebook,
+    /* Session 14 · NPC L3 inner thoughts (Storyteller tier feature)
+     * Empty object when L3 never used on this playthrough (free/adventurer
+     * users · or Storyteller users who haven't opted in). UI handles empty
+     * state with explainer card. */
+    npcInnerVoices,
     /* Active memory (current-turn RAG retrieve) is NOT exposed here yet —
      * needs a separate turn_log table to record what was retrieved per turn.
-     * For now, Memory Journal UI shows summaries + lorebook only.
+     * For now, Memory Journal UI shows summaries + lorebook + npcInnerVoices.
      * Active Memory tab can render an empty/explainer state until backend
      * adds `turns.retrieved_memory_ids[]` column (Phase 7+ backlog). */
   });
