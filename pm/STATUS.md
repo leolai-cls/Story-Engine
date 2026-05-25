@@ -7,9 +7,9 @@
 
 ## 🎯 而家狀態
 
-**Phase**: **🟢 Phase 0 DONE + Phase 1 DONE (Session 11 · 7 migrations 0019-0026 · 7-wave audit converged across 2 phases · 12 ship blockers caught) · 落 🟡 MONEY tier (Phase 4 Stripe + Phase 6 KYC)**
+**Phase**: **🟢 Phase 0 + Phase 1 + Phase 1.5 NPC L3 backend DONE (Sessions 11-13 · 10 migrations 0019-0028 · 4 audit campaigns converged · 17 ship blockers caught pre-prod) · 落 🟣 UI Session 14 (NPC L3 toggle + Memory Journal NPC tab)**
 **Live URL**: https://story-engine-drab.vercel.app
-**Last updated**: 2026-05-25 (Session 11 — Phase 0 tier abstraction + Phase 1 MemPalace memory + NPC L2 + Knowledge Graph · 3 audit cycles converged)
+**Last updated**: 2026-05-26 (Session 13 — Phase 1.5 NPC L3 Agents backend + Wave 2 audit converged)
 
 ## 🎯 Founder priority rule（鎖死）
 
@@ -63,7 +63,84 @@
 
 **Migrated to backlog** (per pm/BACKLOG.md「Phase 5 deferred polish」section · 20 IDs 跨 4 sub-bucket)：W2.5-GENRE-M-02 alias gap · W2.5-FTS-L-03/L-04 tokenizer polish · W2-COST-H-04 anon ISR · W2.6-MIG-L-02 'curated' enum doc · W2.6-PLAY-L-03/L-04 defensive · W2.6-LIB-L-05 1-char Latin hint · W2.6-LIB-I-06 Settings display_name trim · W2.6-UX-L-03 English error strings · W2.6-MIG-I-07 createStory+trigger origin redundancy · W2.6-INFO-03 getCommentReplies UI TODO · W2.6-MIGRATION-L-04 sanity check pattern · 等等。
 
-## ✅ Just completed (Session 11 cont. — 🟢 Phase 1 MemPalace + NPC L2 + Knowledge Graph · 3-wave audit converged)
+## ✅ Just completed (Session 13 — 🎭 Phase 1.5 NPC L3 Agents backend · Wave 2 audit converged)
+
+### TL;DR
+- 每個 active NPC (max 3 per turn) 並行一個 Standard tier agent · 出 inner_thought + intent + reasoning_trace (MIRROR 3-step CoT) · Narrator 整合
+- Storyteller tier 獨享 · button-click opt-in (UI Session 14) · per-NPC 6 credits flat-rate
+- 2 個新 Migration (0027 + 0028) 上 prod · 3 個新 file + 3 個 edit · TypeScript clean
+- 2-wave audit converged · **5 ship blockers caught pre-prod** (3 CRIT + 2 dedup'd HIGH 升級)
+
+### 🗃️ 2 Migrations applied prod
+| Migration | What |
+|---|---|
+| **0027** npc_inner_thoughts table | inner_thought + intent + reasoning_trace jsonb + embedding · apply_npc_inner_thought + match_npc_inner_thoughts RPCs · service-role only writes |
+| **0028** playthroughs.npc_l3_enabled | Opt-in boolean default false · enforce_npc_l3_tier_gate trigger (canonical JWT pattern · Storyteller / Legend tier required) |
+
+### 🎯 Architecture (per Stanford Generative Agents + MIRROR research)
+- **Parallel** via Promise.allSettled (max 3 concurrent · 1.8s vs 5.4s sequential)
+- **Standard tier model** (founder Q1): tier-router CJK → GLM-5.1 · EN → Gemini Flash
+- **MIRROR 3-step CoT**: memories_recalled → reactions_predicted → motivation
+- **Hybrid memory**: shared L1+L2 ground truth + isolated POV view (via walk_lorebook_graph filtered to attended/witnessed/located_at edges)
+- **Shallow ToM** only (each NPC sees others' L2 dynamic_state · no recursive belief modeling)
+- **NO synthesizer** · Narrator is sole integrator
+- **Director verdict canonical** · NPC agents POV-only · cannot change state
+
+### 🛡️ Coherence guarantee (殺人 vs 救人 scenario)
+- Director = gatekeeper (verdict canonical · state boundary)
+- NPC Agents = POV reporters · inner_thought + intent only · CANNOT change state
+- Narrator = sole integrator · ONE narrative + state_delta · obeys Director
+- Conflicting NPC intents → dramatic tension (不可contradictory outcomes)
+
+### 💰 Cost model (founder Q3 sign-off)
+- Per-NPC charge: **6 credits flat-rate** (covers GLM-5.1 ~$0.003 + Narrator overhead share at 2× markup convention)
+- 3 NPC scenario: +18 credits/turn (+9% vs Opus 200-credit baseline)
+- Storyteller monthly impact: 150 → 138 turns (~8% reduction)
+- Margin maintained 72%+ at worst case (3 NPC every turn)
+- Failed agents = FREE (UX policy · only successful charged)
+
+### 🛡️ Wave 1 → Wave 2 audit · 3 CRIT + 7 HIGH inline-fixed
+| ID | Severity | Found by | Fix |
+|---|---|---|---|
+| **CRIT-A** | 🔴 Feature dead | Agent B | `npc_l3_enabled` 加入 turn route SELECT (was missing · L3 path completely silent · MOST CRITICAL find) |
+| **CRIT-B** | 🔴 Revenue leak | Both agents | Server-side tier recheck per turn (downgrade race F-09 closed · reuses tierCheck.tier · zero extra DB) |
+| **CRIT-C** | 🔴 Drift risk | Agent A | NPC_L3_CREDITS_PER_NPC import · 1 source of truth · 2 hardcoded literals fixed |
+| HIGH-04 (B) | 🟠 Cost | estimateTurnCredits pre-charge accounts for L3 (prevents "free turn" reconciliation debt) |
+| HIGH-06 | 🟠 UX bias | Both | Removed "順利進行" outcome bias from agent prompt |
+| HIGH-05 (A) | 🟠 Security | Agent A | NPC name + inner_thought + intent sanitized (prompt injection blocked) |
+| HIGH-06 (A) | 🟠 Correctness | Agent A | storyLanguage runtime narrow + "zh-Hant" fallback |
+| HIGH-05 (B) | 🟠 UX | Agent B | tier-router uses ACTUAL scene content (bilingual HK 中英夾雜 stories route correctly) |
+| HIGH-02 (A) | 🟠 Reliability | Agent A | POV memory fetch 3s timeout · empty fallback |
+| HIGH-03 (A) | 🟠 Perf | Agent A | recentTurns slice(-4) before map (3× GC waste eliminated) |
+
+### Wave 2 audit verdict: CONVERGED
+- 0 NEW CRIT / 0 NEW HIGH / 0 NEW MED
+- 1 LOW (cosmetic dead-param storyLanguage after refactor)
+- 1 INFO (UI disclosure for L3 cost ceiling · Session 14 work)
+- 2-cycle convergence per CLAUDE.md hard rule #29 (matches Phase 6 + Phase 1 pattern)
+- TypeScript clean
+
+### 📦 Session 13 deliverables
+- **2 migrations** (0027 + 0028) applied prod
+- **3 new files**: schemas/npc-agent.ts · lib/ai/npc-agents.ts · lib/ai/npc-agents-retrieval.ts
+- **3 modified files**: turn-runner.ts (TurnContext + NARRATOR_RULES) · credits.ts (npcL3SuccessfulAgents charge) · turn route (step 4.27 wiring + after() persist)
+- **2 docs**: pm/research-npc-agent-l3.md (964 lines · 21 citations) · pm/npc-l3-implementation-plan.html (12-page founder plan w/ cost analysis)
+- **4 commits**: 2650da0 → 440f0b4 → 204de1e → 6e29bfd
+
+### 📊 Phase 0 + 1 + 1.5 totals (Sessions 11-13)
+- **10 migrations** applied prod (0019-0028)
+- **17 ship blockers caught** pre-prod (5 Phase 0 + 7 Phase 1 + 5 Phase 1.5)
+- **3 function tier phases** complete (Phase 0 tier abstraction · Phase 1 MemPalace+NPC L2+knowledge graph · Phase 1.5 NPC L3)
+- **4 audit campaigns** converged (Phase 0 5-wave · Phase 1 3-wave · Phase 1.5 2-wave · combined ~70+ findings caught)
+
+### 🚦 What's next
+- **Session 14 (UI surface)** — Settings opt-in toggle 「NPC Inner Voices」+ Memory Journal NPC tab · server action setNpcL3Enabled · per-turn UI L3 cost indicator · Wave 1 UI audit · ~2 hours
+- After Session 14 → 🟡 **Money tier** (Phase 4 Stripe + Phase 6 KYC · ~2 sessions)
+- Final stage → 🏁 5 條官方故事 + comprehensive E2E
+
+---
+
+## ✅ Earlier (Session 11 cont. — 🟢 Phase 1 MemPalace + NPC L2 + Knowledge Graph · 3-wave audit converged)
 
 ### TL;DR
 - 4 個新 Migration 上 prod (0023 / 0024 / 0025 / 0026 Wave 2 fix) · 8 個 file 改動
@@ -656,6 +733,31 @@ All sub-tasks done. UI/UX polish (UX-01 / UX-02 / UX-04) parked — user decisio
 ---
 
 ## 📓 Session Log
+
+### Session 13 (Phase 1.5 NPC L3 Agents · backend + Wave 2 audit converged) — 2026-05-26
+
+**Major outcomes**:
+- Phase 1.5 NPC L3 backend shipped (Storyteller tier exclusive · founder Q1-Q5 sign-off from Session 12)
+- 2 migrations applied prod (0027 + 0028) · 3 new files + 3 modified files
+- 2-wave audit converged (5 ship blockers caught: 3 CRIT + 2 dedup'd HIGH升CRIT)
+- **CRIT-A discovery saved a complete feature kill**: `npc_l3_enabled` missing from turn route SELECT → entire L3 path silently skipped in production (smoke test #38 was false-positive)
+
+**Key learnings**:
+- **Smoke tests can lie when they don't exercise the full path**: Session 13 task #38 marked "TypeScript clean + no obvious wiring" but the SELECT statement gap was invisible until audit. Lesson: audit > self-declared "done" even with TypeScript green light. CLAUDE.md hard rule #7 + #9 (founder intuition · audit-as-gating) reinforced again.
+- **MIRROR-style CoT works for NPC agents**: 3-step reasoning (memories_recalled → reactions_predicted → motivation) gives structured grounding · prevents agent hallucination of fake events. Stanford pattern of structured reflection mapped well onto our Director + L2 dynamic_state + lorebook foundation.
+- **Coherence via Director-as-sole-gatekeeper**: Worried that parallel NPC agents would produce contradictory outcomes (kill vs save). Solution: NPC agents POV-only (cannot change state). Narrator integrates POVs + obeys Director verdict + state_delta tool call is sole state-change path. Conflicting NPC intents become DRAMATIC TENSION (a feature) · not contradictory outcomes (a bug).
+- **2-cycle convergence sufficient when fixes are surgical**: Phase 0 needed 5 waves · Phase 1 needed 3 · Phase 1.5 converged at 2. Pattern proves audit count scales inversely with code quality of initial ship. With Sessions 11-13 architecture maturity · Wave 2 audit found only 1 LOW + 1 INFO (no NEW CRIT/HIGH/MED).
+- **Tier-gate downgrade race** (F-09 from research): DB trigger only fires on column WRITE · doesn't downgrade existing TRUE row when user cancels Storyteller. Fix needs SERVER-SIDE recheck per turn (reuses tierCheck.tier · zero extra DB). Pattern applies to any tier-gated feature.
+
+**Decisions effective**:
+- Standard tier model for NPC agents (founder Q1 · saves cost · roleplay-tuned models)
+- 6 credits per NPC flat-rate (founder Q3 · 2× markup convention · simpler than per-token billing)
+- Opt-in via button click (founder Q4 · NOT default ON · Session 14 UI work)
+- Max 3 active NPCs (founder Q2 · balances drama vs cost)
+
+**Next session opening**:
+- 🟣 Session 14 UI surface — Settings toggle + Memory Journal NPC tab + server action setNpcL3Enabled
+- Then Money tier (Phase 4 Stripe + Phase 6 KYC) so Storyteller subscription can actually be purchased
 
 ### Session 11 (Pre-launch Phase 0 — tier abstraction + 5-wave audit) — 2026-05-25
 

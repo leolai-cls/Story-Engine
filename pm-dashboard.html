@@ -734,22 +734,23 @@
       <p class="section-sub">每次新 session 開始，由呢度睇起。</p>
 
       <div class="top-meta">
-        <div><strong>更新</strong> 2026-05-25 · Session 11</div>
-        <div><strong>狀態</strong> Phase 0 + Phase 1 完成 · 3-wave audit converged · 落 Money tier</div>
+        <div><strong>更新</strong> 2026-05-26 · Session 13</div>
+        <div><strong>狀態</strong> Phase 0 + 1 + 1.5 NPC L3 backend 完成 · 落 Session 14 UI surface</div>
         <div><strong>網址</strong> <a href="https://story-engine-drab.vercel.app" target="_blank" style="color: var(--primary);">story-engine-drab.vercel.app</a></div>
       </div>
 
       <div class="status-hero">
-        <div class="label">🟢 而家狀態</div>
-        <div class="phase">Phase 0 + Phase 1 完成 · 8 個 Migration 上 prod · 12 個 ship blocker 修晒</div>
+        <div class="label">🎭 而家狀態</div>
+        <div class="phase">Phase 1.5 NPC L3 Agents backend 完成 · 每個 NPC 有自己嘅內心戲 + POV</div>
         <div class="focus">
-          Tier 抽象 (Standard / Pro / Pro Max / Adult) + 記憶宮殿 (MemPalace 階層式) + NPC Level 2 動態情緒 + 知識圖譜 + 場景式 summary + tier-aware turn trim · 3 cycle audit 收斂 (33 → 0 finding) · 7 個 Phase 1 ship blocker 上線前修好 · TypeScript clean · 後台極之深化。下一步：💰 收錢 (Stripe + KYC) OR 繼續深挖 function。
+          每個 active NPC (max 3) 並行一個 agent · MIRROR 3-step 思考 (recall → predict → motivate) · 出 inner_thought + intent · Narrator 整合做 dramatic tension · 由 Director verdict + state_delta 鎖 outcome (殺人/救人 場景唔會 contradictory)。Storyteller tier 獨享 · button-click opt-in · 6 credits per NPC。2-wave audit converged · 5 ship blocker 上線前修好 (包括 1 個會令整個 feature dead 嘅 SELECT bug)。下一步：🟣 UI Session 14 surface 個 button。
         </div>
         <div class="tier-bar">
-          <div class="tier-step done"><span class="dot">🟢</span><span class="name">Pre-launch P0</span><span class="state">完成</span></div>
+          <div class="tier-step done"><span class="dot">🟢</span><span class="name">P0 Tier</span><span class="state">完成</span></div>
           <div class="tier-step done"><span class="dot">🧠</span><span class="name">P1 記憶宮殿</span><span class="state">完成</span></div>
-          <div class="tier-step next"><span class="dot">🟡</span><span class="name">收錢</span><span class="state">接住做</span></div>
-          <div class="tier-step"><span class="dot">🏁</span><span class="name">官方故事</span><span class="state">最後</span></div>
+          <div class="tier-step done"><span class="dot">🎭</span><span class="name">P1.5 NPC L3</span><span class="state">backend 完</span></div>
+          <div class="tier-step next"><span class="dot">🟣</span><span class="name">UI surface</span><span class="state">接住做</span></div>
+          <div class="tier-step"><span class="dot">🟡</span><span class="name">收錢</span><span class="state">之後</span></div>
         </div>
       </div>
 
@@ -805,48 +806,71 @@
         </div>
       </div>
 
-      <h3 style="margin-top: 36px; margin-bottom: 4px;">🎯 今次 Session 11 做咗 4 樣嘢</h3>
-      <p class="meta" style="margin-bottom: 4px;">8 個 migration (0019-0026) · Phase 0 + Phase 1 一氣呵成 · 8-wave audit converged · 12 個 ship blocker 上線前修好</p>
+      <h3 style="margin-top: 36px; margin-bottom: 4px;">🎯 Session 13 做咗 4 樣嘢</h3>
+      <p class="meta" style="margin-bottom: 4px;">2 個新 Migration (0027 + 0028) · Phase 1.5 NPC L3 backend · 2-wave audit converged · 5 個 ship blocker 上線前修好</p>
       <div class="shipped-row">
         <div class="shipped-chip">
-          <div class="ico">🎯</div>
-          <div class="head">Phase 0 — 4-Tier 模型抽象</div>
-          <div class="body">由「10 個 model 用戶自己揀」變「4 Tier 揀就得」(Standard / Pro / Pro Max / Adult)。中文 → GLM 5.1 / Sonnet · 英文 → Gemini / GPT 5.4 Pro · 系統自動 route。3 層防禦鎖死 model。</div>
-          <span class="audit-pill">✓ 5 ship blocker 修好</span>
+          <div class="ico">🎭</div>
+          <div class="head">P1.5 — NPC L3 Agents backend</div>
+          <div class="body">每個 active NPC (max 3) 並行一個 agent · MIRROR 3-step 思考 (recall → predict → motivate) · 出 inner_thought + intent · Storyteller tier 獨享 · 6 credits per NPC flat-rate。</div>
+          <span class="audit-pill">✓ Migration 0027 + 0028</span>
         </div>
         <div class="shipped-chip">
-          <div class="ico">🧠</div>
-          <div class="head">Phase 1 — 記憶宮殿</div>
-          <div class="body">階層式記憶 (Wings / Rooms / Drawers) · Director 揀邊個 room load · 混合檢索 (60% 語意 + 30% 關鍵字 + 10% 時間) · CJK bigram tokenizer · 解決行業 #1 churn「AI 唔記得」。</div>
-          <span class="audit-pill">✓ Migration 0023 + 0026</span>
+          <div class="ico">🛡️</div>
+          <div class="head">Coherence 3 層保護</div>
+          <div class="body">Director = 唯一 gatekeeper · NPC agents = POV 報告者 (唔可以改 state) · Narrator = 唯一 integrator (ONE narrative + state_delta · 跟 Director)。殺人 vs 救人 場景變 dramatic tension · 唔會 contradictory。</div>
+          <span class="audit-pill">✓ 架構鎖死</span>
         </div>
         <div class="shipped-chip">
-          <div class="ico">💝</div>
-          <div class="head">Phase 1 — NPC Level 2 情緒</div>
-          <div class="body">NPC 有「scene-level 心情」+「當下目標」+「焦點 topic」+「最近 8 次情緒弧」。Director 每 turn 更新 · Narrator 即場睇到 · 情緒連貫性大提升。Director verdict=reject 自動 skip (narrative-integrity 防禦)。</div>
-          <span class="audit-pill">✓ Migration 0024</span>
+          <div class="ico">🔬</div>
+          <div class="head">2-wave audit 收斂</div>
+          <div class="body">Wave 1 揾到 5 ship blocker (3 CRIT + 2 dedup'd HIGH升CRIT) 包括「npc_l3_enabled 漏咗喺 SELECT 入面 → 整個 feature dead」嘅 catastrophic bug · 全部上線前修好。Wave 2 audit 0 NEW issue · CONVERGED。</div>
+          <span class="audit-pill">✓ CRIT 全修</span>
         </div>
         <div class="shipped-chip">
-          <div class="ico">🕸️</div>
-          <div class="head">Phase 1 — 知識圖譜</div>
-          <div class="body">NPC 之間嘅關係 (21 個 edge type · loves / hates / rival / mentor 等) 變成 graph · BFS 行 1-3 hop · 路徑權重排序 · service-role only 寫入。為將來「Director 揀關聯 entity」鋪路。</div>
-          <span class="audit-pill">✓ Migration 0025</span>
+          <div class="ico">📚</div>
+          <div class="head">Research-driven design</div>
+          <div class="body">22-page deep research (Stanford Generative Agents · MIRROR · Drama Machine · Character.AI · CrewAI 等 · 21 inline citation)。Founder Q1-Q5 sign-off 嘅 architecture pattern · 並行 + isolated POV + 冇 synthesizer + Director canonical。</div>
+          <span class="audit-pill">✓ ADR-style</span>
         </div>
       </div>
 
       <div class="next-block">
         <div>
-          <div class="label">🟡 接住做</div>
-          <div class="name">Money tier — Phase 4 Stripe + Phase 6 KYC</div>
-          <div class="detail">Function tier 兩 phase 完晒 · 8 個 Migration · 12 個 ship blocker 修好 · Audit 3 cycle converged。可以開始整收錢 backbone (Stripe 訂閱 + 月度 credits + 一次性 top-up + Stripe Identity 18+ 驗證)。</div>
+          <div class="label">🟣 接住做</div>
+          <div class="name">Session 14 — UI surface (Settings toggle + Memory Journal NPC tab)</div>
+          <div class="detail">Backend ship-ready · 但 button-click opt-in 嘅 button 仲未起。Settings 加 toggle 「NPC Inner Voices · Storyteller 獨享 · +6 credits/NPC」· Memory Journal 加新 tab「NPC 內心戲」showcase 用戶買 Storyteller tier 嘅 value · server action setNpcL3Enabled。然後落 Money tier (Phase 4 Stripe + Phase 6 KYC)。</div>
         </div>
-        <div class="eta">~2 sessions</div>
+        <div class="eta">~2 hours</div>
       </div>
 
       <h3 style="margin-top: 44px;">📜 較早之前嘅 session log</h3>
       <p class="meta">舊 session 紀錄落面，新 session 留喺上面。</p>
 
       <div class="status-grid">
+        <div class="status-card good">
+          <div class="status-card-title">🎭 Session 13 — Phase 1.5 NPC L3 Agents backend · Storyteller tier exclusive · 2-wave audit converged</div>
+          <ul>
+            <li><strong>架構</strong>: 每個 active NPC (max 3 per turn) 並行一個 Standard tier model agent · MIRROR 3-step CoT (recall → predict → motivate) · 出 inner_thought + intent · Narrator 整合所有 POV 寫 ONE narrative + state_delta · Director verdict 鎖 outcome</li>
+            <li><strong>Coherence guarantee (founder 殺人/救人 concern 解答)</strong>: NPC agents 只係 POV reporter · 唔可以改 state · Narrator 係唯一 integrator · obeys Director verdict + state_delta。Conflicting NPC intents (A 想阻擋 · B 想助攻) = dramatic tension ≠ contradictory outcome</li>
+            <li><strong>2 Migrations</strong>: 0027 npc_inner_thoughts table + 2 RPCs (apply_npc_inner_thought + match_npc_inner_thoughts) · 0028 playthroughs.npc_l3_enabled + tier-gate trigger (canonical JWT pattern)</li>
+            <li><strong>3 new files</strong>: schemas/npc-agent.ts (Zod schemas + helpers + 6 credit constant) · lib/ai/npc-agents.ts (parallel orchestration · Promise.allSettled · 8s per-agent timeout) · lib/ai/npc-agents-retrieval.ts (POV memory via walk_lorebook_graph filtered attended/witnessed/located_at edges)</li>
+            <li><strong>3 modified files</strong>: turn route step 4.27 wiring + after() persist · turn-runner.ts (TurnContext + NARRATOR_RULES NPC Inner Streams 規則) · credits.ts (npcL3SuccessfulAgents charge)</li>
+            <li><strong>Cost model</strong>: 6 credits/NPC flat-rate · 3 NPC scenario +18 credits/turn (+9% vs Opus 200) · Storyteller monthly 150→138 turns (-8%) · margin 72%+ at worst case · failed agents = FREE (UX policy)</li>
+            <li><strong>🛡️ Wave 1 audit · 5 ship blocker caught</strong>:
+              <ul>
+                <li>🔴 CRIT-A (Agent B): <code>npc_l3_enabled</code> 漏咗喺 turn route SELECT (line 134) → <code>pt.npc_l3_enabled</code> 永遠 undefined → 整個 L3 path silently skipped。Smoke test 冇 catch 到 · audit 至 catch 到</li>
+                <li>🔴 CRIT-B (both): tier-downgrade race · server 冇 per-turn re-check subscription_tier · 用 existing tierCheck 加層防</li>
+                <li>🔴 CRIT-C (Agent A): 6 hardcoded literal × 2 places → 用 NPC_L3_CREDITS_PER_NPC constant single source</li>
+                <li>🟠 HIGH × 7: estimateTurnCredits pre-charge ignore L3 · agent "順利進行" bias · NPC name prompt injection · storyLanguage no validation · tier-router proxy string · POV no timeout · recentTurns × 3 GC waste</li>
+              </ul>
+            </li>
+            <li><strong>Wave 2 audit verdict</strong>: 0 NEW CRIT/HIGH/MED · 1 LOW (cosmetic) + 1 INFO (UI polish) · <strong>CONVERGED at 2-cycle</strong> per CLAUDE.md hard rule #29</li>
+            <li><strong>Research-driven</strong>: pm/research-npc-agent-l3.md (964 lines · 21 citations: Stanford 2304.03442 · MIRROR 2503.08193 · RoleFact 2406.17260 · Drama Machine 2408.01725 · Character.AI infra blog · NovelAI docs) + pm/npc-l3-implementation-plan.html (12-page founder plan)</li>
+            <li><strong>4 commits</strong>: 2650da0 → 440f0b4 → 204de1e → 6e29bfd · TypeScript clean across all</li>
+            <li><strong>下一步</strong>：🟣 Session 14 UI surface (Settings opt-in toggle + Memory Journal NPC Inner Voices tab + server action setNpcL3Enabled · per-turn UI L3 cost indicator) · ~2 hours · then 🟡 Money tier</li>
+          </ul>
+        </div>
         <div class="status-card good">
           <div class="status-card-title">🧠 Session 11 cont. — Phase 1 MemPalace + NPC L2 + Knowledge Graph · 3-wave audit converged</div>
           <ul>
