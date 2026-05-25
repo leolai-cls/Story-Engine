@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Story Engine — Phase 0 Wave 4 Audit · Security · Correctness · DB</title>
+<style>
+  :root { --primary: #4F46E5; --primary-soft: #EEF2FF; --accent: #F59E0B; --accent-soft: #FEF3C7; --bg: #FAFAF7; --card: #FFFFFF; --ink: #18181B; --ink-soft: #3F3F46; --muted: #71717A; --border: #E4E4E7; --green: #10B981; --green-soft: #D1FAE5; --rose: #E11D48; --amber: #D97706; --code-bg: #F4F4F5; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif; background: var(--bg); color: var(--ink); line-height: 1.65; font-size: 15px; -webkit-font-smoothing: antialiased; }
+  main { max-width: 1080px; margin: 0 auto; padding: 48px 32px 120px; }
+  .hero { text-align: center; margin-bottom: 36px; }
+  .eyebrow { display: inline-block; font-size: 11px; font-weight: 700; color: var(--primary); background: var(--primary-soft); padding: 5px 12px; border-radius: 999px; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 16px; }
+  h1 { font-size: 30px; font-weight: 800; letter-spacing: -0.025em; margin-bottom: 10px; }
+  .hero p { color: var(--muted); font-size: 15.5px; max-width: 760px; margin: 0 auto; }
+  .meta { color: var(--muted); font-size: 13px; margin-top: 14px; }
+  .summary { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin: 32px 0 28px; }
+  .stat { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px; text-align: center; }
+  .stat-num { font-size: 36px; font-weight: 800; line-height: 1; }
+  .stat-label { font-size: 11px; color: var(--muted); margin-top: 8px; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700; }
+  .stat.crit .stat-num { color: var(--rose); }
+  .stat.high .stat-num { color: var(--amber); }
+  .stat.med .stat-num { color: var(--primary); }
+  .stat.low .stat-num { color: var(--muted); }
+  .stat.info .stat-num { color: var(--green); }
+  .stat .zero { color: var(--green); font-size: 32px; }
+  h2 { font-size: 22px; font-weight: 700; margin: 44px 0 14px; display: flex; align-items: center; gap: 10px; }
+  h2 .icon { font-size: 26px; }
+  .verdict { background: linear-gradient(135deg, #fef2f2, #fee2e2); border: 2px solid var(--rose); padding: 22px 26px; border-radius: 14px; margin: 18px 0 36px; }
+  .verdict h3 { color: var(--rose); font-size: 17px; font-weight: 800; margin-bottom: 10px; }
+  .verdict p { font-size: 14.5px; line-height: 1.75; }
+  .verdict ol { margin: 10px 0 0 22px; }
+  .verdict ol li { font-size: 14px; margin: 4px 0; }
+  .verified { background: linear-gradient(135deg, #d1fae5, #ecfdf5); border: 2px solid var(--green); padding: 22px 26px; border-radius: 14px; margin: 18px 0 36px; }
+  .verified h3 { color: var(--green); font-size: 17px; font-weight: 800; margin-bottom: 10px; }
+  .verified p { font-size: 14.5px; line-height: 1.75; }
+  .verified ul { margin: 10px 0 0 22px; }
+  .verified ul li { font-size: 13.5px; margin: 5px 0; }
+  details.dim-section { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 0; margin-bottom: 14px; overflow: hidden; }
+  details.dim-section[open] { box-shadow: 0 2px 12px rgba(0,0,0,0.04); }
+  details.dim-section summary { cursor: pointer; padding: 20px 24px; font-weight: 700; font-size: 17px; display: flex; align-items: center; gap: 12px; user-select: none; }
+  details.dim-section summary::-webkit-details-marker { display: none; }
+  details.dim-section summary::after { content: "▼"; margin-left: auto; color: var(--muted); font-size: 12px; transition: transform .2s; }
+  details.dim-section[open] summary::after { transform: rotate(180deg); }
+  .dim-content { padding: 0 24px 24px; }
+  .issue { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin-bottom: 12px; }
+  .issue.crit { border-left: 4px solid var(--rose); background: #fef2f2; }
+  .issue.high { border-left: 4px solid var(--amber); background: #fffbf4; }
+  .issue.med { border-left: 4px solid var(--primary); }
+  .issue.low { border-left: 4px solid var(--muted); }
+  .issue.info { border-left: 4px solid var(--green); background: #f0fdf4; }
+  .issue-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+  .issue-id { font-weight: 800; font-size: 12.5px; color: var(--primary); flex-shrink: 0; font-family: "SF Mono", Monaco, monospace; }
+  .issue-title { font-weight: 700; font-size: 14.5px; flex: 1; min-width: 220px; }
+  .sev-tag { font-size: 10px; padding: 3px 9px; border-radius: 999px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
+  .sev-crit { background: var(--rose); color: white; }
+  .sev-high { background: var(--amber); color: white; }
+  .sev-med { background: var(--primary-soft); color: var(--primary); }
+  .sev-low { background: var(--code-bg); color: var(--muted); }
+  .sev-info { background: var(--green-soft); color: var(--green); }
+  .issue-loc { font-family: "SF Mono", Monaco, monospace; font-size: 11.5px; color: var(--muted); margin-bottom: 8px; word-break: break-all; }
+  .issue-body { font-size: 13.5px; color: var(--ink-soft); margin-bottom: 8px; line-height: 1.7; }
+  .issue-body strong { color: var(--ink); }
+  .issue-fix { background: rgba(16, 185, 129, 0.06); border-left: 3px solid var(--green); padding: 10px 14px; border-radius: 6px; font-size: 13px; color: var(--ink-soft); margin-top: 10px; }
+  .issue-fix strong { color: var(--green); font-weight: 700; }
+  pre { background: var(--code-bg); padding: 10px 14px; border-radius: 6px; font-family: "SF Mono", Monaco, monospace; font-size: 12px; overflow-x: auto; margin: 8px 0; line-height: 1.5; color: var(--ink-soft); }
+  code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; font-family: "SF Mono", Monaco, monospace; font-size: 12px; }
+  .rule-badge { display: inline-block; font-size: 10px; padding: 2px 7px; border-radius: 4px; background: var(--primary-soft); color: var(--primary); font-weight: 700; margin-left: 6px; letter-spacing: 0.03em; }
+  .diff-block { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0; }
+  .diff-bad, .diff-good { padding: 10px 14px; border-radius: 6px; font-family: "SF Mono", Monaco, monospace; font-size: 11.5px; line-height: 1.55; overflow-x: auto; }
+  .diff-bad { background: #fef2f2; border-left: 3px solid var(--rose); }
+  .diff-good { background: #f0fdf4; border-left: 3px solid var(--green); }
+  .diff-label { font-size: 10px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 4px; }
+  .diff-bad .diff-label { color: var(--rose); }
+  .diff-good .diff-label { color: var(--green); }
+  table.findings { width: 100%; border-collapse: collapse; margin: 12px 0 24px; font-size: 13.5px; }
+  table.findings th { text-align: left; background: var(--code-bg); padding: 10px 14px; font-weight: 700; font-size: 12px; letter-spacing: 0.03em; }
+  table.findings td { padding: 10px 14px; border-top: 1px solid var(--border); vertical-align: top; }
+  table.findings tr:hover { background: var(--bg); }
+  .pill { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px; letter-spacing: 0.04em; }
+  .pill-crit { background: var(--rose); color: white; }
+  .pill-high { background: var(--amber); color: white; }
+  .pill-med { background: var(--primary-soft); color: var(--primary); }
+  .pill-low { background: var(--code-bg); color: var(--muted); }
+  .pill-info { background: var(--green-soft); color: var(--green); }
+  .conv-bar { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 22px 24px; margin: 22px 0; }
+  .conv-bar h4 { font-size: 14px; font-weight: 800; color: var(--primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .conv-track { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .conv-cell { padding: 12px 14px; border-radius: 10px; text-align: center; }
+  .conv-cell .label { font-size: 10.5px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+  .conv-cell .val { font-size: 22px; font-weight: 800; }
+  .conv-cell.fixed { background: var(--green-soft); }
+  .conv-cell.fixed .val { color: var(--green); }
+  .conv-cell.pending { background: #fef2f2; }
+  .conv-cell.pending .val { color: var(--rose); }
+  .conv-cell.declining { background: var(--primary-soft); }
+  .conv-cell.declining .val { color: var(--primary); }
+  @media (max-width: 768px) { .summary { grid-template-columns: repeat(2, 1fr); } main { padding: 24px 16px 80px; } .diff-block { grid-template-columns: 1fr; } .conv-track { grid-template-columns: repeat(2, 1fr); } }
+</style>
+</head>
+<body>
+<main>
+
+<div class="hero">
+  <span class="eyebrow">Phase 0 · Wave 4 Audit · Security · Correctness · DB</span>
+  <h1>Wave 4 — Convergence Check</h1>
+  <p>Re-audit Wave 3 fix (commit 97f935c · explicit LEGACY_NARRATORS allowlist). Convergence target: 0 ship blockers to start the 3-cycle count.</p>
+  <p class="meta">Auditor: Agent A · 2026-05-25 · Wave 3 fix surface focus + broader regression sweep</p>
+</div>
+
+<div class="summary">
+  <div class="stat crit"><div class="stat-num">1</div><div class="stat-label">Crit</div></div>
+  <div class="stat high"><div class="stat-num zero">0</div><div class="stat-label">High</div></div>
+  <div class="stat med"><div class="stat-num">1</div><div class="stat-label">Med</div></div>
+  <div class="stat low"><div class="stat-num">2</div><div class="stat-label">Low</div></div>
+  <div class="stat info"><div class="stat-num">3</div><div class="stat-label">Verified OK</div></div>
+</div>
+
+<div class="verdict">
+  <h3>VERDICT — 1 SHIP BLOCKER · CONVERGENCE NOT STARTED</h3>
+  <p>Wave 4 found <strong>1 CRIT</strong> (P0AW4-CRIT-01 · credit-arbitrage residual). Wave 3 closed the embedding bypass correctly · but the broader attack class "caller-supplied <code>llm_model</code> bypasses validation" is still open via two channels:</p>
+  <ol>
+    <li><strong>Direct UPDATE</strong>: <code>supabase.from('playthroughs').update({llm_model:'gpt-4o-mini'})</code> · RLS lets the row owner write any column · DB confirmed no column lock / no BEFORE UPDATE trigger.</li>
+    <li><strong>Server Action injection</strong>: <code>forkStoryToPlaythrough({storyId, llmModel:'gpt-4o-mini'})</code> · no validation on <code>params.llmModel</code> · RPC passes through.</li>
+  </ol>
+  <p><strong>Attack chain</strong>: set <code>llm_model='gpt-4o-mini'</code> · turn route's <code>userTierAllowsModel</code> ALLOWS (legacy_model bypass) · <code>getProviderModel("gpt-4o-mini")</code> silently falls back to Sonnet 4.6 · <code>computeCredits(modelId:'gpt-4o-mini')</code> bills at gpt-4o-mini rate ($0.15/$0.60 per 1M) while actual narrator is Sonnet 4.6 ($3/$15). <strong>~92% per-turn undercharge with full Sonnet quality.</strong> Same severity profile as the original Wave 1 P0A-CRIT-01.</p>
+  <p><strong>Convergence reset</strong>: Wave 4 = 1 ship blocker · counter remains <strong>0/3</strong>. Wave 5 must close the channel completely (column lock + tier-router-strict validation) and verify zero blockers to start counting.</p>
+</div>
+
+<div class="conv-bar">
+  <h4>Convergence Trend (Hard Rule #29)</h4>
+  <div class="conv-track">
+    <div class="conv-cell fixed"><div class="label">Wave 1</div><div class="val">5 → 0</div></div>
+    <div class="conv-cell fixed"><div class="label">Wave 2</div><div class="val">2 → 0</div></div>
+    <div class="conv-cell fixed"><div class="label">Wave 3</div><div class="val">1 → 0</div></div>
+    <div class="conv-cell pending"><div class="label">Wave 4 (this)</div><div class="val">1 ✗</div></div>
+  </div>
+  <p style="margin-top:14px; font-size:13px; color:var(--muted);">Trend still declining (5→2→1→1) · but the attack vector is broader than Wave 3 scoped. The fix in <code>userTierAllowsModel</code> is correct in isolation; the residual is at <em>two upstream channels</em> (direct UPDATE · fork action). Recommendation: Wave 5 closes both channels with a single BEFORE UPDATE / BEFORE INSERT trigger that validates <code>llm_model ∈ MODELS ∪ LEGACY_NARRATORS</code> at DB layer. <strong>Defense in depth · catches future bypasses too.</strong></p>
+</div>
+
+<h2><span class="icon">🔴</span> CRIT Finding</h2>
+
+<div class="issue crit">
+  <div class="issue-head">
+    <span class="issue-id">P0AW4-CRIT-01</span>
+    <span class="issue-title">Credit-arbitrage attack class still open — caller-supplied <code>llm_model</code> reaches narrator silently as Sonnet, charged as cheap LEGACY_NARRATOR</span>
+    <span class="sev-tag sev-crit">CRIT</span>
+    <span class="rule-badge">CLAUDE.md #4 · ledger trust</span>
+    <span class="rule-badge">#15 with-check</span>
+  </div>
+  <div class="issue-loc">
+    <strong>Surface</strong>: <code>web/src/lib/community/actions.ts:437-499</code> (forkStoryToPlaythrough · accepts <code>llmModel?: string</code> with no validation) · <code>web/src/lib/billing/credits.ts:482</code> (userTierAllowsModel · LEGACY_NARRATORS allowlist) · <code>web/src/lib/ai/providers.ts:49-58</code> (silent Sonnet fallback for unknown id) · <code>web/src/app/api/playthroughs/[id]/turn/route.ts:942</code> (computeCredits called with raw pt.llm_model) · RLS <code>playthroughs_own_update</code> with no column lock
+  </div>
+  <div class="issue-body">
+    <p><strong>Attack chain</strong> (authenticated user · 2 alternative channels):</p>
+    <p><em>Channel A · direct UPDATE</em>:</p>
+    <pre>await supabase.from('playthroughs')
+  .update({ llm_model: 'gpt-4o-mini' })
+  .eq('id', myPtId);  // succeeds · RLS check (auth.uid()=user_id) passes</pre>
+    <p><em>Channel B · Server Action</em>:</p>
+    <pre>await forkStoryToPlaythrough({
+  storyId: '&lt;any public story&gt;',
+  llmModel: 'gpt-4o-mini'  // raw param · zero validation · passed to RPC
+});</pre>
+    <p>Then play the turn:</p>
+    <ol>
+      <li>Turn route loads <code>pt.llm_model = 'gpt-4o-mini'</code>.</li>
+      <li><code>userTierAllowsModel(supabase, user.id, 'gpt-4o-mini')</code>:
+        <ul>
+          <li><code>MODELS['gpt-4o-mini']</code> = undefined (dropped Session 10)</li>
+          <li><code>LEGACY_NARRATORS.has('gpt-4o-mini')</code> = <strong>TRUE</strong></li>
+          <li>Returns <code>{allowed:true, reason:'legacy_model'}</code> ✓</li>
+        </ul>
+      </li>
+      <li><code>getProviderModel('gpt-4o-mini')</code> → <code>getModel</code> throws → <strong>catch falls back to claude-sonnet-4-6</strong>.</li>
+      <li>Sonnet 4.6 generates the narration (premium quality · raw cost ~$0.012/turn at 3K-in/800-out).</li>
+      <li><code>computeCredits({modelId:'gpt-4o-mini', input:3000, output:800})</code>:
+        <ul>
+          <li><code>MODEL_PRICING['gpt-4o-mini']</code> = <code>{input:0.15, output:0.60}</code></li>
+          <li>cost = (3000×0.15 + 800×0.60) / 1M = $0.00093</li>
+          <li>credits = ceil(0.00093 × 2.0 × 1000) = <strong>2 credits</strong></li>
+        </ul>
+      </li>
+      <li>Actual Sonnet-billable cost = ~24 credits. <strong>~92% per-turn undercharge with full Sonnet narrative quality</strong>.</li>
+    </ol>
+    <p><strong>Why Wave 3 didn't catch this</strong>: Wave 3 scoped to "embedding model bypass" (P0AW3-CRIT-01) · fix was correct in isolation (LEGACY_NARRATORS rejects embeddings · ✓). But the deferred BACKLOG items "(a) Migration 0022 BEFORE UPDATE trigger on llm_model · (b) Tier-gate in forkStoryToPlaythrough caller-supplied llmModel" are <em>exactly</em> the gaps that re-open the attack. The Wave 3 commit message marked (b) as "low priority · RLS already blocks via fork RPC ownership" — but RLS blocks <em>WHO can call</em>, not <em>WHAT model value</em> they pass. The RPC accepts <code>p_llm_model</code> with zero validation (verified via <code>pg_proc</code>).</p>
+    <p><strong>Severity calculus</strong>: legacy ids ARE in MODEL_PRICING so billing for the chosen id is internally consistent · but providers.ts silently routes to Sonnet instead. This is the divergence that creates the arbitrage. If providers.ts THREW instead of falling back to Sonnet, attacker would just get a 500 error · attack fails. The fallback was added per <code>AUDIT FIX (AI-H-09)</code> "defense against unknown id" — well-intentioned but it converts a hard failure into a silent quality upgrade + cheap bill.</p>
+    <p><strong>Real-world impact</strong>: Free tier user with 50 daily credits could play <strong>25 free Sonnet turns/day</strong> (charged as 2 each) instead of intended 2-3 Sonnet turns. Adventurer $9.99/mo user with 5000 credits/mo → <strong>2500 Sonnet turns instead of 200</strong>. Linear scaling on user growth = direct margin destruction. Founder rule #4 (credits must be absolutely correct) violated.</p>
+    <p><strong>Attack reproducibility from browser console</strong>:</p>
+    <pre>// In any logged-in user's browser at /play/&lt;myPtId&gt;:
+const { createClient } = window.supabase ?? await import('@/lib/supabase/browser');
+const sb = createClient();
+await sb.from('playthroughs')
+  .update({ llm_model: 'gpt-4o-mini' })
+  .eq('id', '&lt;your-playthrough-id&gt;');
+// Play 1 more turn · check credit_ledger entry · ~2 credits charged</pre>
+  </div>
+  <div class="issue-fix">
+    <strong>Wave 5 fix · two-layer defense</strong>:
+    <p style="margin-top:8px;"><strong>Layer 1 (primary · DB column lock)</strong>: Migration 0022 adds BEFORE INSERT OR UPDATE trigger on <code>playthroughs.llm_model</code> validating it's in the union of MODELS catalog + legacy narrator allowlist. Hard fail at DB layer · no upstream change can bypass.</p>
+    <pre>create or replace function public.protect_playthrough_llm_model()
+returns trigger language plpgsql security invoker as $$
+declare
+  v_allowed text[] := ARRAY[
+    -- Current MODELS catalog (sync to lib/ai/models.ts)
+    'claude-haiku-4-5','claude-sonnet-4-6','claude-opus-4-7',
+    'gpt-5-4-pro','gemini-3-5-flash','glm-5-1','llama-3-1-405b-uncensored',
+    -- LEGACY_NARRATORS (sync to lib/billing/credits.ts)
+    'gpt-4o','gpt-4o-mini','gemini-3-1-pro','grok-2','grok-2-mini'
+  ];
+begin
+  if NEW.llm_model is not null and not (NEW.llm_model = any(v_allowed)) then
+    raise exception 'invalid_llm_model: %', NEW.llm_model using errcode = '23514';
+  end if;
+  -- Also: prevent UPDATE from changing llm_model except via service role
+  -- (back-compat: tier downgrade migration / refunds need the path).
+  if TG_OP = 'UPDATE' and OLD.llm_model is not null
+     and OLD.llm_model is distinct from NEW.llm_model
+     and auth.role() &lt;&gt; 'service_role' then
+    raise exception 'llm_model_immutable_post_creation' using errcode = '42501';
+  end if;
+  return NEW;
+end;
+$$;
+
+create trigger playthroughs_protect_llm_model
+before insert or update on public.playthroughs
+for each row execute function public.protect_playthrough_llm_model();</pre>
+    <p style="margin-top:8px;"><strong>Layer 2 (defense in depth · Server Action)</strong>: <code>forkStoryToPlaythrough</code> validates <code>params.llmModel</code> against <code>MODELS</code> + <code>LEGACY_NARRATORS</code> BEFORE passing to RPC. Friendly 繁中 error instead of DB error code.</p>
+    <pre>// web/src/lib/community/actions.ts:437 (forkStoryToPlaythrough)
+if (params.llmModel) {
+  const isValid = MODELS[params.llmModel] !== undefined
+    || LEGACY_NARRATORS.has(params.llmModel);
+  if (!isValid) {
+    return { ok: false, error: 'unknown_model' };
+  }
+  // Additional: validate tier permission
+  const tierCheck = await userTierAllowsModel(supabase, user.id, params.llmModel);
+  if (!tierCheck.allowed) {
+    return { ok: false, error: `model not allowed for tier ${tierCheck.tier}` };
+  }
+}</pre>
+    <p style="margin-top:8px;"><strong>Layer 3 (optional · already deferred to BACKLOG)</strong>: revisit the silent Sonnet fallback in <code>providers.ts:49-58</code>. The "fall back to Sonnet rather than throwing" is the substrate that lets every variant of this attack succeed silently. Consider promoting to <code>throw</code> with a clear error · accepting a small UX paper-cut for edge-case data corruption in exchange for closing this entire attack class permanently. Trade-off discussion belongs in Wave 5 fix or Phase 1 polish.</p>
+  </div>
+</div>
+
+<h2><span class="icon">🟦</span> MED Finding</h2>
+
+<div class="issue med">
+  <div class="issue-head">
+    <span class="issue-id">P0AW4-MED-01</span>
+    <span class="issue-title">LEGACY_NARRATORS missing 4 historical narrator ids (gemini-pro-1-5 · gemini-flash-1-5 · gemini-2-5-pro · gemini-2-5-flash)</span>
+    <span class="sev-tag sev-med">MED</span>
+    <span class="rule-badge">documentation completeness</span>
+  </div>
+  <div class="issue-loc">
+    <code>web/src/lib/billing/credits.ts:73-79</code> · git history commits c65d6f0 + 630064a + 3a4092d
+  </div>
+  <div class="issue-body">
+    <p>Git archaeology found 4 narrator ids that shipped at some point in Story Engine history but are NOT in current <code>LEGACY_NARRATORS</code>:</p>
+    <ul>
+      <li><code>gemini-pro-1-5</code> · <code>gemini-flash-1-5</code> (commit c65d6f0 · "multi-LLM expansion") · later renamed to 2.5</li>
+      <li><code>gemini-2-5-pro</code> · <code>gemini-2-5-flash</code> (commit 630064a · "2.5 series correction") · later renamed to 3.1/3.5</li>
+    </ul>
+    <p><strong>Current prod DB state</strong> (queried 2026-05-25): only 1 playthrough exists · <code>llm_model='claude-sonnet-4-6'</code>. None of the 4 missing ids appear in <code>playthroughs.llm_model</code> anywhere. So the practical impact is zero <em>right now</em>.</p>
+    <p><strong>Latent risk</strong>: if any pre-launch test playthrough ever had one of these · or if a future audit discovers an orphan row · the user would get <code>unknown_model</code> 403 forever (DoS · self). They cannot continue · they cannot un-stick because there is no UI to edit <code>pt.llm_model</code>. This is less severe than CRIT-01 (no credit harm) but it is a latent data correctness gap that the "DO NOT EXPAND" comment forecloses.</p>
+    <p><strong>Why the Wave 3 doc was wrong</strong>: the comment says "the 5 narrators we've historically shipped + dropped" but git history shows <strong>9 narrators</strong> have been dropped over Story Engine's lifetime. Wave 3 enumerated only the Session 10 batch · missed the earlier Gemini-1.5 + Gemini-2.5 churns.</p>
+  </div>
+  <div class="issue-fix">
+    <strong>Two options</strong>:
+    <p style="margin-top:8px;"><strong>Option A (pragmatic)</strong>: leave LEGACY_NARRATORS as-is since prod DB confirms zero affected rows. Update the comment to acknowledge historical completeness gap. Track via BACKLOG · only add if a future audit catches affected rows.</p>
+    <p style="margin-top:8px;"><strong>Option B (thorough)</strong>: add the 4 missing ids · also add corresponding MODEL_PRICING entries (currently absent · would throw at computeCredits). If you pick this · also pick the rates from the historical pricing in commits c65d6f0 / 630064a (preserved in the file's git log).</p>
+    <p style="margin-top:8px;">Recommendation: <strong>Option A</strong> · since CRIT-01's Wave 5 trigger validates against the same allowlist · any orphan id is caught at DB. Don't bloat LEGACY_NARRATORS without observed need.</p>
+  </div>
+</div>
+
+<h2><span class="icon">🔵</span> LOW Findings</h2>
+
+<div class="issue low">
+  <div class="issue-head">
+    <span class="issue-id">P0AW4-LOW-01</span>
+    <span class="issue-title">Existing Supabase security advisor warnings unchanged — not new but worth tracking</span>
+    <span class="sev-tag sev-low">LOW</span>
+  </div>
+  <div class="issue-loc">
+    <code>get_advisors(type='security')</code> · 25 warnings · pre-existing across Phase 1-6 ship · not introduced by Wave 1-3 fixes
+  </div>
+  <div class="issue-body">
+    <p>Supabase database linter flags (already known · not Wave 4 regressions):</p>
+    <ul>
+      <li><code>rls_enabled_no_policy</code> on <code>stripe_webhook_events</code> (Phase 4 stub · service-role-only writes by design)</li>
+      <li>5× <code>anon_security_definer_function_executable</code> / <code>authenticated_security_definer_function_executable</code> on <code>apply_credit_charge</code> · <code>bump_story_play_count</code> · <code>decrement_story_play_count</code> · <code>update_story_rating_aggregate</code> — all intentional SECURITY DEFINER · each has internal <code>auth.uid()</code> + ownership checks</li>
+      <li>14× <code>auth_allow_anonymous_sign_ins</code> on tables with own RLS · would only matter if Supabase Auth allows anonymous sign-in (we don't · OAuth only)</li>
+      <li><code>auth_leaked_password_protection</code> disabled — could enable HaveIBeenPwned check (no password auth at present so moot)</li>
+    </ul>
+    <p>None of these change Wave 4's ship verdict. Listed for completeness so future audits don't re-discover.</p>
+  </div>
+  <div class="issue-fix">
+    <strong>Action</strong>: no immediate action. If Wave 5 ships <code>protect_playthrough_llm_model</code> · also consider auditing the 5 SECURITY DEFINER functions to confirm their <code>auth.uid()</code> checks haven't drifted since first ship.
+  </div>
+</div>
+
+<div class="issue low">
+  <div class="issue-head">
+    <span class="issue-id">P0AW4-LOW-02</span>
+    <span class="issue-title">Structural: providers.ts silent-Sonnet-fallback is the substrate for credit-arbitrage attack class</span>
+    <span class="sev-tag sev-low">LOW</span>
+    <span class="rule-badge">architecture</span>
+  </div>
+  <div class="issue-loc">
+    <code>web/src/lib/ai/providers.ts:49-58</code>
+  </div>
+  <div class="issue-body">
+    <p>Quoting the file:</p>
+    <pre>export function getProviderModel(internalModelId: string): LanguageModel {
+  let entry: ModelEntry;
+  try {
+    entry = getModel(internalModelId);
+  } catch {
+    // Unknown id — fall back to default Anthropic Sonnet rather than throwing.
+    // (Schema enforces this elsewhere; this branch is a defense.)
+    console.warn(`[providers] unknown model id "${internalModelId}", falling back to claude-sonnet-4-6`);
+    entry = getModel("claude-sonnet-4-6");
+  }
+  ...</pre>
+    <p>This fallback is the load-bearing piece of the credit-arbitrage attack: unknown id → Sonnet narrator + cheap bill. The comment says "Schema enforces this elsewhere" — Wave 4 shows the schema enforcement is NOT comprehensive (no DB constraint · no Server Action validation · only userTierAllowsModel's allowlist · which itself allows the cheap ids via LEGACY_NARRATORS).</p>
+    <p><strong>This is the structural-flaw question the prompt asked about</strong>: "is there a deeper architectural flaw that should be addressed?" Answer: <strong>yes · this single line</strong>. Three consecutive waves have been narrowing the symptom · the root cause is the silent fallback. Until it's promoted to throw (or returns a sentinel that turn route handles · 503 "model misconfigured") · every new model addition to MODEL_PRICING reopens the same attack vector. The "5 minutes to fix one channel · 1 day to play whack-a-mole forever" trade-off favors fixing the root.</p>
+  </div>
+  <div class="issue-fix">
+    <strong>Wave 5 or Phase 1 polish</strong>: change providers.ts to <code>throw new Error('unknown_model · ' + id)</code>. Turn route already has its own validation (<code>userTierAllowsModel</code>) so this branch should be unreachable in practice. Add a metric/alert to surface if it IS reached (= data corruption · investigate).
+    <p style="margin-top:8px;">Trade-off: a user with a corrupted <code>pt.llm_model</code> gets a 500 instead of a silent Sonnet rescue. But corruption is the rare case · arbitrage is the actual attack. The current trade-off favors the rare case · we should flip it.</p>
+    <p style="margin-top:8px;">Not blocking Wave 5 ship · since the DB trigger from CRIT-01 fix already closes the channel. But strongly recommend including as part of the same fix wave for completeness.</p>
+  </div>
+</div>
+
+<h2><span class="icon">✅</span> Verified OK (Wave 3 fix surface)</h2>
+
+<div class="issue info">
+  <div class="issue-head">
+    <span class="issue-id">P0AW4-OK-01</span>
+    <span class="issue-title">LEGACY_NARRATORS Set semantics work correctly · no bypass via whitespace · prototype pollution</span>
+    <span class="sev-tag sev-info">VERIFIED</span>
+  </div>
+  <div class="issue-loc"><code>web/src/lib/billing/credits.ts:73-79</code></div>
+  <div class="issue-body">
+    <p>Tested mental model + code review:</p>
+    <ul>
+      <li><code>Set.has("gpt-4o ")</code> (trailing space) → false ✓ (SameValueZero · exact match)</li>
+      <li><code>Set.has("GPT-4o")</code> (uppercase) → false ✓</li>
+      <li>Prototype pollution: <code>Set</code> doesn't use prototype lookup for <code>.has()</code> · safe ✓</li>
+      <li>The DB column <code>llm_model</code> is set only via createStoryFromPrompt (validates server-side) · forkStoryToPlaythrough (vulnerable per CRIT-01) · direct UPDATE (also vulnerable per CRIT-01). LEGACY_NARRATORS itself is sound.</li>
+    </ul>
+    <p>The Wave 3 fix at the userTierAllowsModel boundary is correct in isolation. The residual attack is in the upstream channels · not in the allowlist itself.</p>
+  </div>
+</div>
+
+<div class="issue info">
+  <div class="issue-head">
+    <span class="issue-id">P0AW4-OK-02</span>
+    <span class="issue-title">setDefaultModel guard order correct — MODELS lookup before userTierAllowsModel</span>
+    <span class="sev-tag sev-info">VERIFIED</span>
+  </div>
+  <div class="issue-loc"><code>web/src/app/[locale]/settings/actions.ts:117-144</code></div>
+  <div class="issue-body">
+    <p>Verified the guard chain:</p>
+    <pre>const model = MODELS[modelId];
+if (!model) {
+  return { ok: false, error: "unknown_model" };  // ← returns BEFORE tier check
+}
+const tierCheck = await userTierAllowsModel(supabase, user.id, modelId);</pre>
+    <p>The setDefaultModel path cannot leak through LEGACY_NARRATORS since MODELS lookup rejects first. Good.</p>
+  </div>
+</div>
+
+<div class="issue info">
+  <div class="issue-head">
+    <span class="issue-id">P0AW4-OK-03</span>
+    <span class="issue-title">Wave 1/2 fixes intact · no regression from Wave 3</span>
+    <span class="sev-tag sev-info">VERIFIED</span>
+  </div>
+  <div class="issue-loc">multiple files</div>
+  <div class="issue-body">
+    <p>Spot-checked all earlier fixes:</p>
+    <ul>
+      <li><strong>TierPicker dynamic estimates</strong> (Wave 1 P0B-CRIT-01 fix) · <code>tier-picker.tsx:67-73 tierAvgCredits</code> still uses <code>TIER_POOLS</code> + <code>estimateTurnCredits</code> live · ✓</li>
+      <li><strong>setAdultMode symmetric reset</strong> (Wave 1 P0A-MED + P0B-HIGH-03) · <code>settings/actions.ts:65-92</code> resets both default_model AND default_tier when disabling adult mode · ✓</li>
+      <li><strong>createStoryFromPrompt tier wiring</strong> (Wave 1 P0A-HIGH-02 + P0B-CRIT-02) · <code>stories/new/actions.ts:141-172</code> · tierPref → pickModelForTier(tier, seedText) precedence over default_model · ✓</li>
+      <li><strong>forkStoryToPlaythrough CJK default</strong> (Wave 2 P0BW2-HIGH-01) · <code>community/actions.ts:481-482</code> · <code>pickModelForTier(tierPref)</code> with NO context arg (defaults to CJK · isChineseContent="" path returns true via `&gt;=0.3` check on empty) · ✓</li>
+      <li><strong>Migration 0021 idempotent</strong> · re-runs harmless · ✓ (verified via migration source · WHERE clause prevents double-application)</li>
+      <li><strong>RAG similarity floors</strong> · all 3 RPCs (match_turn_embeddings 0.5 · match_memory_summaries 0.55 · match_lorebook_entries 0.45) intact · ✓ (Migration 0020 + ghost overload drop 0021 in pg_proc)</li>
+      <li><strong>profiles.default_tier check constraint</strong> matches enum ('standard','pro','pro-max','adult') · ✓</li>
+    </ul>
+    <p>No Wave 1/2 fix was regressed by Wave 3.</p>
+  </div>
+</div>
+
+<h2><span class="icon">🧠</span> Meta-Audit — Convergence Diagnostic</h2>
+
+<div class="conv-bar">
+  <h4>Cross-Wave Pattern Analysis</h4>
+  <table class="findings">
+    <thead><tr><th>Wave</th><th>Symptom</th><th>Fix surface</th><th>Root cause</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><span class="pill pill-info">W1</span></td>
+        <td>Free user picks Opus · burns it</td>
+        <td>userTierAllowsModel introduced</td>
+        <td>No tier gate at action layer</td>
+      </tr>
+      <tr>
+        <td><span class="pill pill-info">W2</span></td>
+        <td>Unknown id → free turn (no MODEL_PRICING entry)</td>
+        <td>Tightened <code>!model</code> branch to reject unknowns</td>
+        <td>Wave 1's permissive "allow if unknown" too loose</td>
+      </tr>
+      <tr>
+        <td><span class="pill pill-info">W3</span></td>
+        <td>Wave 2's "allow if in MODEL_PRICING" admitted embedding model</td>
+        <td>Replaced w/ explicit LEGACY_NARRATORS set</td>
+        <td>MODEL_PRICING isn't a narrator allowlist · semantic mismatch</td>
+      </tr>
+      <tr>
+        <td><span class="pill pill-crit">W4</span></td>
+        <td>LEGACY_NARRATORS entries are the cheapest narrators · attacker sets them via direct UPDATE / fork action</td>
+        <td>(open · awaits Wave 5)</td>
+        <td><strong>Silent Sonnet fallback in providers.ts</strong> · no DB column protection · no Server Action input validation</td>
+      </tr>
+    </tbody>
+  </table>
+  <p style="margin-top:14px; font-size:13px; color:var(--muted);">Each wave fixed a narrower variant of the SAME architectural pattern: "credit charge model id" and "actual narrator model id" can diverge. The convergence path: <strong>(a)</strong> close the upstream channels with DB-level column protection · <strong>(b)</strong> eliminate providers.ts silent fallback. Wave 5 should hit both for true convergence · not just patch CRIT-01 in isolation.</p>
+</div>
+
+<details class="dim-section" open>
+  <summary>📋 Recommendation for Wave 5 — convergence-oriented fix order</summary>
+  <div class="dim-content">
+    <ol style="margin-left:22px; font-size:14px; line-height:2;">
+      <li><strong>Migration 0022 — protect_playthrough_llm_model BEFORE INSERT/UPDATE trigger</strong> (DB layer · primary defense)
+        <ul style="margin-left:20px; margin-top:4px;">
+          <li>Validate <code>llm_model ∈ (current MODELS ∪ LEGACY_NARRATORS)</code></li>
+          <li>Optionally lock UPDATE path (immutable post-creation) for non-service-role</li>
+          <li>Idempotent · safe to ship now</li>
+        </ul>
+      </li>
+      <li><strong>forkStoryToPlaythrough caller-supplied llmModel validation</strong> (Server Action · friendly UX)
+        <ul style="margin-left:20px; margin-top:4px;">
+          <li>Validate against MODELS + LEGACY_NARRATORS BEFORE RPC call</li>
+          <li>Also call userTierAllowsModel · respect tier permission</li>
+          <li>Returns 繁中 error message · not 500</li>
+        </ul>
+      </li>
+      <li><strong>providers.ts silent fallback removed</strong> (structural · close the substrate)
+        <ul style="margin-left:20px; margin-top:4px;">
+          <li>Promote getModel-throw to bubble up · turn route catches → 503 "model_misconfigured"</li>
+          <li>Add metric: count of fallback-rescue events per day (should be 0 after Wave 5)</li>
+        </ul>
+      </li>
+      <li><strong>Wave 4 audit cycle = 1 ship blocker · counter STAYS at 0/3</strong>. Wave 5 must close all three above and Wave 5 audit must find 0 ship blockers to start counting. <em>Don't ship the trigger alone · the structural fix matters for the convergence claim.</em></li>
+    </ol>
+  </div>
+</details>
+
+<h2><span class="icon">📊</span> Findings Index</h2>
+<table class="findings">
+  <thead><tr><th>ID</th><th>Severity</th><th>Title</th><th>Status</th></tr></thead>
+  <tbody>
+    <tr><td><code>P0AW4-CRIT-01</code></td><td><span class="pill pill-crit">CRIT</span></td><td>Credit-arbitrage residual — caller-supplied llm_model bypasses LEGACY_NARRATORS via direct UPDATE + fork action · Sonnet narrator + cheap bill</td><td>Open</td></tr>
+    <tr><td><code>P0AW4-MED-01</code></td><td><span class="pill pill-med">MED</span></td><td>LEGACY_NARRATORS missing 4 historical narrator ids · zero affected rows in prod (latent documentation gap)</td><td>Open · low urgency</td></tr>
+    <tr><td><code>P0AW4-LOW-01</code></td><td><span class="pill pill-low">LOW</span></td><td>Supabase advisor warnings (25 known) · pre-existing · tracked for completeness</td><td>Acknowledged</td></tr>
+    <tr><td><code>P0AW4-LOW-02</code></td><td><span class="pill pill-low">LOW</span></td><td>Structural: providers.ts silent Sonnet fallback is attack substrate · root-cause for waves 2-4</td><td>Open · recommend bundling with W5 fix</td></tr>
+    <tr><td><code>P0AW4-OK-01</code></td><td><span class="pill pill-info">VERIFIED</span></td><td>LEGACY_NARRATORS Set semantics correct · no whitespace · prototype bypass</td><td>OK</td></tr>
+    <tr><td><code>P0AW4-OK-02</code></td><td><span class="pill pill-info">VERIFIED</span></td><td>setDefaultModel guard order correct · MODELS lookup before tier check</td><td>OK</td></tr>
+    <tr><td><code>P0AW4-OK-03</code></td><td><span class="pill pill-info">VERIFIED</span></td><td>Wave 1/2 fixes intact · no regression</td><td>OK</td></tr>
+  </tbody>
+</table>
+
+<p style="margin-top:32px; padding-top:24px; border-top:1px solid var(--border); font-size:13px; color:var(--muted); text-align:center;">
+  Phase 0 Wave 4 Audit · Story Engine · 2026-05-25 · Agent A · Security / Correctness / DB<br>
+  <strong>Verdict</strong>: 1 ship blocker · convergence counter 0/3 · Wave 5 required<br>
+  Hard rule #29 reference: "convergence = 3 consecutive zero-blocker cycles + declining finding trend"
+</p>
+
+</main>
+</body>
+</html>

@@ -53,32 +53,6 @@ export const BASE_CREDITS_PER_USD = 1000;
 export const STORY_ENGINE_MARKUP = 2.0;
 
 /**
- * Explicit allowlist of narrator-class model ids that are NO LONGER in the
- * MODELS catalog but had Story Engine playthroughs locked to them in the
- * past. userTierAllowsModel uses this whitelist when MODELS[modelId] is
- * undefined — letting old playthroughs continue working without throwing.
- *
- * AUDIT FIX P0AW3-CRIT-01 (Wave 3 · 2026-05-25): previously Wave 2 used
- * `modelId in MODEL_PRICING` as the bypass check, which incorrectly admitted
- * `text-embedding-3-small` (an embedding model · 99% undercharge if passed
- * as llm_model). This explicit set is curated to ONLY the 5 narrators we've
- * historically shipped + dropped. Embeddings + future-added MODEL_PRICING
- * entries that aren't narrators cannot bypass.
- *
- * DO NOT add new ids here unless they're truly legacy narrators that
- * existing prod playthroughs are locked to. NEW model curation should drop
- * the id from MODELS catalog AND add it here as part of the same migration
- * wave so back-compat is explicit.
- */
-export const LEGACY_NARRATORS = new Set<string>([
-  "gpt-4o",
-  "gpt-4o-mini",
-  "gemini-3-1-pro",
-  "grok-2",
-  "grok-2-mini",
-]);
-
-/**
  * Per-model token pricing — USD per 1M tokens.
  *
  * Source: Anthropic pricing page Jan 2026; OpenAI text-embedding pricing.
@@ -522,24 +496,24 @@ export async function userTierAllowsModel(
   const { MODELS } = await import("@/lib/ai/models");
   const model = MODELS[modelId];
   if (!model) {
-    // AUDIT FIX P0AW3-CRIT-01 (Wave 3 · 2026-05-25): tightened back-compat
-    // bypass. Wave 2 used `modelId in MODEL_PRICING` which admitted
-    // text-embedding-3-small (an embedding · not a narrator). Now uses
-    // explicit LEGACY_NARRATORS curated set so only the 5 specific dropped
-    // narrator ids bypass · embedding/future-added MODEL_PRICING entries
-    // cannot escalate to narrator role.
+    // AUDIT FIX P0AW4-CRIT-01 (Wave 4 · 2026-05-25): REMOVED the
+    // LEGACY_NARRATORS bypass entirely. Three reasons:
     //
-    // Wave 2 history: opened bypass too wide (5 mins of fix · 1 attack
-    // vector introduced). Wave 3 closes it with explicit set.
-    if (!LEGACY_NARRATORS.has(modelId)) {
-      return { allowed: false, tier, reason: "unknown_model" };
-    }
-    if (process.env.NODE_ENV !== "production") {
-      console.warn(
-        `[userTierAllowsModel] legacy narrator "${modelId}" allowed via LEGACY_NARRATORS whitelist`,
-      );
-    }
-    return { allowed: true, tier, reason: "legacy_model" };
+    //   1. DB query confirmed 0 playthroughs locked to legacy ids today.
+    //      The bypass was protecting zero users.
+    //   2. The bypass let LEGACY ids skip the min_tier check · a Free user
+    //      could direct-DB-write llm_model='gpt-4o' (was min_tier='adventurer'
+    //      before Phase 0 drop) and get GPT-4o quality for free. Paid-tier
+    //      bypass = lost revenue.
+    //   3. Migration 0022 added a BEFORE UPDATE trigger that blocks any
+    //      change to llm_model post-create. So even if a future user
+    //      created a playthrough with a legacy id, they couldn't direct-
+    //      write to escalate. Defense in depth.
+    //
+    // Net result: truly unknown ids 403 again (back to pre-Wave-1 behavior
+    // for the unknown-model case · without the security regression of the
+    // permissive bypass that Wave 1/2/3 wrestled with).
+    return { allowed: false, tier, reason: "unknown_model" };
   }
   if (!model.min_tier) {
     return { allowed: true, tier };

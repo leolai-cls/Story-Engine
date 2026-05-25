@@ -486,11 +486,30 @@ export async function forkStoryToPlaythrough(params: {
     // else: keep the Sonnet default already assigned above
   }
 
+  // AUDIT FIX P0AW4-CRIT-01 (Wave 4 · 2026-05-25): tier-gate the resolved
+  // model BEFORE writing to DB. Previously fork action accepted caller-
+  // supplied llmModel without validation · a Free user could pass
+  // 'claude-opus-4-7' (Pro Max only) and have it locked to their playthrough
+  // until Migration 0022 trigger started blocking direct-writes.
+  //
+  // Now: caller-supplied llmModel goes through userTierAllowsModel · if
+  // user's subscription tier doesn't unlock it · reject with 403-equivalent.
+  // Tier-routed resolvedModel from pickModelForTier is always in user's
+  // subscription pool so check is a no-op for that path · just defense in
+  // depth for the caller-supplied path.
+  const { userTierAllowsModel } = await import("@/lib/billing/credits");
+  const forkTierCheck = await userTierAllowsModel(supabase, user.id, resolvedModel);
+  if (!forkTierCheck.allowed) {
+    console.warn(
+      `[forkStoryToPlaythrough] user ${user.id} tier=${forkTierCheck.tier} blocked from fork with model=${resolvedModel} reason=${forkTierCheck.reason}`,
+    );
+    return { ok: false, error: "model_tier_required" };
+  }
+
   // P6-HIGH-01: derive llm_provider from MODELS · pass to RPC (Migration 0016
   // added p_llm_provider param). Fixes mis-attribution where Llama (openrouter)
-  // forked stories were stamped as anthropic. MODELS[unknown] = undefined for
-  // legacy/dropped model ids → fall back to 'openrouter' (most common for
-  // dropped models like gpt-4o · grok-2).
+  // forked stories were stamped as anthropic. MODELS[unknown] is now
+  // guaranteed defined post-tier-gate · so the fallback is defensive only.
   const resolvedProvider = MODELS[resolvedModel]?.provider ?? "openrouter";
   const { data, error } = await supabase.rpc("fork_story_to_playthrough", {
     p_story_id: params.storyId,
