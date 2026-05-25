@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Story Engine — Engineering To-Do (Pre-Launch)</title>
+<style>
+  :root {
+    --primary: #4F46E5;
+    --primary-soft: #EEF2FF;
+    --bg: #FAFAF7;
+    --card: #FFFFFF;
+    --ink: #18181B;
+    --ink-soft: #3F3F46;
+    --muted: #71717A;
+    --border: #E4E4E7;
+    --green: #10B981;
+    --green-soft: #D1FAE5;
+    --rose: #E11D48;
+    --rose-soft: #FFE4E6;
+    --amber: #D97706;
+    --amber-soft: #FEF3C7;
+    --gray-soft: #F4F4F5;
+    --teal: #0D9488;
+    --teal-soft: #CCFBF1;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+    background: var(--bg); color: var(--ink); line-height: 1.55;
+    padding: 48px 24px 120px;
+  }
+  .wrap { max-width: 1120px; margin: 0 auto; }
+  h1 { font-size: 36px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 4px; }
+  .eyebrow {
+    display: inline-block; font-size: 11px; font-weight: 700; color: var(--primary);
+    background: var(--primary-soft); padding: 5px 10px; border-radius: 999px;
+    letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 12px;
+  }
+  .lede { font-size: 16px; color: var(--muted); max-width: 720px; margin-bottom: 24px; }
+  h2 {
+    font-size: 22px; font-weight: 700; letter-spacing: -0.01em; margin: 44px 0 6px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  h2 .icon { font-size: 26px; }
+  .h2-sub { font-size: 13.5px; color: var(--muted); margin-bottom: 16px; }
+
+  /* Phase progress bar */
+  .phases {
+    display: flex; gap: 6px; margin: 24px 0 32px;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 6px;
+  }
+  .phase-pill {
+    flex: 1; padding: 12px 8px; text-align: center; border-radius: 8px;
+  }
+  .phase-pill .when {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 4px;
+  }
+  .phase-pill .name { font-size: 13px; font-weight: 700; color: var(--ink); }
+  .phase-pill.now { background: #DBEAFE; }
+  .phase-pill.now .when { color: #1E40AF; }
+  .phase-pill.next { background: var(--green-soft); }
+  .phase-pill.next .when { color: #065F46; }
+  .phase-pill.parallel { background: var(--amber-soft); }
+  .phase-pill.parallel .when { color: #92400E; }
+  .phase-pill.gated { background: var(--rose-soft); }
+  .phase-pill.gated .when { color: #9F1239; }
+  .phase-pill.final { background: var(--primary-soft); }
+  .phase-pill.final .when { color: #312E81; }
+
+  /* Task cards */
+  .task {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px 18px; margin-bottom: 10px;
+    display: flex; gap: 14px; align-items: flex-start;
+  }
+  .task.green { border-left: 4px solid var(--green); }
+  .task.amber { border-left: 4px solid var(--amber); }
+  .task.red { border-left: 4px solid var(--rose); }
+  .task.blue { border-left: 4px solid var(--primary); }
+  .task .check {
+    width: 22px; height: 22px; border: 2px solid var(--border); border-radius: 6px;
+    flex-shrink: 0; margin-top: 1px; background: white;
+  }
+  .task .body { flex: 1; }
+  .task .head {
+    font-size: 14.5px; font-weight: 700; color: var(--ink); margin-bottom: 3px;
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  }
+  .task .head .num {
+    background: var(--ink); color: white; font-size: 11px; font-weight: 700;
+    padding: 2px 7px; border-radius: 4px;
+  }
+  .task .desc { font-size: 13px; color: var(--muted); line-height: 1.5; }
+  .task .meta {
+    margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap;
+  }
+  .task .meta span {
+    font-size: 10.5px; font-weight: 600; padding: 2px 7px; border-radius: 4px;
+    background: var(--gray-soft); color: var(--ink-soft);
+  }
+  .task .meta .risk-low { background: var(--green-soft); color: #065F46; }
+  .task .meta .risk-med { background: var(--amber-soft); color: #92400E; }
+  .task .meta .risk-high { background: var(--rose-soft); color: #9F1239; }
+  .task .meta .time { background: var(--primary-soft); color: #3730A3; }
+  .task .meta .impact { background: var(--teal-soft); color: var(--teal); font-weight: 700; }
+
+  /* Section header for phases */
+  .phase-hdr {
+    background: var(--ink); color: white; padding: 16px 22px; border-radius: 12px;
+    margin: 36px 0 14px; display: flex; align-items: center; gap: 14px;
+  }
+  .phase-hdr .label {
+    background: rgba(255,255,255,0.15); padding: 4px 10px; border-radius: 6px;
+    font-size: 11px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .phase-hdr .name { font-size: 18px; font-weight: 700; }
+  .phase-hdr .meta { margin-left: auto; font-size: 12px; opacity: 0.7; }
+
+  /* TL;DR */
+  .tldr {
+    background: linear-gradient(135deg, #EEF2FF 0%, #C7D2FE 100%);
+    border: 1px solid #A5B4FC; border-radius: 14px; padding: 20px 24px; margin-bottom: 28px;
+  }
+  .tldr .label {
+    font-size: 11px; font-weight: 800; color: #3730A3;
+    text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px;
+  }
+  .tldr ul { list-style: none; padding: 0; }
+  .tldr li { font-size: 14.5px; color: #312E81; padding: 3px 0; }
+  .tldr li::before { content: "▸ "; color: #4338CA; font-weight: 700; }
+  .tldr li strong { color: #1E1B4B; }
+
+  /* Dependency notes */
+  .dep {
+    background: var(--gray-soft); border-radius: 8px; padding: 8px 12px;
+    font-size: 12px; color: var(--muted); margin-top: 6px;
+  }
+  .dep::before { content: "🔗 "; }
+  .dep strong { color: var(--ink); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <span class="eyebrow">📋 Engineering To-Do · pre-launch</span>
+  <h1>所有待做工程 · prioritized</h1>
+  <p class="lede">由 RAG fix · model curation · MemPalace memory · NPC agents · TOON · 到 Stripe + 5 stories · 全部 ship 順序。每 task 有 time / risk / impact estimate。</p>
+
+  <div class="tldr">
+    <div class="label">🎯 一句總結</div>
+    <ul>
+      <li><strong>5 個 phase</strong> · 由 30 min quick win 到 launch eve 5 個官方故事</li>
+      <li><strong>Phase 0 · 今日</strong>: RAG floor + tier abstraction (model curation 10→7) · ~3 hour</li>
+      <li><strong>Phase 1 · 1 週</strong>: MemPalace 5 steps + NPC Level 2 · 慳 -50% LLM cost</li>
+      <li><strong>Phase 2 · 平行</strong>: Stripe + KYC (Money tier · launch revenue)</li>
+      <li><strong>Phase 3 · gated</strong>: TOON + NPC Level 3 (premium · A/B benchmark必過先 ship)</li>
+      <li><strong>Phase 4 · final</strong>: 5 官方故事 + comprehensive E2E (launch eve)</li>
+    </ul>
+  </div>
+
+  <!-- Phase progress visual -->
+  <div class="phases">
+    <div class="phase-pill now">
+      <div class="when">Today</div>
+      <div class="name">Phase 0<br>Quick wins</div>
+    </div>
+    <div class="phase-pill next">
+      <div class="when">~1 week</div>
+      <div class="name">Phase 1<br>Memory v2</div>
+    </div>
+    <div class="phase-pill parallel">
+      <div class="when">Parallel</div>
+      <div class="name">Phase 2<br>Money tier</div>
+    </div>
+    <div class="phase-pill gated">
+      <div class="when">Gated</div>
+      <div class="name">Phase 3<br>Premium opt</div>
+    </div>
+    <div class="phase-pill final">
+      <div class="when">Launch eve</div>
+      <div class="name">Phase 4<br>Stories + E2E</div>
+    </div>
+  </div>
+
+  <!-- ═════════════════════════════════════════════ -->
+  <div class="phase-hdr">
+    <span class="label">Phase 0 · Today</span>
+    <span class="name">Quick wins · 30 min - 3 hour</span>
+    <span class="meta">5 tasks · zero schema migration</span>
+  </div>
+
+  <div class="task green">
+    <div class="check"></div>
+    <div class="body">
+      <div class="head"><span class="num">0.1</span>RAG similarity floor (CLAUDE.md hard rule #18)</div>
+      <div class="desc">RPC <code>match_memory_chunks</code> 加 <code>WHERE similarity &gt; 0.55</code> · 即時 -20% irrelevant noise · 已 design 一直 pending</div>
+      <div class="meta">
+        <span class="time">30 min</span>
+        <span class="risk-low">🟢 LOW risk</span>
+        <span class="impact">-20% RAG noise</span>
+        <span>1 file (RPC update)</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="task green">
+    <div class="check"></div>
+    <div class="body">
+      <div class="head"><span class="num">0.2</span>Model curation 10 → 7 + tier abstraction</div>
+      <div class="desc">Drop GPT-4o · GPT-4o mini · Grok 2 · Grok 2 Mini · Gemini 3.1 Pro。 Add GLM-5 · GPT-5.4 Pro · DeepSeek V4。 Rewrite <code>models.ts</code> 用 <strong>tier pool</strong> 結構 (Standard/Pro/Pro Max/Adult)。</div>
+      <div class="meta">
+        <span class="time">~45 min</span>
+        <span class="risk-low">🟢 LOW</span>
+        <span class="impact">UX simplification</span>
+        <span>models.ts · credits.ts MODEL_PRICING</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="task green">
+    <div class="check"></div>
+    <div class="body">
+      <div class="head"><span class="num">0.3</span>NEW lib/ai/tier-router.ts</div>
+      <div class="desc"><code>pickModelForTier(tier, context)</code> · 中文 detect (≥30% CJK) → 揀 Claude / GLM-5 · 英文為主 → 揀 GPT-5.4 / Gemini Flash · vendor fallback chain</div>
+      <div class="meta">
+        <span class="time">~30 min</span>
+        <span class="risk-low">🟢 LOW</span>
+        <span class="impact">vendor diversification</span>
+        <span>NEW file</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="task green">
+    <div class="check"></div>
+    <div class="body">
+      <div class="head"><span class="num">0.4</span>Migration 0019 · profiles.default_tier</div>
+      <div class="desc">Add column <code>default_tier text default 'standard'</code> · existing users backfill 「pro」 (上次揀 Sonnet 嘅默認)。Drop <code>default_model</code> 或 keep 做 fallback</div>
+      <div class="meta">
+        <span class="time">~15 min</span>
+        <span class="risk-low">🟢 LOW</span>
+        <span class="impact">tier UX backend</span>
+        <span>1 migration</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="task green">
+    <div class="check"></div>
+    <div class="body">
+      <div class="head"><span class="num">0.5</span>Turn route · accept tier · internal route · charge fixed credits</div>
+      <div class="desc">Turn route 改接 <code>tier</code> param (而唔係 <code>modelId</code>)。 內部 call <code>pickModelForTier()</code>。 Charge fixed credits per tier (Standard 50 · Pro 120 · Pro Max 200)。 Underlying model variance 我哋食。</div>
+      <div class="meta">
+        <span class="time">~45 min</span>
+        <span class="risk-med">🟡 MED</span>
+        <span class="impact">predictable user billing</span>
+        <span>turn route + UI</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═════════════════════════════════════════════ -->
+  <div class="phase-hdr">
+    <span class="label">Phase 1 · ~1 week</span>
+    <span class="name">Memory v2 · MemPalace pattern + NPC Level 2</span>
+    <span class="meta">7 tasks · cumulative -50% LLM cost</span>
+  </div>
+
+  <div class="task blue">
+    <div class="check"></div>
+    <div class="body">
+      <div class="head"><span class="num">1.1</span>Migration 0020 · hierarchical namespace (Wings → Rooms → Drawers)</div>
+      <div class="desc"><code>memory_chunks</code> 加 <code>room_kind text check ('scene','npc','quest','world')</code> + <code>room_id text</code>。 Index <code>(playthrough_id, room_kind, room_id)</code>。 Backfill existing chunks 默認 <code>room_kind='world'</code>。</div>
+      <div class="meta">
+        <span class="time">~1 hr</span>
+        <span class="risk-low">🟢 LOW</span>
+        <span class="impact">foundation for scoped retrieval</span>
+        <span>1 migration + write path</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="task blue">
+    <div class="check"></div>
+    <div class="body">
+      <div class="head"><span class="num">1.2</span>Director output schema · add <code>rooms_to_load</code> field</div>
+      <div class="desc">Director (Haiku) 分析用戶輸入 + state 之後 · output <code>rooms_to_load: string[]</code> · 例如 <code>["npc:阿明", "scene:咖啡店"]</code>。 Narrator pipeline 接收呢個 list · scoped retrieval。</div>
+      <div class="meta">
+        <span class="time">~1 hr</span>
+        <span class="risk-med">🟡 MED · Director 可能漏 NPC</span>
+        <span class="impact">-33% RAG tokens</span>
+        <span>Director prompt + Narrator route</span>
+      </div>
+      <div class="dep"><strong>Depends on</strong>: Task 1.1 (namespace exists)</div>
+    </div>
+  </div>
+
+  <div class="task blue">
+    <div class="check"></div>
+    <div class="body">
+      <div class="head"><span class="num">1.3</span>Hybrid retrieval pipeline · semantic + keyword + temporal</div>
+      <div class="desc">RPC 入面結合：<code>pg_trgm</code> keyword score (entity name match) + vector similarity + temporal weight (最近 5 turns × 1.5)。 Score weighted blend: 0.6 semantic · 0.25 keyword · 0.15 temporal</div>
+      <div class="meta">
+        <span class="time">~30 min</span>
+        <span class="risk-low">🟢 LOW</span>
+        <span class="impact">+50% retrieval precision</span>
+        <span>1 RPC update</span>
+      </div>
+      <div class="dep"><strong>Depends on</strong>: Task 1.1</div>
+    </div>
+  </div>
+
+  <div class="task blue">
+    <div class="check"></div>
+    <div class="body">
+      <div class="head"><span class="num">1.4</span>NPC Level 2 dynamic state · Director output <code>npc_updates</code></div>
+      <div class="desc">Director schema 加 <code>npc_updates: [{npc, mood, plan_delta, opinion_delta}]</code>。 寫入 <code>playthrough_character_states.dynamic_attrs jsonb</code>。 Narrator 下 turn 讀 active NPCs 嘅 state · 自然寫出符合 mood 嘅反應。</div>
+      <div class="meta">
+        <span class="time">~1 hr</span>
+        <span class="risk-low">🟢 LOW</span>
+        <span class="impact">NPC 一致性 ↑↑ · $0 extra cost</span>
+        <span>Director + state writer</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="task blue">
+    <div class="check"></div>
+    <div class="body">
+      <div class="head"><span class="num">1.5</span>Migration 0021 · knowledge graph (mem_nodes + mem_edges)</div>
+      <div class="desc">兩個新 tables: <code>mem_nodes(kind, label, attrs jsonb)</code> + <code>mem_edges(src, dst, relation, weight)</code>。 Entity extraction pipeline (async Haiku after turn · 已有) 寫入 graph 而唔係 flat lorebook。</div>
+      <div class="meta">
+        <span class="time">~1.5 hr</span>
+        <span class="risk-med">🟡 MED · new architecture component</span>
+        <span class="impact">replace flat lorebook · precise NPC relations</span>
+        <span>1 migration + extractor</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="task blue">
+    <div class="check"></div>
+    <div class="body">
+      <div class="head"><span class="num">1.6</span>Rolling summary REVISED · scoped scene-level (唔 drop)</div>
+      <div class="desc">而家 1 條 whole-playthrough summary · 改做 <strong>per-scene</strong> summary (load 當前 + last 2 scenes · ~300 tokens)。 保住 narrative arc。 唔好原 plan 「drop summary」(風險太高)。</div>
+      <div class="meta">
+        <span class="time">~45 min</span>
+        <span class="risk-low">🟢 LOW (mitigation 修訂)</span>
+        <span class="impact">narrative arc preserved + 慳 200 tokens</span>
+        <span>summarizer + room scope</span>
+      </div>
+      <div class="dep"><strong>Depends on</strong>: Task 1.1 (namespace)</div>
+    </div>
+  </div>
+
+  <div class="task blue">
+    <div class="check"></div>
+    <div class="body">
+      <div class="head"><span class="num">1.7</span>Scene-aware turn trim · 5-15 last turns · 唔截 mid-scene</div>
+      <div class="desc">Last 20 turns full text → last 8 full + 9-15 one-liner + 16+ summary。 Detect scene boundary (location/time skip) · 唔截 mid-scene。 Tier-based: Free 8 · Paid 12 · Premium 20。</div>
+      <div class="meta">
+        <span class="time">~1 hr</span>
+        <span class="risk-med">🟡 MED · narrative continuity risk</span>
+        <span class="impact">-65% recent-turns tokens</span>
+        <span>context builder</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═════════════════════════════════════════════ -->
+  <div class="phase-hdr">
+    <span class="label">Phase 2 · parallel</span>
+    <span class="name">Money tier · Stripe + KYC (launch revenue)</span>
+    <span class="meta">9 tasks · launch blocker</span>
+  </div>
+
+  <div class="task amber">
+    <div class="check"></div>
+    <div class="body">
+      <div class="head"><span class="num">2.1</span>Stripe Subscription products (4 tier × 2 = 8 SKU)</div>
+      <div class="desc">Standard $0 · Story $9.99 / $99 yearly · Legend $19.99 / $199 yearly · (+ Adult tier 加錢)。 Stripe checkout + webhook 更新 <code>profiles.subscription_tier</code> + credit reset cron</div>
+      <div class="meta">
+        <span class="time">~3 hr</span>
+        <span class="risk-med">🟡 MED</span>
+        <span class="impact">收錢 backbone</span>
+        <span>Stripe SDK + 8 SKU + webhook</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="task amber">
+    <div class="check"></div>
+    <div class="body">
+      <div class="head"><span class="num">2.2</span>Top-up SKU (3 product · $4.99 / $9.99 / $19.99)</div>
+      <div class="desc">One-time purchase · 加 credits to balance · webhook idempotent</div>
+      <div class="meta">
+        <span class="time">~1 hr</span>
+        <span class="risk-low">🟢 LOW</span>
+        <span class="impact">power-user revenue</span>
+        <span>Stripe checkout + webhook</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="task amber">
+    <div class="check"></div>
+    <div class="body">
+      <div class="head"><span class="num">2.3</span>Credit meter UI · Settings + Play screen</div>
+      <div class="desc">Settings 頁顯示「X / Y 已用 · 月底重置」+ Buy More CTA · Play 頁每 turn 之前展示扣 credit estimate</div>
+      <div class="meta">
+        <span class="time">~1.5 hr</span>
+        <span class="risk-low">🟢 LOW</span>
+        <span class="impact">user transparency</span>
+        <span>Settings + Play UI</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="task amber">
+    <div class="check"></div>
+    <div class="body">
+      <div class="head"><span class="num">2.4</span>Pricing page rewrite · v3 tier cards</div>
+      <div class="desc">/pricing 用 Standard/Pro/Pro Max tier cards · annual toggle · top-up section · marketing copy</div>
+      <div class="meta">
+        <span class="time">~1.5 hr</span>
+        <span class="risk-low">🟢 LOW</span>
+        <span class="impact">conversion funnel</span>
+        <span>1 page</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="task amber">
+    <div class="check"></div>
+    <div class="body">
+      <div class="head"><span class="num">2.5</span>Refund saga · credit reverse on Stripe refund webhook</div>
+      <div class="desc">Webhook listen <code>charge.refunded</code> · reverse credit deduction · audit-deferred from Phase 3</div>
+      <div class="meta">
+        <span class="time">~1 hr</span>
+        <span class="risk-med">🟡 MED · idempotency</span>
+        <span class="impact">handle refund cleanly</span>
+        <span>webhook handler</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="task amber">
+    <div class="check"></div>
+    <div class="body">
+      <div class="head"><span class="num">2.6</span>Stripe Identity KYC (Storyteller+ adult mode)</div>
+      <div class="desc">Phase 6 KYC · 開 adult mode 觸發 verification flow · $1.50/verify after first 50 free · <code>profiles.is_age_verified</code></div>
+      <div class="meta">
+        <span class="time">~2 hr</span>
+        <span class="risk-med">🟡 MED · external compliance flow</span>
+        <span class="impact">unlock NSFW tier</span>
+        <span>Stripe Identity SDK</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="task amber">
+    <div class="check"></div>
+    <div class="body">
+      <div class="head"><span class="num">2.7</span>Anomaly guards · burst rate-limit + IP fingerprint</div>
+      <div class="desc">Edge function rate-limit (&gt; 3 turns/sec lock 60 sec) · daily soft cap email warning · Free tier multi-account: IP + device fingerprint dedupe</div>
+      <div class="meta">
+        <span class="time">~1.5 hr</span>
+        <span class="risk-med">🟡 MED</span>
+        <span class="impact">won't-lose-money guard</span>
+        <span>edge function + middleware</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="task amber">
+    <div class="check"></div>
+    <div class="body">
+      <div class="head"><span class="num">2.8</span>OpenRouter dynamic pricing fetch (Phase 3 deferred)</div>
+      <div class="desc">而家 MODEL_PRICING 寫 dead · 加 cron 每日 fetch OpenRouter rates · 自動 sync。 防止 vendor 漲價我哋蝕本。</div>
+      <div class="meta">
+        <span class="time">~1 hr</span>
+        <span class="risk-low">🟢 LOW</span>
+        <span class="impact">cost ledger 永遠 accurate</span>
+        <span>cron job</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="task amber">
+    <div class="check"></div>
+    <div class="body">
+      <div class="head"><span class="num">2.9</span>Carryover cap 1.5× monthly allowance</div>
+      <div class="desc">月度 credits 剩低 · 月初 reset 嗰陣 max carry 過 1.5× monthly allowance · 防 stockpile + 年底 burn 危害 unit economics</div>
+      <div class="meta">
+        <span class="time">~30 min</span>
+        <span class="risk-low">🟢 LOW</span>
+        <span class="impact">unit economics protection</span>
+        <span>cron 更新 credit_balance</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═════════════════════════════════════════════ -->
+  <div class="phase-hdr">
+    <span class="label">Phase 3 · gated</span>
+    <span class="name">Premium optimization · A/B benchmark required</span>
+    <span class="meta">3 tasks · ship only if benchmark passes</span>
+  </div>
+
+  <div class="task red">
+    <div class="check"></div>
+    <div class="body">
+      <div class="head"><span class="num">3.1</span>A/B benchmark framework · narrative quality eval</div>
+      <div class="desc">用 50 個 existing playthrough · turn-by-turn 同 baseline 對比 · 用 Claude Opus 評故事質量 (連貫 · 角色一致 · 細節記得) · 唔過 95% baseline 就 rollback feature flag</div>
+      <div class="meta">
+        <span class="time">~3 hr</span>
+        <span class="risk-low">🟢 LOW</span>
+        <span class="impact">quality safety net</span>
+        <span>NEW eval harness</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="task red">
+    <div class="check"></div>
+    <div class="body">
+      <div class="head"><span class="num">3.2</span>TOON encoding · selective adoption + benchmark gate</div>
+      <div class="desc">Install <code>@toon-format/toon</code> · encode Character Cards + Game State + Lorebook 入 TOON · keep Bible Markdown · keep Director JSON Schema。 必須跑 Task 3.1 benchmark · 過 95% 先 ship。 慳 ~1100 tokens/turn。</div>
+      <div class="meta">
+        <span class="time">~2 hr + benchmark</span>
+        <span class="risk-high">🔴 HIGH · format change</span>
+        <span class="impact">-38% structured input</span>
+        <span>encoder + prompt rewrite</span>
+      </div>
+      <div class="dep"><strong>Depends on</strong>: Task 3.1 (benchmark framework)</div>
+    </div>
+  </div>
+
+  <div class="task red">
+    <div class="check"></div>
+    <div class="body">
+      <div class="head"><span class="num">3.3</span>NPC Level 3 · per-NPC dedicated agent (Legend tier)</div>
+      <div class="desc">Legend tier 差異化 feature · async Haiku call per active NPC · 「你係 X · mood = Y · 玩家做 Z · 你會點諗?」 → narrator 接收 internal thoughts。 +$3/user/month cost · marketing 「NPCs are real」</div>
+      <div class="meta">
+        <span class="time">~3 hr</span>
+        <span class="risk-med">🟡 MED · async pipeline + cost</span>
+        <span class="impact">Legend tier 差異化</span>
+        <span>NEW async worker</span>
+      </div>
+      <div class="dep"><strong>Depends on</strong>: Task 1.5 (knowledge graph), Task 1.4 (NPC L2)</div>
+    </div>
+  </div>
+
+  <!-- ═════════════════════════════════════════════ -->
+  <div class="phase-hdr">
+    <span class="label">Phase 4 · launch eve</span>
+    <span class="name">Content + comprehensive E2E test</span>
+    <span class="meta">2 tasks · final stage · ~2-3 session burst</span>
+  </div>
+
+  <div class="task blue">
+    <div class="check"></div>
+    <div class="body">
+      <div class="head"><span class="num">4.1</span>5 條官方故事 (Founder + Claude 親自寫)</div>
+      <div class="desc">Phase 7 · launch-ready 5 stories · cultural diversity (HK + TW + 海外華人)。 Cover 主要 genres: 戀愛校園 · 古惑仔/江湖 · 玄幻 · 校園推理 · 都市奇幻。 每 story 含 Bible + 3-5 NPC cards + 開場敘事 + state schema。</div>
+      <div class="meta">
+        <span class="time">~1-2 session (creative writing)</span>
+        <span class="risk-low">🟢 LOW</span>
+        <span class="impact">launch showcase content</span>
+        <span>creative · DB seed</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="task blue">
+    <div class="check"></div>
+    <div class="body">
+      <div class="head"><span class="num">4.2</span>Comprehensive Manual E2E (founder ~1-2 session)</div>
+      <div class="desc">由 Phase 5 嘅 manual-e2e-phase5.html expand · cover 全部 flow: anon landing · sign up · create story · play 30 turns · NPC interactions · adult mode · KYC · payment · refund · 5 官方故事 · 多語言切換 · mobile drawer · 全部要 founder 親手過。</div>
+      <div class="meta">
+        <span class="time">~1-2 session</span>
+        <span class="risk-low">🟢 LOW</span>
+        <span class="impact">launch quality gate</span>
+        <span>founder manual test</span>
+      </div>
+      <div class="dep"><strong>Depends on</strong>: ALL prior phases done</div>
+    </div>
+  </div>
+
+  <!-- ═════════════════════════════════════════════ -->
+  <div class="phase-hdr">
+    <span class="label">Summary</span>
+    <span class="name">總工夫 + Impact</span>
+    <span class="meta">26 tasks</span>
+  </div>
+
+  <table style="width:100%; border-collapse: separate; border-spacing: 0; background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; font-size: 13.5px;">
+    <thead>
+      <tr style="background: var(--gray-soft);">
+        <th style="text-align:left; padding: 12px 14px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted);">Phase</th>
+        <th style="text-align:left; padding: 12px 14px; font-size: 11px; text-transform: uppercase; color: var(--muted);">Tasks</th>
+        <th style="text-align:right; padding: 12px 14px; font-size: 11px; text-transform: uppercase; color: var(--muted);">Total time</th>
+        <th style="text-align:left; padding: 12px 14px; font-size: 11px; text-transform: uppercase; color: var(--muted);">Cumulative impact</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td style="padding: 11px 14px; border-bottom: 1px solid var(--border);"><strong>Phase 0</strong> Quick wins (today)</td><td style="padding: 11px 14px; border-bottom: 1px solid var(--border);">5</td><td style="padding: 11px 14px; border-bottom: 1px solid var(--border); text-align:right;">~3 hr</td><td style="padding: 11px 14px; border-bottom: 1px solid var(--border); color: #047857; font-weight: 700;">RAG -20% noise · tier UX simpler</td></tr>
+      <tr><td style="padding: 11px 14px; border-bottom: 1px solid var(--border);"><strong>Phase 1</strong> Memory v2 (1 week)</td><td style="padding: 11px 14px; border-bottom: 1px solid var(--border);">7</td><td style="padding: 11px 14px; border-bottom: 1px solid var(--border); text-align:right;">~7 hr</td><td style="padding: 11px 14px; border-bottom: 1px solid var(--border); color: #047857; font-weight: 700;">cumulative −50% LLM cost · NPC 一致性 ↑</td></tr>
+      <tr><td style="padding: 11px 14px; border-bottom: 1px solid var(--border);"><strong>Phase 2</strong> Money tier (parallel)</td><td style="padding: 11px 14px; border-bottom: 1px solid var(--border);">9</td><td style="padding: 11px 14px; border-bottom: 1px solid var(--border); text-align:right;">~14 hr</td><td style="padding: 11px 14px; border-bottom: 1px solid var(--border); color: #047857; font-weight: 700;">Revenue backbone · 收得錢</td></tr>
+      <tr><td style="padding: 11px 14px; border-bottom: 1px solid var(--border);"><strong>Phase 3</strong> Premium opt (gated)</td><td style="padding: 11px 14px; border-bottom: 1px solid var(--border);">3</td><td style="padding: 11px 14px; border-bottom: 1px solid var(--border); text-align:right;">~8 hr + benchmark</td><td style="padding: 11px 14px; border-bottom: 1px solid var(--border); color: #047857; font-weight: 700;">−55% total cost · Legend differentiation</td></tr>
+      <tr><td style="padding: 11px 14px;"><strong>Phase 4</strong> Stories + E2E (launch eve)</td><td style="padding: 11px 14px;">2</td><td style="padding: 11px 14px; text-align:right;">~2-3 session</td><td style="padding: 11px 14px; color: #047857; font-weight: 700;">Launch ready</td></tr>
+    </tbody>
+  </table>
+
+</div>
+</body>
+</html>
