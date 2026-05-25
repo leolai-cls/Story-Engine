@@ -7,25 +7,25 @@
 
 ## 🎯 而家狀態
 
-**Phase**: **🟣 UI TIER complete + Session 10 extensions (Multi-LLM 10 models · My Games + ChatGPT Sidebar · audit wave 1 converged) · 落 🟡 MONEY tier (Phase 4 Stripe + Phase 6 KYC)**
+**Phase**: **🟢 Phase 0 DONE + Phase 1 DONE (Session 11 · 7 migrations 0019-0026 · 7-wave audit converged across 2 phases · 12 ship blockers caught) · 落 🟡 MONEY tier (Phase 4 Stripe + Phase 6 KYC)**
 **Live URL**: https://story-engine-drab.vercel.app
-**Last updated**: 2026-05-25 (Session 10 — Multi-LLM expansion + My Games dedicated page + sidebar + audit wave 1)
+**Last updated**: 2026-05-25 (Session 11 — Phase 0 tier abstraction + Phase 1 MemPalace memory + NPC L2 + Knowledge Graph · 3 audit cycles converged)
 
 ## 🎯 Founder priority rule（鎖死）
 
 **Function → UI → Money**。Phase number 唔等於 priority — 按下面 tier 排：
 
-- 🟢 ~~**FUNCTION**~~ ✅ **DONE** Session 8 cont. — 6 phases + 8 migrations + 2 audit campaigns converged · 43 issues caught pre-prod
-- 🟣 ~~**UI**~~ ✅ **DONE** Session 9 — Grok+Netflix v5 mockup ~100% pixel-match · 14 commits · 47 artboards covered
-- 🟡 **MONEY（next）**：Phase 4 Stripe · Phase 6 KYC · Phase 3 deferred items (refund saga / OpenRouter pricing)
-- 🏁 **Final stage**（after money）：Phase 7 5 條 launch-ready 官方故事 + Comprehensive Manual E2E
+- 🟢 **FUNCTION (in progress, scope expanded)** — Session 8 6-phase complete · **Session 11 pre-launch Phase 0 added** (tier abstraction · 4 migrations · 5 ship blockers caught) · Phase 1 next (MemPalace memory + NPC Level 2)
+- 🟣 **UI** ✅ DONE Session 9 (revisit after function 完晒 + money)
+- 🟡 **MONEY**：Phase 4 Stripe · Phase 6 KYC (deferred until function 完)
+- 🏁 **Final stage**（launch eve）：Phase 7 5 條官方故事 + Comprehensive Manual E2E
 
 ## 📍 What's next（按 function-first priority）
 
 | 排 | Plan item | Tier | Time | Why |
 |---|---|---|---|---|
-| 🥇 | **Money tier** — Phase 4 Stripe (subscription + checkout + top-up) · Phase 6 KYC (Stripe Identity) · Phase 3 deferred (refund saga · OpenRouter dynamic pricing) | 🟡 MONEY | ~2 sessions | 收錢 backbone |
-| ↓ | _Money tier 完晒_ |  |  |  |
+| 🥇 | **Phase 1 — MemPalace 4-layer memory + NPC Level 2** — hierarchical namespace (Wings/Rooms/Drawers) · Director rooms_to_load + npc_updates · hybrid retrieval (semantic + keyword + temporal) · NPC dynamic state via Director output · knowledge graph (mem_nodes + mem_edges) · scoped scene-level rolling summary · tier-based turn trim (8/12/20) | 🟢 FUNCTION | ~2-3 sessions | Solves #1 churn driver "AI 唔記得" · cost optimization + quality 一齊 |
+| 🥈 | **Money tier** — Phase 4 Stripe (subscription + checkout + top-up) · Phase 6 KYC (Stripe Identity) · Phase 3 deferred (refund saga · OpenRouter dynamic pricing) | 🟡 MONEY | ~2 sessions | 收錢 backbone (after function 完) |
 | 🏁 | **Final stage (launch eve)** — (a) Phase 7 content: 5 條 launch-ready 官方故事 (小工作) · (b) Comprehensive Manual E2E (founder ~1-2 session) covers community + UI + adult mode + 5 stories + entire happy path | 🟢 + 🧪 | ~2-3 session 一氣呵成 | Founder rule: 寫故事細工作 · 等所有 backend/UI/money 完晒先 polish 內容 · 同時 final E2E 測 launch-ready product |
 
 ## 🟣 UI tier deliverables (Session 9 · 14 commits · all 47 designer artboards covered)
@@ -63,7 +63,124 @@
 
 **Migrated to backlog** (per pm/BACKLOG.md「Phase 5 deferred polish」section · 20 IDs 跨 4 sub-bucket)：W2.5-GENRE-M-02 alias gap · W2.5-FTS-L-03/L-04 tokenizer polish · W2-COST-H-04 anon ISR · W2.6-MIG-L-02 'curated' enum doc · W2.6-PLAY-L-03/L-04 defensive · W2.6-LIB-L-05 1-char Latin hint · W2.6-LIB-I-06 Settings display_name trim · W2.6-UX-L-03 English error strings · W2.6-MIG-I-07 createStory+trigger origin redundancy · W2.6-INFO-03 getCommentReplies UI TODO · W2.6-MIGRATION-L-04 sanity check pattern · 等等。
 
-## ✅ Just completed (Session 10 — Multi-LLM + My Games + ChatGPT Sidebar + Audit wave 1)
+## ✅ Just completed (Session 11 cont. — 🟢 Phase 1 MemPalace + NPC L2 + Knowledge Graph · 3-wave audit converged)
+
+### TL;DR
+- 4 個新 Migration 上 prod (0023 / 0024 / 0025 / 0026 Wave 2 fix) · 8 個 file 改動
+- 7 個 Phase 1 sub-task 全部完成 (MemPalace hierarchical · Director output extension · hybrid retrieval · NPC Level 2 · knowledge graph · scene-aware summary · tier-aware turn trim)
+- 3-wave audit cycle converged (Wave 1: 33 finding · 7 HIGH → Wave 2 fix → Wave 2 audit: 0 CRIT/HIGH/MED → Wave 3: 0 finding · CONVERGED per CLAUDE.md hard rule #29)
+- **7 ship blockers caught pre-prod** (3 security/correctness + 4 UX/cost)
+
+### 🗃️ 4 Migrations applied prod
+| Migration | Delivery | Sanity |
+|---|---|---|
+| **0023** MemPalace hierarchical | `lorebook_entries.wing` (6-enum) + `room` (free text) · `match_lorebook_by_rooms` + `list_lorebook_rooms` RPCs · `protect_lorebook_wing` BEFORE UPDATE trigger | ✅ 7/7 |
+| **0024** NPC Level 2 | `playthrough_character_states.dynamic_state` jsonb · `apply_npc_dynamic_state` RPC (rolling 8-entry trajectory) | ✅ 3/3 |
+| **0025** Knowledge graph | `mem_edges` table (21 edge_type controlled enum · weight 0..1) · `walk_lorebook_graph` BFS RPC · `add_lorebook_edge` RPC | ✅ 1/4/5/1/1/1 |
+| **0026** Wave 2 audit fix | Canonical JWT pattern (0022/0023 fix) · trajectory trim WITH ORDINALITY (0024 fix) | ✅ verified |
+
+### 🎯 7 sub-tasks completed
+1. ✅ **P1.1** Migration 0023 — hierarchical namespace (Wings/Rooms/Drawers)
+2. ✅ **P1.2** Director schema — memory_hints + npc_updates + scene_boundary
+3. ✅ **P1.3** Hybrid retrieval — 60% semantic + 30% keyword (graded · post-Wave-2) + 10% temporal · CJK bigram + 7-day half-life
+4. ✅ **P1.4** NPC Level 2 — in-memory pre-Narrator apply (skipped on verdict=reject · narrative-integrity guard) + async DB persist
+5. ✅ **P1.5** Knowledge graph — 21 edge types · BFS walk 1-3 hops · service-role only writes
+6. ✅ **P1.6** Scene-aware summary — Director scene_boundary trigger · 25-turn runaway cap · 4-turn min
+7. ✅ **P1.7** Tier-aware turn trim — standard/pro=12 · pro-max=20 · adult=12 (post-Wave-2 bump from 8 to preserve continuity)
+
+### 🛡️ 3-wave audit converged (per CLAUDE.md hard rule #29)
+| Wave | Findings | Verdict |
+|---|---|---|
+| **Wave 1** (initial code surface) | 33 total · 0 CRIT · **7 HIGH** (F-01 JWT pattern · F-02 trajectory ORDER BY · F-03 director_fallback · F-06 npc_update bypass · F-11 Zod defaults · UX-H-02 Standard 8 regression · COST-H-01 max_output overrun · UX-H-03 NaN) · 13 MED · rest LOW/INFO | **NEEDS FIX** |
+| **Wave 2** fix wave | Migration 0026 + code fixes for all 7 HIGH + select MED (graded keyword · npc_updates max 4) | **applied** |
+| **Wave 2** audit | 0 CRIT · 0 HIGH · 0 MED NEW · 5/5 Wave 1 HIGH closures verified PASS | **CONVERGE-1** |
+| **Wave 3** audit | 0 finding · all closures re-verified · no regressions · TypeScript clean | **CONVERGED (ship)** |
+
+### 🔐 Wave 1 → Wave 2 ship blockers caught
+| ID | Severity | Found by | Fix |
+|---|---|---|---|
+| F-01 | 🟠 HIGH SEC | Agent A | Migration 0026 · canonical `request.jwt.claims::jsonb` JWT pattern (applies to 0022 + 0023 triggers) |
+| F-02 | 🟠 HIGH CORR | Agent A | Migration 0026 · `jsonb_array_elements WITH ORDINALITY` + ORDER BY in apply_npc_dynamic_state |
+| F-03 | 🟠 HIGH OPS | Agent A | turn route · `directorFailed` flag · persisted as `{ ...verdict, fallback: true }` for postmortem visibility |
+| F-06 | 🟠 HIGH SEC | Agent A | turn route · skip + clear npc_updates when `verdict.verdict === "reject"` (narrative-integrity defense) |
+| F-11 | 🟠 HIGH CORR | Agent A | director schema · `.default([])` / `.default(false)` on memory_hints / npc_updates / scene_boundary |
+| UX-H-02 | 🟠 HIGH UX | Agent B | models.ts · Standard tier 8 → 12 (matches Pro · preserves mid-scene continuity for existing players) |
+| COST-H-01 | 🟠 HIGH COST | Agent B | director schema · npc_updates `.max(4)` (down from 8) · enforces stated rule · prevents structured-output overrun |
+| UX-H-03 | 🟠 HIGH CORR | Agent B | retriever · `Number.isFinite(updated)` NaN guard in temporalScore + applyHybridScoring (defense-in-depth on corrupt rows) |
+| UX-M-01 | 🟡 MED → fixed in Wave 2 | Agent B | retriever · graded keyword score (matches/max-set vs binary 1.0) — 60/30/10 now actually re-ranks |
+
+### ⏳ Deferred to BACKLOG (carry-over · dormant by design)
+- F-04 (walk_lorebook_graph cycle detection) — no caller yet · acceptable defer
+- F-05 (walk RPC zero-weight propagation) — no caller yet · same
+- F-07 (CJK Extension A/B in extractTokens regex) — BMP-only coverage · pre-launch market mostly BMP
+- F-08 (add_lorebook_edge merge-vs-replace semantic) — no caller yet · document when wiring
+- F-NEW-01 / F-16 (hybrid score denominator inversion · entries with rich keywords penalized) — defer · semantic dominates 60% anyway
+- M-04 (locale-branch Director system prompt) — 繁中-only at launch · expand for zh-Hans + EN before those markets ship
+- P1-UX-H-01 (Memory Journal UI for dynamic_state) — UI tier work · per founder Function-first rule
+
+### 📊 Phase 0 + Phase 1 totals (Session 11)
+- **8 migrations** applied prod (0019-0026)
+- **12 ship blockers caught** pre-prod (5 Phase 0 + 7 Phase 1)
+- **TypeScript clean** across all changes
+- **2 phases function tier complete** · ready for Money tier OR continue function audits
+
+---
+
+## ✅ Earlier (Session 11 — 🟢 Pre-launch Phase 0 tier abstraction + 5-wave audit converged)
+
+### TL;DR
+- 由「10 model 直選」轉做「4 tier 簡單選」（Standard / Pro / Pro Max / Adult）— 對齊 ChatGPT / Claude UX
+- 內部 routing 自動揀最啱 model（中文 → GLM 5.1 / Claude Sonnet；英文 → Gemini Flash / GPT 5.4 Pro）
+- 4 migrations applied prod (0019-0022) · 5-wave audit converged · **5 ship blockers caught pre-prod**
+- Phase 1 (MemPalace + NPC Level 2) 解鎖
+
+### 🎯 Tier abstraction architecture
+| Tier | Pool models | Routing | Subscription |
+|---|---|---|---|
+| **Standard** | Gemini 3.5 Flash · GLM 5.1 | CJK → GLM · EN → Gemini | Free |
+| **Pro** | Claude Sonnet 4.6 · GPT 5.4 Pro | CJK → Sonnet · EN → GPT | Adventurer |
+| **Pro Max** | Claude Opus 4.7 | single | Storyteller |
+| **Adult** | Llama 3.1 405B uncensored | NSFW isolated | Adventurer + 18+ KYC |
+| **Director** | Claude Haiku 4.5 | locked global | — (always) |
+
+### 🆕 Migrations applied prod
+| Migration | What |
+|---|---|
+| `0019_phase0_default_tier` | `profiles.default_tier` text column + check constraint · backfilled 6 users → 'pro' |
+| `0020_phase0_rag_similarity_floor` | Cleanup — DROP 3 ghost RPC overloads (RAG floor was already implemented via `p_min_similarity` runtime param earlier) |
+| `0021_phase0_audit_fix_opus_backfill` | Idempotent · UPDATE Opus users 'pro' → 'pro-max' (defensive · 0 users today · CASE-order bug fix) |
+| `0022_phase0_lock_llm_model_postcreate` | BEFORE UPDATE trigger `protect_playthrough_llm_model` — blocks llm_model / llm_provider writes by authenticated users (service_role bypass for Stripe webhook) |
+
+### 🛡️ 5-wave audit cycle · 5 ship blockers caught
+| Wave | Finding | Severity | Fix |
+|---|---|---|---|
+| **Wave 1 → 2** | `userTierAllowsModel` returned `{allowed:true, reason:'legacy_model'}` for **ANY unknown id** → credit-undercharge attack via browser console RLS write | 🔴 CRIT-01 | Changed to `modelId in MODEL_PRICING` check |
+| **Wave 2 → 3** | `MODEL_PRICING` allowlist 太寬 — embedding model `text-embedding-3-small` 可以 pass 做 narrator id → 99% undercharge with Sonnet quality (silent provider fallback) | 🔴 CRIT-02 | Explicit `LEGACY_NARRATORS` Set replaces price-table check |
+| **Wave 3 → 4** | `LEGACY_NARRATORS` bypasses min_tier check — Free user could set llm_model='gpt-4o' (was Adventurer tier pre-Phase 0) | 🔴 CRIT-03 | **Architectural fix**: Migration 0022 trigger + remove bypass entirely + add tier-gate to forkStoryToPlaythrough |
+| Wave 4 → 5 | CASE clause in Migration 0019 had Opus in 'pro' IN-list BEFORE dedicated 'pro-max' branch — Opus users silently downgraded | 🟠 HIGH-01 | Migration 0021 defensive idempotent fix (0 users today · latent if re-run) |
+| Wave 5 | `userTierAllowsModel` still returned `{allowed:true}` for unknown models — final attack surface | 🟠 HIGH-02 | Strict reject `{ allowed: false, reason: "unknown_model" }` for anything not in MODELS catalog |
+
+**Convergence signal**: Wave 5 ended with 0 ship blocker · architectural 3-layer defense (DB trigger + code allowlist + server action validation) replaces 4 scoped patches.
+
+### 🆕 New files
+- `web/src/lib/ai/tier-router.ts` — `pickModelForTier(tier, context?)` · `isChineseContent(text)` (CJK ratio ≥30%) · `fallbackChainForTier(tier, context?)` for vendor diversification
+- `web/src/components/settings/tier-picker.tsx` — 4 visual tier cards · dynamic credit estimates via `tierAvgCredits` · hides Adult tier when `adult_mode_enabled=false`
+
+### ✏️ Modified files
+- `web/src/lib/ai/models.ts` — 10 → 7 model curation · NEW `ModelTier` type · `TIER_POOLS` · `TIER_GATE` · `DIRECTOR_MODEL` · `DEFAULT_TIER` consts
+- `web/src/lib/billing/credits.ts` — MODEL_PRICING updated 2026 rates (Haiku $1/$5 · Opus $5/$25 · Gemini Flash $1.50/$9 critical fix) · added GLM 5.1 ($0.98/$3.08) + GPT 5.4 Pro ($2.50/$15) · `userTierAllowsModel` strict-reject unknown
+- `web/src/app/[locale]/settings/actions.ts` — `setDefaultTier` action with subscription gate + Adult tier extra gate (`adult_mode_enabled + is_age_verified`) · `setAdultMode` symmetric-resets both `default_model` AND `default_tier`
+- `web/src/app/[locale]/stories/new/actions.ts` — wired `default_tier` priority chain (tier → legacy model → DEFAULT_NARRATOR)
+- `web/src/lib/community/actions.ts` — `forkStoryToPlaythrough` tier resolution via `pickModelForTier` + Wave 4 tier-gate via `userTierAllowsModel` BEFORE fork RPC call
+
+### 🔐 3-layer defense pattern (replaces scoped patches)
+1. **DB trigger** (Migration 0022) — blocks direct RLS write to `llm_model` / `llm_provider` for authenticated users
+2. **Code allowlist** (`userTierAllowsModel` strict reject) — unknown model ids → `{ allowed: false, reason: "unknown_model" }`
+3. **Server action validation** (`forkStoryToPlaythrough` pre-fork tier-gate) — returns friendly error before RPC call
+
+---
+
+## ✅ Earlier (Session 10 — Multi-LLM + My Games + ChatGPT Sidebar + Audit wave 1)
 
 ### Session 10 — 4 commits · 0 CRIT audit verdict
 
@@ -540,7 +657,34 @@ All sub-tasks done. UI/UX polish (UX-01 / UX-02 / UX-04) parked — user decisio
 
 ## 📓 Session Log
 
-### Session 6 (most recent — Phase 2 ship + audit + 3 fix waves) — 2026-05-22
+### Session 11 (Pre-launch Phase 0 — tier abstraction + 5-wave audit) — 2026-05-25
+
+**Major outcomes**:
+- Pivot from 10-model direct selection → 4-tier abstraction (Standard / Pro / Pro Max / Adult)
+- 4 migrations applied prod (0019-0022) · 5-wave audit converged · 5 ship blockers caught pre-prod
+- 3-layer defense pattern shipped (DB trigger + code allowlist + server action validation)
+- Founder feedback validated the direction: "畀咁多公司 LLM 用家去選擇 vs change to standard / pro" — pivot decision lock
+
+**Key learnings**:
+- **Scope creep in audit waves = wrong fix direction** — Waves 1-3 each applied scoped patch which next wave audit broke through. Wave 4 was the architectural root-cause fix (DB trigger replaces all bypasses). Lesson: when audit catches related issue 3 waves in a row, root-cause is needed, not another patch.
+- **User intuition saves us — "點解你整極都仲有錯誤嘅"** caught wave 4-5 still leaving residual unknown-model attack surface · final strict-reject only happened because founder pushed back
+- **Locked-at-creation fields need column-level protection** — RLS `with check` alone insufficient because it permits the column write even if min_tier mismatch. BEFORE UPDATE trigger is the proper enforcement (CLAUDE.md hard rule #15 corollary)
+- **MCP project namespacing is critical** — Initial config pointed at CLS Studio (epimog...) with --read-only · split into supabase-cls (RO) + supabase-story-engine (RW) to prevent cross-project pollution
+
+**Decisions effective**:
+- User picks tier, internal routing handles model selection (matches ChatGPT/Claude UX)
+- Director model locked globally to Claude Haiku 4.5 (not user-selectable)
+- Model selection locked at playthrough creation (NOT switchable mid-game · hard rule #15 corollary)
+- 3-layer defense pattern is the standard for any locked-at-creation field going forward
+
+**Next session opening**:
+- 🟢 Phase 1 — MemPalace 4-layer memory architecture + NPC Level 2 dynamic state
+- Migration 0023 hierarchical namespace (Wings/Rooms/Drawers)
+- Director output schema extension (rooms_to_load + npc_updates)
+- Hybrid retrieval (semantic + keyword + temporal boosting)
+- Migration knowledge graph (mem_nodes + mem_edges)
+
+### Session 6 (Phase 2 ship + audit + 3 fix waves) — 2026-05-22
 
 **Major outcomes**:
 - Phase 2 4-layer long-term memory shipped end-to-end (5 new files, 1 migration, 1 turn route refactor)

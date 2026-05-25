@@ -734,20 +734,20 @@
       <p class="section-sub">每次新 session 開始，由呢度睇起。</p>
 
       <div class="top-meta">
-        <div><strong>更新</strong> 2026-05-25 · Session 10</div>
-        <div><strong>狀態</strong> 後台 + UI 都完成 · 接住做收錢</div>
+        <div><strong>更新</strong> 2026-05-25 · Session 11</div>
+        <div><strong>狀態</strong> Phase 0 + Phase 1 完成 · 3-wave audit converged · 落 Money tier</div>
         <div><strong>網址</strong> <a href="https://story-engine-drab.vercel.app" target="_blank" style="color: var(--primary);">story-engine-drab.vercel.app</a></div>
       </div>
 
       <div class="status-hero">
-        <div class="label">🟣 而家狀態</div>
-        <div class="phase">後台同 UI 都完成 · 可以畀朋友試玩</div>
+        <div class="label">🟢 而家狀態</div>
+        <div class="phase">Phase 0 + Phase 1 完成 · 8 個 Migration 上 prod · 12 個 ship blocker 修晒</div>
         <div class="focus">
-          要正式 launch HK + TW 仲差兩件事：收錢 (Stripe 訂閱) 同寫 5 條官方故事。其餘全部 ready。
+          Tier 抽象 (Standard / Pro / Pro Max / Adult) + 記憶宮殿 (MemPalace 階層式) + NPC Level 2 動態情緒 + 知識圖譜 + 場景式 summary + tier-aware turn trim · 3 cycle audit 收斂 (33 → 0 finding) · 7 個 Phase 1 ship blocker 上線前修好 · TypeScript clean · 後台極之深化。下一步：💰 收錢 (Stripe + KYC) OR 繼續深挖 function。
         </div>
         <div class="tier-bar">
-          <div class="tier-step done"><span class="dot">🟢</span><span class="name">後台</span><span class="state">完成</span></div>
-          <div class="tier-step done"><span class="dot">🟣</span><span class="name">UI</span><span class="state">完成</span></div>
+          <div class="tier-step done"><span class="dot">🟢</span><span class="name">Pre-launch P0</span><span class="state">完成</span></div>
+          <div class="tier-step done"><span class="dot">🧠</span><span class="name">P1 記憶宮殿</span><span class="state">完成</span></div>
           <div class="tier-step next"><span class="dot">🟡</span><span class="name">收錢</span><span class="state">接住做</span></div>
           <div class="tier-step"><span class="dot">🏁</span><span class="name">官方故事</span><span class="state">最後</span></div>
         </div>
@@ -805,34 +805,40 @@
         </div>
       </div>
 
-      <h3 style="margin-top: 36px; margin-bottom: 4px;">🎯 今次 Session 做咗 3 樣嘢</h3>
-      <p class="meta" style="margin-bottom: 4px;">4 個 commit · 2 個 AI agent parallel audit · 0 個 critical bug</p>
+      <h3 style="margin-top: 36px; margin-bottom: 4px;">🎯 今次 Session 11 做咗 4 樣嘢</h3>
+      <p class="meta" style="margin-bottom: 4px;">8 個 migration (0019-0026) · Phase 0 + Phase 1 一氣呵成 · 8-wave audit converged · 12 個 ship blocker 上線前修好</p>
       <div class="shipped-row">
         <div class="shipped-chip">
-          <div class="ico">🤖</div>
-          <div class="head">多 AI Model 揀</div>
-          <div class="body">由 1 個 model 變 10 個 · 每個 vendor 2 個版本 (高級 + 平價)。免費 user 都用到 GPT-4o mini · Gemini Flash · Grok Mini · Haiku。</div>
-          <span class="audit-pill">✓ Anthropic 隔離 NSFW</span>
+          <div class="ico">🎯</div>
+          <div class="head">Phase 0 — 4-Tier 模型抽象</div>
+          <div class="body">由「10 個 model 用戶自己揀」變「4 Tier 揀就得」(Standard / Pro / Pro Max / Adult)。中文 → GLM 5.1 / Sonnet · 英文 → Gemini / GPT 5.4 Pro · 系統自動 route。3 層防禦鎖死 model。</div>
+          <span class="audit-pill">✓ 5 ship blocker 修好</span>
         </div>
         <div class="shipped-chip">
-          <div class="ico">📑</div>
-          <div class="head">「我嘅遊戲」頁 + Sidebar</div>
-          <div class="body">想睇返舊 playthrough? 頂部 nav「我嘅遊戲」link 列晒。玩緊嗰陣左邊有 sidebar 直接 switch 第二個 playthrough (mobile drawer)。</div>
-          <span class="audit-pill">✓ ChatGPT-style</span>
+          <div class="ico">🧠</div>
+          <div class="head">Phase 1 — 記憶宮殿</div>
+          <div class="body">階層式記憶 (Wings / Rooms / Drawers) · Director 揀邊個 room load · 混合檢索 (60% 語意 + 30% 關鍵字 + 10% 時間) · CJK bigram tokenizer · 解決行業 #1 churn「AI 唔記得」。</div>
+          <span class="audit-pill">✓ Migration 0023 + 0026</span>
         </div>
         <div class="shipped-chip">
-          <div class="ico">🔬</div>
-          <div class="head">2 個 AI Agent Audit</div>
-          <div class="body">Security + UX 兩個 agent 同時審計新 code · 揾到 0 個 critical bug · 5 個 high 已即場修 (登入跳轉 · 手機 header · 速度等)。</div>
-          <span class="audit-pill">✓ Audit converged</span>
+          <div class="ico">💝</div>
+          <div class="head">Phase 1 — NPC Level 2 情緒</div>
+          <div class="body">NPC 有「scene-level 心情」+「當下目標」+「焦點 topic」+「最近 8 次情緒弧」。Director 每 turn 更新 · Narrator 即場睇到 · 情緒連貫性大提升。Director verdict=reject 自動 skip (narrative-integrity 防禦)。</div>
+          <span class="audit-pill">✓ Migration 0024</span>
+        </div>
+        <div class="shipped-chip">
+          <div class="ico">🕸️</div>
+          <div class="head">Phase 1 — 知識圖譜</div>
+          <div class="body">NPC 之間嘅關係 (21 個 edge type · loves / hates / rival / mentor 等) 變成 graph · BFS 行 1-3 hop · 路徑權重排序 · service-role only 寫入。為將來「Director 揀關聯 entity」鋪路。</div>
+          <span class="audit-pill">✓ Migration 0025</span>
         </div>
       </div>
 
       <div class="next-block">
         <div>
           <div class="label">🟡 接住做</div>
-          <div class="name">收錢 (Money tier)</div>
-          <div class="detail">Stripe 訂閱 + 月度 credits + 一次性 top-up · 成人模式年齡驗證 (Stripe Identity)</div>
+          <div class="name">Money tier — Phase 4 Stripe + Phase 6 KYC</div>
+          <div class="detail">Function tier 兩 phase 完晒 · 8 個 Migration · 12 個 ship blocker 修好 · Audit 3 cycle converged。可以開始整收錢 backbone (Stripe 訂閱 + 月度 credits + 一次性 top-up + Stripe Identity 18+ 驗證)。</div>
         </div>
         <div class="eta">~2 sessions</div>
       </div>
@@ -841,6 +847,54 @@
       <p class="meta">舊 session 紀錄落面，新 session 留喺上面。</p>
 
       <div class="status-grid">
+        <div class="status-card good">
+          <div class="status-card-title">🧠 Session 11 cont. — Phase 1 MemPalace + NPC L2 + Knowledge Graph · 3-wave audit converged</div>
+          <ul>
+            <li><strong>4 個 Migration 上 prod (0023 + 0024 + 0025 + 0026 Wave 2 fix)</strong> · 8 個 file 改動 · TypeScript clean · 0 個 ship blocker 上線</li>
+            <li><strong>P1.1 MemPalace 階層式 namespace</strong>: <code>lorebook_entries.wing</code> (6 enum: characters/places/items/events/lore/protagonist) + <code>room</code> (free text) · 2 個新 RPC (<code>match_lorebook_by_rooms</code> + <code>list_lorebook_rooms</code>) · wing-lock trigger</li>
+            <li><strong>P1.2 Director output extension</strong>: <code>memory_hints</code> (rooms_to_load + wings_to_load) + <code>npc_updates</code> (max 4 · emotional_shift + current_mood + current_goal + topic_focus) + <code>scene_boundary</code> · 全部 Zod default protect 防 LLM 漏 field</li>
+            <li><strong>P1.3 Hybrid retrieval</strong>: 60% semantic + 30% keyword (graded · intersection/max-set) + 10% temporal (7-day half-life) · CJK bigram tokenizer 同 Phase 5 FTS 一致 · NaN guard 防 corrupt row</li>
+            <li><strong>P1.4 NPC Level 2 動態狀態</strong>: in-memory pre-Narrator apply (即場畀 prompt 睇到) + async DB persist via service-role RPC · 8-entry rolling emotional_trajectory · verdict=reject 自動 skip (narrative-integrity 防 social-engineer attack)</li>
+            <li><strong>P1.5 知識圖譜</strong>: <code>mem_edges</code> table · 21 edge_type controlled enum (loves/hates/rival/mentor/sibling/friend/located_at/caused/witnessed/owns/embodies 等) · <code>walk_lorebook_graph</code> BFS RPC (1-3 hop · 路徑權重排序) · service-role only writes</li>
+            <li><strong>P1.6 Scene-aware summary</strong>: Director scene_boundary → summarizer fires scoped scene · 25-turn 硬上限防失控 · 4-turn 下限防 micro-summary</li>
+            <li><strong>P1.7 Tier-aware turn trim</strong>: standard/pro = 12 · pro-max = 20 · adult = 12 (Wave 2 由 8 bump 到 12 防 Standard 用戶 mid-scene 失憶)</li>
+            <li><strong>🛡️ 3-wave audit converged</strong>: Wave 1 揾到 33 finding · 7 HIGH (3 sec/corr + 4 ux/cost) → Wave 2 fix · 0 CRIT/HIGH/MED NEW → Wave 3 確認 0 finding · CONVERGED per CLAUDE.md hard rule #29</li>
+            <li><strong>7 個 ship blocker 修好</strong>: JWT canonical pattern · trajectory ORDER BY · director_fallback ops marker · npc_updates skip-on-reject · Zod defaults · Standard tier 12 · npc_updates max 4 · NaN guards · graded keyword</li>
+            <li><strong>Phase 0 + Phase 1 合計</strong>: 8 migrations (0019-0026) · 12 ship blockers caught pre-prod · function tier 深化 · 落 Money tier (Phase 4 Stripe + Phase 6 KYC)</li>
+          </ul>
+        </div>
+        <div class="status-card good">
+          <div class="status-card-title">🟢 Session 11 — Pre-launch Phase 0 · Tier abstraction + 5-wave audit converged</div>
+          <ul>
+            <li><strong>由 10-model 直選 → 4-Tier 抽象</strong>: Standard (Gemini Flash · GLM 5.1) · Pro (Sonnet · GPT 5.4 Pro) · Pro Max (Opus) · Adult (Llama 405B uncensored)。Director 鎖死全局 Haiku 4.5。</li>
+            <li><strong>內部 routing</strong>: <code>pickModelForTier(tier, context)</code> · CJK ratio ≥30% → Sonnet/GLM · 英文 → GPT/Gemini · 對齊 ChatGPT / Claude UX「揀 tier 唔揀 vendor」</li>
+            <li><strong>4 migrations 上 prod</strong>: 0019 profiles.default_tier + backfill 6 users · 0020 RAG floor cleanup (3 ghost overloads dropped) · 0021 Opus CASE-order defensive fix · 0022 BEFORE UPDATE trigger lock llm_model post-creation</li>
+            <li><strong>5-wave audit · 5 個 ship blocker 上線前修好</strong>:
+              <ul>
+                <li>🔴 CRIT-01 Wave 1 → 2: <code>userTierAllowsModel</code> 對任何 unknown id 返 <code>{allowed:true}</code> → credit-undercharge attack</li>
+                <li>🔴 CRIT-02 Wave 2 → 3: MODEL_PRICING 太寬 — embedding model 可以 pass 做 narrator id</li>
+                <li>🔴 CRIT-03 Wave 3 → 4: LEGACY_NARRATORS bypass min_tier — Free user 可以偷用 gpt-4o · 解法 = 架構性 3 層防</li>
+                <li>🟠 HIGH-01 Wave 4 → 5: Migration 0019 CASE order bug · Opus 用戶 silently 跌返 'pro'</li>
+                <li>🟠 HIGH-02 Wave 5: 收尾把 unknown model strict reject 鎖死</li>
+              </ul>
+            </li>
+            <li><strong>3 層防禦 pattern (新 standard for locked-at-creation fields)</strong>: ① DB trigger ② Code allowlist ③ Server action validation</li>
+            <li><strong>新 file</strong>: <code>lib/ai/tier-router.ts</code> (pickModelForTier + isChineseContent + fallback chain) · <code>components/settings/tier-picker.tsx</code> (4 visual cards + dynamic credit estimate + Adult hidden when off)</li>
+            <li><strong>改 file</strong>: <code>lib/ai/models.ts</code> (10→7 model · TIER_POOLS · TIER_GATE · DIRECTOR_MODEL) · <code>lib/billing/credits.ts</code> (2026 rates · 加 GLM 5.1 + GPT 5.4 Pro · userTierAllowsModel strict-reject) · <code>settings/actions.ts</code> (setDefaultTier + symmetric setAdultMode reset) · <code>stories/new/actions.ts</code> + <code>community/actions.ts</code> (tier priority chain + pre-fork tier-gate)</li>
+            <li><strong>下一步</strong>：🧠 Phase 1 記憶宮殿 (MemPalace) — 階層式 namespace + Director rooms_to_load + 混合檢索 + NPC Level 2 + 知識圖譜</li>
+          </ul>
+        </div>
+        <div class="status-card good">
+          <div class="status-card-title">🟣 Session 10 — Multi-LLM 10 models · My Games + ChatGPT Sidebar · Audit wave 1</div>
+          <ul>
+            <li><strong>4 commits</strong>: 3a4092d (Multi-LLM 10 model) · c580a1b (Gemini slug fix) · c26c9ba (/my page + PlaythroughSidebar) · 37e9a13 (Audit wave 1 fixes · 5 HIGH + 1 MED · 0 CRIT)</li>
+            <li><strong>10 models</strong> across 2-per-vendor pattern: Anthropic direct (Sonnet 4.6 / Opus 4.7 / Haiku 4.5) · OpenAI (GPT-4o / 4o mini) · Google (Gemini 3.1 Pro / 3.5 Flash) · xAI (Grok 2 / Mini) · Meta NSFW (Llama 3.1 405B isolated)</li>
+            <li><strong>NEW /my page</strong> — 3 status tab (進行中/已封存/棄置) · status badge · 角色名 · turn count · relative time</li>
+            <li><strong>NEW PlaythroughSidebar</strong> — desktop 240px persistent rail · mobile drawer · 12 個最近 run · current 高亮 · ChatGPT-style</li>
+            <li><strong>Audit wave 1 fixes</strong>: Login ?next= chain · totalPlaythroughCount in Promise.all · mobile play header overflow · React cache() wrap on auth.getUser (~30-80ms saved / authed page · ~500K Supabase auth call/月 saved @ 10k MAU) · narrative width regression · /my?tab=X dead-end</li>
+            <li><em>Note: Session 11 將「畀玩家直選 10 個 model」改做「畀玩家揀 4 個 Tier」· 對齊 ChatGPT / Claude UX</em></li>
+          </ul>
+        </div>
         <div class="status-card good">
           <div class="status-card-title">🟣 Session 9 — UI TIER SHIPPED · 14 commits · v5 mockup ~100% pixel-match</div>
           <ul>
