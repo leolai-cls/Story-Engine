@@ -46,3 +46,8 @@ next-env.d.ts
 # Supabase CLI working files
 supabase/.temp/
 supabase/.branches/
+
+# Claude Code project-local config (contains MCP secrets · Supabase PAT)
+# settings.local.json is for credentials/local overrides · MUST NOT commit
+.claude/settings.local.json
+.mcp.json
