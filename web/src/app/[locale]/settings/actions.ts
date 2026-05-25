@@ -33,10 +33,11 @@ export async function setAdultMode(
   }
 
   // Load profile state once · need is_age_verified for enable path + current
-  // default_model to detect NSFW model that needs auto-reset on disable.
+  // default_model + default_tier to detect NSFW model/tier that needs auto-
+  // reset on disable.
   const { data: profile } = await supabase
     .from("profiles")
-    .select("is_age_verified, default_model")
+    .select("is_age_verified, default_model, default_tier")
     .eq("id", user.id)
     .single();
 
@@ -61,7 +62,19 @@ export async function setAdultMode(
   const needsModelReset =
     !enabled && currentModelEntry?.allows_nsfw === true;
 
-  const update: { adult_mode_enabled: boolean; default_model?: string; default_llm_provider?: string } = {
+  // AUDIT FIX P0A-MED + P0B-HIGH-03 (2026-05-25): also reset default_tier
+  // if it equals 'adult' when disabling adult mode. Without this, TierPicker
+  // would show the Adult card as selected · but the card is hidden when
+  // adult mode off → ghost UI state where no card is highlighted.
+  const currentTier = profile?.default_tier as ModelTier | null | undefined;
+  const needsTierReset = !enabled && currentTier === "adult";
+
+  const update: {
+    adult_mode_enabled: boolean;
+    default_model?: string;
+    default_llm_provider?: string;
+    default_tier?: ModelTier;
+  } = {
     adult_mode_enabled: enabled,
   };
   if (needsModelReset) {
@@ -69,6 +82,12 @@ export async function setAdultMode(
     update.default_llm_provider = MODELS[DEFAULT_NARRATOR]?.provider ?? "anthropic";
     console.log(
       `[setAdultMode] reset NSFW default_model "${currentModel}" → "${DEFAULT_NARRATOR}" for user ${user.id} (adult mode disabled)`,
+    );
+  }
+  if (needsTierReset) {
+    update.default_tier = "pro";
+    console.log(
+      `[setAdultMode] reset default_tier 'adult' → 'pro' for user ${user.id} (adult mode disabled)`,
     );
   }
 

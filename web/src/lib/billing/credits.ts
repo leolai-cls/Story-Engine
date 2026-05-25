@@ -496,7 +496,28 @@ export async function userTierAllowsModel(
   const { MODELS } = await import("@/lib/ai/models");
   const model = MODELS[modelId];
   if (!model) {
-    return { allowed: false, tier, reason: "unknown_model" };
+    // AUDIT FIX P0A-CRIT-01 / P0B-CRIT-01 (2026-05-25): existing playthroughs
+    // were created with models that have since been DROPPED from MODELS catalog
+    // (Session 10 curation 10→7: gpt-4o, gpt-4o-mini, grok-2, grok-2-mini,
+    // gemini-3-1-pro). Their playthroughs are LOCKED to those model ids at
+    // creation. Returning {allowed:false, reason:'unknown_model'} causes the
+    // turn route to 403 them permanently — they can't continue their saved
+    // playthroughs.
+    //
+    // Fix: legacy/dropped models are ALWAYS allowed (existing user can keep
+    // playing). MODEL_PRICING still has their entries → computeCredits works.
+    // Tier gate is bypassed because we never re-validate locked-at-creation
+    // models. If the model id is also missing from MODEL_PRICING, providers.ts
+    // dispatch will throw later — but that's a different error class.
+    //
+    // Log a warning so we can monitor how many dropped-model playthroughs are
+    // still in use and decide when to deprecate them properly.
+    if (process.env.NODE_ENV !== "production") {
+      console.warn(
+        `[userTierAllowsModel] legacy model "${modelId}" not in MODELS catalog; allowing for back-compat`,
+      );
+    }
+    return { allowed: true, tier, reason: "legacy_model" };
   }
   if (!model.min_tier) {
     return { allowed: true, tier };

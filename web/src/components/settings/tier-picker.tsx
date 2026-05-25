@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Cpu, Lock, Sparkles, Zap, Crown, Flame } from "lucide-react";
-import { type ModelTier, TIER_GATE } from "@/lib/ai/models";
-import { type Tier } from "@/lib/billing/credits";
+import { type ModelTier, TIER_GATE, TIER_POOLS } from "@/lib/ai/models";
+import { type Tier, estimateTurnCredits } from "@/lib/billing/credits";
 import { setDefaultTier } from "@/app/[locale]/settings/actions";
 
 /**
@@ -23,7 +23,6 @@ const TIER_META: Record<
     label: string;
     icon: typeof Sparkles;
     blurb: string;
-    creditsEstimate: string;
     color: string;
     bgColor: string;
   }
@@ -32,7 +31,6 @@ const TIER_META: Record<
     label: "Standard",
     icon: Zap,
     blurb: "快 · 平 · 中文流暢 · 對標 NovelAI",
-    creditsEstimate: "~50 credits / turn",
     color: "text-emerald-700 dark:text-emerald-300",
     bgColor: "bg-emerald-50 dark:bg-emerald-950/30",
   },
@@ -40,7 +38,6 @@ const TIER_META: Record<
     label: "Pro",
     icon: Sparkles,
     blurb: "深層敘事 · 情感細膩 · 中英都強",
-    creditsEstimate: "~120 credits / turn",
     color: "text-indigo-700 dark:text-indigo-300",
     bgColor: "bg-indigo-50 dark:bg-indigo-950/30",
   },
@@ -48,7 +45,6 @@ const TIER_META: Record<
     label: "Pro Max",
     icon: Crown,
     blurb: "最深層 · 多角色互動 · 複雜情節",
-    creditsEstimate: "~200 credits / turn",
     color: "text-amber-700 dark:text-amber-300",
     bgColor: "bg-amber-50 dark:bg-amber-950/30",
   },
@@ -56,11 +52,25 @@ const TIER_META: Record<
     label: "Adult NSFW",
     icon: Flame,
     blurb: "成人模式專用 · 需身份驗證",
-    creditsEstimate: "~70 credits / turn",
     color: "text-rose-700 dark:text-rose-300",
     bgColor: "bg-rose-50 dark:bg-rose-950/30",
   },
 };
+
+/**
+ * AUDIT FIX P0B-HIGH-02 (2026-05-25): TierPicker previously hardcoded
+ * credit estimates (50/120/200/70) which were 50-100% inflated vs the
+ * actual estimateTurnCredits() output used by the turn route balance gate.
+ * Compute live from the pool models · use AVG so the user sees a fair
+ * representation (router picks between pool models based on language).
+ */
+function tierAvgCredits(tier: ModelTier): number {
+  const pool = TIER_POOLS[tier];
+  if (!pool || pool.length === 0) return 0;
+  const estimates = pool.map((id) => estimateTurnCredits(id));
+  const sum = estimates.reduce((a, b) => a + b, 0);
+  return Math.round(sum / estimates.length);
+}
 
 const SUB_TIER_LABEL: Record<string, string> = {
   free: "Free",
@@ -89,6 +99,19 @@ export function TierPicker({
   const userSubIdx = tierOrder.indexOf(subscriptionTier as (typeof tierOrder)[number]);
 
   const allTiers: ModelTier[] = ["standard", "pro", "pro-max", "adult"];
+
+  // Compute credit estimates ONCE per render via useMemo (pure function · no
+  // DB · safe in client component). AUDIT FIX P0B-HIGH-02.
+  const tierEstimates = useMemo(() => {
+    const out: Record<ModelTier, number> = {
+      standard: 0,
+      pro: 0,
+      "pro-max": 0,
+      adult: 0,
+    };
+    for (const t of allTiers) out[t] = tierAvgCredits(t);
+    return out;
+  }, []);
 
   async function handleSelect(tier: ModelTier) {
     if (!isAllowed(tier)) return;
@@ -199,7 +222,7 @@ export function TierPicker({
                     每 turn 估
                   </div>
                   <div className="font-mono text-sm font-semibold text-amber-600 dark:text-amber-300">
-                    {meta.creditsEstimate.replace(" credits / turn", "")}
+                    ~{tierEstimates[tier]}
                   </div>
                 </div>
               </div>

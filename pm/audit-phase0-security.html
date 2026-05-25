@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Story Engine — Phase 0 Security · Correctness · DB · Back-compat Audit</title>
+<style>
+  :root { --primary: #4F46E5; --primary-soft: #EEF2FF; --accent: #F59E0B; --accent-soft: #FEF3C7; --bg: #FAFAF7; --card: #FFFFFF; --ink: #18181B; --ink-soft: #3F3F46; --muted: #71717A; --border: #E4E4E7; --green: #10B981; --green-soft: #D1FAE5; --rose: #E11D48; --amber: #D97706; --code-bg: #F4F4F5; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif; background: var(--bg); color: var(--ink); line-height: 1.65; font-size: 15px; -webkit-font-smoothing: antialiased; }
+  main { max-width: 1080px; margin: 0 auto; padding: 48px 32px 120px; }
+  .hero { text-align: center; margin-bottom: 36px; }
+  .eyebrow { display: inline-block; font-size: 11px; font-weight: 700; color: var(--primary); background: var(--primary-soft); padding: 5px 12px; border-radius: 999px; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 16px; }
+  h1 { font-size: 30px; font-weight: 800; letter-spacing: -0.025em; margin-bottom: 10px; }
+  .hero p { color: var(--muted); font-size: 15.5px; max-width: 760px; margin: 0 auto; }
+  .meta { color: var(--muted); font-size: 13px; margin-top: 14px; }
+  .summary { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin: 32px 0 28px; }
+  .stat { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px; text-align: center; }
+  .stat-num { font-size: 36px; font-weight: 800; line-height: 1; }
+  .stat-label { font-size: 11px; color: var(--muted); margin-top: 8px; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700; }
+  .stat.crit .stat-num { color: var(--rose); }
+  .stat.high .stat-num { color: var(--amber); }
+  .stat.med .stat-num { color: var(--primary); }
+  .stat.low .stat-num { color: var(--muted); }
+  .stat.info .stat-num { color: var(--green); }
+  .stat .zero { color: var(--green); font-size: 32px; }
+  h2 { font-size: 22px; font-weight: 700; margin: 44px 0 14px; display: flex; align-items: center; gap: 10px; }
+  h2 .icon { font-size: 26px; }
+  .verdict { background: linear-gradient(135deg, #fef3c7, #fffbeb); border: 2px solid var(--amber); padding: 22px 26px; border-radius: 14px; margin: 18px 0 36px; }
+  .verdict h3 { color: var(--amber); font-size: 17px; font-weight: 800; margin-bottom: 10px; }
+  .verdict p { font-size: 14.5px; line-height: 1.75; }
+  .verdict ol { margin: 10px 0 0 22px; }
+  .verdict ol li { font-size: 14px; margin: 4px 0; }
+  .priority-list { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 22px; margin: 16px 0 32px; }
+  .priority-row { display: grid; grid-template-columns: 50px 1fr auto; gap: 14px; align-items: start; padding: 12px 0; border-bottom: 1px dashed var(--border); }
+  .priority-row:last-child { border-bottom: none; }
+  .priority-rank { font-size: 20px; font-weight: 800; color: var(--primary); }
+  .priority-content strong { font-weight: 700; font-size: 14.5px; display: block; margin-bottom: 4px; }
+  .priority-content small { font-size: 12.5px; color: var(--muted); line-height: 1.55; }
+  .priority-refs { font-size: 11px; color: var(--primary); font-weight: 700; background: var(--primary-soft); padding: 4px 8px; border-radius: 6px; white-space: nowrap; align-self: center; }
+  details.dim-section { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 0; margin-bottom: 14px; overflow: hidden; }
+  details.dim-section[open] { box-shadow: 0 2px 12px rgba(0,0,0,0.04); }
+  details.dim-section summary { cursor: pointer; padding: 20px 24px; font-weight: 700; font-size: 17px; display: flex; align-items: center; gap: 12px; user-select: none; }
+  details.dim-section summary::-webkit-details-marker { display: none; }
+  details.dim-section summary::after { content: "▼"; margin-left: auto; color: var(--muted); font-size: 12px; transition: transform .2s; }
+  details.dim-section[open] summary::after { transform: rotate(180deg); }
+  .dim-content { padding: 0 24px 24px; }
+  .issue { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin-bottom: 12px; }
+  .issue.crit { border-left: 4px solid var(--rose); background: #fef2f2; }
+  .issue.high { border-left: 4px solid var(--amber); background: #fffbf4; }
+  .issue.med { border-left: 4px solid var(--primary); }
+  .issue.low { border-left: 4px solid var(--muted); }
+  .issue.info { border-left: 4px solid var(--green); background: #f0fdf4; }
+  .issue-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+  .issue-id { font-weight: 800; font-size: 12.5px; color: var(--primary); flex-shrink: 0; font-family: "SF Mono", Monaco, monospace; }
+  .issue-title { font-weight: 700; font-size: 14.5px; flex: 1; min-width: 220px; }
+  .sev-tag { font-size: 10px; padding: 3px 9px; border-radius: 999px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
+  .sev-crit { background: var(--rose); color: white; }
+  .sev-high { background: var(--amber); color: white; }
+  .sev-med { background: var(--primary-soft); color: var(--primary); }
+  .sev-low { background: var(--code-bg); color: var(--muted); }
+  .sev-info { background: var(--green-soft); color: var(--green); }
+  .issue-loc { font-family: "SF Mono", Monaco, monospace; font-size: 11.5px; color: var(--muted); margin-bottom: 8px; word-break: break-all; }
+  .issue-body { font-size: 13.5px; color: var(--ink-soft); margin-bottom: 8px; line-height: 1.7; }
+  .issue-body strong { color: var(--ink); }
+  .issue-fix { background: rgba(16, 185, 129, 0.06); border-left: 3px solid var(--green); padding: 10px 14px; border-radius: 6px; font-size: 13px; color: var(--ink-soft); margin-top: 10px; }
+  .issue-fix strong { color: var(--green); font-weight: 700; }
+  pre { background: var(--code-bg); padding: 10px 14px; border-radius: 6px; font-family: "SF Mono", Monaco, monospace; font-size: 12px; overflow-x: auto; margin: 8px 0; line-height: 1.5; color: var(--ink-soft); }
+  code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; font-family: "SF Mono", Monaco, monospace; font-size: 12px; }
+  .rule-badge { display: inline-block; font-size: 10px; padding: 2px 7px; border-radius: 4px; background: var(--primary-soft); color: var(--primary); font-weight: 700; margin-left: 6px; letter-spacing: 0.03em; }
+  .diff-block { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0; }
+  .diff-bad, .diff-good { padding: 10px 14px; border-radius: 6px; font-family: "SF Mono", Monaco, monospace; font-size: 11.5px; line-height: 1.55; overflow-x: auto; }
+  .diff-bad { background: #fef2f2; border-left: 3px solid var(--rose); }
+  .diff-good { background: #f0fdf4; border-left: 3px solid var(--green); }
+  .diff-label { font-size: 10px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 4px; }
+  .diff-bad .diff-label { color: var(--rose); }
+  .diff-good .diff-label { color: var(--green); }
+  table.findings { width: 100%; border-collapse: collapse; margin: 12px 0 24px; font-size: 13.5px; }
+  table.findings th { text-align: left; background: var(--code-bg); padding: 10px 14px; font-weight: 700; font-size: 12px; letter-spacing: 0.03em; }
+  table.findings td { padding: 10px 14px; border-top: 1px solid var(--border); vertical-align: top; }
+  table.findings tr:hover { background: var(--bg); }
+  .pill { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px; letter-spacing: 0.04em; }
+  .pill-crit { background: var(--rose); color: white; }
+  .pill-high { background: var(--amber); color: white; }
+  .pill-med { background: var(--primary-soft); color: var(--primary); }
+  .pill-low { background: var(--code-bg); color: var(--muted); }
+  .pill-info { background: var(--green-soft); color: var(--green); }
+  @media (max-width: 768px) { .summary { grid-template-columns: repeat(2, 1fr); } main { padding: 24px 16px 80px; } .diff-block { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+
+<div class="hero">
+  <span class="eyebrow">🔍 Phase 0 (commits fa0c390 + 65ee014) · Agent A · Security · Correctness · DB · Back-compat</span>
+  <h1>Phase 0 Audit — 1 CRIT 設計 trap + 2 HIGH + 4 MED + 2 LOW + 2 INFO</h1>
+  <p>Phase 0 重做 model catalog (10 → 7) + 加 TIER_POOLS / TIER_GATE / tier-router + 新 <code>profiles.default_tier</code> column + 新 TierPicker UI。Audit 揾到 <strong>1 個 latent CRIT (today no impact, future model drop kills existing playthroughs)</strong> + <strong>2 個 HIGH (back-compat trap · backfill data bug)</strong> + <strong>4 個 MED + 2 LOW + 2 INFO</strong>。</p>
+  <div class="meta">Audit date: 2026-05-25 · Scope: 8 changed files + Migration 0019/0020 + live DB state · Method: trace actual call paths + run Postgres CASE test SQL · no speculation</div>
+</div>
+
+<div class="summary">
+  <div class="stat crit"><div class="stat-num">1</div><div class="stat-label">Critical</div></div>
+  <div class="stat high"><div class="stat-num">2</div><div class="stat-label">High</div></div>
+  <div class="stat med"><div class="stat-num">4</div><div class="stat-label">Medium</div></div>
+  <div class="stat low"><div class="stat-num">2</div><div class="stat-label">Low</div></div>
+  <div class="stat info"><div class="stat-num">2</div><div class="stat-label">Info</div></div>
+</div>
+
+<div class="verdict">
+  <h3>⚠️ Verdict: 今日無 prod 用戶受影響 · 但有 <strong>1 個 latent CRIT trap</strong> 一定要喺下次 drop model 之前修。Phase 0 系統設計仲未完成 — UI 換咗 tier 但後台仲讀 default_model。</h3>
+  <p><strong>今日 prod 狀態</strong>：6 個 user 全部 <code>default_model=NULL</code> · 1 個 playthrough 用 <code>claude-sonnet-4-6</code> (KEPT model) · 所以 dropped-model trap 今日唔會 fire。<strong>但設計上有炸彈</strong> — 任何時候 founder 再 drop 一個 model（e.g., 12 個月後棄 Sonnet 4.6 → Sonnet 5），所有用緊嗰個 model 嘅 existing playthrough 會喺 turn route line 143 永久 403，玩家睇到「你嘅 tier 唔可以用 claude-sonnet-4-6」嘅錯誤訊息 — 但個 root cause 唔係 tier，係 catalog 冇咗呢個 entry。</p>
+  <p><strong>Tier abstraction 未通電</strong>：<code>pickModelForTier</code> / <code>fallbackChainForTier</code> / <code>default_tier</code> column 全部都唔被消費。Settings TierPicker save 完 user 見「已儲存」但 createStoryFromPrompt + forkStoryToPlaythrough 仍然只讀 <code>default_model</code>。Phase 1 一定要做 wiring · 唔做嘅話 tier UI 純粹 cosmetic。</p>
+  <p><strong>建議 fix order（pre-Phase-1，~1 個 wave）</strong>：</p>
+  <ol>
+    <li><strong>P0A-CRIT-01</strong> — <code>userTierAllowsModel</code> 對 unknown_model 改 graceful 處理（fallback to DEFAULT_NARRATOR rather than 403），20 分鐘</li>
+    <li><strong>P0A-HIGH-01</strong> — Migration 0019 CASE order bug · Opus 用戶全部錯標 'pro' 而唔係 'pro-max'。寫 Migration 0021 fix backfill（10 分鐘，今日無 prod 用戶受影響 → safe）</li>
+    <li><strong>P0A-HIGH-02</strong> — Settings TierPicker 同 createStory / fork 之間 wiring 斷咗 · TierPicker 變 cosmetic。加入 tier-router 到 createStoryFromPrompt + forkStoryToPlaythrough（30-60 分鐘）</li>
+    <li>其他 MED + LOW 可 batch 入 same wave</li>
+  </ol>
+  <p><strong>MCP / .gitignore posture</strong>：✅ clean。<code>.claude/settings.local.json</code> 同 <code>.mcp.json</code> 喺 .gitignore line 52-53，<code>git ls-files</code> 確認從未 tracked。</p>
+</div>
+
+<!-- ──────────────────────────────────────────────────────────────────── -->
+<h2><span class="icon">🚦</span> Top 3 Ship Blockers · Priority Order</h2>
+<div class="priority-list">
+  <div class="priority-row">
+    <div class="priority-rank">①</div>
+    <div class="priority-content">
+      <strong>P0A-CRIT-01 — Existing playthrough 永久 403 if Narrator model dropped from catalog</strong>
+      <small>turn/route.ts:143 + credits.ts:498 <code>userTierAllowsModel</code> 對 unknown model 返 <code>{allowed:false, reason:"unknown_model"}</code> · turn route 403。今日 6 個 user 唔 fire（無人用 dropped model）· 但每次 catalog 縮減就 risk 殺 existing playthrough。修就係加 graceful unknown-model handling（log + fallback to DEFAULT_NARRATOR · 同 providers.ts:53 既有 pattern 一致）。</small>
+    </div>
+    <div class="priority-refs">CRIT · 20 min</div>
+  </div>
+  <div class="priority-row">
+    <div class="priority-rank">②</div>
+    <div class="priority-content">
+      <strong>P0A-HIGH-01 — Migration 0019 CASE order bug · Opus 用戶錯標 'pro'</strong>
+      <small>0019.sql:29-46 第一個 IN-clause 包含 <code>'claude-opus-4-7'</code> · 所以 line 37 嘅 <code>when default_model = 'claude-opus-4-7' then 'pro-max'</code> 永遠 unreachable。Verified by running CASE expression on DB · Opus → 'pro'。今日 prod 6 個 user 全部 NULL · 但 backfill 邏輯本身錯咗 · 如果有任何 Opus 用戶會被 mis-classified。</small>
+    </div>
+    <div class="priority-refs">HIGH · 10 min</div>
+  </div>
+  <div class="priority-row">
+    <div class="priority-rank">③</div>
+    <div class="priority-content">
+      <strong>P0A-HIGH-02 — TierPicker UI ≠ 後台行為（wiring 斷）</strong>
+      <small>Settings 改 tier → 寫 <code>default_tier</code>。但 createStoryFromPrompt:124 + forkStoryToPlaythrough 仍然只讀 <code>default_model</code>。<code>pickModelForTier</code> / <code>fallbackChainForTier</code> 完全冇 consumer。User 揀「Pro Max」見「已儲存」但下個 playthrough 行 <code>DEFAULT_NARRATOR</code>（Sonnet）。屬於 Phase 1 integration but 應該喺 Phase 0 commit 前 wire 入·至少 createStoryFromPrompt 應該讀 default_tier → pickModelForTier。</small>
+    </div>
+    <div class="priority-refs">HIGH · 30-60 min</div>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────────────────────────────── -->
+<h2><span class="icon">📋</span> All Findings — Quick Table</h2>
+
+<table class="findings">
+<thead><tr><th>ID</th><th>Severity</th><th>Title</th><th>File</th></tr></thead>
+<tbody>
+<tr><td><code>P0A-CRIT-01</code></td><td><span class="pill pill-crit">CRIT</span></td><td>Dropped-model trap kills existing playthroughs (latent)</td><td>credits.ts:498 · turn/route.ts:143</td></tr>
+<tr><td><code>P0A-HIGH-01</code></td><td><span class="pill pill-high">HIGH</span></td><td>Migration 0019 CASE order — Opus → 'pro' bug</td><td>0019_phase0_default_tier.sql:29-46</td></tr>
+<tr><td><code>P0A-HIGH-02</code></td><td><span class="pill pill-high">HIGH</span></td><td>TierPicker save 完冇實際生效 (default_tier unused)</td><td>tier-picker.tsx + actions.ts:179 + stories/new/actions.ts:141</td></tr>
+<tr><td><code>P0A-MED-01</code></td><td><span class="pill pill-med">MED</span></td><td>setAdultMode disable 唔 reset default_tier='adult'</td><td>actions.ts:24-87</td></tr>
+<tr><td><code>P0A-MED-02</code></td><td><span class="pill pill-med">MED</span></td><td>turn route 403 message 對 unknown_model 案讀錯 root cause</td><td>turn/route.ts:144-154</td></tr>
+<tr><td><code>P0A-MED-03</code></td><td><span class="pill pill-med">MED</span></td><td>tier-router CJK regex 覆蓋不全（Extension B/C/D 唔 match）</td><td>tier-router.ts:35</td></tr>
+<tr><td><code>P0A-MED-04</code></td><td><span class="pill pill-med">MED</span></td><td>fork action 唔 validate llmModel · 攻擊者可 lock 死 playthrough</td><td>community/actions.ts:437-482</td></tr>
+<tr><td><code>P0A-LOW-01</code></td><td><span class="pill pill-low">LOW</span></td><td>default_tier CHECK 接受 NULL · UI 預設 'pro' · 數據語意不一</td><td>0019.sql:15-17 + page.tsx:243</td></tr>
+<tr><td><code>P0A-LOW-02</code></td><td><span class="pill pill-low">LOW</span></td><td>TierPicker creditsEstimate 為 hardcoded string · 唔同 estimateTurnCredits 同步</td><td>tier-picker.tsx:30-63</td></tr>
+<tr><td><code>P0A-INFO-01</code></td><td><span class="pill pill-info">INFO</span></td><td>MODEL_PRICING 為 dropped models 保留 entries · 正確back-compat</td><td>credits.ts:109-133</td></tr>
+<tr><td><code>P0A-INFO-02</code></td><td><span class="pill pill-info">INFO</span></td><td>RAG floor migration 0020 + 0005 history consistent (no missing migration)</td><td>0005 + 0020 + DB pg_proc state</td></tr>
+</tbody>
+</table>
+
+<!-- ──────────────────────────────────────────────────────────────────── -->
+<h2><span class="icon">🔴</span> CRIT Findings</h2>
+
+<div class="issue crit">
+  <div class="issue-head">
+    <span class="issue-id">P0A-CRIT-01</span>
+    <span class="issue-title">Existing playthrough 永久 403 if Narrator model dropped from catalog</span>
+    <span class="sev-tag sev-crit">CRIT</span>
+    <span class="rule-badge">Hard rule #1 · Hard rule #8</span>
+  </div>
+  <div class="issue-loc">
+    web/src/lib/billing/credits.ts:494-500 · web/src/app/api/playthroughs/[id]/turn/route.ts:143-155
+  </div>
+  <div class="issue-body">
+    <p><strong>今日 prod 唔 fire</strong>（6 個 user 全部 NULL default_model · 唯一 playthrough 用 KEPT model <code>claude-sonnet-4-6</code>），但 <strong>設計上保證下次 catalog 縮減就殺 existing user</strong>。</p>
+    <p><strong>呢個 chain</strong>：<code>playthroughs.llm_model</code> 喺 creation 嘅時候 locked（per Hard rule · 對齊 existing user expectation）。Phase 0 drop 咗 GPT-4o / Grok / Gemini 3.1 Pro 等 5 個 model。Turn route 入面：</p>
+<pre>// turn/route.ts:142-155
+const playthroughModel = pt.llm_model ?? "claude-sonnet-4-6";
+const tierCheck = await userTierAllowsModel(supabase, user.id, playthroughModel);
+if (!tierCheck.allowed) {
+  return NextResponse.json({ error: "model_tier_required", ... }, { status: 403 });
+}</pre>
+    <p><code>userTierAllowsModel</code> 入面：</p>
+<pre>// credits.ts:494-500
+const { MODELS } = await import("@/lib/ai/models");
+const model = MODELS[modelId];
+if (!model) {
+  return { allowed: false, tier, reason: "unknown_model" };  // ← trap
+}</pre>
+    <p>對 dropped model（e.g. <code>"gpt-4o"</code>）<code>MODELS["gpt-4o"] === undefined</code> → 返 <code>{allowed:false, reason:"unknown_model"}</code> → turn route 403。<strong>用戶見錯誤訊息「你嘅 tier (...) 唔可以用 gpt-4o」</strong>，但 root cause 唔係 tier，係 catalog drop。用戶冇辦法解 — Settings 揀新 tier 唔會改 existing playthrough 嘅 <code>llm_model</code>。</p>
+    <p><strong>對比 providers.ts:49-58</strong> 已經有 graceful fallback pattern：</p>
+<pre>let entry: ModelEntry;
+try { entry = getModel(internalModelId); }
+catch {
+  console.warn(`unknown model "${internalModelId}", falling back to claude-sonnet-4-6`);
+  entry = getModel("claude-sonnet-4-6");
+}</pre>
+    <p>但呢個 fallback 永遠 unreachable，因為 turn route 喺 line 143 就先 reject 咗。</p>
+  </div>
+  <div class="issue-fix">
+    <strong>修法（20 分鐘）</strong>：<code>userTierAllowsModel</code> 對 unknown_model 改 graceful — log warning，fallback to DEFAULT_NARRATOR，<code>allowed:true</code>。Turn route 仍然會用 <code>pt.llm_model</code> call providers.ts，後者已有 fallback。或者：turn route 喺 <code>!tierCheck.allowed && reason === "unknown_model"</code> 嗰陣 silently swap to DEFAULT_NARRATOR 然後 continue。**呢個係 Hard rule #1 (existing playthrough 唔 break)** 嘅 hard guarantee。
+    <pre>// credits.ts:494-500 fix
+const { MODELS, DEFAULT_NARRATOR } = await import("@/lib/ai/models");
+const model = MODELS[modelId];
+if (!model) {
+  console.warn(`[userTierAllowsModel] unknown model "${modelId}" — treating as allowed (existing playthrough back-compat)`);
+  return { allowed: true, tier };  // fallback path in providers.ts handles the actual model dispatch
+}</pre>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────────────────────────────── -->
+<h2><span class="icon">🟠</span> HIGH Findings</h2>
+
+<div class="issue high">
+  <div class="issue-head">
+    <span class="issue-id">P0A-HIGH-01</span>
+    <span class="issue-title">Migration 0019 CASE order bug — Opus 用戶錯標 'pro' 而唔係 'pro-max'</span>
+    <span class="sev-tag sev-high">HIGH</span>
+    <span class="rule-badge">Hard rule #28 (LLM enum vs developer code reconcile)</span>
+  </div>
+  <div class="issue-loc">
+    supabase/migrations/0019_phase0_default_tier.sql:27-47
+  </div>
+  <div class="issue-body">
+    <p>Postgres CASE evaluate top-down · first match wins。Line 29-36 嘅 <code>WHEN default_model IN (...)</code> 包含 <strong>both</strong> Sonnet 4.6 同 Opus 4.7：</p>
+    <div class="diff-block">
+      <div class="diff-bad">
+        <div class="diff-label">✗ Buggy CASE (current)</div>
+WHEN default_model IN (<br>
+&nbsp;&nbsp;'claude-sonnet-4-6',<br>
+&nbsp;&nbsp;<strong>'claude-opus-4-7'</strong>,&nbsp;&nbsp;← 第 1 match<br>
+&nbsp;&nbsp;'gpt-4o', ...<br>
+) THEN 'pro'<br>
+<br>
+WHEN default_model = 'claude-opus-4-7'<br>
+&nbsp;&nbsp;THEN 'pro-max'&nbsp;&nbsp;← unreachable
+      </div>
+      <div class="diff-good">
+        <div class="diff-label">✓ Correct ordering</div>
+WHEN default_model = 'claude-opus-4-7'<br>
+&nbsp;&nbsp;THEN 'pro-max'&nbsp;&nbsp;← 揀更 specific 先<br>
+<br>
+WHEN default_model IN (<br>
+&nbsp;&nbsp;'claude-sonnet-4-6',<br>
+&nbsp;&nbsp;'gpt-4o', ...<br>
+) THEN 'pro'
+      </div>
+    </div>
+    <p>我跑咗 SQL test 證實：<code>case when 'claude-opus-4-7' IN (...sonnet...,opus...) then 'pro' when 'claude-opus-4-7' = 'claude-opus-4-7' then 'pro-max' end</code> 返 <strong>'pro'</strong>。Line 37 永遠唔會 fire。</p>
+    <p><strong>今日 prod impact = 0</strong> — 6 個 user 全部 default_model NULL · 命中 line 45 嘅 ELSE 'pro' fallback · backfill 結果係'pro' regardless。但設計錯咗，下次有 user 真係用過 Opus 就 misclassify。</p>
+  </div>
+  <div class="issue-fix">
+    <strong>修法（10 分鐘）</strong>：寫 Migration 0021 fix backfill。Logic 應該係：（1）<code>'claude-opus-4-7' → 'pro-max'</code> 排第一（最 specific）（2）SFW Pro pool（Sonnet 4.6 / GPT-5.4 Pro · 加 deprecated GPT-4o / Gemini 3.1 Pro / Grok 2 for back-compat）→ 'pro'（3）Standard pool → 'standard'（4）Llama → 'adult'。同時 fix Migration 0019 嘅 SQL（即使無人受影響 · doc正確性對未來 maintainer 重要）。
+  </div>
+</div>
+
+<div class="issue high">
+  <div class="issue-head">
+    <span class="issue-id">P0A-HIGH-02</span>
+    <span class="issue-title">TierPicker save 完冇實際生效 — default_tier 純 cosmetic · tier-router 從未被 called</span>
+    <span class="sev-tag sev-high">HIGH</span>
+    <span class="rule-badge">Wiring gap</span>
+  </div>
+  <div class="issue-loc">
+    components/settings/tier-picker.tsx + app/[locale]/settings/actions.ts:179 + stories/new/actions.ts:141 + lib/community/actions.ts:451
+  </div>
+  <div class="issue-body">
+    <p>Audit trace：</p>
+    <ul style="margin-left:18px;font-size:13.5px;line-height:1.8;">
+      <li><code>tier-picker.tsx</code> save 後 call <code>setDefaultTier(tier)</code> → 寫 <code>profiles.default_tier</code> ✅</li>
+      <li><code>pickModelForTier</code> · <code>fallbackChainForTier</code>：<strong>0 個 consumer</strong>（grep verified · 只有 tier-router.ts 內部 reference）</li>
+      <li><code>createStoryFromPrompt</code>（stories/new/actions.ts:124-141）只 SELECT <code>default_model</code> · 永遠 ignore default_tier</li>
+      <li><code>forkStoryToPlaythrough</code>（community/actions.ts:437-482）只接受 <code>llmModel</code> param · 永遠 ignore default_tier</li>
+      <li><code>turn/route.ts</code> 行 <code>pt.llm_model</code>（locked at creation）· 永遠 ignore default_tier</li>
+    </ul>
+    <p><strong>User experience</strong>：在 Settings 揀「Pro Max」→ 見 <code>"已儲存"</code>（line 101）→ 開新故事 → 後台 fallback <code>requestedModel = NULL ?? DEFAULT_NARRATOR = "claude-sonnet-4-6"</code>（Sonnet pro narrator，唔係 Opus pro-max）。User 期望同實際 mismatch · UI promise lying。</p>
+    <p>呢個係 Phase 0 commit 講 "tier abstraction" 但實際只做咗 picker UI + DB column · 後台 wiring 完全缺。<strong>未完成 feature 唔應該 ship UI</strong>（CLAUDE.md #19 — feature differentiator 一定要 backend 同 UI 一齊 ship）。</p>
+  </div>
+  <div class="issue-fix">
+    <strong>修法（30-60 分鐘）</strong>：在 <code>createStoryFromPrompt</code> 同 <code>forkStoryToPlaythrough</code> 加入 tier-router consumption：
+    <pre>// stories/new/actions.ts:124-148 改寫
+const { data: profile } = await supabase
+  .from("profiles")
+  .select("default_tier, default_model")
+  .eq("id", user.id).single();
+
+const seedText = parsed.data.prompt + (parsed.data.protagonist_hint ?? "");
+const tier = (profile?.default_tier ?? DEFAULT_TIER) as ModelTier;
+const requestedModel = pickModelForTier(tier, seedText);
+
+const tierCheck = await userTierAllowsModel(supabase, user.id, requestedModel);
+const userNarratorModel = tierCheck.allowed ? requestedModel : DEFAULT_NARRATOR;</pre>
+    <p>同樣 logic 加入 fork（fork 嘅 context 用 story.opening_narrative · or 故事描述）。</p>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────────────────────────────── -->
+<h2><span class="icon">🔵</span> MED Findings</h2>
+
+<div class="issue med">
+  <div class="issue-head">
+    <span class="issue-id">P0A-MED-01</span>
+    <span class="issue-title">setAdultMode disable 唔 reset default_tier='adult'</span>
+    <span class="sev-tag sev-med">MED</span>
+  </div>
+  <div class="issue-loc">web/src/app/[locale]/settings/actions.ts:24-87</div>
+  <div class="issue-body">
+    <p>當前實作：</p>
+    <ul style="margin-left:18px;font-size:13.5px;line-height:1.8;">
+      <li><code>setAdultMode(false)</code> + <code>currentModel.allows_nsfw</code> → reset <code>default_model = DEFAULT_NARRATOR</code> ✅</li>
+      <li>但 <code>default_tier</code> <strong>唔會 reset</strong>。如果 user 嘅 default_tier='adult' 一齊 disable adult mode，DB 仲存 <code>default_tier='adult'</code></li>
+    </ul>
+    <p>下次入 Settings → TierPicker 收 <code>currentTier='adult'</code> · 但 <code>adultModeEnabled=false</code> → line 152 <code>if (tier === "adult" && !adultModeEnabled) return null</code> → Adult tier 被 hidden · selected state 變鬼影 · UI 邏輯混淆。同時 setDefaultTier 嘅 adult gate（line 213）會 reject · so 真係去揀其他 tier 都正常運作。但 stale state 唔好（potential confusion + harder to debug analytics）。</p>
+  </div>
+  <div class="issue-fix">
+    <strong>修法</strong>：setAdultMode disable path 加多一個 <code>if (currentTier === 'adult') update.default_tier = DEFAULT_TIER</code>。同時 atomic 一齊 UPDATE。
+  </div>
+</div>
+
+<div class="issue med">
+  <div class="issue-head">
+    <span class="issue-id">P0A-MED-02</span>
+    <span class="issue-title">turn route 403 message 對 unknown_model 讀錯 root cause</span>
+    <span class="sev-tag sev-med">MED</span>
+  </div>
+  <div class="issue-loc">web/src/app/api/playthroughs/[id]/turn/route.ts:144-155</div>
+  <div class="issue-body">
+    <p>即使 CRIT-01 修咗 graceful fallback，<strong>仍然</strong> 有 case：用戶手動改 <code>pt.llm_model</code>（透過 admin update / data migration / etc.）到 typo · turn route 行 <code>tier_too_low</code> branch · message：</p>
+<pre>"你嘅 tier (free) 唔可以用 gpt-4o-typo。請去 Settings 揀其他 model 或升級。"</pre>
+    <p>但 Settings 而家係 TierPicker · 唔再揀 model（只揀 tier）· user 跟住個 advice 都解唔到 problem。Message 同 UI 不對齊。</p>
+  </div>
+  <div class="issue-fix">
+    <strong>修法</strong>：error message 改為 referencing tier 而唔係 model — e.g.，"你 playthrough 嘅 narrator 模型已唔再可用 — 開新 playthrough 重新揀 tier。"
+  </div>
+</div>
+
+<div class="issue med">
+  <div class="issue-head">
+    <span class="issue-id">P0A-MED-03</span>
+    <span class="issue-title">isChineseContent regex 漏咗 CJK Extension B/C/D（罕字 / 古字）</span>
+    <span class="sev-tag sev-med">MED</span>
+  </div>
+  <div class="issue-loc">web/src/lib/ai/tier-router.ts:35</div>
+  <div class="issue-body">
+    <p>當前 regex：</p>
+<pre>const cjkCount = (nonWhitespace.match(/[一-鿿㐀-䶿]/g) ?? []).length;</pre>
+    <p>覆蓋：</p>
+    <ul style="margin-left:18px;font-size:13.5px;line-height:1.8;">
+      <li>U+4E00–U+9FFF (Unified Ideographs · 常用) ✅</li>
+      <li>U+3400–U+4DBF (Extension A · 罕用) ✅</li>
+      <li>U+20000–U+2A6DF (Extension B · 古字 / 名字異體字) ❌</li>
+      <li>U+2A700–U+2B73F (Extension C) ❌</li>
+      <li>U+F900–U+FAFF (CJK Compatibility) ❌</li>
+    </ul>
+    <p><strong>Impact</strong>：用戶 prompt 入面有罕用字 / 古字 / 名字異體字（HK / TW 常見 e.g. 「峯」、「𠀪」）會 undercount · 變成 routes to English (Gemini Flash 而唔係 GLM-5.1)。30% 閾值幫到啲，但 edge case 仍會 mis-route。</p>
+  </div>
+  <div class="issue-fix">
+    <strong>修法</strong>：擴 regex：<code>/[一-鿿㐀-䶿豈-﫿]|[\uD840-\uD87F][\uDC00-\uDFFF]/g</code>（包 surrogate pair 處理 Extension B+）。或直接用 ICU script detection（如果有 import 預算）。
+  </div>
+</div>
+
+<div class="issue med">
+  <div class="issue-head">
+    <span class="issue-id">P0A-MED-04</span>
+    <span class="issue-title">forkStoryToPlaythrough 唔 validate llmModel · 攻擊者可 lock 死自己 playthrough</span>
+    <span class="sev-tag sev-med">MED</span>
+  </div>
+  <div class="issue-loc">web/src/lib/community/actions.ts:437-482</div>
+  <div class="issue-body">
+    <p>Action 簽名：<code>forkStoryToPlaythrough({ storyId, characterName?, llmModel? })</code>。Line 451-452：</p>
+<pre>const resolvedModel = params.llmModel ?? "claude-sonnet-4-6";
+const resolvedProvider = MODELS[resolvedModel]?.provider ?? "anthropic";</pre>
+    <p>如果用戶 POST <code>llmModel="totally-fake-model"</code>：</p>
+    <ul style="margin-left:18px;font-size:13.5px;line-height:1.8;">
+      <li>MODELS lookup 返 undefined</li>
+      <li>Provider fallback <code>"anthropic"</code></li>
+      <li>RPC <code>fork_story_to_playthrough</code> 接受 llm_model 為任何 text · 寫入 <code>playthroughs.llm_model = "totally-fake-model"</code></li>
+      <li>Playthrough 創建成功 → user redirected 到 <code>/play/[id]</code></li>
+      <li>第一個 turn → P0A-CRIT-01 trap → 403 「unknown model」</li>
+    </ul>
+    <p>用戶自己造成 self-DOS · DB 入面留 dead playthrough · 浪費 RLS row + indexing。冇 catastrophic 但污染數據。</p>
+  </div>
+  <div class="issue-fix">
+    <strong>修法</strong>：fork action 加 validation <code>if (params.llmModel && !MODELS[params.llmModel]) return { ok: false, error: "unknown_model" }</code> · 或者直接 ignore param（current UI 唔 pass · 將來 wire tier-router 之後也唔需要 param）。
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────────────────────────────── -->
+<h2><span class="icon">⚪</span> LOW Findings</h2>
+
+<div class="issue low">
+  <div class="issue-head">
+    <span class="issue-id">P0A-LOW-01</span>
+    <span class="issue-title">default_tier CHECK 接受 NULL · UI 預設 'pro' · 數據語意不一</span>
+    <span class="sev-tag sev-low">LOW</span>
+  </div>
+  <div class="issue-loc">supabase/migrations/0019_phase0_default_tier.sql:15-17 · app/[locale]/settings/page.tsx:243</div>
+  <div class="issue-body">
+    <p>Migration 0019 <code>add column ... text check (in 'standard'/'pro'/'pro-max'/'adult')</code> — Postgres CHECK constraint 對 NULL 永遠 pass，所以 column 可以係 NULL。Backfill 之後正常 user 唔係 NULL · 但新 signup（profiles 嘅 default trigger） 唔知會 NULL 定 設咗 default。Settings page line 243 <code>profile?.default_tier ?? DEFAULT_TIER</code> · UI 永遠顯示 'pro'。但 setDefaultTier 之前 NULL = 揀 'pro' = 揀 default_tier · setDefaultTier 寫 'pro' 之後 default_tier 真係 'pro'。語意上 NULL 同 'pro' 不應該等價（用戶可能想 "use platform default"）。</p>
+  </div>
+  <div class="issue-fix">
+    <strong>修法 (optional polish)</strong>：要麼 (a) 加 <code>default 'pro'</code> 到 column · NOT NULL · 全部 user 永遠有值；要麼 (b) leave NULL ‒ 但 doc 清楚講 NULL 等價 platform default (DEFAULT_TIER)。
+  </div>
+</div>
+
+<div class="issue low">
+  <div class="issue-head">
+    <span class="issue-id">P0A-LOW-02</span>
+    <span class="issue-title">TierPicker creditsEstimate 為 hardcoded string · 唔同 estimateTurnCredits 同步</span>
+    <span class="sev-tag sev-low">LOW</span>
+  </div>
+  <div class="issue-loc">web/src/components/settings/tier-picker.tsx:30-63</div>
+  <div class="issue-body">
+    <p>TierPicker 嘅 creditsEstimate 係靜態字串：</p>
+<pre>standard: "~50 credits / turn"
+pro: "~120 credits / turn"
+"pro-max": "~200 credits / turn"
+adult: "~70 credits / turn"</pre>
+    <p>但實際 <code>estimateTurnCredits(modelId)</code>（credits.ts:283）計算邏輯 includes Director (Haiku) + lorebook + summarizer + embed 全部 background reserve · 結果通常更高（per docstring ~$0.060/turn = 120cr for Sonnet · 但 estimateTurnCredits 加埋背景 ops 可達 ~200+）。用戶見「~120」但實際扣 ~200 → 信任問題（Hard rule #4）。</p>
+  </div>
+  <div class="issue-fix">
+    <strong>修法 (UI polish)</strong>：TierPicker 改 call <code>estimateTurnCredits(pickModelForTier(tier, "中文 sample"))</code> 動態 compute · 或 README 文案改寫「估算 · 實際 + background ops 約 +30%」。
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────────────────────────────── -->
+<h2><span class="icon">🟢</span> INFO (Not Findings · Observations)</h2>
+
+<div class="issue info">
+  <div class="issue-head">
+    <span class="issue-id">P0A-INFO-01</span>
+    <span class="issue-title">MODEL_PRICING 為 dropped models 保留 entries · 正確 back-compat</span>
+    <span class="sev-tag sev-info">INFO</span>
+  </div>
+  <div class="issue-loc">web/src/lib/billing/credits.ts:109-133</div>
+  <div class="issue-body">
+    <p>Audit ticket 提問：dropped model 嘅 MODEL_PRICING entry 仲喺度嗎？答：✅ 係。<code>"gpt-4o"</code>, <code>"gpt-4o-mini"</code>, <code>"gemini-3-1-pro"</code>, <code>"grok-2"</code>, <code>"grok-2-mini"</code> 全部 preserved。<strong>呢個係正確嘅 back-compat decision</strong> — <code>computeCredits</code> for ANY old playthrough 仍然能 calc cost · 唔會 throw。Comment 已 doc："KEPT entries below preserved for back-compat with existing playthroughs."</p>
+    <p>BUT — back-compat 只係 partial · MODELS catalog 已 drop，仲剩個 <strong>P0A-CRIT-01</strong> trap（userTierAllowsModel 因為 MODELS lookup 失敗 reject）。Pricing dictionary 完整 ≠ runtime 可玩。Phase 0 修咗 pricing back-compat 但漏咗 catalog back-compat。</p>
+  </div>
+</div>
+
+<div class="issue info">
+  <div class="issue-head">
+    <span class="issue-id">P0A-INFO-02</span>
+    <span class="issue-title">RAG floor migration history is consistent · no missing migration</span>
+    <span class="sev-tag sev-info">INFO</span>
+  </div>
+  <div class="issue-loc">supabase/migrations/0005_phase2_audit_fixes.sql:80-197 · 0020 · live DB pg_proc</div>
+  <div class="issue-body">
+    <p>Audit ticket 質疑：Migration 0020 提到 "ALREADY shipped the floor implementation" · 但邊個 migration add 咗 p_min_similarity？</p>
+    <p><strong>答：Migration 0005</strong>。Grep 確認 lines 80-197 嘅 CREATE OR REPLACE 三個 RPC 全部 add 咗 <code>p_min_similarity float default 0.0</code> param。Migration 0020 嘅 docstring claim 屬實。</p>
+    <p>DB live state（pg_proc query）：</p>
+<pre>match_lorebook_entries  · pronargs=4 · args includes p_min_similarity
+match_memory_summaries  · pronargs=4 · args includes p_min_similarity
+match_turn_embeddings   · pronargs=5 · args includes p_min_similarity</pre>
+    <p>每個 RPC 一個 version · 同 <code>retriever.ts</code> callers 一致。Migration 0020 成功 drop 咗 ghost overload · sanity passes。Migration sequence 0005 → 0020 完整 · no missing。</p>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────────────────────────────── -->
+<h2><span class="icon">📌</span> Out of Scope / Verified Clean</h2>
+
+<div class="issue info">
+  <div class="issue-head">
+    <span class="issue-id">CLEAN-01</span>
+    <span class="issue-title">.claude/settings.local.json + .mcp.json gitignore posture is correct</span>
+    <span class="sev-tag sev-info">CLEAN</span>
+  </div>
+  <div class="issue-loc">.gitignore:52-53</div>
+  <div class="issue-body">
+    <p><code>git check-ignore -v .claude/settings.local.json</code> → matches <code>.gitignore:52</code>。<code>git check-ignore -v .mcp.json</code> → matches <code>.gitignore:53</code>。<code>git log --all -- .claude/</code> 空白 · 從未 tracked。<code>git ls-files | grep -i claude</code> 只 match <code>CLAUDE.md</code> · 完。✅ PAT 唔會被 push。</p>
+    <p>用戶 home <code>~/.claude.json</code> 唔屬於 project · audit 唔 inspect（離 project scope · respect permission boundary）。</p>
+  </div>
+</div>
+
+<div class="issue info">
+  <div class="issue-head">
+    <span class="issue-id">CLEAN-02</span>
+    <span class="issue-title">setDefaultTier subscription gate 對 invalid subscription_tier 安全</span>
+    <span class="sev-tag sev-info">CLEAN</span>
+  </div>
+  <div class="issue-loc">web/src/app/[locale]/settings/actions.ts:201-210</div>
+  <div class="issue-body">
+    <p>Audit ticket 提問：subscription_tier='plus' (legacy invalid value) 點搞？</p>
+    <p>Code：<code>tierOrder.indexOf(userSubTier as ...)</code>。如果 <code>userSubTier='plus'</code>，<code>indexOf</code> 返 <code>-1</code>。Check <code>-1 < tierOrder.indexOf('free')</code> = <code>-1 < 0</code> = <strong>true</strong> · 所以條件 fail · setDefaultTier reject。</p>
+    <p>對任何 invalid subscription_tier · 用戶 effectively 被 treat as < free · 永遠 reject 任何 tier upgrade。<strong>過度限制但安全</strong>（用戶可以 contact support 修 subscription_tier · NOT 變 free-tier-bypassing-paid-feature）。</p>
+  </div>
+</div>
+
+<div class="issue info">
+  <div class="issue-head">
+    <span class="issue-id">CLEAN-03</span>
+    <span class="issue-title">setDefaultTier adult-tier gate 唔可繞過（POST 攻擊測試）</span>
+    <span class="sev-tag sev-info">CLEAN</span>
+  </div>
+  <div class="issue-loc">web/src/app/[locale]/settings/actions.ts:213-220</div>
+  <div class="issue-body">
+    <p>Audit ticket 提問：攻擊者 POST <code>setDefaultTier({tier:'adult'})</code> 當 adult mode off 點搞？</p>
+    <p>Code line 213-220：</p>
+<pre>if (tier === "adult") {
+  if (!profile?.adult_mode_enabled || !profile?.is_age_verified) {
+    return { ok: false, error: "Adult tier 需要先開啟成人模式 + 完成身份驗證。" };
+  }
+}</pre>
+    <p>Action 自己驗 · 唔 trust UI hiding。✅ Defence in depth · 同 hard rule #5 (LLM isolation) 一致。即使 user 透過 cURL bypass UI 都 reject。</p>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────────────────────────────── -->
+<h2><span class="icon">📊</span> Summary Count</h2>
+
+<table class="findings">
+<thead><tr><th>Severity</th><th>Count</th><th>Total LOC affected</th><th>Est. fix time</th></tr></thead>
+<tbody>
+<tr><td><span class="pill pill-crit">CRIT</span></td><td>1</td><td>~8 lines</td><td>20 min</td></tr>
+<tr><td><span class="pill pill-high">HIGH</span></td><td>2</td><td>~30 lines + 1 migration</td><td>40-70 min</td></tr>
+<tr><td><span class="pill pill-med">MED</span></td><td>4</td><td>~15 lines</td><td>30 min total</td></tr>
+<tr><td><span class="pill pill-low">LOW</span></td><td>2</td><td>~5 lines</td><td>10 min total</td></tr>
+<tr><td><span class="pill pill-info">INFO</span></td><td>2 (+3 CLEAN)</td><td>—</td><td>—</td></tr>
+<tr><td><strong>Total</strong></td><td><strong>9 findings + 3 clean</strong></td><td>~58 lines + 1 SQL migration</td><td>~1.5-2.5 hr</td></tr>
+</tbody>
+</table>
+
+<p style="font-size:13.5px;color:var(--ink-soft);line-height:1.7;margin-top:24px;">
+<strong>Convergence assessment</strong>：呢個係 Phase 0 嘅 first audit cycle · 揾到 1 CRIT + 2 HIGH。Per <strong>Hard rule #29</strong> 「3-cycle audit pattern converges to 0 ship blocker」· 應該 expect <strong>at least 1 more cycle</strong> · ideally 2-3 zero-ship-blocker cycles before considering Phase 0 done。Recommended next wave fix CRIT + HIGH + (optional) MED-01 / MED-04 · 第二 cycle audit 之後 expect 1-2 個 finding · 第三 zero。
+</p>
+
+</main>
+</body>
+</html>

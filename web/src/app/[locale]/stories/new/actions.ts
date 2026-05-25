@@ -8,7 +8,8 @@ import type { Disposition } from "@/schemas/character";
 import { redirect } from "@/i18n/navigation";
 import { getLocale } from "next-intl/server";
 import { revalidatePath } from "next/cache";
-import { DEFAULT_NARRATOR, MODELS } from "@/lib/ai/models";
+import { DEFAULT_NARRATOR, MODELS, type ModelTier } from "@/lib/ai/models";
+import { pickModelForTier } from "@/lib/ai/tier-router";
 import {
   chargeCredits,
   computeCredits,
@@ -122,7 +123,7 @@ export async function createStoryFromPrompt(
   const [prefProfileResult, balanceResult, seedVerdictResult] = await Promise.all([
     supabase
       .from("profiles")
-      .select("default_model")
+      .select("default_model, default_tier")
       .eq("id", user.id)
       .single(),
     getBalanceAndCheck(supabase, {
@@ -137,13 +138,36 @@ export async function createStoryFromPrompt(
       .catch((e: unknown) => ({ ok: false as const, error: e })),
   ]);
 
-  // Tier resolution (uses prefProfile result; same DB hit otherwise).
-  const requestedModel = prefProfileResult.data?.default_model ?? DEFAULT_NARRATOR;
+  // AUDIT FIX P0A-HIGH-02 / P0B-CRIT-02 (2026-05-25): wire default_tier into
+  // creation. Session 10 introduced tier abstraction (TierPicker writes
+  // default_tier). Before this fix, createStoryFromPrompt only read
+  // default_model · TierPicker selection had ZERO effect on the model locked
+  // at playthrough creation.
+  //
+  // Resolution order:
+  //   1. If user has default_tier → call pickModelForTier(tier, seedText) to
+  //      pick the actual underlying model (language-routed within tier pool)
+  //   2. Else (legacy users · pre-Session 10) → fall back to default_model
+  //   3. Else (brand new users) → DEFAULT_NARRATOR
+  //
+  // Tier-routed models are guaranteed in TIER_GATE-respecting pools · so the
+  // userTierAllowsModel check is mostly a no-op when tier-routed · but kept
+  // as defense-in-depth (covers data corruption / future-tier conflicts).
+  const prefData = prefProfileResult.data;
+  const tierPref = prefData?.default_tier as ModelTier | null | undefined;
+  let requestedModel: string;
+  if (tierPref) {
+    requestedModel = pickModelForTier(tierPref, seedText);
+  } else if (prefData?.default_model) {
+    requestedModel = prefData.default_model;
+  } else {
+    requestedModel = DEFAULT_NARRATOR;
+  }
   const tierCheck = await userTierAllowsModel(supabase, user.id, requestedModel);
   const userNarratorModel = tierCheck.allowed ? requestedModel : DEFAULT_NARRATOR;
   if (!tierCheck.allowed) {
     console.log(
-      `[createStory] user ${user.id} default_model ${requestedModel} not allowed for tier ${tierCheck.tier} — falling back to ${DEFAULT_NARRATOR}`,
+      `[createStory] user ${user.id} model ${requestedModel} (from tier=${tierPref ?? "legacy"}) not allowed for sub-tier ${tierCheck.tier} — falling back to ${DEFAULT_NARRATOR}`,
     );
   }
 

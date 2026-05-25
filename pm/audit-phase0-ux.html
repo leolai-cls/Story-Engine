@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phase 0 — UX / Cost / Regression Audit</title>
+<style>
+  :root {
+    --primary: #4F46E5;
+    --primary-soft: #EEF2FF;
+    --accent: #F59E0B;
+    --accent-soft: #FEF3C7;
+    --bg: #FAFAF7;
+    --card: #FFFFFF;
+    --ink: #18181B;
+    --ink-soft: #3F3F46;
+    --muted: #71717A;
+    --border: #E4E4E7;
+    --green: #10B981;
+    --green-soft: #D1FAE5;
+    --rose: #E11D48;
+    --rose-soft: #FFE4E6;
+    --amber: #D97706;
+    --amber-soft: #FEF3C7;
+    --gray-soft: #F4F4F5;
+    --crit: #991B1B;
+    --crit-soft: #FECACA;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.65;
+    font-size: 15px;
+    -webkit-font-smoothing: antialiased;
+  }
+  main { max-width: 1100px; margin: 0 auto; padding: 48px 40px 120px; }
+  h1 { font-size: 28px; letter-spacing: -0.02em; margin-bottom: 6px; }
+  h2 { font-size: 19px; margin-top: 56px; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); letter-spacing: -0.01em; }
+  h3 { font-size: 14px; margin-top: 0; }
+  .lead { color: var(--muted); font-size: 14px; max-width: 760px; margin-bottom: 28px; }
+  .eyebrow { display: inline-block; font-size: 11px; font-weight: 700; color: var(--primary); background: var(--primary-soft); padding: 5px 10px; border-radius: 999px; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 14px; }
+  .summary-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 40px; margin-top: 24px; }
+  .summary-card { padding: 18px 16px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); }
+  .summary-card .num { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; }
+  .summary-card .lbl { font-size: 11px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; margin-top: 4px; }
+  .pill { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
+  .pill.crit { background: var(--crit-soft); color: var(--crit); }
+  .pill.high { background: var(--rose-soft); color: var(--rose); }
+  .pill.med { background: var(--amber-soft); color: var(--amber); }
+  .pill.low { background: var(--gray-soft); color: var(--ink-soft); }
+  .pill.info { background: var(--primary-soft); color: var(--primary); }
+  .pill.cat { background: #E0F2FE; color: #075985; }
+  .finding { border: 1px solid var(--border); border-radius: 12px; background: var(--card); padding: 22px 22px 18px; margin-bottom: 18px; box-shadow: 0 1px 2px rgba(0,0,0,0.02); }
+  .finding.crit { border-left: 4px solid var(--crit); background: linear-gradient(180deg, #FFF7F7 0%, #FFF 60%); }
+  .finding.high { border-left: 4px solid var(--rose); }
+  .finding.med { border-left: 4px solid var(--amber); }
+  .finding.low { border-left: 4px solid var(--muted); }
+  .finding.info { border-left: 4px solid var(--primary); }
+  .finding .head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 6px; }
+  .finding .id { font-family: "SF Mono", "Menlo", "Consolas", monospace; font-size: 11.5px; color: var(--ink-soft); font-weight: 600; letter-spacing: 0.02em; }
+  .finding .title { font-size: 16px; font-weight: 600; margin: 6px 0 10px; letter-spacing: -0.005em; }
+  .finding .row { margin-top: 10px; }
+  .finding .lab { font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; display: block; margin-bottom: 3px; }
+  .finding code { font-family: "SF Mono", "Menlo", "Consolas", monospace; font-size: 12.5px; background: var(--gray-soft); padding: 2px 6px; border-radius: 4px; color: var(--ink); }
+  .finding pre { font-family: "SF Mono", "Menlo", "Consolas", monospace; font-size: 12px; background: #FAFAFA; border: 1px solid var(--border); padding: 10px 12px; border-radius: 6px; margin-top: 6px; overflow-x: auto; line-height: 1.55; }
+  .finding p { color: var(--ink-soft); font-size: 14px; }
+  .where { font-family: "SF Mono", "Menlo", "Consolas", monospace; font-size: 12px; color: var(--ink-soft); }
+  .impact { background: var(--rose-soft); color: var(--rose); padding: 8px 12px; border-radius: 6px; font-size: 13px; font-weight: 500; margin-top: 10px; }
+  .impact.crit { background: var(--crit-soft); color: var(--crit); }
+  .impact.med { background: var(--amber-soft); color: var(--amber); }
+  .impact.low { background: var(--gray-soft); color: var(--ink-soft); }
+  .fix { background: var(--green-soft); color: #065F46; padding: 10px 12px; border-radius: 6px; font-size: 13px; margin-top: 10px; line-height: 1.55; }
+  .why { background: #F0F9FF; color: #075985; padding: 8px 12px; border-radius: 6px; font-size: 12.5px; margin-top: 10px; line-height: 1.55; font-style: italic; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
+  th { text-align: left; padding: 8px 10px; background: var(--gray-soft); font-weight: 600; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
+  td { padding: 9px 10px; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: top; }
+  td code { font-family: "SF Mono", "Menlo", "Consolas", monospace; font-size: 11.5px; background: var(--gray-soft); padding: 1px 5px; border-radius: 3px; }
+  .toc { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 18px 22px; margin: 24px 0 40px; }
+  .toc-row { display: flex; align-items: center; gap: 10px; padding: 5px 0; font-size: 13px; }
+  .toc-row a { color: var(--ink); text-decoration: none; }
+  .toc-row a:hover { color: var(--primary); }
+  .verdict { background: linear-gradient(135deg, var(--crit-soft) 0%, #FFF 70%); border: 1px solid var(--rose); padding: 24px 26px; border-radius: 14px; margin-top: 32px; }
+  .verdict h3 { font-size: 16px; color: var(--crit); margin-bottom: 10px; letter-spacing: -0.01em; }
+  .verdict p { color: var(--ink-soft); font-size: 14px; line-height: 1.65; }
+  .verdict.green { background: linear-gradient(135deg, var(--green-soft) 0%, #FFF 70%); border-color: var(--green); }
+  .verdict.green h3 { color: #065F46; }
+  .small { font-size: 12px; color: var(--muted); }
+  .gap-diagram { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 26px; margin: 24px 0; }
+  .gap-row { display: grid; grid-template-columns: 220px 30px 1fr; gap: 14px; align-items: start; padding: 12px 0; border-bottom: 1px dashed var(--border); }
+  .gap-row:last-child { border-bottom: none; }
+  .gap-step { font-weight: 600; font-size: 13px; }
+  .gap-step .meta { font-size: 11px; color: var(--muted); font-weight: 400; }
+  .gap-arrow { font-family: monospace; font-size: 16px; color: var(--muted); text-align: center; padding-top: 2px; }
+  .gap-state { font-size: 13px; }
+  .gap-state.broken { color: var(--rose); font-weight: 500; }
+  .gap-state.ok { color: var(--green); }
+  .pre-block { font-family: "SF Mono", "Menlo", "Consolas", monospace; font-size: 12px; background: #FAFAFA; border: 1px solid var(--border); padding: 12px 14px; border-radius: 8px; margin-top: 10px; overflow-x: auto; line-height: 1.6; white-space: pre; color: var(--ink); }
+</style>
+</head>
+<body>
+<main>
+  <span class="eyebrow">Phase 0 · UX / Cost / Regression Audit</span>
+  <h1>Phase 0 Tier 抽象化 — UX / 成本 / 回歸風險審查</h1>
+  <p class="lead">
+    Commits <code>fa0c390</code> + <code>65ee014</code> · Session 10 Phase 0
+    引入 4-tier 抽象 (Standard / Pro / Pro Max / Adult)、curation 10 → 7
+    models、RAG floor。Audit 角度：UX 一致性、成本估算準確度、現有用戶
+    playthrough 回歸風險。Audit date: 2026-05-25。
+  </p>
+
+  <div class="summary-grid">
+    <div class="summary-card"><div class="num" style="color:var(--crit)">2</div><div class="lbl">CRIT</div></div>
+    <div class="summary-card"><div class="num" style="color:var(--rose)">3</div><div class="lbl">HIGH</div></div>
+    <div class="summary-card"><div class="num" style="color:var(--amber)">4</div><div class="lbl">MED</div></div>
+    <div class="summary-card"><div class="num" style="color:var(--muted)">3</div><div class="lbl">LOW</div></div>
+    <div class="summary-card"><div class="num" style="color:var(--primary)">2</div><div class="lbl">INFO</div></div>
+  </div>
+
+  <div class="toc">
+    <div class="toc-row"><span class="pill crit">CRIT</span><a href="#crit-01">P0B-CRIT-01 · 舊用戶 playthrough 鎖 dropped model → 永久 403 鎖死</a></div>
+    <div class="toc-row"><span class="pill crit">CRIT</span><a href="#crit-02">P0B-CRIT-02 · TierPicker 揀完根本冇用 — stories/new 完全唔讀 default_tier</a></div>
+    <div class="toc-row"><span class="pill high">HIGH</span><a href="#high-01">P0B-HIGH-01 · Opus 4.7 用戶被錯誤 backfill 去 'pro' 而非 'pro-max'</a></div>
+    <div class="toc-row"><span class="pill high">HIGH</span><a href="#high-02">P0B-HIGH-02 · estimateTurnCredits vs TierPicker 顯示數字 2-3× 落差</a></div>
+    <div class="toc-row"><span class="pill high">HIGH</span><a href="#high-03">P0B-HIGH-03 · setAdultMode reset default_model 但唔 reset default_tier</a></div>
+    <div class="toc-row"><span class="pill med">MED</span><a href="#med-01">P0B-MED-01 · ModelPicker dead code (orphan import)</a></div>
+    <div class="toc-row"><span class="pill med">MED</span><a href="#med-02">P0B-MED-02 · TierPicker 唔用 --se-* design token · 同 sibling 唔一致</a></div>
+    <div class="toc-row"><span class="pill med">MED</span><a href="#med-03">P0B-MED-03 · Adult tier discoverability — 用戶開咗 adult mode 但唔知 tier card 浮咗出嚟</a></div>
+    <div class="toc-row"><span class="pill med">MED</span><a href="#med-04">P0B-MED-04 · /pricing page tier credit 數字仲係 v1 (5K/15K/50K)</a></div>
+    <div class="toc-row"><span class="pill low">LOW</span><a href="#low-01">P0B-LOW-01 · TierPicker 唔同 Settings copy 唔提「Sonnet」「GPT」名 — 用戶冇 transition explainer</a></div>
+    <div class="toc-row"><span class="pill low">LOW</span><a href="#low-02">P0B-LOW-02 · TierPicker 唔 surface 「依家會用咩 model」</a></div>
+    <div class="toc-row"><span class="pill low">LOW</span><a href="#low-03">P0B-LOW-03 · TierPicker hardcoded 繁中 string (i18n debt)</a></div>
+    <div class="toc-row"><span class="pill info">INFO</span><a href="#info-01">P0B-INFO-01 · pricing.html 內部規劃 (20/400/900/2500) 同 code (50/5000/15000/50000) 唔一致 (pre-existing)</a></div>
+    <div class="toc-row"><span class="pill info">INFO</span><a href="#info-02">P0B-INFO-02 · Phase 0 commit message 講 turn route「未 touch」但無 forward-compat path</a></div>
+  </div>
+
+  <h2>核心 UX gap 流程圖</h2>
+  <div class="gap-diagram">
+    <div class="gap-row">
+      <div class="gap-step">User 揀「Standard」tier<div class="meta">在 Settings TierPicker click「Standard」card</div></div>
+      <div class="gap-arrow">→</div>
+      <div class="gap-state ok">setDefaultTier('standard') 成功寫入 profiles.default_tier='standard'</div>
+    </div>
+    <div class="gap-row">
+      <div class="gap-step">User 開新故事<div class="meta">/stories/new 落表單 click「創作」</div></div>
+      <div class="gap-arrow">→</div>
+      <div class="gap-state broken">createStoryFromPrompt 讀 <code>default_model</code> · 完全唔 check <code>default_tier</code></div>
+    </div>
+    <div class="gap-row">
+      <div class="gap-step">Playthrough 建立<div class="meta">llm_model 寫入 playthrough row</div></div>
+      <div class="gap-arrow">→</div>
+      <div class="gap-state broken">llm_model = default_model (NULL) → fallback <code>'claude-sonnet-4-6'</code> → 用戶得到 Pro 而非 Standard</div>
+    </div>
+    <div class="gap-row">
+      <div class="gap-step">玩 turn 扣 credits<div class="meta">turn route 用 pt.llm_model 計算</div></div>
+      <div class="gap-arrow">→</div>
+      <div class="gap-state broken">扣 Pro tier (120 credit/turn) · 用戶以為自己係 Standard (50/turn)</div>
+    </div>
+    <div class="gap-row">
+      <div class="gap-step"><strong>淨結果</strong></div>
+      <div class="gap-arrow">⚠</div>
+      <div class="gap-state broken"><strong>TierPicker 揀邊個都冇用 · 永遠跑 Sonnet · credits 比預期燒快 2.4×</strong></div>
+    </div>
+  </div>
+
+  <h2 id="findings">Findings</h2>
+
+  <!-- CRIT-01 -->
+  <div class="finding crit" id="crit-01">
+    <div class="head">
+      <span class="pill crit">CRIT</span>
+      <span class="pill cat">Regression · Existing Users</span>
+      <span class="id">P0B-CRIT-01</span>
+    </div>
+    <div class="title">舊用戶 playthrough 鎖死喺 dropped model — 永久 403</div>
+
+    <div class="row">
+      <span class="lab">Where</span>
+      <div class="where">
+        web/src/lib/billing/credits.ts:497-509 <code>userTierAllowsModel</code><br>
+        web/src/app/api/playthroughs/[id]/turn/route.ts:142-155 <code>turn route tier gate</code>
+      </div>
+    </div>
+
+    <div class="row">
+      <span class="lab">場景</span>
+      <p>
+        Phase 0 前用戶創作咗故事 · 鎖咗 <code>llm_model='gpt-4o'</code> 喺 playthroughs row。
+        Phase 0 之後 <code>MODELS</code> catalog 將 GPT-4o / GPT-4o mini / Grok 2 / Grok 2 Mini / Gemini 3.1 Pro 全部 dropped。
+        用戶開返舊 playthrough 玩落一 turn —
+      </p>
+
+      <pre class="pre-block">// turn route line 142-143
+const playthroughModel = pt.llm_model ?? "claude-sonnet-4-6";   // = "gpt-4o"
+const tierCheck = await userTierAllowsModel(supabase, user.id, playthroughModel);
+
+// userTierAllowsModel line 496-499
+const { MODELS } = await import("@/lib/ai/models");
+const model = MODELS[modelId];      // = undefined (gpt-4o dropped)
+if (!model) {
+  return { allowed: false, tier, reason: "unknown_model" };
+}
+
+// 返到 turn route line 144 → 403 model_tier_required</pre>
+    </div>
+
+    <div class="impact crit">
+      <strong>SHOWSTOPPER</strong> · 任何用戶喺 Phase 0 之前揀過 GPT-4o / GPT-4o mini / Grok 2 / Grok 2 Mini / Gemini 3.1 Pro
+      創作嘅 playthrough · 落一 turn 即 403 「你嘅 tier (X) 唔可以用 gpt-4o」 ·
+      <strong>叫佢「去 Settings 揀其他 model」但 Settings 已經冇 ModelPicker</strong> · 用戶冇任何 UI path 解鎖。
+      所有受影響 playthrough = dead state。Phase 0 ship 即引發大批 churn。
+    </div>
+
+    <div class="fix">
+      <strong>Fix</strong>：兩個層次防禦 ——<br>
+      <strong>(a) userTierAllowsModel</strong>：unknown model 唔好直接 reject · check
+      <code>MODEL_PRICING</code>（仲保留 dropped model entries）· 如果 pricing
+      存在 → 將 modelId 視為 legacy / locked playthrough · allow + log warning。<br>
+      <strong>(b) Migration / cleanup job</strong>：將所有 playthroughs.llm_model
+      落 dropped catalog 嘅 row · re-map 去新 catalog 對應 tier 嘅 model
+      (gpt-4o → gpt-5-4-pro · grok-2 → claude-sonnet-4-6 etc.)。先 dry-run
+      喺 staging 統計影響 row 數。<br>
+      <strong>(c) UI safety net</strong>：turn route 嘅 403 message 唔好再叫「去 Settings 揀 model」 ·
+      改去「升級 / contact support」 · 因為 user-facing model picker 已經冇。
+    </div>
+
+    <div class="why">
+      Severity rationale：Phase 0 commit message 自稱「existing playthroughs use pt.llm_model (locked at creation)」 ·
+      但冇 acknowledge userTierAllowsModel 嗰邊嘅 unknown_model 拒絕路徑會 break 呢個 locked 行為。
+      Locked-at-creation 假設 catalog 唔縮細 · 一縮細就玩完。
+    </div>
+  </div>
+
+  <!-- CRIT-02 -->
+  <div class="finding crit" id="crit-02">
+    <div class="head">
+      <span class="pill crit">CRIT</span>
+      <span class="pill cat">UX · Function Dead-on-Arrival</span>
+      <span class="id">P0B-CRIT-02</span>
+    </div>
+    <div class="title">TierPicker 揀完毫無作用 — stories/new 永遠跑 Sonnet</div>
+
+    <div class="row">
+      <span class="lab">Where</span>
+      <div class="where">
+        web/src/app/[locale]/stories/new/actions.ts:125, 141 <code>createStoryFromPrompt</code><br>
+        web/src/lib/community/actions.ts:437-457 <code>forkStoryToPlaythrough</code><br>
+        web/src/components/settings/tier-picker.tsx (整個檔 only writes profiles.default_tier)
+      </div>
+    </div>
+
+    <div class="row">
+      <span class="lab">場景</span>
+      <p>
+        新用戶 click TierPicker「Standard」 · 預期：「我嘅故事會用 cheap model · 慳 credits」。
+        實際發生：
+      </p>
+      <ol style="margin: 8px 0 0 18px; color: var(--ink-soft); font-size: 14px; line-height: 1.85;">
+        <li>setDefaultTier 寫入 <code>profiles.default_tier='standard'</code> 成功</li>
+        <li>用戶去 <code>/stories/new</code> 創作 → <code>createStoryFromPrompt</code> 讀
+          <code>.select("default_model")</code> · <strong>完全唔讀 default_tier</strong></li>
+        <li>default_model 對新用戶係 NULL → 落 line 141 <code>?? DEFAULT_NARRATOR</code> → <code>'claude-sonnet-4-6'</code></li>
+        <li>Playthrough 鎖 Sonnet 4.6 · 用戶被當 Pro tier 收費 (120 credit/turn vs 預期 50)</li>
+        <li>Fork story from Library 同樣問題 · forkStoryToPlaythrough 嘅 <code>resolvedModel = params.llmModel ?? "claude-sonnet-4-6"</code> · 完全冇查 default_tier</li>
+      </ol>
+    </div>
+
+    <div class="impact crit">
+      <strong>核心 feature 死於到貨之前</strong> · Phase 0 唯一面向用戶嘅嘢就係 TierPicker · 但 picker 連寫入點都同 read path 唔接通。
+      新用戶體驗：「設定點都揀 · 故事跑乜都係一樣」 · 同時 credits 比預期燒快 2.4×。
+      早期 Phase 0 用戶見到 ledger 之後會 lose trust。
+    </div>
+
+    <div class="fix">
+      <strong>Fix</strong>：將 default_tier 接入創建路徑 ——<br>
+      <strong>(a) createStoryFromPrompt</strong>：讀 <code>default_tier</code> + <code>default_model</code> ·
+      行 <code>pickModelForTier(default_tier, seedText)</code> 攞 actual model · 用嚟 lock playthrough。
+      <code>default_model</code> 只當 legacy fallback。<br>
+      <strong>(b) forkStoryToPlaythrough</strong>：caller (library/[storyId]/story-detail-actions.tsx) 唔再 hard-code Sonnet ·
+      改為 pass 用戶 tier 經 pickModelForTier 算出 model · 或 RPC 加 <code>p_default_tier</code> param 由 server-side resolve。<br>
+      <strong>(c) Documentation</strong>：Phase 0 commit 講「Future playthroughs created post-migration could use tier-based routing at creation time. Deferred to Phase 1」 —
+      但 TierPicker 已經 ship · deferred 等於 picker 完全 broken。要 unship picker（顯示 coming soon）或者連埋 (a)(b) 一齊推。
+    </div>
+
+    <div class="why">
+      Severity rationale：呢個唔係 edge case · 係 default flow。Phase 0 commit 自認「partial」 ·
+      但呢部分缺失就係整個 UI 改動嘅 raison d'être。揀 tier 唔影響 actual model = 用戶 trust 完全破壞。
+    </div>
+  </div>
+
+  <!-- HIGH-01 -->
+  <div class="finding high" id="high-01">
+    <div class="head">
+      <span class="pill high">HIGH</span>
+      <span class="pill cat">Data Migration Bug</span>
+      <span class="id">P0B-HIGH-01</span>
+    </div>
+    <div class="title">Opus 4.7 用戶被錯誤 backfill 落 'pro' tier · 永遠唔會分到 'pro-max'</div>
+
+    <div class="row">
+      <span class="lab">Where</span>
+      <div class="where">supabase/migrations/0019_phase0_default_tier.sql:28-46</div>
+    </div>
+
+    <div class="row">
+      <span class="lab">問題</span>
+      <pre class="pre-block">when default_model in (
+  'claude-sonnet-4-6',
+  'claude-opus-4-7',     ← 第一個 case 已經抓咗 Opus
+  'gpt-4o',
+  'gpt-5-4-pro',
+  'gemini-3-1-pro',
+  'grok-2'
+) then 'pro'
+when default_model = 'claude-opus-4-7' then 'pro-max'   ← 永遠唔會 reach
+when default_model in (
+  ...</pre>
+    </div>
+
+    <div class="impact">
+      所有 Storyteller / Legend 訂閱 + 揀咗 Opus 4.7 嘅用戶 backfill 後變成 default_tier='pro' ·
+      喺 TierPicker 見到「Pro」selected · 「Pro Max」灰咗（其實揀咗都 work · 因為佢哋 sub tier 夠）。
+      Tier abstraction 嘅 user 體驗 day-1 就同 user history mismatch。
+    </div>
+
+    <div class="fix">
+      <strong>(a)</strong> 寫 followup migration · 將 <code>default_model='claude-opus-4-7'</code> 嘅 row · default_tier 改為 'pro-max'：
+      <pre class="pre-block">update public.profiles
+set default_tier = 'pro-max'
+where default_model = 'claude-opus-4-7'
+  and default_tier = 'pro';</pre>
+      <strong>(b)</strong> 修返 0019.sql · 將 Opus 嗰行抽出 CASE 之上（或者 reorder · pro-max case 行先）—
+      雖然 production 已 apply · 修返 migration 對 staging / fresh setup 重要。
+    </div>
+  </div>
+
+  <!-- HIGH-02 -->
+  <div class="finding high" id="high-02">
+    <div class="head">
+      <span class="pill high">HIGH</span>
+      <span class="pill cat">Cost · Misleading Estimate</span>
+      <span class="id">P0B-HIGH-02</span>
+    </div>
+    <div class="title">TierPicker 「~X credits / turn」 vs estimateTurnCredits 落差 2-3×</div>
+
+    <div class="row">
+      <span class="lab">Where</span>
+      <div class="where">
+        web/src/components/settings/tier-picker.tsx:35-62 (creditsEstimate 字串)<br>
+        web/src/lib/billing/credits.ts:283-301 <code>estimateTurnCredits</code> (turn route 實際用)<br>
+        web/src/lib/billing/credits.ts:28-34 (docstring「honest」per-turn cost)
+      </div>
+    </div>
+
+    <div class="row">
+      <span class="lab">數字驗算</span>
+      <table>
+        <tr>
+          <th>Tier (pickModelForTier 中文)</th>
+          <th>TierPicker 顯示</th>
+          <th>estimateTurnCredits 實際</th>
+          <th>docstring「honest」</th>
+          <th>用邊個落帳？</th>
+        </tr>
+        <tr>
+          <td>Standard (GLM-5.1)</td>
+          <td>~50</td>
+          <td>~47</td>
+          <td>48 (GLM) / 76 (Flash)</td>
+          <td>實際 token 數計（balance check 用 estimate）</td>
+        </tr>
+        <tr>
+          <td>Pro (Sonnet 4.6)</td>
+          <td>~120</td>
+          <td>~76</td>
+          <td>120</td>
+          <td>同上</td>
+        </tr>
+        <tr>
+          <td>Pro Max (Opus 4.7)</td>
+          <td>~200</td>
+          <td>~104</td>
+          <td>192</td>
+          <td>同上</td>
+        </tr>
+        <tr>
+          <td>Adult (Llama 405B)</td>
+          <td>~70</td>
+          <td>~51</td>
+          <td>62</td>
+          <td>同上</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="impact">
+      兩個唔同 UX 結果都唔啱 ——<br>
+      (1) 用戶睇 TierPicker 「~120」 · 玩落實際 balance 減 ~76 (estimateTurnCredits) · 第一感覺「咦比預期 cheaper」 ·
+      第二感覺（睇下 ledger 用真實 token usage）「咦每 turn 真實 ~120 ·
+      估算同 picker 一致但同 balance check 唔一致」。<br>
+      (2) Free tier daily 50 credits · estimate 50 仲入嚟 OK · 但 actual 可能 76（Standard pool Flash 路徑） ·
+      用戶第二 turn balance check 失敗 → 405「不夠 credits」。<br>
+      <strong>根本問題</strong>：estimateTurnCredits 用 3K input · 但真實 turn ~15K input
+      (Bible cache + Cards cache + 20 turns history + RAG + state) · 兩者唔同 universe。
+    </div>
+
+    <div class="fix">
+      <strong>三選一</strong>：<br>
+      <strong>(a)</strong> 統一 estimateTurnCredits 用 15K input 真實 baseline · 返回真實數字 (76/120/192/62) ·
+      TierPicker 顯示同步呢個 source（最 honest · 但 pre-turn check 會 reject 更多 low-balance 用戶 → 改善 trust 但需要對齊 tier monthly credits）。<br>
+      <strong>(b)</strong> TierPicker 數字改成 estimateTurnCredits 個 50/76/104/51 · 同 pre-turn check 對齊（睇起嚟更 cheap · 但 ledger 真實 token 用量會超出 estimate · 之後扣多咗 user surprise）。<br>
+      <strong>(c)</strong> 加上 range「Standard ~50-80 credits / turn (visible variance) · depends on 故事長度」 · 兩邊都對。<br>
+      Recommendation：<strong>(a)</strong>，配合下一步重新校準 monthly credit allocation。Founder 已喺 pricing-v2 plan 提出 v3 numbers (1K/12K/30K) ·
+      呢度可以 sync。
+    </div>
+
+    <div class="why">
+      Severity rationale：唔係 ship blocker 但屬於「launch 完即會收 ticket」級別。
+      Credits trust（CLAUDE.md hard rule #4）係 product 命脈 · 顯示同實際差 2×
+      會直接觸發 churn signal。
+    </div>
+  </div>
+
+  <!-- HIGH-03 -->
+  <div class="finding high" id="high-03">
+    <div class="head">
+      <span class="pill high">HIGH</span>
+      <span class="pill cat">UX · Adult Mode Inconsistency</span>
+      <span class="id">P0B-HIGH-03</span>
+    </div>
+    <div class="title">setAdultMode reset default_model 但唔 reset default_tier</div>
+
+    <div class="row">
+      <span class="lab">Where</span>
+      <div class="where">web/src/app/[locale]/settings/actions.ts:59-73</div>
+    </div>
+
+    <div class="row">
+      <span class="lab">問題</span>
+      <p>
+        Audit fix P6-UX-M-02 有處理 default_model reset：用戶關閉 adult mode 時 ·
+        如果舊 default_model 係 NSFW（Llama） · auto reset 去 DEFAULT_NARRATOR。
+        但 Phase 0 加咗 default_tier · setAdultMode 完全唔知 default_tier 嘅存在。
+      </p>
+      <p>
+        場景：用戶（adventurer + age_verified） · default_tier='adult' · default_model='llama-3-1-405b-uncensored'。
+        Toggle Adult Mode OFF → default_model reset 去 sonnet · 但 default_tier 仲係 'adult'。
+        下次 user 開 settings：TierPicker 收到 currentTier='adult' · 但 adultModeEnabled=false ·
+        line 152 <code>if (tier === "adult" && !adultModeEnabled) return null</code> 將 adult card 完全 hide。
+        於是無 card selected (currentTier 'adult' 但 'adult' 唔 render) · 視覺上 4 個 tier 都冇 selected 狀態。
+      </p>
+    </div>
+
+    <div class="impact">
+      Settings 出現「我嘅 tier 揀咗咩？」嘅 ghost state · 4 個 card 都唔高光 ·
+      用戶按返「Pro」card → setDefaultTier('pro') 才解除。直到佢按 ·
+      之後 stories/new 用 default_model='claude-sonnet-4-6' (從 reset) ·
+      tier-router 路徑 (一旦 Fix CRIT-02) 仲係用 'adult' tier → mismatch。
+    </div>
+
+    <div class="fix">
+      <code>setAdultMode</code> 喺 disabling + reset model 同時 · update.default_tier = 'pro' (或 DEFAULT_TIER) ·
+      keep default_tier / default_model 兩者 in-sync。Atomic reset。
+    </div>
+  </div>
+
+  <!-- MED-01 -->
+  <div class="finding med" id="med-01">
+    <div class="head">
+      <span class="pill med">MED</span>
+      <span class="pill cat">Dead Code</span>
+      <span class="id">P0B-MED-01</span>
+    </div>
+    <div class="title">ModelPicker 留低做 orphan · 仲被 settings/actions.ts comment 提及</div>
+
+    <div class="row">
+      <span class="lab">Where</span>
+      <div class="where">
+        web/src/components/settings/model-picker.tsx (整檔 149 行 · 完全冇 import) <br>
+        Grep 確認：只有 tier-picker.tsx 嘅 docstring 提到 (replaces ModelPicker) · models.ts comment 第 199 行提及 · 冇 functional import
+      </div>
+    </div>
+
+    <div class="impact low">
+      Bundle size waste（next.js tree-shake 應該 drop 佢 ·
+      但 dev experience：search 「ModelPicker」會搵到舊 component · 將來 maintainer 容易誤改）。
+      設計上 inconsistent · 用戶見唔到。
+    </div>
+
+    <div class="fix">
+      Fix wave delete：<br>
+      • <code>web/src/components/settings/model-picker.tsx</code> 整檔刪<br>
+      • <code>settings/actions.ts:55</code> 個 comment 「ModelPicker hides...」改寫 (TierPicker 唔再對 NSFW model 做 filter · adult tier 自己 hide)<br>
+      • <code>models.ts:199</code> 個 comment 提及 ModelPicker → 改 TierPicker
+    </div>
+  </div>
+
+  <!-- MED-02 -->
+  <div class="finding med" id="med-02">
+    <div class="head">
+      <span class="pill med">MED</span>
+      <span class="pill cat">Design System Drift</span>
+      <span class="id">P0B-MED-02</span>
+    </div>
+    <div class="title">TierPicker 用 Tailwind palette · sibling AdultModeToggle 用 --se-* token</div>
+
+    <div class="row">
+      <span class="lab">Where</span>
+      <div class="where">
+        web/src/components/settings/tier-picker.tsx (用 <code>text-emerald-700</code> / <code>bg-indigo-100</code> / shadcn Card etc.) <br>
+        web/src/components/settings/adult-mode-toggle.tsx (26 處 <code>--se-fg</code>, <code>--se-border</code>, <code>--se-surface</code> etc.)
+      </div>
+    </div>
+
+    <div class="impact med">
+      Settings page light theme 同 dark theme 之間 · TierPicker 同 AdultModeToggle 視覺風格唔一致。
+      Light mode 之下 TierPicker 顯眼但 hard-coded emerald / indigo / amber / rose 喺 dark mode 唔自動 follow。
+      用戶 switch theme 會見到 settings 兩個 card 風格分裂。
+    </div>
+
+    <div class="fix">
+      將 TierPicker 改成 <code>--se-*</code> token 系統 · icon 顏色用 <code>--se-accent</code> · selected 狀態用 <code>--se-accent-bg</code> 等。
+      Reference: <code>plan.html</code> / <code>pm-dashboard.html</code> design system tokens · adult-mode-toggle.tsx 做藍本。
+    </div>
+  </div>
+
+  <!-- MED-03 -->
+  <div class="finding med" id="med-03">
+    <div class="head">
+      <span class="pill med">MED</span>
+      <span class="pill cat">UX · Discoverability</span>
+      <span class="id">P0B-MED-03</span>
+    </div>
+    <div class="title">Adult tier 只係用戶開咗 adult mode 後 silently 「彈出」 · 無 transition signal</div>
+
+    <div class="row">
+      <span class="lab">Where</span>
+      <div class="where">web/src/components/settings/tier-picker.tsx:152 <code>if (tier === "adult" && !adultModeEnabled) return null;</code></div>
+    </div>
+
+    <div class="row">
+      <span class="lab">Flow</span>
+      <p>
+        Adult tier 完全唔 render（甚至唔係 「locked」 灰咗 · 係 return null）。
+        用戶第一次 access settings · 見 3 個 card (Standard / Pro / Pro Max)。
+        滾下去 Adult Mode section 開 toggle · revalidatePath 後 reload · 見到 4 個 card 啦。
+        但中間呢個變化用戶可能根本 miss 咗（佢冇預期 settings 會「多咗 card」）。
+      </p>
+    </div>
+
+    <div class="impact med">
+      用戶開 adult mode 之後唔知道「我而家可以喺 tier picker 揀 Adult tier」。
+      Phase 6 money tier launch 之後 KYC 完成 → adult mode unlock → 用戶見唔到 incremental UI ·
+      返來唔斷問「點解我畀咗 KYC fee 個 NSFW model 喺邊」。
+    </div>
+
+    <div class="fix">
+      兩個方向 (任揀)：<br>
+      <strong>(a)</strong> Adult tier 一直 render · adult mode 未開時 disabled + badge「先去開成人模式」 link to #adult section (consistent with locked tier UX)。<br>
+      <strong>(b)</strong> AdultModeToggle 成功 enable 之後 · render 一個 inline notice：「Adult tier 已解鎖 · 上去敘事 AI Tier 揀 Adult」 + scroll-to anchor。
+    </div>
+  </div>
+
+  <!-- MED-04 -->
+  <div class="finding med" id="med-04">
+    <div class="head">
+      <span class="pill med">MED</span>
+      <span class="pill cat">Marketing Page Inconsistency</span>
+      <span class="id">P0B-MED-04</span>
+    </div>
+    <div class="title">/pricing 頁面 tier 數字未跟上 docstring v3 / pricing-v2 plan</div>
+
+    <div class="row">
+      <span class="lab">Where</span>
+      <div class="where">
+        web/messages/zh-Hant.json marketing.pricing.tiers (50/day · 5K · 15K · 50K)<br>
+        web/src/lib/billing/credits.ts:528-555 TIER_CONFIG (一致：50/day · 5K · 15K · 50K)<br>
+        web/src/lib/billing/credits.ts:36-39 docstring 講「v3 final」(1K · 12K · 30K)<br>
+        pm/pricing-v2-comprehensive.html (20 · 400 · 900 · 2500 credits)
+      </div>
+    </div>
+
+    <div class="impact med">
+      四個唔同 source of truth。Phase 0 commit 講 docstring 用 v3 numbers · 但 production tier
+      monthly credits 仲係 v1（5K/15K/50K）。Pricing page 同 TierPicker estimates
+      唔 line up：
+      <ul style="margin-top:6px;margin-left:18px;font-size:13px;color:var(--ink-soft);line-height:1.7;">
+        <li>Adventurer 5K credits · TierPicker 顯示 Pro 120/turn = <strong>~41 turns / month</strong></li>
+        <li>但 estimateTurnCredits 76/turn = <strong>~65 turns</strong></li>
+        <li>marketing page 推銷時冇講「~X turns」 · 只講 credits 數字 · 用戶冇直觀比較</li>
+      </ul>
+    </div>
+
+    <div class="fix">
+      呢個係 pre-Phase-0 問題但 Phase 0 突顯咗。建議：<br>
+      <strong>(a) 揀一個 single source of truth</strong> · 寫死喺 credits.ts <code>TIER_CONFIG</code> · pricing page / docstring / pricing-v2.html 同 TierPicker estimates 全部由呢度衍生。<br>
+      <strong>(b) Pricing page 顯示「~X turns / month」</strong>（用 TierPicker estimates / TIER_CONFIG monthlyCredits）· 讓用戶直觀感受。<br>
+      Defer to UI tier polish · 因為 money tier 未 ship · 改數字暫時無實際後果。
+    </div>
+  </div>
+
+  <!-- LOW-01 -->
+  <div class="finding low" id="low-01">
+    <div class="head">
+      <span class="pill low">LOW</span>
+      <span class="pill cat">UX · Migration Messaging</span>
+      <span class="id">P0B-LOW-01</span>
+    </div>
+    <div class="title">舊用戶開 Settings · 唔知佢之前揀嘅 model 去咗邊</div>
+
+    <div class="row">
+      <span class="lab">場景</span>
+      <p>
+        老用戶 default_model = 'gpt-4o' (curation 前已揀)。
+        Backfill 將 default_tier 設為 'pro'。打開 Settings · TierPicker render 'Pro' 為 selected ·
+        但完全冇提及「你之前係揀 GPT-4o」、「我哋而家用 Sonnet 4.6 行 Pro tier」。
+        對技術用戶 (尤其係 GPT 死忠) 一頭問號：「我點解突然冇得揀 GPT？」
+      </p>
+    </div>
+
+    <div class="impact low">
+      Niche 用戶 - 但 Reddit / Discord 上少數聲音夠大就轉 churn signal。
+      Cleaner transition messaging 可以 pre-empt。
+    </div>
+
+    <div class="fix">
+      One-time banner（migration aware）：「Session 10 更新：我哋將 model selection 簡化成 4 個 tier · 你之前嘅 [GPT-4o] preference 已 mapped 去 [Pro] tier · 你而家會用 Sonnet 4.6（中文）或 GPT-5.4 Pro（英文）。」
+      <br>實作：profile 加 <code>has_seen_tier_intro</code> bool · dismiss 後唔再 show。
+    </div>
+  </div>
+
+  <!-- LOW-02 -->
+  <div class="finding low" id="low-02">
+    <div class="head">
+      <span class="pill low">LOW</span>
+      <span class="pill cat">UX · Transparency</span>
+      <span class="id">P0B-LOW-02</span>
+    </div>
+    <div class="title">TierPicker 唔 surface 「我而家用緊邊個 underlying model」</div>
+
+    <div class="row">
+      <span class="lab">問題</span>
+      <p>
+        TierPicker 解釋：「我哋幫你揀最啱嘅 model（語言 + vendor availability）。Director 永遠用 Haiku 4.5。」
+        但用戶 might 想知道「我玩 中文 故事用 GLM 定係 Flash？」「我玩 English 用 GPT 定 Sonnet？」
+        Transparency 對技術用戶 + creative writing community 重要（同 NovelAI 對比 · NovelAI 明確顯示用邊個 model）。
+      </p>
+    </div>
+
+    <div class="impact low">
+      減少用戶 trust（黑盒感）· 但唔係 launch blocker。
+    </div>
+
+    <div class="fix">
+      Tier card 加 expandable detail line：「中文 → Sonnet 4.6 · English → GPT-5.4 Pro」（從 tier-router 抽 hard-coded 路由 documentation）。
+      或者單獨「technical details」accordion · 避免 noise。Defer to UI tier polish。
+    </div>
+  </div>
+
+  <!-- LOW-03 -->
+  <div class="finding low" id="low-03">
+    <div class="head">
+      <span class="pill low">LOW</span>
+      <span class="pill cat">i18n Tech Debt</span>
+      <span class="id">P0B-LOW-03</span>
+    </div>
+    <div class="title">TierPicker 全部 string hardcoded · 唔經 messages JSON</div>
+
+    <div class="row">
+      <span class="lab">Where</span>
+      <div class="where">
+        web/src/components/settings/tier-picker.tsx (label/blurb/creditsEstimate/error message 全部 inline 繁中)<br>
+        其他 settings components (AdultModeToggle / SignOutButton) 也 inline · pattern 一致
+      </div>
+    </div>
+
+    <div class="impact low">
+      Pre-existing pattern · 唔屬 Phase 0 regression。日後 EN / 簡中 launch ready 嗰陣要做 wave。
+      <code>CLAUDE.md</code> 提到「next-intl · 繁中 default，簡中 + EN day-1 ready」 ·
+      呢個 day-1 ready 暫時係空 promise（messages JSON 都唔覆蓋）。
+    </div>
+
+    <div class="fix">
+      Defer 到 i18n 完整化 wave（同 brand-review / pricing page 之類 inline strings 一齊處理）。
+      Phase 0 唔 block。
+    </div>
+  </div>
+
+  <!-- INFO-01 -->
+  <div class="finding info" id="info-01">
+    <div class="head">
+      <span class="pill info">INFO</span>
+      <span class="pill cat">Observation · Pre-existing</span>
+      <span class="id">P0B-INFO-01</span>
+    </div>
+    <div class="title">Pricing 數字四個 source of truth 互相唔同 (Phase 0 唔負責)</div>
+
+    <div class="row">
+      <span class="lab">Mapping</span>
+      <table>
+        <tr><th>Source</th><th>Free</th><th>Adv</th><th>Story</th><th>Legend</th></tr>
+        <tr><td><code>credits.ts TIER_CONFIG</code> (code 真實)</td><td>50/day</td><td>5,000</td><td>15,000</td><td>50,000</td></tr>
+        <tr><td><code>messages/zh-Hant.json</code> (marketing)</td><td>50/day</td><td>5,000</td><td>15,000</td><td>50,000</td></tr>
+        <tr><td><code>credits.ts docstring v3</code> (Phase 0 寫)</td><td>1,000</td><td>—</td><td>12,000</td><td>30,000</td></tr>
+        <tr><td><code>pricing-v2-comprehensive.html</code></td><td>20</td><td>400</td><td>900</td><td>2,500</td></tr>
+      </table>
+    </div>
+
+    <div class="row">
+      <p>純粹 documentation observation · Phase 0 commit 喺 credits.ts docstring 加咗 v3 numbers 但唔同步其他 source。建議 money tier 動工前一次性 lock。</p>
+    </div>
+  </div>
+
+  <!-- INFO-02 -->
+  <div class="finding info" id="info-02">
+    <div class="head">
+      <span class="pill info">INFO</span>
+      <span class="pill cat">Observation · Forward Plan</span>
+      <span class="id">P0B-INFO-02</span>
+    </div>
+    <div class="title">Commit message 自認「partial」但 deferred path 冇 documented unblock 條件</div>
+
+    <div class="row">
+      <span class="lab">Quote (fa0c390)</span>
+      <p style="font-style:italic;color:var(--muted);">
+        「Turn route NOT touched in this commit — existing playthroughs use pt.llm_model (locked at creation).
+        Future playthroughs created post-migration could use tier-based routing at creation time.
+        Deferred to Phase 1 alongside Director schema changes.」
+      </p>
+    </div>
+
+    <div class="row">
+      <p>
+        呢個 deferral 對應就係 CRIT-02 嘅 root cause。冇 documented 「Phase 1 之前 TierPicker 嘅 UX semantics 係咩」。
+        如果 Phase 0 ship 但 Phase 1 拖 · 用戶就會持續經歷 CRIT-02 嘅 dead-picker 狀態。建議：<br>
+        <strong>(a)</strong> 加 TODO comment 入 createStoryFromPrompt 第 141 行 ·指出 default_tier integration 要 implement before launch<br>
+        <strong>(b)</strong> pm/ROADMAP.md 加 explicit dependency「Phase 1 unlock 前唔 advertise TierPicker」<br>
+        <strong>(c)</strong> 或 Phase 0 wave-2 提早 implement default_tier wire-up (細 scope · ~2 小時)
+      </p>
+    </div>
+  </div>
+
+  <h2 id="conclusion">Verdict</h2>
+
+  <div class="verdict">
+    <h3>SHIP-BLOCKED · 2 CRIT 必須喺 Phase 0 closeout 前處理</h3>
+    <p>
+      Phase 0 commit message 自稱「4/5 tasks」 · UX audit 角度睇實際完成度更低：
+      <strong>TierPicker 雖然 render 啱 · 但底層讀寫斷裂</strong>（CRIT-02）·
+      <strong>舊用戶 playthrough 直接 404</strong>（CRIT-01）。
+      兩者皆 user-visible breakage · 唔可以 ship 出去 prod 等 Phase 1 慢慢補。
+    </p>
+    <p style="margin-top:10px;">
+      <strong>Fix wave 必做（順序）</strong>：
+      <span class="pill crit">CRIT-01</span>（userTierAllowsModel back-compat + turn route message 改寫）·
+      <span class="pill crit">CRIT-02</span>（createStoryFromPrompt + forkStoryToPlaythrough 接入 default_tier + tier-router）·
+      <span class="pill high">HIGH-01</span>（Opus backfill correction migration）·
+      <span class="pill high">HIGH-02</span>（estimateTurnCredits 同 TierPicker 顯示對齊）·
+      <span class="pill high">HIGH-03</span>（setAdultMode 同步 reset default_tier）。
+      預估 fix wave 4-6 小時 · 跟住做 wave-2 audit converge to 0。
+    </p>
+    <p style="margin-top:10px;">
+      <strong>非 ship-block 但建議 wave 包埋</strong>：<span class="pill med">MED-01</span>（ModelPicker 刪檔 · 5 分鐘）·
+      <span class="pill med">MED-02</span>（design token alignment · 30 分鐘）。LOW + INFO 推到 UI tier。
+    </p>
+  </div>
+
+  <p class="small" style="margin-top:32px;text-align:center;">
+    Audit by Claude Opus 4.7 · 2026-05-25 · Phase 0 (fa0c390 + 65ee014) ·
+    Scope: UX consistency · Cost accuracy · Regression risk · 14 findings · 2 CRIT · 3 HIGH · 4 MED · 3 LOW · 2 INFO
+  </p>
+
+</main>
+</body>
+</html>

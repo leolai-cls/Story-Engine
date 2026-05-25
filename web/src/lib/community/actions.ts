@@ -445,15 +445,47 @@ export async function forkStoryToPlaythrough(params: {
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "unauthorized" };
 
+  // AUDIT FIX P0A-HIGH-02 / P0B-CRIT-02 (2026-05-25): wire default_tier into
+  // fork. If caller didn't supply explicit llmModel, read the user's
+  // default_tier from profile · route to a pool model via pickModelForTier.
+  // Legacy users (no default_tier yet) fall back to default_model · then to
+  // Sonnet hard default.
+  let resolvedModel: string = params.llmModel ?? "claude-sonnet-4-6";
+  if (!params.llmModel) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("default_tier, default_model")
+      .eq("id", user.id)
+      .maybeSingle();
+    const tierPref = profile?.default_tier as
+      | "standard"
+      | "pro"
+      | "pro-max"
+      | "adult"
+      | null
+      | undefined;
+    if (tierPref) {
+      // Fork context isn't a single text we have here · use the story id
+      // as a proxy. Standard-pool will lean to GLM-5.1 by default (CJK
+      // bias) which matches our 中文 launch market.
+      const { pickModelForTier } = await import("@/lib/ai/tier-router");
+      resolvedModel = pickModelForTier(tierPref, params.storyId);
+    } else if (profile?.default_model) {
+      resolvedModel = profile.default_model;
+    }
+    // else: keep the Sonnet default already assigned above
+  }
+
   // P6-HIGH-01: derive llm_provider from MODELS · pass to RPC (Migration 0016
   // added p_llm_provider param). Fixes mis-attribution where Llama (openrouter)
-  // forked stories were stamped as anthropic.
-  const resolvedModel = params.llmModel ?? "claude-sonnet-4-6";
-  const resolvedProvider = MODELS[resolvedModel]?.provider ?? "anthropic";
+  // forked stories were stamped as anthropic. MODELS[unknown] = undefined for
+  // legacy/dropped model ids → fall back to 'openrouter' (most common for
+  // dropped models like gpt-4o · grok-2).
+  const resolvedProvider = MODELS[resolvedModel]?.provider ?? "openrouter";
   const { data, error } = await supabase.rpc("fork_story_to_playthrough", {
     p_story_id: params.storyId,
     p_character_name: params.characterName ?? null,
-    p_llm_model: params.llmModel ?? null,
+    p_llm_model: resolvedModel,
     p_llm_provider: resolvedProvider,
   });
 
