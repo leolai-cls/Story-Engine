@@ -6,6 +6,7 @@ import {
   NpcAgentOutputSchema,
   MAX_NPC_L3_AGENTS_PER_TURN,
   NPC_AGENT_TIMEOUT_MS,
+  NPC_L3_CREDITS_PER_NPC,
   type NpcAgentOutput,
 } from "@/schemas/npc-agent";
 import { characterCardStaticTemplate, type CharacterCard, type Disposition, type NpcDynamicState } from "@/schemas/character";
@@ -179,13 +180,18 @@ ${recentTurnsBlock || "(scene 剛開始)"}
 function verdictToAgentSummary(verdict: Verdict): string {
   switch (verdict.verdict) {
     case "allow":
-      return `ALLOW · 玩家行動順利進行 · 你嘅 intent 反映你對結果嘅反應`;
+      // Wave 2 fix HIGH-06: removed "順利進行" bias. Director ALLOW means the
+      // attempt is permitted to play out — specific outcome (full success ·
+      // partial · cost) determined by Narrator + state_delta. Agent intent
+      // reflects reaction-to-attempt · NOT presumed-success outcome.
+      return `ALLOW · Director 接受咗呢個 attempt · 但具體 outcome (full success / partial / 有代價) 由 Narrator + state_delta 決定 · 你 intent 反映 attempt 期間嘅 reaction · 唔好假設結果`;
     case "reject":
-      return `REJECT · 玩家行動被 Director 拒絕 (NPC pushback / Bible 違反) · 你嘅 intent 反映你嘅角度 (但呢個 turn agent 應該 skip · 後台會處理)`;
+      // Dead branch · turn route skips L3 on reject. Kept for type-completeness.
+      return `REJECT · agent should NOT run (route layer skipped) · this branch unreachable`;
     case "allow_with_constraint":
       return `ALLOW WITH CONSTRAINT · 行動進行但有 cost: ${verdict.constraint} · 你嘅 intent 考慮呢個 constraint`;
     case "require_skill_check":
-      return `SKILL CHECK · ${verdict.skill_key} vs ${verdict.difficulty} · outcome 未定 · 你嘅 intent 反映你對玩家嘗試嘅 reaction`;
+      return `SKILL CHECK · ${verdict.skill_key} vs ${verdict.difficulty} · outcome 未定 (擲骰決定) · 你嘅 intent 反映你對玩家嘗試嘅 reaction · 唔知 success / failure`;
   }
 }
 
@@ -224,12 +230,19 @@ async function callSingleNpcAgent(params: {
   } = params;
 
   // Standard tier model · CJK → GLM-5.1 · EN → Gemini Flash (via tier-router)
-  // Use story language as routing context · stable per playthrough.
-  const languageHint =
-    storyLanguage === "zh-Hant" || storyLanguage === "zh-Hans"
-      ? "繁體中文場景內容"
-      : "english scene content";
-  const modelId = pickModelForTier("standard", languageHint);
+  // Wave 2 fix HIGH-05 (Agent B): use ACTUAL scene content for routing decision
+  // (not proxy string). Previously hardcoded "繁體中文場景內容" / "english scene content"
+  // bypassed isChineseContent's substance check → bilingual stories (HK
+  // 中英夾雜) always routed by Bible's language flag · inner_thought quality
+  // dropped when actual scene was English-heavy. Now: sample real content.
+  const routingSample = [
+    userAction.slice(0, 300),
+    ...recentTurns.slice(-2).map((t) => t.text.slice(0, 200)),
+    character.card.voice_sample.slice(0, 100),
+  ]
+    .filter(Boolean)
+    .join("\n");
+  const modelId = pickModelForTier("standard", routingSample);
 
   const systemPrompt = buildNpcAgentSystemPrompt(character.card);
   const userMessage = buildAgentUserMessage({
@@ -354,15 +367,31 @@ export async function callNpcAgentsParallel(
 
   // Pre-fetch POV memories for each NPC in parallel · before agent calls.
   // walk_lorebook_graph RPC · lightweight · ~50ms each.
-  const povMemoryPromises = capped.map((char) =>
-    retrieveNpcPovMemories({
-      supabase,
-      playthroughId,
-      npcName: char.card.name,
-      maxHops: 2,
-      maxResults: 5,
-    }),
-  );
+  // Wave 2 fix HIGH-02 (Agent A): wrap in 3s timeout per RPC + Promise.allSettled
+  // to prevent slow/hung Supabase from blocking the entire L3 batch. Empty POV
+  // memories degrade gracefully (agent uses character card + L2 state only).
+  const POV_FETCH_TIMEOUT_MS = 3000;
+  const povMemoryPromises = capped.map(async (char): Promise<PovMemory[]> => {
+    try {
+      const fetchPromise = retrieveNpcPovMemories({
+        supabase,
+        playthroughId,
+        npcName: char.card.name,
+        maxHops: 2,
+        maxResults: 5,
+      });
+      const timeoutPromise = new Promise<PovMemory[]>((_, reject) =>
+        setTimeout(() => reject(new Error("POV fetch timeout")), POV_FETCH_TIMEOUT_MS),
+      );
+      return await Promise.race([fetchPromise, timeoutPromise]);
+    } catch (e) {
+      console.warn(
+        `[npc-agents] POV fetch for ${char.card.name} failed/timed out · proceeding with empty memories:`,
+        e instanceof Error ? e.message : e,
+      );
+      return [];
+    }
+  });
   const povMemoriesPerChar = await Promise.all(povMemoryPromises);
 
   // Spawn parallel agent calls · Promise.allSettled tolerates partial failure
@@ -410,8 +439,8 @@ export async function callNpcAgentsParallel(
 
   // Credit charge · only successful agents · founder Q3 sign-off
   // (failed agents = free per UX consideration · don't charge for service failure)
-  // Actual credit value imported from npc-agent schema · 6 credits per NPC.
-  const creditsCharged = outputs.length * 6;
+  // Wave 2 fix CRIT-C: use NPC_L3_CREDITS_PER_NPC constant (single source of truth)
+  const creditsCharged = outputs.length * NPC_L3_CREDITS_PER_NPC;
 
   console.log(
     `[npc-agents] ${outputs.length}/${capped.length} succeeded · creditsCharged=${creditsCharged} · models=[${[

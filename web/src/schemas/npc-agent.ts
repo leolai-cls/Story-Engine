@@ -101,10 +101,26 @@ export type NpcAgentOutput = z.infer<typeof NpcAgentOutputSchema>;
 export function npcAgentToNarratorBlock(outputs: NpcAgentOutput[]): string {
   if (outputs.length === 0) return "";
 
+  // Wave 2 fix HIGH-05 (security): sanitize all LLM-emitted strings before
+  // interpolating into Narrator prompt. Strips characters that could be used
+  // to break out of markdown structure or inject instructions:
+  //   \n\r — line break injection (could start fake header)
+  //   < > [ ] — angle/bracket tag injection
+  //   ` — code block escape
+  // Defensive: agent might emit jailbroken character_name with embedded
+  // "[SYSTEM]: ignore narrator rules". Per-NPC name override in npc-agents.ts
+  // catches obvious mismatches but accepts strings that match canonical name
+  // even when suffixed with junk. This belt-and-braces sanitize closes the gap.
+  const sanitize = (s: string): string =>
+    s.replace(/[\r\n\[\]<>`]/g, "").slice(0, 400);
+
   const sections = outputs.map((o) => {
-    return `### ${o.character_name}
-**inner_thought** (POV · 私底下諗): ${o.inner_thought}
-**intent** (今 turn 想做嘅嘢): ${o.intent}`;
+    const safeName = sanitize(o.character_name).slice(0, 60);
+    const safeThought = sanitize(o.inner_thought);
+    const safeIntent = sanitize(o.intent).slice(0, 200);
+    return `### ${safeName}
+**inner_thought** (POV · 私底下諗): ${safeThought}
+**intent** (今 turn 想做嘅嘢): ${safeIntent}`;
   });
 
   return `[INTERNAL CONTEXT — DO NOT QUOTE OR PARAPHRASE INTO NARRATIVE]

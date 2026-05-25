@@ -24,7 +24,7 @@ import {
 import { callDirector } from "@/lib/ai/director";
 import { verdictToNarratorInstruction } from "@/schemas/director";
 import { callNpcAgentsParallel } from "@/lib/ai/npc-agents";
-import { npcAgentToNarratorBlock } from "@/schemas/npc-agent";
+import { npcAgentToNarratorBlock, NPC_L3_CREDITS_PER_NPC } from "@/schemas/npc-agent";
 import {
   rollSkillCheck,
   skillCheckToNarratorInstruction,
@@ -131,7 +131,8 @@ export async function POST(
   const { data: pt, error: ptErr } = await supabase
     .from("playthroughs")
     .select(
-      "id, user_id, story_id, character_name, current_state, llm_model, turn_count",
+      // Wave 2 fix CRIT-A: include npc_l3_enabled · was missing → L3 path dead
+      "id, user_id, story_id, character_name, current_state, llm_model, turn_count, npc_l3_enabled",
     )
     .eq("id", playthroughId)
     .single();
@@ -180,7 +181,13 @@ export async function POST(
   // user. Inlined getBalanceAndCheck's fail-open semantics (error or null →
   // assume sufficient, let atomic RPC at end-of-turn be source of truth).
   const modelEntry = MODELS[playthroughModel];
-  const estimatedTurnCost = estimateTurnCredits(playthroughModel);
+  // Wave 2 fix HIGH-04: pre-charge estimate accounts for L3 add-on when flag
+  // is on. Conservative projection assumes 3 active NPCs (max · founder Q2).
+  // If actual turn fires fewer NPCs, charge will be less than estimate.
+  // Underestimate would cause post-stream charge to fail with insufficient
+  // credits → "free turn" + reconciliation debt. Better to over-estimate.
+  const expectedL3Agents = ((pt as { npc_l3_enabled?: boolean }).npc_l3_enabled === true) ? 3 : 0;
+  const estimatedTurnCost = estimateTurnCredits(playthroughModel, expectedL3Agents);
 
   const { data: profileGate, error: profileGateErr } = await supabase
     .from("profiles")
@@ -597,7 +604,21 @@ export async function POST(
     characterId: string;
     error?: string;
   }> = [];
-  const npcL3EnabledOnPlaythrough = (pt as { npc_l3_enabled?: boolean }).npc_l3_enabled === true;
+  const playthroughHasL3Flag = (pt as { npc_l3_enabled?: boolean }).npc_l3_enabled === true;
+
+  // Wave 2 fix CRIT-B: server-side tier recheck per turn.
+  // Migration 0028 trigger only fires on column WRITE · doesn't downgrade
+  // existing true row when user cancels subscription. Belt-and-braces with
+  // reusable tierCheck.tier from earlier (line ~158 · already fetched once
+  // for model tier gate · zero extra DB call).
+  const tierAllowsL3 = tierCheck.tier === "storyteller" || tierCheck.tier === "legend";
+  const npcL3EnabledOnPlaythrough = playthroughHasL3Flag && tierAllowsL3;
+  if (playthroughHasL3Flag && !tierAllowsL3) {
+    console.warn(
+      `[turn] NPC L3 flag is on but user tier=${tierCheck.tier} no longer eligible · skipping L3 (consider clearing flag via subscription webhook)`,
+    );
+  }
+
   const shouldRunNpcL3 =
     npcL3EnabledOnPlaythrough &&
     !directorFailed &&
@@ -628,17 +649,29 @@ export async function POST(
         .slice(0, 3);
 
       if (activeCharsForL3.length > 0) {
+        // Wave 2 fix HIGH-06 (Agent A · storyLanguage validation):
+        // runtime narrow on storyBible.hard_locked.language · accept only known
+        // values · fall back to zh-Hant (primary market) for malformed bibles
+        const rawLang = storyBible.hard_locked.language;
+        const storyLanguage: "zh-Hant" | "zh-Hans" | "en" =
+          rawLang === "zh-Hans" || rawLang === "en" ? rawLang : "zh-Hant";
+
+        // Wave 2 fix HIGH-03 (Agent A · recentTurns memory waste):
+        // slice to last 4 BEFORE map · single object pass shared across all
+        // 3 parallel agents · was: full array × 3 NPCs duplicated allocation
+        const recentTurnsForL3 = turnsChronological.slice(-4).map((t) => ({
+          role: t.role as "user" | "ai",
+          text: t.text,
+        }));
+
         const batchResult = await callNpcAgentsParallel({
           supabase,
           playthroughId,
           activeCharacters: activeCharsForL3,
           userAction: action,
           verdict,
-          recentTurns: turnsChronological.map((t) => ({
-            role: t.role as "user" | "ai",
-            text: t.text,
-          })),
-          storyLanguage: storyBible.hard_locked.language as "zh-Hant" | "zh-Hans" | "en",
+          recentTurns: recentTurnsForL3,
+          storyLanguage,
         });
 
         npcL3SuccessfulAgents = batchResult.outputs.length;
@@ -1215,8 +1248,9 @@ export async function POST(
                 narrator_model: pt.llm_model ?? "claude-sonnet-4-6",
                 refusal: isRefusal,
                 // Phase 1.5 · NPC L3 telemetry for cost analytics + audit trail
+                // Wave 2 fix CRIT-C: use NPC_L3_CREDITS_PER_NPC constant
                 npc_l3_active_agents: npcL3SuccessfulAgents,
-                npc_l3_credits: npcL3SuccessfulAgents * 6,
+                npc_l3_credits: npcL3SuccessfulAgents * NPC_L3_CREDITS_PER_NPC,
               },
             });
             if (chargeResult.ok) {
