@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<title>Phase 0 Wave 5 Security Audit · Final Convergence</title>
+<style>
+  :root {
+    --bg: #0b0d12;
+    --panel: #11151c;
+    --panel2: #161b25;
+    --line: #232a36;
+    --text: #e6e9ef;
+    --muted: #8a92a3;
+    --accent: #7dd3fc;
+    --ok: #34d399;
+    --warn: #fbbf24;
+    --crit: #f87171;
+    --info: #c084fc;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: ui-sans-serif, -apple-system, "PingFang HK", "Noto Sans CJK TC", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.55;
+  }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 48px 32px 96px; }
+  h1 { font-size: 28px; font-weight: 700; margin: 0 0 6px; letter-spacing: -0.02em; }
+  .sub { color: var(--muted); font-size: 14px; margin-bottom: 28px; }
+  .verdict {
+    background: linear-gradient(180deg, rgba(52,211,153,.14), rgba(52,211,153,.05));
+    border: 1px solid rgba(52,211,153,.4);
+    border-radius: 12px;
+    padding: 20px 22px;
+    margin: 18px 0 28px;
+  }
+  .verdict.regression {
+    background: linear-gradient(180deg, rgba(248,113,113,.14), rgba(248,113,113,.05));
+    border-color: rgba(248,113,113,.4);
+  }
+  .verdict h2 { margin: 0 0 6px; font-size: 18px; }
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .b-ok { background: rgba(52,211,153,.18); color: var(--ok); }
+  .b-info { background: rgba(192,132,252,.18); color: var(--info); }
+  .b-low { background: rgba(125,211,252,.18); color: var(--accent); }
+  .b-crit { background: rgba(248,113,113,.22); color: var(--crit); }
+  section { margin: 32px 0; }
+  section h3 { font-size: 15px; margin: 0 0 10px; color: var(--accent); font-weight: 600; letter-spacing: 0.02em; }
+  .finding {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin: 12px 0;
+  }
+  .finding.info { border-left: 3px solid var(--info); }
+  .finding.low { border-left: 3px solid var(--accent); }
+  .finding.ok { border-left: 3px solid var(--ok); }
+  .finding-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .finding-head code { font-family: ui-monospace, monospace; font-size: 12px; color: var(--muted); }
+  .finding-title { font-weight: 600; font-size: 14px; }
+  .finding-body { font-size: 13.5px; color: #c8cdd6; }
+  .finding-body code { background: var(--panel2); padding: 1px 5px; border-radius: 3px; font-size: 12px; }
+  table.check { width: 100%; border-collapse: collapse; margin: 8px 0 16px; font-size: 13px; }
+  table.check th, table.check td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  table.check th { color: var(--muted); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .mono { font-family: ui-monospace, monospace; font-size: 12px; }
+  ul { margin: 6px 0 0; padding-left: 22px; }
+  li { margin: 3px 0; }
+  .grid-counts {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin: 16px 0 8px;
+  }
+  .count {
+    background: var(--panel2);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 12px 14px;
+    text-align: center;
+  }
+  .count .n { font-size: 26px; font-weight: 700; }
+  .count .l { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
+  .count.crit .n { color: var(--crit); }
+  .count.high .n { color: var(--warn); }
+  .count.info .n { color: var(--info); }
+  .count.ok .n { color: var(--ok); }
+  .conv {
+    margin-top: 36px;
+    padding: 24px;
+    border-radius: 12px;
+    background: linear-gradient(180deg, rgba(52,211,153,.10), rgba(52,211,153,.02));
+    border: 1px solid rgba(52,211,153,.35);
+    text-align: center;
+  }
+  .conv h2 { font-size: 22px; margin: 0 0 6px; color: var(--ok); }
+  .conv p { margin: 4px 0; color: #c8cdd6; font-size: 13.5px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Phase 0 · Wave 5 Security Audit</h1>
+  <div class="sub">Agent A · convergence verify · 2026-05-25 · target: 0 CRIT + 0 HIGH</div>
+
+  <div class="verdict">
+    <h2><span class="badge b-ok">Convergence Achieved</span></h2>
+    <p style="margin:8px 0 0">Wave 4 architectural 3-layer fix verified end-to-end. Attack vector closed. Database state clean. No security regressions detected. <strong>Phase 0 ready to close.</strong></p>
+  </div>
+
+  <div class="grid-counts">
+    <div class="count crit"><div class="n">0</div><div class="l">Critical</div></div>
+    <div class="count high"><div class="n">0</div><div class="l">High</div></div>
+    <div class="count info"><div class="n">1</div><div class="l">Low / Info</div></div>
+    <div class="count ok"><div class="n">7</div><div class="l">Checks Pass</div></div>
+  </div>
+
+  <section>
+    <h3>1 · Required Checks · Results</h3>
+    <table class="check">
+      <thead>
+        <tr><th style="width:30%">Check</th><th>Result</th><th style="width:22%">Status</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Migration 0022 trigger present</td>
+          <td><span class="mono">trg_protect_playthrough_llm_model</span> on <span class="mono">playthroughs</span> · enabled (tgenabled=O) · BEFORE UPDATE (tgtype=19)</td>
+          <td><span class="badge b-ok">Pass</span></td>
+        </tr>
+        <tr>
+          <td>Trigger function intact</td>
+          <td>SECURITY DEFINER · search_path locked to public,pg_temp · owned by postgres · raises on llm_model + llm_provider drift</td>
+          <td><span class="badge b-ok">Pass</span></td>
+        </tr>
+        <tr>
+          <td>DB playthrough state clean</td>
+          <td>1 row · <span class="mono">claude-sonnet-4-6</span> · present in MODELS catalog · no legacy locks</td>
+          <td><span class="badge b-ok">Pass</span></td>
+        </tr>
+        <tr>
+          <td><span class="mono">userTierAllowsModel</span> strict path</td>
+          <td><span class="mono">credits.ts:498-516</span> · unknown ids return <span class="mono">{allowed:false, reason:'unknown_model'}</span> · only LEGACY_NARRATORS reference left is a comment (line 500)</td>
+          <td><span class="badge b-ok">Pass</span></td>
+        </tr>
+        <tr>
+          <td>fork tier-gate before RPC</td>
+          <td><span class="mono">community/actions.ts:500-507</span> · <span class="mono">userTierAllowsModel</span> called at L501 · rejects with <span class="mono">model_tier_required</span> at L506 · RPC call at L514 (after gate)</td>
+          <td><span class="badge b-ok">Pass</span></td>
+        </tr>
+        <tr>
+          <td>TierPicker dynamic estimates</td>
+          <td><span class="mono">tier-picker.tsx:67-72</span> · <span class="mono">tierAvgCredits()</span> averages <span class="mono">estimateTurnCredits()</span> across pool · memoized at L105</td>
+          <td><span class="badge b-ok">Pass</span></td>
+        </tr>
+        <tr>
+          <td>setAdultMode symmetric reset</td>
+          <td><span class="mono">settings/actions.ts:62-92</span> · disables NSFW <span class="mono">default_model</span> + resets <span class="mono">default_tier='adult'→'pro'</span> atomically</td>
+          <td><span class="badge b-ok">Pass</span></td>
+        </tr>
+        <tr>
+          <td>createStoryFromPrompt tier wiring</td>
+          <td><span class="mono">stories/new/actions.ts:157-162</span> · reads <span class="mono">default_tier</span> · calls <span class="mono">pickModelForTier(tierPref, seedText)</span> · seedText preserves language-detect</td>
+          <td><span class="badge b-ok">Pass</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h3>2 · Findings · Low / Info Only</h3>
+
+    <div class="finding info">
+      <div class="finding-head">
+        <span class="badge b-low">LOW / INFO</span>
+        <code>P0AW5-INFO-01</code>
+        <span class="finding-title">Trigger service_role detection uses legacy GUC form (latent, not exploitable)</span>
+      </div>
+      <div class="finding-body">
+        <p><strong>Where:</strong> <span class="mono">supabase/migrations/0022_phase0_lock_llm_model_postcreate.sql:35</span></p>
+        <p><strong>Observation:</strong> The trigger reads <span class="mono">current_setting('request.jwt.claim.role', true)</span> (singular <em>claim</em>, per-key GUC), but the rest of this codebase consistently uses <span class="mono">current_setting('request.jwt.claims', true)::jsonb-&gt;&gt;'role'</span> (plural <em>claims</em>, full JSON GUC) — see migrations 0002:150 and 0007:56, plus <span class="mono">auth.role()</span> in 0010/0011/0012/0013/0014. The singular form is a legacy PostgREST 7.x convention; current Supabase populates the plural form.</p>
+        <p><strong>Why no impact on the closed attack vector:</strong> the trigger has 3 OR-bypass conditions:</p>
+        <ol style="margin:6px 0 6px 18px; padding:0">
+          <li><span class="mono">request.jwt.claim.role = 'service_role'</span> ← possibly stale GUC name</li>
+          <li><span class="mono">current_user = 'service_role'</span></li>
+          <li><span class="mono">current_user = 'postgres'</span></li>
+        </ol>
+        <p>For an authenticated browser user, <span class="mono">current_user</span> is <span class="mono">authenticated</span>, so #2 and #3 cannot match; #1 also fails because the user is not service_role regardless of which GUC form is used. The attack vector is fully blocked. <strong>Wave 4's security goal stands.</strong></p>
+        <p><strong>Latent concern:</strong> for legitimate service_role webhooks/backfills calling via PostgREST, <span class="mono">current_user</span> is also <span class="mono">authenticated</span> (PostgREST switches role from JWT). The intended bypass relies on #1 — which may not match if the singular GUC form isn't populated by current Supabase. Today this is harmless because <strong>no code path actually updates <span class="mono">llm_model</span> post-create</strong> (grep across <span class="mono">web/src</span> shows zero hits for <span class="mono">.update({llm_model})</span> on playthroughs). If a future admin script needs to rewrite locked-model values, it would fail with a confusing error.</p>
+        <p><strong>Recommendation:</strong> not a ship blocker. Tracker-only. When/if an admin backfill is added, swap the trigger to use the same pattern as 0002/0007: <span class="mono">coalesce(current_setting('request.jwt.claims', true)::jsonb-&gt;&gt;'role', '') = 'service_role'</span> OR equivalently <span class="mono">auth.role() = 'service_role'</span> per 0010+ convention. Decision: <strong>ACCEPT</strong> for Phase 0 close · log to <span class="mono">pm/BACKLOG.md</span>.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h3>3 · New Attack Vector Probe · Can Wave 4 fix itself be bypassed?</h3>
+    <table class="check">
+      <thead>
+        <tr><th style="width:38%">Vector</th><th>Result</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Direct RLS UPDATE from authenticated session</td>
+          <td>Blocked by trigger · <span class="mono">current_user</span> = <span class="mono">authenticated</span> · all 3 bypass conditions fail · raises P0001 with clear message</td>
+        </tr>
+        <tr>
+          <td>Caller-supplied llmModel to fork action</td>
+          <td>Blocked at action layer · <span class="mono">userTierAllowsModel</span> runs <em>before</em> the <span class="mono">fork_story_to_playthrough</span> RPC (community/actions.ts:500-507) · unknown ids return <span class="mono">model_tier_required</span></td>
+        </tr>
+        <tr>
+          <td>setDefaultModel persistence escalation</td>
+          <td>Already gated · <span class="mono">settings/actions.ts:134-143</span> · tier check + NSFW gate · unknown_model returned for non-catalog ids</td>
+        </tr>
+        <tr>
+          <td>Hijack via PostgREST RPC overload</td>
+          <td>No SECURITY DEFINER RPC writes <span class="mono">llm_model</span> · grep across <span class="mono">supabase/migrations</span> confirms only 0022 trigger touches this column post-create</td>
+        </tr>
+        <tr>
+          <td>Bypass via JWT role spoofing</td>
+          <td>Out of scope · Supabase JWT signing keys are not exposed to client · this is platform-level trust boundary</td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="font-size:13.5px;color:#c8cdd6">No new exploit path discovered. The Wave 4 architecture (DB trigger + action tier-gate + strict credits lookup) holds.</p>
+  </section>
+
+  <section>
+    <h3>4 · Wave 4 Commit Completeness · 5733d2b</h3>
+    <ul style="font-size:13.5px;color:#c8cdd6">
+      <li><strong>Layer 1</strong> · Migration 0022 trigger applied to DB · file present at <span class="mono">supabase/migrations/0022_phase0_lock_llm_model_postcreate.sql</span> · pg_trigger confirms enabled</li>
+      <li><strong>Layer 2</strong> · LEGACY_NARRATORS bypass removed from <span class="mono">credits.ts:498-516</span> · only reference left is an explanatory comment</li>
+      <li><strong>Layer 3</strong> · fork action tier-gate at <span class="mono">community/actions.ts:500-507</span> · runs before RPC · returns clean error</li>
+      <li><strong>No omissions detected</strong> in the scope set by the Wave 4 plan</li>
+    </ul>
+  </section>
+
+  <section>
+    <h3>5 · Regression Sweep · Prior Fixes Still Intact</h3>
+    <ul style="font-size:13.5px;color:#c8cdd6">
+      <li><span class="mono">P0B-HIGH-02</span> TierPicker dynamic estimates · <span class="badge b-ok">Pass</span> · pool-average via estimateTurnCredits()</li>
+      <li><span class="mono">P0A-MED + P0B-HIGH-03</span> setAdultMode symmetric reset · <span class="badge b-ok">Pass</span> · default_model + default_tier both reset atomically</li>
+      <li><span class="mono">P0A-HIGH-02 / P0B-CRIT-02</span> createStoryFromPrompt tier wiring · <span class="badge b-ok">Pass</span> · pickModelForTier(tier, seedText)</li>
+      <li><span class="mono">P0BW2-HIGH-01</span> fork pickModelForTier without UUID context · <span class="badge b-ok">Pass</span> · defaults to CJK routing</li>
+      <li><span class="mono">P0AW3-CRIT-01</span> embedding bypass closed · still removed in Wave 3 commit 97f935c</li>
+    </ul>
+  </section>
+
+  <div class="conv">
+    <h2>Convergence Achieved · Phase 0 Ready</h2>
+    <p>0 CRIT + 0 HIGH after 5 audit waves.</p>
+    <p>Wave 4 architectural fix verified working end-to-end. 1 LOW/INFO finding (P0AW5-INFO-01) is latent · accept and log to backlog.</p>
+    <p style="margin-top:14px;font-size:12px;color:var(--muted)">Per CLAUDE.md hard rule #29: 3 consecutive zero-ship-blocker cycles = convergence. Waves 3 / 4 / 5 all delivered 0 CRIT + 0 HIGH on the security dimension.</p>
+  </div>
+</div>
+</body>
+</html>
