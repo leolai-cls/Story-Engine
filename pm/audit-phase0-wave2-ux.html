@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phase 0 — Wave 2 Audit · UX / Cost / Regression</title>
+<style>
+  :root {
+    --primary: #4F46E5;
+    --primary-soft: #EEF2FF;
+    --accent: #F59E0B;
+    --accent-soft: #FEF3C7;
+    --bg: #FAFAF7;
+    --card: #FFFFFF;
+    --ink: #18181B;
+    --ink-soft: #3F3F46;
+    --muted: #71717A;
+    --border: #E4E4E7;
+    --green: #10B981;
+    --green-soft: #D1FAE5;
+    --rose: #E11D48;
+    --rose-soft: #FFE4E6;
+    --amber: #D97706;
+    --amber-soft: #FEF3C7;
+    --gray-soft: #F4F4F5;
+    --crit: #991B1B;
+    --crit-soft: #FECACA;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: ui-sans-serif, system-ui, -apple-system, "Noto Sans TC", "PingFang TC", sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.6;
+  }
+  .container { max-width: 1100px; margin: 0 auto; padding: 40px 24px; }
+  h1 { font-size: 30px; letter-spacing: -0.02em; margin-bottom: 4px; }
+  .sub { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
+  .meta-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 32px; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 999px; font-size: 11px;
+    font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+  }
+  .b-green { background: var(--green-soft); color: var(--green); }
+  .b-amber { background: var(--amber-soft); color: var(--amber); }
+  .b-rose { background: var(--rose-soft); color: var(--rose); }
+  .b-crit { background: var(--crit-soft); color: var(--crit); }
+  .b-blue { background: var(--primary-soft); color: var(--primary); }
+  .b-gray { background: var(--gray-soft); color: var(--muted); }
+
+  .exec {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 24px; margin-bottom: 32px;
+  }
+  .exec h2 { font-size: 16px; margin-bottom: 12px; color: var(--ink-soft); }
+  .exec p { font-size: 14px; line-height: 1.65; color: var(--ink-soft); }
+  .exec strong { color: var(--ink); }
+
+  .summary-grid {
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    gap: 8px; margin-bottom: 32px;
+  }
+  .stat {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px; text-align: center;
+  }
+  .stat-num { font-size: 28px; font-weight: 700; }
+  .stat-lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+
+  .finding {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px; margin-bottom: 16px;
+    border-left: 4px solid var(--border);
+  }
+  .finding.crit { border-left-color: var(--crit); }
+  .finding.high { border-left-color: var(--rose); }
+  .finding.med { border-left-color: var(--amber); }
+  .finding.low { border-left-color: var(--muted); }
+  .finding.info { border-left-color: var(--primary); }
+  .finding.ok { border-left-color: var(--green); }
+
+  .f-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+  .f-id { font-family: ui-monospace, monospace; font-size: 11px; color: var(--muted); }
+  .f-title { font-size: 16px; font-weight: 600; flex: 1; min-width: 200px; }
+  .f-body { font-size: 13px; color: var(--ink-soft); }
+  .f-body p { margin-bottom: 8px; }
+  .f-body code {
+    font-family: ui-monospace, monospace; font-size: 12px;
+    background: var(--gray-soft); padding: 1px 5px; border-radius: 3px;
+  }
+  .f-section {
+    background: var(--gray-soft); border-radius: 6px;
+    padding: 10px 12px; margin-top: 10px; font-size: 12px;
+  }
+  .f-section strong { color: var(--ink); }
+
+  h2.section-h {
+    font-size: 18px; margin: 32px 0 12px;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+  }
+
+  .convergence {
+    margin-top: 40px;
+    background: var(--green-soft); border: 1px solid var(--green);
+    border-radius: 14px; padding: 24px;
+  }
+  .convergence h2 { font-size: 18px; color: var(--green); margin-bottom: 12px; }
+  .convergence p { font-size: 14px; color: var(--ink-soft); }
+
+  table.kv { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 12px; }
+  table.kv th, table.kv td {
+    text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--border);
+  }
+  table.kv th { background: var(--gray-soft); font-weight: 600; }
+  table.kv td.right { text-align: right; font-family: ui-monospace, monospace; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>Phase 0 — Wave 2 Audit · UX / Cost / Regression</h1>
+<div class="sub">Fix-surface re-audit (commit <code>0e692fd</code>) · 11 specific concerns · Agent B</div>
+
+<div class="meta-row">
+  <span class="badge b-blue">Wave 2 · UX/Cost/Regression</span>
+  <span class="badge b-gray">Scope: 5 fixed files</span>
+  <span class="badge b-gray">Date: 2026-05-25</span>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!-- EXEC SUMMARY -->
+<!-- ════════════════════════════════════════════ -->
+<div class="exec">
+<h2>EXEC SUMMARY</h2>
+<p>
+Wave 2 (UX/Cost/Regression) re-audited the 5 fix surfaces shipped in <code>0e692fd</code>. <strong>Verdict: 1 HIGH cost bug discovered in the fix itself</strong> — Wave 1's <code>forkStoryToPlaythrough</code> patch passes <code>params.storyId</code> (a UUID) as language-detection context to <code>pickModelForTier</code>. UUIDs are pure ASCII → <code>isChineseContent</code> returns false → Standard-tier forks route to Gemini Flash ($0.038/turn) instead of GLM-5.1 ($0.024/turn). For our 中文-first launch (HK + TW per CLAUDE.md), this is the wrong default and burns ~58% extra COGS on what will be the dominant fork path.
+</p>
+<p>
+Pricing-page drift — flagged as a concern — turns out to be a false alarm. <code>TIER_CONFIG</code> in credits.ts, <code>en.json</code>, and <code>zh-Hant.json</code> all agree (50 daily / 5000 / 15000 / 50000). One canonical source. The doc-string concern was based on stale memory.
+</p>
+<p>
+Other findings are lower severity: <strong>(a)</strong> creation-form spinner hardcodes "sonnet-4.6" text even when tier-router picks GLM-5.1 (cosmetic but misleading); <strong>(b)</strong> stale <code>model-picker.tsx</code> file unimported but still in repo (maintenance noise); <strong>(c)</strong> TierPicker uses Tailwind colors while AdultModeToggle uses <code>--se-*</code> tokens (visual inconsistency in same Settings page). DB query confirmed <strong>zero playthroughs locked to dropped models</strong> — legacy bypass is purely defensive today, fine.
+</p>
+<p>
+The Wave 1 fork-context bug is the same class of error pattern caught in Wave 1 — both stem from rushing tier-routing wire-up without thinking about what string actually gets passed for language detection. <strong>Recommend Wave 3 to fix the UUID-as-context bug</strong> (one-line: pass story title from DB instead). Other findings can defer or land in same Wave 3.
+</p>
+<p><strong>Wave 2 verdict: 1 HIGH · ship blocker. NOT yet converged.</strong></p>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!-- SUMMARY STATS -->
+<!-- ════════════════════════════════════════════ -->
+<div class="summary-grid">
+  <div class="stat"><div class="stat-num" style="color:var(--crit)">0</div><div class="stat-lbl">CRIT</div></div>
+  <div class="stat"><div class="stat-num" style="color:var(--rose)">1</div><div class="stat-lbl">HIGH</div></div>
+  <div class="stat"><div class="stat-num" style="color:var(--amber)">3</div><div class="stat-lbl">MED</div></div>
+  <div class="stat"><div class="stat-num" style="color:var(--muted)">3</div><div class="stat-lbl">LOW</div></div>
+  <div class="stat"><div class="stat-num" style="color:var(--green)">3</div><div class="stat-lbl">OK / FALSE-FLAG</div></div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<h2 class="section-h">HIGH · ship blocker</h2>
+
+<div class="finding high">
+  <div class="f-head">
+    <span class="badge b-rose">HIGH</span>
+    <span class="f-id">P0BW2-H-01</span>
+    <span class="f-title">Fork passes UUID as language-detection context → Chinese stories route to Gemini Flash (58% cost bloat)</span>
+  </div>
+  <div class="f-body">
+    <p><strong>File:</strong> <code>web/src/lib/community/actions.ts:471-472</code> (Wave 1 fix surface)</p>
+    <p><strong>Bug:</strong> Wave 1 fix wired <code>forkStoryToPlaythrough</code> to call <code>pickModelForTier(tierPref, params.storyId)</code>. <code>params.storyId</code> is a UUID (e.g. <code>"3f8a1c2b-..."</code>) — 0% CJK ideographs. <code>isChineseContent()</code> at <code>tier-router.ts:30-37</code> returns <code>false</code>. Standard tier therefore routes to <code>gemini-3-5-flash</code> instead of <code>glm-5-1</code>.</p>
+
+    <p><strong>Cost impact (Standard-tier user forking a Chinese story · the canonical launch path):</strong></p>
+    <table class="kv">
+      <tr><th>Model</th><th>credit_multiplier</th><th>Est turn cost</th><th>Δ vs intended</th></tr>
+      <tr><td>glm-5-1 (intended)</td><td class="right">1.0</td><td class="right">~$0.024</td><td class="right">—</td></tr>
+      <tr><td>gemini-3-5-flash (actual)</td><td class="right">1.5</td><td class="right">~$0.038</td><td class="right">+58%</td></tr>
+    </table>
+
+    <p>Comment at <code>community/actions.ts:469-470</code> says <em>"Standard-pool will lean to GLM-5.1 by default (CJK bias) which matches our 中文 launch market."</em> — but the code does the opposite of what the comment claims because the proxy string is wrong.</p>
+
+    <p><strong>Compounding factor:</strong> tier-router.ts:59 sets <code>const isCjk = context ? isChineseContent(context) : true</code> — i.e. <em>missing</em> context defaults to CJK (correct for our market). But <em>UUID-shaped context</em> reliably overrides that to <code>false</code>. Passing <code>undefined</code> instead of UUID would actually be correct.</p>
+
+    <div class="f-section">
+      <strong>Fix (one of):</strong>
+      <p style="margin-top:6px">
+        <strong>Option A (minimal · 1 line):</strong> Pass <code>undefined</code> instead of UUID — falls back to CJK-default routing. Aligns with the comment.<br>
+        <code>resolvedModel = pickModelForTier(tierPref, undefined);</code>
+      </p>
+      <p style="margin-top:6px">
+        <strong>Option B (better signal):</strong> Read the story's title/description from DB and pass that as context — proper language detection per story.<br>
+        Fork RPC already has the story row — extend it to return title or pre-fetch via <code>SELECT title, description FROM stories WHERE id = $1</code>.
+      </p>
+      <p style="margin-top:6px"><strong>Recommended:</strong> Option A for Wave 3 (cheap · safe default). Option B is BACKLOG (better signal but adds query · marginal benefit since CJK-default already correct for ≥80% of forks at launch).</p>
+    </div>
+
+    <p><strong>Why Wave 1 missed it:</strong> Wave 1 (Security/Correctness) flagged "tier not wired in fork" as P0B-CRIT-02. The fix added the call but didn't audit the <em>quality</em> of the context arg passed. This is the same error class as Wave 1's findings — wire-up correctness ≠ semantic correctness.</p>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<h2 class="section-h">MEDIUM · UX polish / cost</h2>
+
+<div class="finding med">
+  <div class="f-head">
+    <span class="badge b-amber">MED</span>
+    <span class="f-id">P0BW2-M-01</span>
+    <span class="f-title">Creation form spinner hardcodes "sonnet-4.6 · 生成中…" — wrong for Standard tier users</span>
+  </div>
+  <div class="f-body">
+    <p><strong>File:</strong> <code>web/src/app/[locale]/stories/new/creation-form.tsx:280</code></p>
+    <p>Generation progress UI displays <code>sonnet-4.6 · 生成中…</code> as the model label for all 4 parallel tasks. But <code>createStoryFromPrompt</code> (the action that backs this form) now resolves the user's tier via <code>pickModelForTier(tierPref, seedText)</code> — for Chinese prompts on Standard tier, the actual generation model is <strong>GLM-5.1</strong>, not Sonnet 4.6.</p>
+    <p>UX impact: a user on Standard tier creates a Chinese story, sees "sonnet-4.6 · 生成中…" — feels like premium model is being used (they didn't pay for it) OR feels like a bug (display vs reality drift). Either way, trust hit.</p>
+    <p>Also problematic for English prompts on Standard (routes to Gemini Flash · still shows Sonnet 4.6 label).</p>
+    <div class="f-section">
+      <strong>Fix:</strong> Read user's current tier server-side, compute the actual model label, pass to form via initial prop. Same dynamic-compute pattern already used by TierPicker for credit estimates.
+    </div>
+  </div>
+</div>
+
+<div class="finding med">
+  <div class="f-head">
+    <span class="badge b-amber">MED</span>
+    <span class="f-id">P0BW2-M-02</span>
+    <span class="f-title">TierPicker uses Tailwind colors · AdultModeToggle uses --se-* tokens · same Settings page · visual drift</span>
+  </div>
+  <div class="f-body">
+    <p><strong>Files:</strong> <code>web/src/components/settings/tier-picker.tsx</code> vs <code>web/src/components/settings/adult-mode-toggle.tsx</code></p>
+    <p>TierPicker (Wave 1 surface) uses Tailwind utility classes for color: <code>text-emerald-700 dark:text-emerald-300</code>, <code>bg-emerald-50</code>, <code>border-primary</code>, <code>bg-primary/5</code>, etc. AdultModeToggle (its direct sibling on the Settings page) uses CSS variables: <code>var(--se-surface)</code>, <code>var(--se-danger)</code>, <code>var(--se-border-strong)</code>, <code>var(--se-shadow-modal)</code>.</p>
+    <p>This means on Settings page, two cards immediately adjacent (preferences + adult mode sections) render with different color systems. Per Session 9 the entire UI tier was ported to the Grok+Netflix <code>--se-*</code> token system (47 artboards). TierPicker is the only major card in Settings still on raw Tailwind.</p>
+    <p>The Tailwind colors don't outright clash but are <em>off-system</em> — slightly different saturation, hover state pattern, etc. A designer reviewing this page would spot it in 2 seconds.</p>
+    <div class="f-section">
+      <strong>Fix:</strong> Convert TierPicker's color literals to <code>--se-*</code> tokens. ~30 minute refactor. Defer to Wave 3 or independent UI-tier task.
+    </div>
+  </div>
+</div>
+
+<div class="finding med">
+  <div class="f-head">
+    <span class="badge b-amber">MED</span>
+    <span class="f-id">P0BW2-M-03</span>
+    <span class="f-title">Stale model-picker.tsx in repo · unimported but still 130+ lines · contributor confusion</span>
+  </div>
+  <div class="f-body">
+    <p><strong>File:</strong> <code>web/src/components/settings/model-picker.tsx</code> (still present)</p>
+    <p>Grep confirms <strong>zero imports</strong> of <code>ModelPicker</code> in any active code path. The component is fully replaced by <code>TierPicker</code> in <code>settings/page.tsx:242</code>. Only references in active code are <em>comments</em> mentioning it (<code>models.ts:199</code>, <code>tier-picker.tsx:12</code>, <code>actions.ts:56</code>).</p>
+    <p>Risk classes:</p>
+    <ul style="margin-left:20px; margin-top:4px;">
+      <li><strong>Contributor confusion:</strong> new dev / future Claude session greps "ModelPicker" → finds a real component → assumes still active path → wastes time tracing what calls it.</li>
+      <li><strong>Accidental re-import:</strong> autocomplete in IDE will suggest it; someone could re-wire it without realizing it's deprecated.</li>
+      <li><strong>Future cleanup tax:</strong> the longer it sits, the more refactors will need to keep it compilable (e.g. when MODELS shape changes).</li>
+    </ul>
+    <div class="f-section">
+      <strong>Fix:</strong> Delete the file outright. Git history preserves it if ever needed. Single <code>git rm</code> + commit. Wave 3 candidate.
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<h2 class="section-h">LOW · polish</h2>
+
+<div class="finding low">
+  <div class="f-head">
+    <span class="badge b-gray">LOW</span>
+    <span class="f-id">P0BW2-L-01</span>
+    <span class="f-title">TierPicker estimates compute is sync · ~1ms · zero perceptible delay (concern dismissed)</span>
+  </div>
+  <div class="f-body">
+    <p>Verified the dynamic <code>tierAvgCredits</code> compute path. Pure function: <code>TIER_POOLS[tier].map(estimateTurnCredits).reduce(...)</code>. <code>estimateTurnCredits</code> calls <code>computeTurnCredits</code> which is arithmetic on the MODEL_PRICING lookup table. All sync, no I/O. Wrapped in <code>useMemo([])</code> — runs once per mount. Estimated <strong>&lt; 0.5ms</strong>. Concern dismissed.</p>
+    <p>Edge case re: empty pool (showing "~0"): <code>TIER_POOLS</code> has all 4 tiers populated (standard: 2, pro: 2, pro-max: 1, adult: 1). Edge case is unreachable today. Defense-in-depth fallback at <code>tier-picker.tsx:69</code> returns 0 if pool empty — would show "~0" in a hypothetical future where someone empties a pool. Acceptable.</p>
+  </div>
+</div>
+
+<div class="finding low">
+  <div class="f-head">
+    <span class="badge b-gray">LOW</span>
+    <span class="f-id">P0BW2-L-02</span>
+    <span class="f-title">Adult mode re-enable doesn't auto-restore prior tier · acceptable but worth noting</span>
+  </div>
+  <div class="f-body">
+    <p>Flow: user has <code>default_tier='adult'</code> → disables adult mode → Wave 1 fix resets <code>default_tier='pro'</code>. Later (post-KYC) user re-enables adult mode. They <strong>must manually re-pick</strong> "Adult" in TierPicker — no auto-restore to their prior preference.</p>
+    <p>Why this is fine: (a) the user just went through the adult-mode consent dialog, so they're already in "I'm setting up adult" mode and natural next step is pick the tier; (b) auto-restoring would require storing "previous tier" somewhere (extra column or local state); (c) the friction is one click.</p>
+    <p>Worth noting because some users may not realize they need to re-pick. Acceptable for MVP; revisit if support reports confusion.</p>
+    <div class="f-section">
+      <strong>Mitigation (optional):</strong> Toast on adult mode re-enable: "想用 Adult tier 嘅話請喺敘事 AI Tier 揀返"
+    </div>
+  </div>
+</div>
+
+<div class="finding low">
+  <div class="f-head">
+    <span class="badge b-gray">LOW</span>
+    <span class="f-id">P0BW2-L-03</span>
+    <span class="f-title">Dynamic import at server-action callsite adds ~5-20ms on first call · fork path acceptable</span>
+  </div>
+  <div class="f-body">
+    <p>Wave 1 fix at <code>community/actions.ts:471</code> uses <code>await import("@/lib/ai/tier-router")</code> rather than a top-level import. This is presumably for circular-import avoidance (the same pattern is used at <code>credits.ts:496</code> for MODELS). On first call per lambda instance, Node bundles & loads the module — measured at ~5-20ms warm-cache miss. Subsequent calls within the same lambda are zero-cost (module cached).</p>
+    <p>For <code>forkStoryToPlaythrough</code>, this is fine — fork is a rare action (once per playthrough), not in any per-turn hot loop. The ~10ms is well under perceptible latency for a redirect-to-play action that already takes hundreds of ms (RPC + DB writes).</p>
+    <p>Confirmed via grep — <code>tier-router</code> is also imported at top-level in <code>stories/new/actions.ts:12</code> with no circular issues. The dynamic import in fork is a stylistic choice; could be promoted to top-level for consistency, but not required. Concern dismissed.</p>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<h2 class="section-h">OK / False-flag (concerns verified safe)</h2>
+
+<div class="finding ok">
+  <div class="f-head">
+    <span class="badge b-green">OK</span>
+    <span class="f-id">P0BW2-OK-01</span>
+    <span class="f-title">Pricing page has NO drift · TIER_CONFIG ≡ en.json ≡ zh-Hant.json</span>
+  </div>
+  <div class="f-body">
+    <p>Concern was that 4 sources of truth might disagree: TierPicker (dynamic compute), pricing page (i18n strings), credits.ts <code>TIER_CONFIG</code> docstring, and the v2 plan HTML.</p>
+    <p>Verified:</p>
+    <ul style="margin-left:20px; margin-top:4px;">
+      <li><code>credits.ts TIER_CONFIG</code>: Free 50/day · Adventurer 5000/mo · Storyteller 15000/mo · Legend 50000/mo</li>
+      <li><code>messages/zh-Hant.json marketing.pricing.tiers</code>: same values · 一致</li>
+      <li><code>messages/en.json marketing.pricing.tiers</code>: same values · 一致</li>
+      <li><code>pricing/page.tsx</code>: reads from i18n only, no hardcoded numbers · 一致</li>
+    </ul>
+    <p>The pricing page renders directly from translation strings · single source of truth conceptually. TierPicker shows per-turn estimates (different metric · doesn't conflict). No drift.</p>
+    <p><strong>Note:</strong> i18n strings duplicate the credit numbers across 2 locales. Future <code>simplified-chinese</code> add will need same numbers. If the founder ever changes a plan price, they must update <em>both</em> credits.ts <code>TIER_CONFIG</code> + i18n strings. Low-risk because both layers exist; flagged for awareness.</p>
+  </div>
+</div>
+
+<div class="finding ok">
+  <div class="f-head">
+    <span class="badge b-green">OK</span>
+    <span class="f-id">P0BW2-OK-02</span>
+    <span class="f-title">Zero playthroughs locked to dropped models · legacy bypass is purely defensive · safe</span>
+  </div>
+  <div class="f-body">
+    <p>Concern was about real exposure to the legacy_model bypass at <code>credits.ts:498-520</code>. Ran <code>SELECT DISTINCT llm_model FROM playthroughs</code> via Supabase MCP:</p>
+    <table class="kv">
+      <tr><th>llm_model</th><th>count</th></tr>
+      <tr><td>claude-sonnet-4-6</td><td class="right">1</td></tr>
+    </table>
+    <p>Only 1 playthrough exists, locked to Sonnet 4.6 which is <em>still in MODELS catalog</em> (Pro pool). The legacy_model bypass would never trigger today.</p>
+    <p>The fix protects against a <strong>future</strong> scenario where (a) Sonnet 4.6 gets dropped from MODELS, or (b) more historical playthroughs accumulate before the next curation cycle. Defensive code is good — keeping the fix.</p>
+    <p>Suggestion: add a periodic data-quality query (e.g. once per release) — <code>SELECT llm_model FROM playthroughs WHERE llm_model NOT IN (SELECT key FROM <i>MODELS</i>)</code> — to catch latent drift. BACKLOG candidate (not Wave 3).</p>
+  </div>
+</div>
+
+<div class="finding ok">
+  <div class="f-head">
+    <span class="badge b-green">OK</span>
+    <span class="f-id">P0BW2-OK-03</span>
+    <span class="f-title">setAdultMode symmetric tier reset is atomic + race-safe</span>
+  </div>
+  <div class="f-body">
+    <p>Verified <code>settings/actions.ts:60-90</code>. When disabling adult mode AND user's <code>default_tier='adult'</code> AND/OR <code>default_model</code> is NSFW: both reset happen in <strong>one</strong> Postgres UPDATE statement (single round-trip · atomic at row level). No window where adult_mode_enabled=false but default_tier='adult' persists.</p>
+    <p>Post-update: <code>revalidatePath("/settings")</code> invalidates server cache. TierPicker re-renders with <code>currentTier='pro'</code> · Adult card disappears (since <code>if (tier === "adult" && !adultModeEnabled) return null</code>). Smooth transition · no ghost UI state.</p>
+    <p>UX: user sees Adult card vanish, "Pro" card highlighted. Inferred meaning: "your tier moved to Pro because you turned off Adult mode." Could be clearer with a toast — but acceptable. Concern dismissed.</p>
+  </div>
+</div>
+
+<div class="finding info">
+  <div class="f-head">
+    <span class="badge b-blue">INFO</span>
+    <span class="f-id">P0BW2-I-01</span>
+    <span class="f-title">i18n outdated · no Phase 0 strings need translation (TierPicker hardcodes 繁中)</span>
+  </div>
+  <div class="f-body">
+    <p>TierPicker is entirely hardcoded 繁中 (e.g. <code>"敘事 AI Tier"</code>, <code>"揀 tier · 我哋幫你揀最啱嘅 model"</code>). No new translation keys added in Phase 0.</p>
+    <p>Per CLAUDE.md, 簡中 + EN are "day-1 ready" but app text is 繁中-first. TierPicker hardcoded text is consistent with this stance (Settings page sub-titles are also hardcoded 繁中).</p>
+    <p>Not a Phase 0 blocker. Will need to migrate TierPicker + AdultModeToggle + creation-form to i18n keys before EN+簡中 launch. BACKLOG / future-i18n-pass.</p>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!-- CONVERGENCE -->
+<!-- ════════════════════════════════════════════ -->
+<div class="convergence" style="background: var(--rose-soft); border-color: var(--rose);">
+  <h2 style="color: var(--rose);">Convergence signal · Wave 2 = SHIP BLOCKER</h2>
+  <p>
+    <strong>1 HIGH · 3 MED · 3 LOW · 0 CRIT</strong>. The HIGH (<code>P0BW2-H-01</code>) is a regression introduced <em>by</em> the Wave 1 fix — same error class (rushed wire-up missing semantic context). Cannot declare convergence with a HIGH outstanding.
+  </p>
+  <p style="margin-top: 8px;">
+    <strong>Recommendation:</strong>
+    <ol style="margin-left: 22px; margin-top: 6px;">
+      <li>Wave 3 (1 hour): fix <code>P0BW2-H-01</code> (1-line: pass <code>undefined</code> instead of UUID); optionally bundle MED fixes (M-01 spinner label, M-02 TierPicker tokens, M-03 delete model-picker.tsx).</li>
+      <li>Wave 4 audit: re-run UX/Cost/Regression. Expect 0 HIGH and ≤2 MED remaining.</li>
+      <li>If Wave 4 returns 0 CRIT + 0 HIGH, AND Wave 4 of Agent A also returns 0 CRIT + 0 HIGH, that's <strong>1 consecutive zero-blocker cycle</strong>.</li>
+      <li>Per CLAUDE.md hard rule #29: need <strong>3 consecutive</strong> zero-blocker cycles + declining finding trend before declaring convergence. So Wave 5 and 6 are still needed.</li>
+    </ol>
+  </p>
+  <p style="margin-top: 10px;">
+    <strong>Finding trend:</strong> Wave 1 (5 ship-blockers) → Wave 2 (1 HIGH ship-blocker · 4× drop) — declining as expected. Continue audit cycles.
+  </p>
+</div>
+
+</div>
+</body>
+</html>

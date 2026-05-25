@@ -496,25 +496,32 @@ export async function userTierAllowsModel(
   const { MODELS } = await import("@/lib/ai/models");
   const model = MODELS[modelId];
   if (!model) {
-    // AUDIT FIX P0A-CRIT-01 / P0B-CRIT-01 (2026-05-25): existing playthroughs
-    // were created with models that have since been DROPPED from MODELS catalog
-    // (Session 10 curation 10→7: gpt-4o, gpt-4o-mini, grok-2, grok-2-mini,
-    // gemini-3-1-pro). Their playthroughs are LOCKED to those model ids at
-    // creation. Returning {allowed:false, reason:'unknown_model'} causes the
-    // turn route to 403 them permanently — they can't continue their saved
-    // playthroughs.
+    // AUDIT FIX P0AW2-HIGH-01 (Wave 2 · 2026-05-25): Wave 1's permissive
+    // bypass `{allowed:true}` for ANY unknown model id was too loose · it
+    // opened a credit-undercharge attack vector: malicious user could
+    // `supabase.from('playthroughs').update({llm_model:'gpt-4o-mini'})`
+    // via browser console (RLS permits column write · no column-protection
+    // trigger on llm_model yet). Turn route would pass · providers.ts
+    // silent-fallback to Sonnet 4.6 · but computeCredits would charge at
+    // gpt-4o-mini's $0.15/$0.60 rate (~95% undercharge on every turn).
     //
-    // Fix: legacy/dropped models are ALWAYS allowed (existing user can keep
-    // playing). MODEL_PRICING still has their entries → computeCredits works.
-    // Tier gate is bypassed because we never re-validate locked-at-creation
-    // models. If the model id is also missing from MODEL_PRICING, providers.ts
-    // dispatch will throw later — but that's a different error class.
+    // Tightened bypass: ONLY allow legacy ids that have a MODEL_PRICING
+    // entry (= models we've shipped before · still chargeable correctly).
+    // Truly unknown ids (typos · attack injections · future model ids
+    // not yet whitelisted) → reject as before. This is the "curated
+    // whitelist" pattern: MODEL_PRICING IS the implicit allowlist.
     //
-    // Log a warning so we can monitor how many dropped-model playthroughs are
-    // still in use and decide when to deprecate them properly.
+    // Dropped-from-MODELS-but-kept-in-MODEL_PRICING today:
+    //   gpt-4o · gpt-4o-mini · gemini-3-1-pro · grok-2 · grok-2-mini
+    // Existing playthroughs locked to these still work · all other unknown
+    // ids 403 immediately.
+    const isLegacyPriced = modelId in MODEL_PRICING;
+    if (!isLegacyPriced) {
+      return { allowed: false, tier, reason: "unknown_model" };
+    }
     if (process.env.NODE_ENV !== "production") {
       console.warn(
-        `[userTierAllowsModel] legacy model "${modelId}" not in MODELS catalog; allowing for back-compat`,
+        `[userTierAllowsModel] legacy model "${modelId}" not in MODELS catalog · allowing via MODEL_PRICING whitelist`,
       );
     }
     return { allowed: true, tier, reason: "legacy_model" };

@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Story Engine — Phase 0 Wave 2 Audit · Security · Correctness · DB</title>
+<style>
+  :root { --primary: #4F46E5; --primary-soft: #EEF2FF; --accent: #F59E0B; --accent-soft: #FEF3C7; --bg: #FAFAF7; --card: #FFFFFF; --ink: #18181B; --ink-soft: #3F3F46; --muted: #71717A; --border: #E4E4E7; --green: #10B981; --green-soft: #D1FAE5; --rose: #E11D48; --amber: #D97706; --code-bg: #F4F4F5; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif; background: var(--bg); color: var(--ink); line-height: 1.65; font-size: 15px; -webkit-font-smoothing: antialiased; }
+  main { max-width: 1080px; margin: 0 auto; padding: 48px 32px 120px; }
+  .hero { text-align: center; margin-bottom: 36px; }
+  .eyebrow { display: inline-block; font-size: 11px; font-weight: 700; color: var(--primary); background: var(--primary-soft); padding: 5px 12px; border-radius: 999px; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 16px; }
+  h1 { font-size: 30px; font-weight: 800; letter-spacing: -0.025em; margin-bottom: 10px; }
+  .hero p { color: var(--muted); font-size: 15.5px; max-width: 760px; margin: 0 auto; }
+  .meta { color: var(--muted); font-size: 13px; margin-top: 14px; }
+  .summary { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin: 32px 0 28px; }
+  .stat { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px; text-align: center; }
+  .stat-num { font-size: 36px; font-weight: 800; line-height: 1; }
+  .stat-label { font-size: 11px; color: var(--muted); margin-top: 8px; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700; }
+  .stat.crit .stat-num { color: var(--rose); }
+  .stat.high .stat-num { color: var(--amber); }
+  .stat.med .stat-num { color: var(--primary); }
+  .stat.low .stat-num { color: var(--muted); }
+  .stat.info .stat-num { color: var(--green); }
+  .stat .zero { color: var(--green); font-size: 32px; }
+  h2 { font-size: 22px; font-weight: 700; margin: 44px 0 14px; display: flex; align-items: center; gap: 10px; }
+  h2 .icon { font-size: 26px; }
+  .verdict { background: linear-gradient(135deg, #fffbeb, #fef3c7); border: 2px solid var(--amber); padding: 22px 26px; border-radius: 14px; margin: 18px 0 36px; }
+  .verdict h3 { color: var(--amber); font-size: 17px; font-weight: 800; margin-bottom: 10px; }
+  .verdict p { font-size: 14.5px; line-height: 1.75; }
+  .verdict ol { margin: 10px 0 0 22px; }
+  .verdict ol li { font-size: 14px; margin: 4px 0; }
+  .priority-list { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 22px; margin: 16px 0 32px; }
+  .priority-row { display: grid; grid-template-columns: 50px 1fr auto; gap: 14px; align-items: start; padding: 12px 0; border-bottom: 1px dashed var(--border); }
+  .priority-row:last-child { border-bottom: none; }
+  .priority-rank { font-size: 20px; font-weight: 800; color: var(--primary); }
+  .priority-content strong { font-weight: 700; font-size: 14.5px; display: block; margin-bottom: 4px; }
+  .priority-content small { font-size: 12.5px; color: var(--muted); line-height: 1.55; }
+  .priority-refs { font-size: 11px; color: var(--primary); font-weight: 700; background: var(--primary-soft); padding: 4px 8px; border-radius: 6px; white-space: nowrap; align-self: center; }
+  details.dim-section { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 0; margin-bottom: 14px; overflow: hidden; }
+  details.dim-section[open] { box-shadow: 0 2px 12px rgba(0,0,0,0.04); }
+  details.dim-section summary { cursor: pointer; padding: 20px 24px; font-weight: 700; font-size: 17px; display: flex; align-items: center; gap: 12px; user-select: none; }
+  details.dim-section summary::-webkit-details-marker { display: none; }
+  details.dim-section summary::after { content: "▼"; margin-left: auto; color: var(--muted); font-size: 12px; transition: transform .2s; }
+  details.dim-section[open] summary::after { transform: rotate(180deg); }
+  .dim-content { padding: 0 24px 24px; }
+  .issue { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin-bottom: 12px; }
+  .issue.crit { border-left: 4px solid var(--rose); background: #fef2f2; }
+  .issue.high { border-left: 4px solid var(--amber); background: #fffbf4; }
+  .issue.med { border-left: 4px solid var(--primary); }
+  .issue.low { border-left: 4px solid var(--muted); }
+  .issue.info { border-left: 4px solid var(--green); background: #f0fdf4; }
+  .issue-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+  .issue-id { font-weight: 800; font-size: 12.5px; color: var(--primary); flex-shrink: 0; font-family: "SF Mono", Monaco, monospace; }
+  .issue-title { font-weight: 700; font-size: 14.5px; flex: 1; min-width: 220px; }
+  .sev-tag { font-size: 10px; padding: 3px 9px; border-radius: 999px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
+  .sev-crit { background: var(--rose); color: white; }
+  .sev-high { background: var(--amber); color: white; }
+  .sev-med { background: var(--primary-soft); color: var(--primary); }
+  .sev-low { background: var(--code-bg); color: var(--muted); }
+  .sev-info { background: var(--green-soft); color: var(--green); }
+  .issue-loc { font-family: "SF Mono", Monaco, monospace; font-size: 11.5px; color: var(--muted); margin-bottom: 8px; word-break: break-all; }
+  .issue-body { font-size: 13.5px; color: var(--ink-soft); margin-bottom: 8px; line-height: 1.7; }
+  .issue-body strong { color: var(--ink); }
+  .issue-fix { background: rgba(16, 185, 129, 0.06); border-left: 3px solid var(--green); padding: 10px 14px; border-radius: 6px; font-size: 13px; color: var(--ink-soft); margin-top: 10px; }
+  .issue-fix strong { color: var(--green); font-weight: 700; }
+  pre { background: var(--code-bg); padding: 10px 14px; border-radius: 6px; font-family: "SF Mono", Monaco, monospace; font-size: 12px; overflow-x: auto; margin: 8px 0; line-height: 1.5; color: var(--ink-soft); }
+  code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; font-family: "SF Mono", Monaco, monospace; font-size: 12px; }
+  .rule-badge { display: inline-block; font-size: 10px; padding: 2px 7px; border-radius: 4px; background: var(--primary-soft); color: var(--primary); font-weight: 700; margin-left: 6px; letter-spacing: 0.03em; }
+  .diff-block { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0; }
+  .diff-bad, .diff-good { padding: 10px 14px; border-radius: 6px; font-family: "SF Mono", Monaco, monospace; font-size: 11.5px; line-height: 1.55; overflow-x: auto; }
+  .diff-bad { background: #fef2f2; border-left: 3px solid var(--rose); }
+  .diff-good { background: #f0fdf4; border-left: 3px solid var(--green); }
+  .diff-label { font-size: 10px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 4px; }
+  .diff-bad .diff-label { color: var(--rose); }
+  .diff-good .diff-label { color: var(--green); }
+  table.findings { width: 100%; border-collapse: collapse; margin: 12px 0 24px; font-size: 13.5px; }
+  table.findings th { text-align: left; background: var(--code-bg); padding: 10px 14px; font-weight: 700; font-size: 12px; letter-spacing: 0.03em; }
+  table.findings td { padding: 10px 14px; border-top: 1px solid var(--border); vertical-align: top; }
+  table.findings tr:hover { background: var(--bg); }
+  .pill { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px; letter-spacing: 0.04em; }
+  .pill-crit { background: var(--rose); color: white; }
+  .pill-high { background: var(--amber); color: white; }
+  .pill-med { background: var(--primary-soft); color: var(--primary); }
+  .pill-low { background: var(--code-bg); color: var(--muted); }
+  .pill-info { background: var(--green-soft); color: var(--green); }
+  .verified { background: linear-gradient(135deg, #d1fae5, #ecfdf5); border: 2px solid var(--green); padding: 22px 26px; border-radius: 14px; margin: 18px 0 36px; }
+  .verified h3 { color: var(--green); font-size: 17px; font-weight: 800; margin-bottom: 10px; }
+  .verified p { font-size: 14.5px; line-height: 1.75; }
+  .verified ul { margin: 10px 0 0 22px; }
+  .verified ul li { font-size: 13.5px; margin: 5px 0; }
+  @media (max-width: 768px) { .summary { grid-template-columns: repeat(2, 1fr); } main { padding: 24px 16px 80px; } .diff-block { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+
+<div class="hero">
+  <span class="eyebrow">🔍 Phase 0 Wave 2 (commit 0e692fd · 2nd audit cycle) · Agent A · Security · Correctness · DB</span>
+  <h1>Wave 2 Audit — 1 HIGH (CRIT-01 fix opened RLS exploit) + 3 MED + 4 LOW + 3 INFO</h1>
+  <p>2nd-cycle audit on the Wave 1 fix surface. Verifies all 5 Wave 1 inline fixes work. <strong>1 net-new HIGH</strong> introduced by the CRIT-01 legacy-model bypass — combined with un-restricted <code>playthroughs UPDATE</code> RLS gives any authenticated user a 5-95% credit undercharge per turn. <strong>0 NEW CRIT</strong>. Wave 1 fixes themselves verified correct; convergence delayed by 1 cycle.</p>
+  <div class="meta">Audit date: 2026-05-25 · Scope: 7 files touched in 0e692fd + 4 applied migrations + live DB state · Method: trace ALL callers of changed functions · simulate attack vectors via DB RLS inspection · cross-reference MODEL_PRICING ∖ MODELS gap</div>
+</div>
+
+<div class="summary">
+  <div class="stat crit"><div class="stat-num zero">0</div><div class="stat-label">Critical</div></div>
+  <div class="stat high"><div class="stat-num">1</div><div class="stat-label">High</div></div>
+  <div class="stat med"><div class="stat-num">3</div><div class="stat-label">Medium</div></div>
+  <div class="stat low"><div class="stat-num">4</div><div class="stat-label">Low</div></div>
+  <div class="stat info"><div class="stat-num">3</div><div class="stat-label">Info / Verified</div></div>
+</div>
+
+<div class="verdict">
+  <h3>Verdict — 1 ship blocker · need fix wave 2 · convergence delayed 1 cycle</h3>
+  <p>Wave 1 fixes shipped clean structurally — DB state correct (4 migrations applied, 6 users all <code>default_tier='pro'</code>, CHECK constraint matches enum, 3 RAG RPCs have exactly 1 version each with <code>p_min_similarity</code>). BUT the CRIT-01 fix (legacy model bypass returns <code>{allowed:true, reason:'legacy_model'}</code> for any unknown id) combined with an UN-restricted <code>playthroughs_own_update</code> RLS policy <strong>opens a net-new credit-undercharge attack vector</strong>:</p>
+  <ol>
+    <li>Any authenticated user can directly UPDATE their <code>pt.llm_model = 'gpt-4o-mini'</code> via Supabase JS (RLS allows it — no column restriction).</li>
+    <li>Wave 1 <code>userTierAllowsModel</code> now PASSES this through (pre-Wave-1 it 403'd).</li>
+    <li>Turn route calls <code>providers.ts getProviderModel('gpt-4o-mini')</code> → <code>getModel</code> throws → silent fallback to <code>claude-sonnet-4-6</code>. Real Sonnet call.</li>
+    <li><code>computeCredits({modelId: 'gpt-4o-mini'})</code> charges at gpt-4o-mini rate ($0.15/$0.60 per million) instead of Sonnet ($3/$15). <strong>~95% undercharge per turn permanently.</strong></li>
+  </ol>
+  <p style="margin-top:10px"><strong>Recommended Wave 2 fix:</strong> EITHER (a) add column-restriction trigger to playthroughs preventing user UPDATE of <code>llm_model / llm_provider</code> [defense-in-depth, ~1h work], OR (b) tighten CRIT-01 fix to only allow legacy ids from a CURATED set (gpt-4o, gpt-4o-mini, grok-2, grok-2-mini, gemini-3-1-pro — the 5 we KNOW we dropped, hardcoded), reject everything else. Option (b) is faster (10min) and addresses the comment lie too.</p>
+</div>
+
+<h2><span class="icon">📌</span> Top priorities (must-fix order)</h2>
+<div class="priority-list">
+  <div class="priority-row">
+    <div class="priority-rank">1</div>
+    <div class="priority-content">
+      <strong>Tighten CRIT-01 legacy bypass to curated dropped-model whitelist (or column-restrict RLS)</strong>
+      <small>P0AW2-HIGH-01 · Wave 1 fix made <code>userTierAllowsModel</code> too permissive · combined with un-restricted playthroughs UPDATE RLS = ~95% credit undercharge per turn. Fix in <code>credits.ts:498-521</code> + add column trigger to <code>playthroughs</code>.</small>
+    </div>
+    <div class="priority-refs">P0AW2-HIGH-01</div>
+  </div>
+  <div class="priority-row">
+    <div class="priority-rank">2</div>
+    <div class="priority-content">
+      <strong>Fix forkStoryToPlaythrough language-routing — UUID context is meaningless</strong>
+      <small>P0AW2-MED-01 · <code>pickModelForTier("pro", storyId_uuid)</code> always routes to <code>gpt-5-4-pro</code> (English-strong) because UUID has 0 CJK chars. Chinese-market user fork = English-routed LLM. Use story.language or pass <code>undefined</code> (CJK-default branch).</small>
+    </div>
+    <div class="priority-refs">P0AW2-MED-01</div>
+  </div>
+  <div class="priority-row">
+    <div class="priority-rank">3</div>
+    <div class="priority-content">
+      <strong>Comment in forkStoryToPlaythrough is wrong — "Standard-pool will lean to GLM-5.1 by default" is false</strong>
+      <small>P0AW2-MED-02 · Author of fix misread their own router. <code>isChineseContent(uuid)=false</code> → returns <code>gemini-3-5-flash</code>. Indicates lack of mental model. Tied to #2 above — fixing #2 fixes the comment.</small>
+    </div>
+    <div class="priority-refs">P0AW2-MED-02</div>
+  </div>
+  <div class="priority-row">
+    <div class="priority-rank">4</div>
+    <div class="priority-content">
+      <strong>setAdultMode + setDefaultTier race condition (2 tabs)</strong>
+      <small>P0AW2-LOW-01 · Two concurrent UPDATEs · no DB CHECK ensures <code>default_tier='adult' ⇒ adult_mode_enabled=true</code>. Race produces ghost state. UX-degraded only (createStory falls back gracefully). DB CHECK constraint adds defense-in-depth.</small>
+    </div>
+    <div class="priority-refs">P0AW2-LOW-01</div>
+  </div>
+</div>
+
+<h2><span class="icon">✅</span> Wave 1 fix verification — what's working</h2>
+<div class="verified">
+  <h3>5 / 5 Wave 1 fixes structurally correct + DB clean</h3>
+  <ul>
+    <li><strong>P0A-CRIT-01 fix verified</strong>: <code>userTierAllowsModel</code> returns <code>{allowed:true, reason:'legacy_model'}</code> for unknown ids · prod dev-warn only (NODE_ENV check correct). BUT see P0AW2-HIGH-01 below — fix opens different attack surface.</li>
+    <li><strong>P0B-CRIT-02 fix verified</strong>: <code>createStoryFromPrompt</code> reads <code>default_tier</code> · calls <code>pickModelForTier(tier, seedText)</code> · seedText is real user prompt+hint (Zod min(20)) so language detection works correctly here.</li>
+    <li><strong>P0B-CRIT-02b verified PARTIAL</strong>: <code>forkStoryToPlaythrough</code> wires tier · BUT passes <code>storyId</code> as context to <code>pickModelForTier</code> — UUID has 0 CJK chars, breaks routing. See P0AW2-MED-01.</li>
+    <li><strong>P0A-HIGH-01 (Migration 0021) verified</strong>: applied · 0 Opus users so 0 rows changed · idempotent. DB state: <code>select default_tier, count(*)</code> returns just <code>{pro: 6}</code>.</li>
+    <li><strong>P0B-HIGH-02 verified</strong>: <code>tierAvgCredits</code> safe — every model in <code>TIER_POOLS</code> (gemini-3-5-flash, glm-5-1, claude-sonnet-4-6, gpt-5-4-pro, claude-opus-4-7, llama-3-1-405b-uncensored) IS in <code>MODEL_PRICING</code>. No throw risk during render. <code>useMemo([])</code> deps OK because <code>tierAvgCredits</code> is pure over module constants.</li>
+    <li><strong>P0B-HIGH-03 verified</strong>: <code>setAdultMode(false)</code> now also resets <code>default_tier='adult' → 'pro'</code> symmetrically with <code>default_model</code> reset. Logic correct for the common single-tab case. Race condition is LOW-severity edge case (P0AW2-LOW-01).</li>
+    <li><strong>DB state clean</strong>: 4 migrations applied (0019 default_tier + 0020 floor + 0020-cleanup ghost-overload drop + 0021 Opus backfill) · CHECK constraint matches enum exactly · 3 RAG RPCs have 1 version each with <code>p_min_similarity</code>. No ghost overloads.</li>
+    <li><strong>Early guards in setDefaultModel preserved</strong>: <code>settings/actions.ts:128-131</code> still has <code>if (!model) return {error:'unknown_model'}</code> BEFORE calling <code>userTierAllowsModel</code> · CRIT-01 fix doesn't open a "POST arbitrary model id as default_model" hole at the action layer.</li>
+    <li><strong>Turn route input is trusted</strong>: <code>playthroughModel = pt.llm_model</code> read from DB (RLS-protected SELECT). User can't POST a model id on turn. But — pt.llm_model itself is writable by user via direct UPDATE (P0AW2-HIGH-01).</li>
+  </ul>
+</div>
+
+<h2><span class="icon">🚨</span> Net-new findings (Wave 2)</h2>
+
+<details class="dim-section" open>
+  <summary>🔥 HIGH (1) · CRIT-01 fix opened credit-undercharge attack vector</summary>
+  <div class="dim-content">
+
+    <div class="issue high">
+      <div class="issue-head">
+        <span class="issue-id">P0AW2-HIGH-01</span>
+        <span class="issue-title">Legacy model bypass + un-restricted playthroughs UPDATE RLS = 5-95% credit undercharge per turn</span>
+        <span class="sev-tag sev-high">High</span>
+        <span class="rule-badge">Hard rule #4 — credit math integrity</span>
+        <span class="rule-badge">Hard rule #15 — RLS column restriction</span>
+      </div>
+      <div class="issue-loc">web/src/lib/billing/credits.ts:498-521 + RLS policy playthroughs_own_update (no column restriction)</div>
+      <div class="issue-body">
+        <strong>The exploit chain (4 steps · all currently possible).</strong>
+        <ol style="margin-left:22px; margin-top:6px;">
+          <li>Authenticated user opens browser console · runs <code>supabase.from('playthroughs').update({llm_model:'gpt-4o-mini'}).eq('id','&lt;my-id&gt;')</code>. RLS policy <code>playthroughs_own_update</code> has <code>using/with check (auth.uid() = user_id)</code> but <strong>no column-list restriction</strong> · UPDATE succeeds (verified via <code>pg_policies</code> query · no column restriction · no BEFORE UPDATE trigger).</li>
+          <li>Next turn: route reads <code>pt.llm_model='gpt-4o-mini'</code> · calls <code>userTierAllowsModel</code> · Wave 1 CRIT-01 fix returns <code>{allowed:true, reason:'legacy_model'}</code> (pre-fix would have returned <code>{allowed:false, reason:'unknown_model'}</code> · 403).</li>
+          <li><code>providers.ts:getProviderModel('gpt-4o-mini')</code> → <code>getModel</code> throws (not in MODELS catalog) → <strong>silent fallback to <code>claude-sonnet-4-6</code></strong> (providers.ts:54-58). Real Sonnet call · ~$0.20 of LLM cost.</li>
+          <li>Charge time: <code>computeCredits({modelId:'gpt-4o-mini'})</code> uses MODEL_PRICING['gpt-4o-mini'] = <code>{input:$0.15, output:$0.60}</code> · charges ~$0.01 worth of credits. <strong>~95% undercharge persists per turn forever.</strong></li>
+        </ol>
+        <p style="margin-top:10px;"><strong>Per-turn undercharge by legacy id (MODEL_PRICING ∖ MODELS gap):</strong></p>
+        <table class="findings">
+          <thead><tr><th>Legacy id</th><th>MODEL_PRICING rate</th><th>Actual call (Sonnet 4.6)</th><th>Undercharge</th></tr></thead>
+          <tbody>
+            <tr><td><code>gpt-4o-mini</code></td><td>$0.15 / $0.60</td><td>$3 / $15</td><td><strong>~95%</strong></td></tr>
+            <tr><td><code>grok-2-mini</code></td><td>$0.50 / $1.50</td><td>$3 / $15</td><td><strong>~85%</strong></td></tr>
+            <tr><td><code>gpt-4o</code></td><td>$2.5 / $10</td><td>$3 / $15</td><td>~17%</td></tr>
+            <tr><td><code>gemini-3-1-pro</code></td><td>$2 / $12</td><td>$3 / $15</td><td>~17%</td></tr>
+            <tr><td><code>grok-2</code></td><td>$2 / $10</td><td>$3 / $15</td><td>~25%</td></tr>
+          </tbody>
+        </table>
+        <p style="margin-top:8px;"><strong>Pre-Wave-1 baseline</strong>: this attack DID NOT WORK. <code>userTierAllowsModel</code> 403'd at turn route line 144. Wave 1 CRIT-01 fix opened it. Net-new severity = HIGH (CLAUDE.md hard rule #4 "credits ... off-by-one equals trust collapse" applies — but ALSO requires the user to actively craft a DB UPDATE, which gates this to motivated attackers rather than accidental). Today's prod has 0 attackers but launch-day this is sitting waiting.</p>
+        <p style="margin-top:8px;"><strong>Why this matters more than it looks.</strong> 5 dropped-model ids × any Pro/Pro-Max user with Storyteller sub × no detection signal in production (the log warning is dev-only). Plus all the other Anthropic-priced legacy ids one might add later. We must close this BEFORE any user discovers the trick.</p>
+      </div>
+      <div class="issue-fix">
+        <strong>Fix (pick one or both — defense-in-depth preferred):</strong>
+        <ol style="margin-left:18px; margin-top:6px;">
+          <li><strong>Option A (10 min):</strong> Replace open <code>if (!model)</code> branch with curated whitelist:
+            <pre>const DROPPED_LEGACY_IDS = new Set([
+  "gpt-4o", "gpt-4o-mini",
+  "grok-2", "grok-2-mini",
+  "gemini-3-1-pro",
+]);
+if (!model) {
+  if (DROPPED_LEGACY_IDS.has(modelId)) {
+    return { allowed: true, tier, reason: "legacy_model" };
+  }
+  return { allowed: false, tier, reason: "unknown_model" };
+}</pre>
+          </li>
+          <li><strong>Option B (~30 min):</strong> Add column-protection trigger to playthroughs (mirror <code>protect_sensitive_profile_columns</code> pattern):
+            <pre>create trigger protect_pt_llm_columns
+  before update on public.playthroughs
+  for each row execute function protect_pt_llm();
+-- function reverts NEW.llm_model / NEW.llm_provider
+-- to OLD values when auth.uid() = user_id (only service
+-- role / RPC can change them).</pre>
+            CLAUDE.md hard rule #15 says "All write policies need <code>with check</code>" — corollary is also "All write policies need column-list restrictions where security-sensitive cols exist". This is the canonical defense.
+          </li>
+          <li><strong>Both = belt + suspenders.</strong> Recommended for launch.</li>
+        </ol>
+      </div>
+    </div>
+
+  </div>
+</details>
+
+<details class="dim-section" open>
+  <summary>📊 MED (3) · Fork routing + comment misalignment + cost-ledger pollution</summary>
+  <div class="dim-content">
+
+    <div class="issue med">
+      <div class="issue-head">
+        <span class="issue-id">P0AW2-MED-01</span>
+        <span class="issue-title">forkStoryToPlaythrough passes UUID as language context — Chinese-market stories silently English-routed</span>
+        <span class="sev-tag sev-med">Med</span>
+      </div>
+      <div class="issue-loc">web/src/lib/community/actions.ts:471-472 — <code>pickModelForTier(tierPref, params.storyId)</code></div>
+      <div class="issue-body">
+        <code>params.storyId</code> is a UUID like <code>f47ac10b-58cc-4372-a567-0e02b2c3d479</code> — 36 ASCII chars, <strong>0 CJK chars</strong>. <code>isChineseContent</code> returns <code>cjkCount / nonWhitespace.length = 0/36 = 0 < 0.3</code> → <strong>false</strong>. So <code>pickModelForTier("pro", uuid)</code> always returns <code>gpt-5-4-pro</code> (English-strong), <code>pickModelForTier("standard", uuid)</code> always returns <code>gemini-3-5-flash</code> (English-strong). Yet the launch market is HK + TW (per CLAUDE.md "Launch market = HK + TW 同步 launch · 繁中 first"). Any Chinese story forked by a Pro-tier user gets routed to GPT-5.4 Pro — English-strong, not 中文 narrative leader (Sonnet 4.6 is, per <code>tier-router.ts:73</code> own comment).
+        <p style="margin-top:8px;">This isn't a security bug · it's a <strong>silent UX degradation on every fork operation in the launch market</strong>. Founder explicitly chose Sonnet for 中文 narrative #1; now forks bypass that choice. (Direct creates via <code>createStoryFromPrompt</code> are FINE — they pass real <code>seedText</code> which is the user's Chinese prompt.)</p>
+      </div>
+      <div class="issue-fix">
+        <strong>Fix.</strong> Three options:
+        <ol style="margin-left:18px; margin-top:4px;">
+          <li><strong>Pass nothing</strong>: <code>pickModelForTier(tierPref)</code> · the <code>isCjk = context ? isChineseContent(context) : true</code> branch defaults to CJK (matches launch market). Cleanest.</li>
+          <li><strong>Pass story content</strong>: fetch <code>stories.title || description || opening_narrative</code> before forking; pass that as context. Most accurate but adds 1 PG roundtrip.</li>
+          <li><strong>Use stories.language column</strong> if it exists; pass synthetic CJK string when language='zh-Hant'.</li>
+        </ol>
+        Recommended: option 1 for now (zero overhead · founder market preference is CJK by default · matches the existing <code>?? true</code> in the router).
+      </div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-head">
+        <span class="issue-id">P0AW2-MED-02</span>
+        <span class="issue-title">Fork code comment is WRONG — "Standard-pool will lean to GLM-5.1 by default (CJK bias)" is false</span>
+        <span class="sev-tag sev-med">Med</span>
+      </div>
+      <div class="issue-loc">web/src/lib/community/actions.ts:468-470 (comment)</div>
+      <div class="issue-body">
+        Comment claims "Standard-pool will lean to GLM-5.1 by default (CJK bias) which matches our 中文 launch market". But <code>isChineseContent(uuid)</code> returns false → <code>pickModelForTier("standard", uuid)</code> returns <code>gemini-3-5-flash</code> (English-strong), NOT GLM-5.1. The comment indicates the author of the fix did not mentally execute the routing logic with a real input (UUID). It's both factually wrong AND misleads future maintainers into thinking fork is correctly Chinese-routed.
+        <p style="margin-top:8px;">Tied to P0AW2-MED-01 — fixing the routing call fixes the comment too. But if the fix takes option 1 (pass nothing), the comment should be rewritten to explain WHY (router defaults to CJK when no context).</p>
+      </div>
+      <div class="issue-fix">
+        Rewrite comment to match the actual fix. E.g.: <em>"Fork context isn't a single text we have here without an extra PG read — pass nothing so the router uses its <code>isCjk = context ? ... : true</code> default which favors CJK · matches our 中文 launch market."</em>
+      </div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-head">
+        <span class="issue-id">P0AW2-MED-03</span>
+        <span class="issue-title">CRIT-01 comment misleading — "MODEL_PRICING still has their entries → computeCredits works"</span>
+        <span class="sev-tag sev-med">Med</span>
+      </div>
+      <div class="issue-loc">web/src/lib/billing/credits.ts:508 (comment line)</div>
+      <div class="issue-body">
+        The CRIT-01 fix comment says "MODEL_PRICING still has their entries → computeCredits works". This is TECHNICALLY true (MODEL_PRICING has the entries) but creates a false sense of correctness because the ACTUAL LLM that gets called is <code>claude-sonnet-4-6</code> (via <code>providers.ts:54-58</code> silent fallback) — not the legacy model the pricing entry is for. So "computeCredits works" but charges the wrong rate vs the call that actually happened. This is exactly the gap P0AW2-HIGH-01 exploits.
+        <p style="margin-top:8px;">Severity MED because it's documentation that misleads future debuggers · not a runtime bug per se. But it materially hindered THIS audit until I traced the actual provider dispatch path.</p>
+      </div>
+      <div class="issue-fix">
+        Rewrite comment to acknowledge: <em>"MODEL_PRICING still has entries for legacy ids — BUT providers.ts silently falls back to claude-sonnet-4-6 for unknown MODELS-catalog ids. This means: legacy id → Sonnet runs, legacy rate charges, cost ledger pollutes. Acceptable for in-flight playthroughs locked at creation, NOT acceptable if user can UPDATE pt.llm_model to a legacy id post-creation (see P0AW2-HIGH-01 — close that gap)."</em>
+      </div>
+    </div>
+
+  </div>
+</details>
+
+<details class="dim-section" open>
+  <summary>🟦 LOW (4) · Race conditions + bundle imports + drift visibility</summary>
+  <div class="dim-content">
+
+    <div class="issue low">
+      <div class="issue-head">
+        <span class="issue-id">P0AW2-LOW-01</span>
+        <span class="issue-title">setAdultMode / setDefaultTier 2-tab race produces ghost <code>default_tier='adult'</code> + <code>adult_mode_enabled=false</code></span>
+        <span class="sev-tag sev-low">Low</span>
+      </div>
+      <div class="issue-loc">web/src/app/[locale]/settings/actions.ts:setAdultMode + setDefaultTier · DB constraint missing</div>
+      <div class="issue-body">
+        Timing window: (1) Tab A starts <code>setDefaultTier('adult')</code>, reads <code>adult_mode_enabled=true</code> ✓; (2) Tab B atomic UPDATE in <code>setAdultMode(false)</code> sets <code>adult_mode_enabled=false, default_tier='pro'</code>; (3) Tab A UPDATE commits <code>default_tier='adult'</code>. Result: invariant violation — Adult tier selected but adult mode off.
+        <p style="margin-top:8px;">UX impact: minimal because TierPicker hides Adult card when adult_mode_enabled=false (so user can't tell from UI), and createStoryFromPrompt rejects adult content_rating without adult_mode_enabled. Turn route doesn't re-check tier vs adult_mode (uses pt.llm_model directly), so the locked Llama playthrough would continue to work — but new creations grace-fallback.</p>
+      </div>
+      <div class="issue-fix">
+        Add DB CHECK or trigger: <code>check ((default_tier != 'adult') or (adult_mode_enabled = true and is_age_verified = true))</code>. Defense-in-depth · prevents this race + future code paths from breaking the invariant.
+      </div>
+    </div>
+
+    <div class="issue low">
+      <div class="issue-head">
+        <span class="issue-id">P0AW2-LOW-02</span>
+        <span class="issue-title">Dynamic <code>await import("@/lib/ai/tier-router")</code> in forkStoryToPlaythrough is unnecessary</span>
+        <span class="sev-tag sev-low">Low</span>
+      </div>
+      <div class="issue-loc">web/src/lib/community/actions.ts:471</div>
+      <div class="issue-body">
+        Commit message claims "dynamic in community to avoid bundle bloat". Verified: <code>lib/ai/tier-router.ts</code> only imports from <code>./models</code>; <code>./models</code> has no community references. No circular dependency. The dynamic import adds ~tens of ms latency to first fork in each lambda cold-start with no benefit. Server actions in Next.js 15 don't ship to client bundle anyway — "bundle bloat" comment is misapplied.
+      </div>
+      <div class="issue-fix">
+        Convert to static import at top of file: <code>import { pickModelForTier } from "@/lib/ai/tier-router";</code>. Aligns with how <code>stories/new/actions.ts</code> already imports it (static).
+      </div>
+    </div>
+
+    <div class="issue low">
+      <div class="issue-head">
+        <span class="issue-id">P0AW2-LOW-03</span>
+        <span class="issue-title">Legacy-model dev warning is silenced in production — drift visibility = zero</span>
+        <span class="sev-tag sev-low">Low</span>
+      </div>
+      <div class="issue-loc">web/src/lib/billing/credits.ts:515-519</div>
+      <div class="issue-body">
+        <code>if (process.env.NODE_ENV !== "production") console.warn(...)</code>. In production this is silent. CLAUDE.md hard rule #8 says "Path-format drift is a recurring bug class · log undefined-path warnings for future drift visibility." Same principle applies here — we WANT to know in prod when a legacy-model playthrough fires, both for telemetry (how many users still on dropped models?) and for catching P0AW2-HIGH-01-style attacks.
+      </div>
+      <div class="issue-fix">
+        Drop the NODE_ENV gate; OR replace with structured telemetry: <code>posthog.capture('legacy_model_used', { user_id, model_id })</code>. Either way, surface it. Cost of a single console.warn line per turn is rounding-error · benefit is visibility.
+      </div>
+    </div>
+
+    <div class="issue low">
+      <div class="issue-head">
+        <span class="issue-id">P0AW2-LOW-04</span>
+        <span class="issue-title">Migration history confusing — Migration 0020 file is DROP-only with no companion ADD migration</span>
+        <span class="sev-tag sev-low">Low</span>
+      </div>
+      <div class="issue-loc">supabase/migrations/0020_phase0_rag_similarity_floor.sql</div>
+      <div class="issue-body">
+        File 0020 is named "rag_similarity_floor" but its body only DROPs ghost overloads. The history comment explains the ghosts were created accidentally by an earlier edit ("My initial CREATE OR REPLACE used the OLD 3/3/4-arg signature..."). Live DB migrations list shows both <code>phase0_rag_similarity_floor</code> AND <code>phase0_drop_ghost_rag_overloads</code> as separate timestamps · so the in-repo 0020 file == the second one. Future me reading just the filename will be confused.
+      </div>
+      <div class="issue-fix">
+        Either (a) rename 0020 file to <code>0020_phase0_drop_ghost_rag_overloads.sql</code> to match what it actually does · OR (b) prepend a 1-line header comment: <code>-- NOTE: filename is historical · this file ONLY drops ghost overloads · the floor feature was added at runtime via p_min_similarity param (no migration needed).</code>
+      </div>
+    </div>
+
+  </div>
+</details>
+
+<details class="dim-section">
+  <summary>🟢 INFO (3) · Pre-existing patterns confirmed safe</summary>
+  <div class="dim-content">
+
+    <div class="issue info">
+      <div class="issue-head">
+        <span class="issue-id">P0AW2-INFO-01</span>
+        <span class="issue-title">All TIER_POOLS members verified in MODEL_PRICING — no throw risk in TierPicker render</span>
+        <span class="sev-tag sev-info">Info</span>
+      </div>
+      <div class="issue-body">
+        Audited every model id in <code>TIER_POOLS</code>:
+        <ul style="margin-left:22px; margin-top:6px;">
+          <li><strong>standard</strong>: <code>gemini-3-5-flash</code> ✓, <code>glm-5-1</code> ✓</li>
+          <li><strong>pro</strong>: <code>claude-sonnet-4-6</code> ✓, <code>gpt-5-4-pro</code> ✓</li>
+          <li><strong>pro-max</strong>: <code>claude-opus-4-7</code> ✓</li>
+          <li><strong>adult</strong>: <code>llama-3-1-405b-uncensored</code> ✓</li>
+        </ul>
+        Every pool member has a MODEL_PRICING entry. <code>estimateTurnCredits</code> won't throw during TierPicker render. P0B-HIGH-02 fix safe.
+      </div>
+    </div>
+
+    <div class="issue info">
+      <div class="issue-head">
+        <span class="issue-id">P0AW2-INFO-02</span>
+        <span class="issue-title">setDefaultModel early guard preserved — CRIT-01 fix doesn't leak to settings path</span>
+        <span class="sev-tag sev-info">Info</span>
+      </div>
+      <div class="issue-body">
+        <code>settings/actions.ts:128-131</code> early-guards: <code>const model = MODELS[modelId]; if (!model) return {error:'unknown_model'};</code> BEFORE calling <code>userTierAllowsModel</code>. So even though Wave 1 CRIT-01 fix makes <code>userTierAllowsModel</code> permissive for unknown ids, an attacker can't POST <code>setDefaultModel({modelId:'arbitrary'})</code> to persist a junk model id into <code>profiles.default_model</code>. Defense layer intact.
+      </div>
+    </div>
+
+    <div class="issue info">
+      <div class="issue-head">
+        <span class="issue-id">P0AW2-INFO-03</span>
+        <span class="issue-title">DB CHECK constraint + 6-user data verified clean</span>
+        <span class="sev-tag sev-info">Info</span>
+      </div>
+      <div class="issue-body">
+        Live DB verification via MCP:
+        <ul style="margin-left:22px; margin-top:6px;">
+          <li><code>profiles_default_tier_check</code> exists: <code>CHECK ((default_tier = ANY (ARRAY['standard'::text, 'pro'::text, 'pro-max'::text, 'adult'::text])))</code></li>
+          <li><code>select default_tier, count(*) from profiles group by default_tier</code>: 6 users all on <code>'pro'</code> · 0 corruption · all <code>default_model</code> still NULL (legacy field unused)</li>
+          <li>Migration list: 4 applied (default_tier · rag floor · ghost cleanup · Opus backfill) · no missing or duplicated</li>
+          <li>3 RAG RPCs: each has exactly 1 version with <code>p_min_similarity</code> param · no ghost overloads remain</li>
+        </ul>
+        Phase 0 DB state is clean.
+      </div>
+    </div>
+
+  </div>
+</details>
+
+<h2><span class="icon">🔁</span> Convergence signal</h2>
+<div class="verdict">
+  <h3>1 HIGH = ship blocker · convergence delayed 1 cycle · need Wave 2 fix-pass + Wave 3 verify-pass</h3>
+  <p><strong>Status:</strong></p>
+  <ul style="margin-left:22px; margin-top:6px;">
+    <li>Wave 1 (cycle 1 audit): 2 CRIT + 3 HIGH + 4 MED + 3 LOW + 2 INFO → 5 ship blockers fixed in <code>0e692fd</code>.</li>
+    <li>Wave 2 (cycle 2 audit · THIS): <strong>0 CRIT</strong> + <strong>1 HIGH</strong> + 3 MED + 4 LOW + 3 INFO → 1 ship blocker (P0AW2-HIGH-01) introduced BY Wave 1's CRIT-01 fix.</li>
+    <li>Net finding trend: 14 → 11 (declining ✓) · ship blockers 5 → 1 (declining ✓).</li>
+  </ul>
+  <p style="margin-top:10px;"><strong>Per CLAUDE.md hard rule #29 ("Convergence signal = 3 consecutive cycles 0 CRIT/HIGH + declining finding trend"):</strong></p>
+  <ol style="margin-top:6px;">
+    <li>Cycle 1 (Wave 1 audit): 2 CRIT + 3 HIGH → <strong>NOT converged</strong>.</li>
+    <li>Cycle 2 (Wave 2 audit · THIS): 0 CRIT + <strong>1 HIGH</strong> → <strong>NOT converged · 0/3 toward goal</strong>.</li>
+    <li>Cycle 3 (planned · Wave 2 fix + 3rd audit): target 0 CRIT + 0 HIGH → 1/3.</li>
+    <li>Cycle 4 (Wave 3 audit): target 0 CRIT + 0 HIGH → 2/3.</li>
+    <li>Cycle 5: target 0 CRIT + 0 HIGH → 3/3 · ship.</li>
+  </ol>
+  <p style="margin-top:10px;"><strong>Recommendation:</strong> ship Wave 2 fix-pass NOW (P0AW2-HIGH-01 either via curated whitelist [10min] or via playthroughs column-protection trigger [~30min] · ideally both for defense-in-depth). Defer P0AW2-MED-01/02/03 to Wave 2 too since they're docs + 1 routing call — small surface, ship together. Then re-audit (Wave 3).</p>
+</div>
+
+<h2><span class="icon">📋</span> Findings summary table</h2>
+<table class="findings">
+  <thead>
+    <tr><th>ID</th><th>Severity</th><th>File</th><th>One-liner</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>P0AW2-HIGH-01</td><td><span class="pill pill-high">High</span></td><td>credits.ts:498 + playthroughs RLS</td><td>Legacy-model bypass + un-restricted UPDATE RLS = 5-95% credit undercharge per turn</td></tr>
+    <tr><td>P0AW2-MED-01</td><td><span class="pill pill-med">Med</span></td><td>community/actions.ts:471</td><td>UUID passed as language context · Chinese stories silently English-routed</td></tr>
+    <tr><td>P0AW2-MED-02</td><td><span class="pill pill-med">Med</span></td><td>community/actions.ts:468</td><td>Comment "Standard-pool leans to GLM-5.1" is factually wrong</td></tr>
+    <tr><td>P0AW2-MED-03</td><td><span class="pill pill-med">Med</span></td><td>credits.ts:508 (comment)</td><td>"MODEL_PRICING still works" comment misleads — providers fallback to Sonnet</td></tr>
+    <tr><td>P0AW2-LOW-01</td><td><span class="pill pill-low">Low</span></td><td>settings/actions.ts</td><td>setAdultMode/setDefaultTier 2-tab race · DB CHECK missing</td></tr>
+    <tr><td>P0AW2-LOW-02</td><td><span class="pill pill-low">Low</span></td><td>community/actions.ts:471</td><td>Dynamic import unnecessary · no circular dep · adds cold-start latency</td></tr>
+    <tr><td>P0AW2-LOW-03</td><td><span class="pill pill-low">Low</span></td><td>credits.ts:515</td><td>Legacy-model warn is dev-only · zero prod drift visibility</td></tr>
+    <tr><td>P0AW2-LOW-04</td><td><span class="pill pill-low">Low</span></td><td>migrations/0020...</td><td>Filename says "floor" but body is DROP-only · confusing history</td></tr>
+    <tr><td>P0AW2-INFO-01</td><td><span class="pill pill-info">Info</span></td><td>TIER_POOLS / MODEL_PRICING</td><td>All pool members have pricing entries · TierPicker safe</td></tr>
+    <tr><td>P0AW2-INFO-02</td><td><span class="pill pill-info">Info</span></td><td>settings/actions.ts:128</td><td>setDefaultModel early-guard intact · CRIT-01 doesn't leak via settings</td></tr>
+    <tr><td>P0AW2-INFO-03</td><td><span class="pill pill-info">Info</span></td><td>DB state</td><td>4 migrations applied · 6 users clean · 3 RAG RPCs single-version · constraint matches enum</td></tr>
+  </tbody>
+</table>
+
+<div style="margin-top:60px; padding:20px; border-top:1px solid var(--border); color:var(--muted); font-size:12px;">
+  Story Engine · Phase 0 Wave 2 audit · 2026-05-25 · Agent A (Security · Correctness · DB consistency) · Per CLAUDE.md hard rule #7 (audit-before-next-phase) and rule #29 (3-cycle convergence pattern).
+</div>
+
+</main>
+</body>
+</html>

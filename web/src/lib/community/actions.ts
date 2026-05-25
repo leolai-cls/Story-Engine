@@ -465,11 +465,21 @@ export async function forkStoryToPlaythrough(params: {
       | null
       | undefined;
     if (tierPref) {
-      // Fork context isn't a single text we have here · use the story id
-      // as a proxy. Standard-pool will lean to GLM-5.1 by default (CJK
-      // bias) which matches our 中文 launch market.
+      // AUDIT FIX P0BW2-HIGH-01 (Wave 2 · 2026-05-25): previously passed
+      // params.storyId (UUID · pure ASCII) as language-detection context
+      // to pickModelForTier · isChineseContent(uuid) returned false →
+      // Standard tier forks routed to Gemini Flash ($0.038/turn) instead
+      // of GLM-5.1 ($0.024/turn). 58% extra COGS on the canonical 中文
+      // launch market path (HK/TW users forking community stories).
+      //
+      // Fix: omit context arg · pickModelForTier defaults to CJK routing
+      // (per Story Engine 繁中-first market lock in CLAUDE.md). GLM-5.1
+      // for Standard · Sonnet 4.6 for Pro. Matches our default audience.
+      // (English-prompt creation flow correctly passes seedText already
+      // via createStoryFromPrompt · this branch is fork-specific where
+      // we don't have a meaningful text proxy.)
       const { pickModelForTier } = await import("@/lib/ai/tier-router");
-      resolvedModel = pickModelForTier(tierPref, params.storyId);
+      resolvedModel = pickModelForTier(tierPref);
     } else if (profile?.default_model) {
       resolvedModel = profile.default_model;
     }
