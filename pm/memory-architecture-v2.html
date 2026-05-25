@@ -562,14 +562,159 @@ items[2]:<br>
   </div>
 
   <!-- ─────────────────────────────────────────────── -->
-  <div class="cta">
-    <div class="label">建議 ship 順序</div>
-    <div class="body">
-      <strong>Phase A (today · 30 min)</strong>：Step 1 RAG similarity floor · 立即 -20% noise · 0 risk · quick win<br><br>
-      <strong>Phase B (3-4 session 接住)</strong>：Steps 2-5 · MemPalace pattern 全面落地 · cumulative -50% cost · 同 launch pricing v3 一齊 ship<br><br>
-      <strong>Phase C (post-launch)</strong>：Step 6 TOON encoding · benchmark A/B · 確認後切換 · cumulative -55%
+  <h2><span class="icon">🛡️</span>每 step 質量 mitigation (founder 顧慮: 故事質量會否變差)</h2>
+  <p class="h2-sub">直接 address「AI 回應變差 / 故事質量變低」風險 · 每 step 對應一個保護</p>
+
+  <table>
+    <thead>
+      <tr><th>Step</th><th>質量風險</th><th>Risk</th><th>Mitigation</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>1. RAG floor</td><td>過高 floor 漏 relevant</td><td>🟢 LOW</td><td>0.55 開始 · 監察「冇 retrieval 嘅 turn」比例 · 太高就 lower</td></tr>
+      <tr><td>2. Namespace</td><td>純 schema · 冇</td><td>🟢 LOW</td><td>—</td></tr>
+      <tr><td>3. Director picks rooms</td><td>漏 NPC / scene context</td><td>🟡 MED</td><td><strong>「World」room always-load fallback</strong> · A/B 50-turn benchmark</td></tr>
+      <tr><td>4. Hybrid pipeline</td><td>權重失調</td><td>🟢 LOW</td><td>NovelAI proven · semantic = 0.6 · keyword = 0.25 · temporal = 0.15</td></tr>
+      <tr><td>5. Knowledge graph + summary</td><td>失去 narrative arc</td><td>🔴 <strong>HIGH</strong></td><td><strong>修訂計劃</strong>: <strong>唔 drop rolling summary</strong> · 改做 scoped scene-summary (per scene 一條 · 而唔係 whole playthrough)</td></tr>
+      <tr><td>6. Trim 20 turns 全文</td><td>scene 跨多 turn 失連貫</td><td>🟡 MED</td><td><strong>Scene-aware trim</strong> · 偵測 location/time skip 邊界 · 唔截 mid-scene · tier-based (Free 8 · Paid 12 · Premium 20)</td></tr>
+      <tr><td>7. TOON encoding</td><td>LLM 解析失準</td><td>🔴 <strong>HIGH</strong></td><td><strong>100-turn A/B benchmark gate</strong> · 必過 ≥ 95% baseline 先 ship · JSON fallback feature flag 永遠 ready</td></tr>
+    </tbody>
+  </table>
+
+  <div class="note good">
+    <strong>✅ 每 step feature flag</strong> · A/B benchmark fail → automatic rollback · cost 由 -50% 降至 -30% 但故事質量 ≥ baseline。Worst case 仍贏。
+  </div>
+
+  <div class="note warn">
+    <strong>⚠️ Step 5 修訂</strong>：原 plan 「drop rolling summary」風險高。新版「**keep summary 但 scope per scene**」· 慳 200 tokens (vs 500) · 但保住 narrative arc。安全得多。
+  </div>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <h2><span class="icon">🤖</span>NPC Agent 架構 (founder request · 借鑑 Generative Agents)</h2>
+  <p class="h2-sub">3 個 level · trade cost vs UX · 我哋選 hybrid</p>
+
+  <div class="grid-3">
+    <div class="card">
+      <div class="ico">📄</div>
+      <div class="head">Level 1: Per-NPC Markdown</div>
+      <div class="body"><strong>Status</strong>: 已 ship<br>每 NPC 有 Character Card · markdown · inject 入 system prompt · Anthropic prompt-cached<br><strong>Cost</strong>: $0 額外</div>
+    </div>
+    <div class="card featured">
+      <div class="ico">🧠</div>
+      <div class="head">Level 2: Dynamic NPC state (建議 ⭐)</div>
+      <div class="body"><strong>How</strong>: Director output schema 加 <code>npc_updates</code> field · 順手 output 每個 NPC mood/plan/opinion 變化 · 寫入 knowledge graph<br><strong>Narrator</strong>: 下 turn 讀返 active NPCs' state · 自然寫出符合 state 嘅反應<br><strong>Cost</strong>: $0 額外 (Director 已 run)<br><strong>UX</strong>: NPC 跨 turn 一致性大幅 ↑</div>
+    </div>
+    <div class="card">
+      <div class="ico">🎭</div>
+      <div class="head">Level 3: Per-NPC dedicated agent</div>
+      <div class="body"><strong>How</strong>: 每 turn · 每個 active NPC 一個 async Haiku call (你係 X · 你會點諗?點做?) · Narrator 接收 internal thoughts<br><strong>Cost</strong>: +$3/user/month<br><strong>UX</strong>: 真正 generative agents · NPCs 「feel alive」 · 適合 Legend tier premium</div>
     </div>
   </div>
+
+  <div class="note info">
+    <strong>建議 default = Level 2</strong>: 所有 tier 都用 · 0 額外 cost · 質量提升明顯。<br>
+    <strong>Legend tier 加 Level 3</strong>: 差異化 marketing · 「NPCs are real agents」。Storyteller 同 Legend 嘅實際 product 差距 = NPC architecture level。
+  </div>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <h2><span class="icon">🎒</span>TOON encoding · 選擇性 adoption</h2>
+  <p class="h2-sub">研究完 · TOON 嘅實際 benefit 同 caveat</p>
+
+  <table>
+    <thead>
+      <tr><th>Model</th><th>TOON 讀理解 accuracy</th><th>JSON accuracy</th><th>TOON 勝?</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Claude Haiku 4.5</td><td class="num">59.8%</td><td class="num">57.4%</td><td class="savings">✓ +2.4%</td></tr>
+      <tr><td>Gemini Flash</td><td class="num">96.7%</td><td class="num">96.7%</td><td class="muted">tie</td></tr>
+      <tr><td>GPT-5 Nano</td><td class="num">90.9%</td><td class="num">89.0%</td><td class="savings">✓ +1.9%</td></tr>
+      <tr><td>Grok 4</td><td class="num">58.4%</td><td class="num">56.5%</td><td class="savings">✓ +1.9%</td></tr>
+      <tr><td><strong>平均</strong></td><td class="num"><strong>76.4%</strong></td><td class="num"><strong>75.0%</strong></td><td class="savings"><strong>✓ +1.4% · -39.9% tokens</strong></td></tr>
+    </tbody>
+  </table>
+
+  <div class="note warn">
+    <strong>但獨立 benchmark 結果矛盾</strong>:<br>
+    Dev.to 獨立測 12 個 format on GPT-4.1-nano → TOON 排 9/12 (47.5%)<br>
+    Medium「40% Token Savings That Still Can't Dethrone JSON」<br>
+    結論: <strong>選擇性 adoption · 唔係一刀切</strong>
+  </div>
+
+  <table>
+    <thead>
+      <tr><th>Data 結構</th><th>用 TOON?</th><th>原因</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Story Bible (Hard/Soft layers)</td><td>❌ <strong>Markdown</strong></td><td>nested + 不規則 · Markdown 慳 + 質量高</td></tr>
+      <tr><td>Character Cards (uniform list)</td><td class="savings">✅ TOON</td><td>-45%</td></tr>
+      <tr><td>Game state JSON</td><td class="savings">✅ TOON</td><td>-35%</td></tr>
+      <tr><td>Lorebook entries (list of records)</td><td class="savings">✅ TOON</td><td>-50%</td></tr>
+      <tr><td>Director output (tool call)</td><td>❌ <strong>JSON Schema</strong></td><td>Anthropic structured output 要 JSON</td></tr>
+      <tr><td>Narrator output (prose)</td><td>❌ prose</td><td>output 唔需要</td></tr>
+    </tbody>
+  </table>
+
+  <div class="note good">
+    <strong>✅ Ship gate</strong>: launch 前必跑 100-turn A/B benchmark (50 turns JSON · 50 turns TOON · 同 narrator · 同 prompt) · 用 Claude Opus 評故事質量 + retrieval accuracy · 唔過 95% baseline 就 ditch TOON keep JSON。<br>
+    <strong>實際慳</strong>: TOON 適用部分 ~3,000 tokens · -38% = 1,140 tokens/turn 慳 · Sonnet ~$0.003/turn 慳。
+  </div>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <h2><span class="icon">🎯</span>Model curation: 10 → 7 (founder request)</h2>
+  <p class="h2-sub">研究 2026 benchmark · drop performance 唔突出嘅 · add 對中文 roleplay 有 edge 嘅</p>
+
+  <table>
+    <thead>
+      <tr><th>Model</th><th>而家</th><th>Creative writing</th><th>中文 roleplay</th><th>行動</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>Claude Sonnet 4.6</strong></td><td>✓ default narrator</td><td>1443 · top 5</td><td>strongest 中文</td><td><span class="tag" style="background:#A7F3D0;color:#047857">KEEP</span></td></tr>
+      <tr><td><strong>Claude Opus 4.7</strong></td><td>✓ premium</td><td>1468 · #1</td><td>top emotional</td><td><span class="tag" style="background:#A7F3D0;color:#047857">KEEP</span></td></tr>
+      <tr><td><strong>Claude Haiku 4.5</strong></td><td>✓ Director + free</td><td>OK</td><td>OK</td><td><span class="tag" style="background:#A7F3D0;color:#047857">KEEP</span></td></tr>
+      <tr><td><strong>Gemini 3.1 Pro</strong></td><td>✓ value pick</td><td>1487 · best value</td><td>OK</td><td><span class="tag" style="background:#A7F3D0;color:#047857">KEEP</span></td></tr>
+      <tr><td><strong>Gemini 3.5 Flash</strong></td><td>✓ free</td><td>1461 (85% Pro)</td><td>OK</td><td><span class="tag" style="background:#A7F3D0;color:#047857">KEEP</span></td></tr>
+      <tr><td>GPT-4o</td><td>✓ adventurer+</td><td>過時 · GPT-5 才強</td><td>不突出</td><td><span class="tag" style="background:#FECDD3;color:#9F1239">DROP</span></td></tr>
+      <tr><td>GPT-4o mini</td><td>✓ free</td><td>過時 mini</td><td>普通</td><td><span class="tag" style="background:#FECDD3;color:#9F1239">DROP</span></td></tr>
+      <tr><td>Grok 2</td><td>✓ adventurer+</td><td>Grok 4.1 才強 · Grok 2 舊</td><td>不突出</td><td><span class="tag" style="background:#FECDD3;color:#9F1239">DROP</span></td></tr>
+      <tr><td>Grok 2 Mini</td><td>✓ free</td><td>舊</td><td>不突出</td><td><span class="tag" style="background:#FECDD3;color:#9F1239">DROP</span></td></tr>
+      <tr><td>Llama 3.1 405B (NSFW)</td><td>✓ storyteller+</td><td>OK</td><td>OK</td><td><span class="tag" style="background:#FEF3C7;color:#92400E">KEEP NSFW only</span></td></tr>
+      <tr><td><strong>GLM-5 (Reasoning)</strong> ⭐</td><td>—</td><td>1442 · top 5</td><td><strong>「Best for roleplay & creative writing」</strong></td><td><span class="tag" style="background:#DBEAFE;color:#1E40AF">ADD adventurer+</span></td></tr>
+      <tr><td><strong>DeepSeek V4</strong> ⭐</td><td>—</td><td>strong</td><td><strong>中文 leaderboard #1</strong> · 87/100</td><td><span class="tag" style="background:#DBEAFE;color:#1E40AF">ADD free</span></td></tr>
+    </tbody>
+  </table>
+
+  <div class="grid-3">
+    <div class="card">
+      <div class="ico">🎯</div>
+      <div class="head">UI 簡化</div>
+      <div class="body">10 → 7 model picker · 用戶 decision fatigue ↓ · 揀啱率 ↑</div>
+    </div>
+    <div class="card">
+      <div class="ico">📈</div>
+      <div class="head">中文 roleplay 質量 ↑</div>
+      <div class="body">GLM-5 + DeepSeek V4 對中文敘事有 documented edge · 對標 HK + TW 用戶</div>
+    </div>
+    <div class="card">
+      <div class="ico">💰</div>
+      <div class="head">Free tier cost ↓</div>
+      <div class="body">DeepSeek V4 比 Gemini Flash 平 5x ($0.27/$1.10 vs $1.50/$9) · 同質量但便宜很多</div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <div class="cta">
+    <div class="label">建議 ship 順序 (revised)</div>
+    <div class="body">
+      <strong>Phase A (today · 30 min)</strong>：Step 1 RAG similarity floor · 0 risk · quick win<br><br>
+      <strong>Phase A.5 (今 session · 30 min)</strong>：Model curation update — drop 4 model · add GLM-5 + DeepSeek V4 · 改 model picker UI<br><br>
+      <strong>Phase B (3-4 session)</strong>：Steps 2-5 (revised) · MemPalace pattern + NPC Level 2 dynamic state · same time as Stripe build<br><br>
+      <strong>Phase C (post-launch benchmarks)</strong>：Step 6 trim turns + Step 7 TOON encoding + NPC Level 3 (Legend tier)<br><br>
+      <strong>每步 A/B benchmark gate</strong>：質量 < 95% baseline 即 feature flag rollback · cost saving 可放棄 · 故事質量唔可以
+    </div>
+  </div>
+
+  <p style="font-size: 12.5px; color: var(--muted); margin-top: 24px;">
+    Sources: <a href="https://github.com/MemPalace/mempalace">MemPalace GitHub</a> · <a href="https://github.com/toon-format/toon">TOON Format</a> · <a href="https://eqbench.com/creative_writing.html">EQ-Bench Creative Writing</a> · <a href="https://benchlm.ai/blog/posts/best-llm-writing">BenchLM Writing Rankings 2026</a> · <a href="https://benchlm.ai/blog/posts/best-chinese-llm">BenchLM Chinese LLMs 2026</a> · <a href="https://arxiv.org/abs/2304.03442">Generative Agents (Stanford 2023)</a> · CLAUDE.md hard rules #11 #18 #20
+  </p>
 
   <p style="font-size: 12.5px; color: var(--muted); margin-top: 24px;">
     Sources: <a href="https://github.com/MemPalace/mempalace">MemPalace GitHub</a> · <a href="https://github.com/toon-format/toon">TOON Format</a> · <a href="https://github.com/zenoaihq/tson">TSON Format</a> · CLAUDE.md hard rules #11 (memory per-playthrough) #18 (RAG similarity floor) #20 (memory overhead 35%)
