@@ -19,6 +19,56 @@ import { z } from "zod";
  * Phase 1.5.2: require_skill_check will become functional (dice roller).
  */
 
+/**
+ * Phase 1 — Lorebook wing enum (controlled vocabulary).
+ * MUST stay in sync with Migration 0023 `lorebook_wing_enum` check constraint.
+ * CLAUDE.md hard rule #28: never LLM-generated free-text identifier — Director
+ * must pick from this fixed set.
+ */
+export const LorebookWingEnum = z.enum([
+  "characters",
+  "places",
+  "items",
+  "events",
+  "lore",
+  "protagonist",
+]);
+export type LorebookWing = z.infer<typeof LorebookWingEnum>;
+
+/**
+ * Phase 1 — MemoryHints output from Director.
+ * Tells the retriever which rooms (NPC names, scene tags) and wings to load
+ * for this turn instead of blanket top-K. Reduces context noise + cost.
+ */
+export const MemoryHintsSchema = z.object({
+  /** Rooms to preferentially load · examples: ["林思雅"], ["港大宿舍", "act1_confession"]. Max 6. */
+  rooms_to_load: z.array(z.string().min(1).max(60)).max(6).default([]),
+  /** Wings to preferentially load · subset of LorebookWingEnum. Max 4. */
+  wings_to_load: z.array(LorebookWingEnum).max(4).default([]),
+});
+export type MemoryHints = z.infer<typeof MemoryHintsSchema>;
+
+/**
+ * Phase 1 — NPC Level 2 dynamic state update output by Director.
+ * Transient per-scene state (mood / current_goal / topic_focus) that
+ * complements the 4-axis disposition (long-term relationship metrics).
+ *
+ * Director infers from player action + current scene · turn route applies
+ * to playthrough_character_states.dynamic_state jsonb (added in Migration 0024).
+ */
+export const NpcDynamicUpdateSchema = z.object({
+  character_name: z.string().min(1).max(60),
+  /** Direction of emotional shift this turn (one of 3) */
+  emotional_shift: z.enum(["positive", "neutral", "negative"]),
+  /** What the NPC wants right NOW (transient · changes per scene). e.g., "想知道主角嘅秘密" */
+  current_goal: z.string().min(1).max(120),
+  /** Current mood label · concise (e.g., "焦慮", "得意", "懷疑") */
+  current_mood: z.string().min(1).max(40),
+  /** What topic this NPC is fixated on this turn. e.g., "家族秘密" */
+  topic_focus: z.string().min(1).max(60),
+});
+export type NpcDynamicUpdate = z.infer<typeof NpcDynamicUpdateSchema>;
+
 export const VerdictSchema = z.discriminatedUnion("verdict", [
   // ─── ALLOW ─────────────────────────────────────────────────────────
   z.object({
@@ -56,6 +106,41 @@ export const VerdictSchema = z.discriminatedUnion("verdict", [
 ]);
 
 export type Verdict = z.infer<typeof VerdictSchema>;
+
+/**
+ * Phase 1 — DirectorOutputSchema wraps verdict + Phase 1 additions
+ * (memory_hints + npc_updates) into one structured response.
+ *
+ * Backwards-compat: the Verdict alone is still exposed via `output.verdict`
+ * for existing consumers (turn route reads result.verdict.verdict for the
+ * discriminator). New consumers can use `output.memory_hints` +
+ * `output.npc_updates` for Phase 1 features.
+ *
+ * Why wrap rather than extend each Verdict variant: Anthropic structured
+ * output works better with simple top-level objects · keeps the discriminated
+ * union intact · and centralizes Phase 1 fields in one place.
+ */
+export const DirectorOutputSchema = z.object({
+  verdict: VerdictSchema,
+  memory_hints: MemoryHintsSchema.default({ rooms_to_load: [], wings_to_load: [] }),
+  // AUDIT FIX P1-COST-H-01: cap at 4 (down from 8) to enforce stated "Max 4" rule
+  // in DIRECTOR_SYSTEM prompt + reduce risk of structured-output overrun.
+  npc_updates: z.array(NpcDynamicUpdateSchema).max(4).default([]),
+  /**
+   * Phase 1 — scene-level summary trigger.
+   * Director marks true when:
+   *   - Player explicitly leaves scene (時間跳轉 / 場景切換 / 入睡)
+   *   - Major beat closes (confession resolved, fight ended, decision made)
+   *   - Story arc transitions (act change · checkpoint completion)
+   *
+   * When true, summarizer fires for [lastSummary, currentTurn] · captures the
+   * just-closed scene · stays scoped rather than arbitrary 20-turn chunks.
+   *
+   * Most turns should be false (mid-scene). Bias toward false.
+   */
+  scene_boundary: z.boolean().default(false),
+});
+export type DirectorOutput = z.infer<typeof DirectorOutputSchema>;
 
 /**
  * Convert verdict into a system-prompt addendum that the Narrator consumes.

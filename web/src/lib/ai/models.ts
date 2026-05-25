@@ -204,3 +204,46 @@ export const TIER_GATE: Record<ModelTier, "free" | "adventurer" | "storyteller" 
   "pro-max": "storyteller",
   adult: "storyteller", // PLUS adult_mode_enabled + is_age_verified
 };
+
+/**
+ * Resolve which user-facing tier serves a given narrator model id.
+ * Falls back to DEFAULT_TIER if model unknown · used by turn route to
+ * scale memory window size per tier (Phase 1 P1.7).
+ */
+export function tierForModel(modelId: string | null | undefined): ModelTier {
+  if (!modelId) return DEFAULT_TIER;
+  const m = MODELS[modelId];
+  return m?.tier_pool ?? DEFAULT_TIER;
+}
+
+/**
+ * Phase 1 — recent turns window size per tier.
+ *
+ * Cheaper tiers get fewer recent turns in the context (saves tokens) ·
+ * higher tiers get fuller recent context. Phase 2 long-term memory (RAG +
+ * summaries) compensates for the smaller window via vector recall.
+ *
+ * AUDIT FIX P1-UX-H-02 (Wave 2): bumped standard from 8 → 12. Pre-Phase 1
+ * default was 20 · cutting to 8 would silently regress existing Standard
+ * players' mid-scene continuity (Narrator drops turns 9-20 ago). 12 matches
+ * Pro · still saves ~8 turns of input tokens vs the prior 20-turn baseline ·
+ * preserves emotional callbacks across the typical confession/conflict arc.
+ *
+ * Tuning rationale (post-Wave 2):
+ *   - standard (12) — Gemini Flash / GLM cheap enough to afford same as Pro
+ *   - pro (12) — middle ground for Sonnet/GPT
+ *   - pro-max (20) — Opus deserves the full context window
+ *   - adult (12) — Llama 405B context isn't free either
+ */
+export function recentTurnsLimitForTier(tier: ModelTier): number {
+  switch (tier) {
+    case "standard":
+      return 12;
+    case "pro":
+      return 12;
+    case "pro-max":
+      return 20;
+    case "adult":
+      return 12;
+  }
+}

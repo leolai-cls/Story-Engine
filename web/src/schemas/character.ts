@@ -57,6 +57,40 @@ export const PermanentFlagSchema = z
 export type PermanentFlag = z.infer<typeof PermanentFlagSchema>;
 
 /**
+ * Phase 1 — NPC Level 2 dynamic state.
+ * Transient per-scene NPC state updated by Director each turn. Mirrors
+ * Migration 0024 `playthrough_character_states.dynamic_state` jsonb shape.
+ *
+ * Distinction from disposition (long-term 4-axis numeric):
+ *   - disposition = relationship metrics (trust / romance / respect / fear)
+ *                   change slowly over many turns
+ *   - dynamic_state = current scene mood / goal / focus
+ *                     refreshed every turn by Director
+ *
+ * `emotional_trajectory` is a rolling window (last 8 emotional shifts) so
+ * Narrator can see the NPC's emotional arc within this scene.
+ */
+export const EmotionalShiftSchema = z.enum(["positive", "neutral", "negative"]);
+export type EmotionalShift = z.infer<typeof EmotionalShiftSchema>;
+
+export const TrajectoryEntrySchema = z.object({
+  shift: EmotionalShiftSchema,
+  turn: z.number().int().min(0),
+  mood: z.string().max(40),
+});
+
+export const NpcDynamicStateSchema = z.object({
+  current_mood: z.string().max(40).optional(),
+  current_goal: z.string().max(120).optional(),
+  topic_focus: z.string().max(60).optional(),
+  last_emotional_shift: EmotionalShiftSchema.optional(),
+  last_updated_turn: z.number().int().min(0).optional(),
+  emotional_trajectory: z.array(TrajectoryEntrySchema).max(8).optional(),
+}).passthrough(); // allow future fields without breaking
+
+export type NpcDynamicState = z.infer<typeof NpcDynamicStateSchema>;
+
+/**
  * AUDIT FIX (AI-C-02) — split character serialization into STATIC template
  * (never changes per playthrough → cacheable as prompt prefix) and DYNAMIC
  * state (disposition + flags → changes every turn, must NOT enter cached
@@ -103,14 +137,38 @@ export function allCharactersStaticTemplate(
 
 /**
  * Per-turn character state — running disposition values + earned permanent
- * flags. Lives outside the cached prefix.
+ * flags + Phase 1 dynamic state (mood / goal / focus / emotional trajectory).
+ * Lives outside the cached prefix.
  */
 export function characterDynamicState(
   name: string,
   disposition?: Disposition,
   permanentFlags?: string[],
+  dynamicState?: NpcDynamicState,
 ): string {
   const lines: string[] = [];
+
+  // Phase 1 — dynamic scene state (mood / goal / focus / trajectory)
+  if (dynamicState) {
+    const ds: string[] = [];
+    if (dynamicState.current_mood) ds.push(`心情=${dynamicState.current_mood}`);
+    if (dynamicState.current_goal) ds.push(`當下目標=${dynamicState.current_goal}`);
+    if (dynamicState.topic_focus) ds.push(`焦點=${dynamicState.topic_focus}`);
+    if (ds.length > 0) lines.push(`Scene state: ${ds.join(" · ")}`);
+
+    const traj = dynamicState.emotional_trajectory;
+    if (traj && traj.length > 0) {
+      const arc = traj
+        .map((t) => {
+          const arrow =
+            t.shift === "positive" ? "↑" : t.shift === "negative" ? "↓" : "→";
+          return `${arrow}${t.mood}`;
+        })
+        .join(" ");
+      lines.push(`Emotional arc (recent): ${arc}`);
+    }
+  }
+
   if (disposition && Object.keys(disposition).length > 0) {
     lines.push(
       `Current disposition: ${Object.entries(disposition)
@@ -132,12 +190,18 @@ export function allCharactersDynamicState(
     card: CharacterCard;
     disposition?: Disposition;
     permanent_flags?: string[];
+    dynamic_state?: NpcDynamicState;
   }>,
 ): string {
   if (cards.length === 0) return "";
-  return `## NPC State (this turn — relationship + earned flags)\n\n${cards
+  return `## NPC State (this turn — relationship + earned flags + scene mood)\n\n${cards
     .map((c) =>
-      characterDynamicState(c.card.name, c.disposition, c.permanent_flags),
+      characterDynamicState(
+        c.card.name,
+        c.disposition,
+        c.permanent_flags,
+        c.dynamic_state,
+      ),
     )
     .join("\n")}`;
 }

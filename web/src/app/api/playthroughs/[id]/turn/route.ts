@@ -33,7 +33,11 @@ import { applyDelta } from "@/schemas/state-delta";
 import { initialStateFromSchema, StateSchemaShape } from "@/schemas/state-schema";
 import { StoryBibleSchema } from "@/schemas/bible";
 // ─── Phase 2 memory layer ────────────────────────────────────────────────
-import { retrieveMemory } from "@/lib/ai/memory/retriever";
+import {
+  retrieveMemory,
+  refineLorebookByHints,
+  rebuildContextString,
+} from "@/lib/ai/memory/retriever";
 import { maybeRunSummarization } from "@/lib/ai/memory/summarizer";
 import { runLorebookExtraction } from "@/lib/ai/memory/lorebook";
 import { embedTextSafe } from "@/lib/ai/embed";
@@ -48,7 +52,7 @@ import {
 // ─── Phase 5 Wave 2 moderation (W1-MOD-H-03 audit fix) ──────────────────
 import { ModerationConfigError, moderateText } from "@/lib/moderation/openai-moderation";
 // ─── Phase 6 non-money function: adult mode gate ────────────────────────
-import { MODELS } from "@/lib/ai/models";
+import { MODELS, tierForModel, recentTurnsLimitForTier } from "@/lib/ai/models";
 
 /**
  * POST /api/playthroughs/[id]/turn
@@ -62,7 +66,15 @@ import { MODELS } from "@/lib/ai/models";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-const RECENT_TURN_LIMIT = 20; // Phase 2 will swap to recent + RAG + summaries
+/**
+ * Recent turns window — Phase 1 made this tier-aware (P1.7).
+ * Pre-Phase 1 was hardcoded 20. Now derived from pt.llm_model → tier:
+ *   standard=8 · pro=12 · pro-max=20 · adult=12 (see recentTurnsLimitForTier).
+ *
+ * Kept as MAX_RECENT_TURN_LIMIT for the initial query · we then trim in
+ * memory after fetching (avoids needing to know tier at query time).
+ */
+const MAX_RECENT_TURN_LIMIT = 20;
 
 /**
  * Per-playthrough rate limit. In-memory map — best-effort across single
@@ -261,7 +273,7 @@ export async function POST(
       .select("role, text, turn_index")
       .eq("playthrough_id", playthroughId)
       .order("turn_index", { ascending: false })
-      .limit(RECENT_TURN_LIMIT),
+      .limit(MAX_RECENT_TURN_LIMIT),
   ]);
 
   // Handle moderation verdict / error before continuing into the LLM pipeline
@@ -294,8 +306,21 @@ export async function POST(
   const charStates = charStatesResult.data;
   const recentTurns = recentTurnsResult.data;
 
+  // PHASE 1 (P1.7) — tier-aware recent turns window.
+  // Fetched up to MAX_RECENT_TURN_LIMIT (20) · trim to tier-specific size:
+  //   standard=8 · pro=12 · pro-max=20 · adult=12
+  // Cheaper tiers save tokens · long-term memory (RAG + summaries) compensates.
+  const tierForThisPlay = tierForModel(pt.llm_model);
+  const tierTurnLimit = recentTurnsLimitForTier(tierForThisPlay);
+  const recentTurnsTrimmed = (recentTurns ?? []).slice(0, tierTurnLimit);
+  if (recentTurns && recentTurns.length > tierTurnLimit) {
+    console.log(
+      `[turn] trim recent turns ${recentTurns.length} → ${tierTurnLimit} for tier=${tierForThisPlay}`,
+    );
+  }
+
   // Reverse to chronological
-  const turnsChronological = (recentTurns ?? []).reverse();
+  const turnsChronological = recentTurnsTrimmed.reverse();
 
   // AUDIT FIX (DB-M-03 / DB-H-06): Zod parse at boundary instead of bare cast.
   // A malformed story row (admin edit, schema drift, half-saved creation) used
@@ -353,6 +378,10 @@ export async function POST(
         },
         disposition: (cs?.disposition as Record<string, number>) ?? { trust: 0 },
         permanent_flags: (cs?.permanent_flags as string[]) ?? [],
+        // Phase 1 — Migration 0024 NPC Level 2 dynamic state
+        dynamic_state:
+          (cs?.dynamic_state as Record<string, unknown> | null | undefined) ?? undefined,
+        character_id: c.id,
       };
     }),
     current_state: currentState,
@@ -397,20 +426,153 @@ export async function POST(
   // persist Director token spend in the turn ledger.
   let verdict;
   let directorUsage: { inputTokens?: number; outputTokens?: number; cachedInputTokens?: number } = {};
+  // Phase 1 — MemPalace memory hints + NPC Level 2 dynamic state
+  // (persistence wired in P1.4 · for now log + structurally available)
+  let directorMemoryHints: { rooms_to_load: string[]; wings_to_load: string[] } = {
+    rooms_to_load: [],
+    wings_to_load: [],
+  };
+  let directorNpcUpdates: Array<{
+    character_name: string;
+    emotional_shift: "positive" | "neutral" | "negative";
+    current_goal: string;
+    current_mood: string;
+    topic_focus: string;
+  }> = [];
+  let directorSceneBoundary = false; // Phase 1 — Director marks scene-end
+  // AUDIT FIX F-03 (Wave 2): track Director failure for ops/audit visibility ·
+  // persisted into turns.director_verdict so postmortems can distinguish
+  // "Director said allow" from "Director failed, defaulted to allow"
+  let directorFailed = false;
   try {
     const directorResult = await callDirector(ctx, action);
     verdict = directorResult.verdict;
     directorUsage = directorResult.usage;
+    directorMemoryHints = directorResult.memoryHints;
+    directorNpcUpdates = directorResult.npcUpdates;
+    directorSceneBoundary = directorResult.sceneBoundary;
     console.log(
       `[turn] Director verdict: ${verdict.verdict} — ${verdict.reasoning.slice(0, 80)} ` +
       `(in=${directorUsage.inputTokens ?? "?"} cached=${directorUsage.cachedInputTokens ?? "?"} out=${directorUsage.outputTokens ?? "?"})`,
     );
+    if (directorMemoryHints.rooms_to_load.length > 0 || directorMemoryHints.wings_to_load.length > 0) {
+      console.log(
+        `[turn] Director memory hints: rooms=[${directorMemoryHints.rooms_to_load.join(",")}] wings=[${directorMemoryHints.wings_to_load.join(",")}]`,
+      );
+    }
+    if (directorNpcUpdates.length > 0) {
+      console.log(
+        `[turn] Director NPC updates: ${directorNpcUpdates.map((u) => `${u.character_name}(${u.emotional_shift}/${u.current_mood})`).join(", ")}`,
+      );
+    }
   } catch (e) {
     console.warn("[turn] Director failed, falling back to allow:", e instanceof Error ? e.message : e);
     verdict = {
       verdict: "allow" as const,
       reasoning: "Director call failed; defaulting to allow.",
     };
+    directorFailed = true; // AUDIT FIX F-03 · ops visibility for fallback path
+  }
+
+  // 4.2 PHASE 1 — NPC Level 2 dynamic state apply (in-memory)
+  // Director emitted npc_updates · refresh ctx.characters[].dynamic_state so
+  // Narrator's prompt sees the updated mood / goal / focus / trajectory.
+  // Persistence to DB happens in after() block (non-blocking · Migration 0024
+  // apply_npc_dynamic_state RPC). If RPC missing, in-memory update still
+  // benefits THIS turn's Narrator quality.
+  //
+  // AUDIT FIX F-06 (Wave 2): SKIP npc_updates when verdict=reject. If Director
+  // rejected the action, the NPC didn't actually accept it — applying
+  // npc_updates would bake the rejected reality into NPC state. Also closes
+  // a narrative-integrity attack vector (player social-engineers Director
+  // into emitting npc_updates that violate red_lines while verdict says
+  // "reject" · CLAUDE.md hard rule #5).
+  const shouldApplyNpcUpdates =
+    directorNpcUpdates.length > 0 && verdict.verdict !== "reject";
+  if (verdict.verdict === "reject" && directorNpcUpdates.length > 0) {
+    console.log(
+      `[turn] skipping ${directorNpcUpdates.length} npc_updates (verdict=reject · narrative-integrity guard)`,
+    );
+    directorNpcUpdates = []; // also clear so after() block doesn't persist
+  }
+  if (shouldApplyNpcUpdates) {
+    for (const upd of directorNpcUpdates) {
+      const ch = ctx.characters.find(
+        (c) => c.card.name.trim().toLowerCase() === upd.character_name.trim().toLowerCase(),
+      );
+      if (!ch) continue; // Director hallucinated an NPC name · skip silently
+      const prev = (ch.dynamic_state ?? {}) as Record<string, unknown>;
+      type TrajectoryEntry = {
+        shift: "positive" | "neutral" | "negative";
+        turn: number;
+        mood: string;
+      };
+      const isValidShift = (s: unknown): s is TrajectoryEntry["shift"] =>
+        s === "positive" || s === "neutral" || s === "negative";
+      const prevTrajectoryRaw = Array.isArray(prev.emotional_trajectory)
+        ? (prev.emotional_trajectory as Array<{ shift?: unknown; turn?: unknown; mood?: unknown }>)
+        : [];
+      const prevTrajectory: TrajectoryEntry[] = prevTrajectoryRaw
+        .filter(
+          (t): t is TrajectoryEntry =>
+            isValidShift(t.shift) &&
+            typeof t.turn === "number" &&
+            typeof t.mood === "string",
+        );
+      const newTrajectory: TrajectoryEntry[] = [
+        ...prevTrajectory,
+        { shift: upd.emotional_shift, turn: pt.turn_count + 1, mood: upd.current_mood },
+      ].slice(-8); // keep last 8
+      ch.dynamic_state = {
+        ...prev,
+        current_mood: upd.current_mood,
+        current_goal: upd.current_goal,
+        topic_focus: upd.topic_focus,
+        last_emotional_shift: upd.emotional_shift,
+        last_updated_turn: pt.turn_count + 1,
+        emotional_trajectory: newTrajectory,
+      };
+    }
+  }
+
+  // 4.25 PHASE 1 — MemPalace selective retrieval refinement
+  // If Director provided memory_hints AND we have a queryEmbedding from
+  // first-pass retrieval · re-fetch lorebook with hint-guided RPC + hybrid
+  // scoring (semantic + keyword + temporal). Replaces matched lorebook in
+  // the Narrator's memory context · no extra embedding call (reuses pass-1
+  // embedding) · ~1 RPC + 1 SELECT roundtrip cost.
+  const hintsActive =
+    directorMemoryHints.rooms_to_load.length > 0 ||
+    directorMemoryHints.wings_to_load.length > 0;
+  if (hintsActive && memory.queryEmbedding && memory.pgvectorAvailable) {
+    try {
+      const refinedLorebook = await refineLorebookByHints({
+        supabase,
+        playthroughId,
+        queryEmbedding: memory.queryEmbedding,
+        userAction: action,
+        hints: directorMemoryHints,
+      });
+      if (refinedLorebook.length > 0) {
+        const newContextString = rebuildContextString({
+          alwaysOnLorebook: memory.alwaysOnLorebook,
+          matchedLorebook: refinedLorebook,
+          summaries: memory.summaries,
+          ragTurns: memory.ragTurns,
+        });
+        memory.matchedLorebook = refinedLorebook;
+        memory.contextString = newContextString;
+        ctx.memoryContextString = newContextString;
+        console.log(
+          `[turn] memory refined by Director hints: ${refinedLorebook.length} lorebook entries (top hybrid ${refinedLorebook[0].hybrid_score?.toFixed(3) ?? "—"})`,
+        );
+      }
+    } catch (e) {
+      console.warn(
+        "[turn] memory refinement failed, keeping initial retrieval:",
+        e instanceof Error ? e.message : e,
+      );
+    }
   }
 
   // 4.5 SKILL CHECK — Phase 1.5.2: if Director required a check, roll dice now.
@@ -859,7 +1021,11 @@ export async function POST(
             role: "ai",
             text: finalText,
             state_delta: isRefusal ? null : delta,
-            director_verdict: verdict,
+            // AUDIT FIX F-03 (Wave 2): persist Director failure flag inline so
+            // postmortems can grep for `director_verdict->>'fallback' = 'true'`
+            director_verdict: directorFailed
+              ? { ...verdict, fallback: true }
+              : verdict,
             skill_check: skillCheckResult,
             // P6-HIGH-01 fix: derive llm_provider from MODELS catalog instead
             // of hardcoded "anthropic". Previously Llama (openrouter) turns
@@ -1022,7 +1188,10 @@ export async function POST(
             }
           });
 
-          // Rolling summary (every 20 turns) — locale-aware (P2-UX-H-09)
+          // Rolling summary — Phase 1: scene-aware. Fires on:
+          //   (a) Director sceneBoundary=true (scoped scene-level)
+          //   (b) standard 20-turn block reached
+          //   (c) runaway cap (>25 turns since last summary)
           after(async () => {
             try {
               const serviceClient = createServiceRoleClient();
@@ -1031,6 +1200,7 @@ export async function POST(
                 playthroughId,
                 currentMaxTurnIndex: aiTurnIndex,
                 language: storyBible.hard_locked.language,
+                sceneBoundary: directorSceneBoundary,
               });
             } catch (e) {
               console.warn(
@@ -1059,6 +1229,58 @@ export async function POST(
               );
             }
           });
+
+          // PHASE 1 · Migration 0024 — persist NPC Level 2 dynamic state
+          // (mood / goal / focus / emotional_trajectory). Director output was
+          // already applied IN-MEMORY pre-Narrator so this turn's prompt sees
+          // it · this block just durably writes it for next turn's retrieval.
+          //
+          // Service-role only (apply_npc_dynamic_state grant restricted ·
+          // see Migration 0024 grants section).
+          if (directorNpcUpdates.length > 0) {
+            after(async () => {
+              try {
+                const serviceClient = createServiceRoleClient();
+                for (const upd of directorNpcUpdates) {
+                  const ch = ctx.characters.find(
+                    (c) =>
+                      c.card.name.trim().toLowerCase() ===
+                      upd.character_name.trim().toLowerCase(),
+                  );
+                  if (!ch?.character_id) continue;
+                  const { error: npcErr } = await serviceClient.rpc(
+                    "apply_npc_dynamic_state",
+                    {
+                      p_playthrough_id: playthroughId,
+                      p_character_id: ch.character_id,
+                      p_current_mood: upd.current_mood,
+                      p_current_goal: upd.current_goal,
+                      p_topic_focus: upd.topic_focus,
+                      p_emotional_shift: upd.emotional_shift,
+                      p_turn_index: aiTurnIndex,
+                    },
+                  );
+                  if (npcErr) {
+                    const msg = String(npcErr.message ?? "");
+                    if (/does not exist|function .* does not exist/i.test(msg)) {
+                      console.warn(
+                        "[turn] apply_npc_dynamic_state RPC missing — apply Migration 0024",
+                      );
+                      break; // no point retrying for other NPCs in same loop
+                    }
+                    console.warn(
+                      `[turn] apply_npc_dynamic_state failed for ${upd.character_name}: ${msg}`,
+                    );
+                  }
+                }
+              } catch (e) {
+                console.warn(
+                  "[turn] NPC dynamic state persist exception:",
+                  e instanceof Error ? e.message : e,
+                );
+              }
+            });
+          }
         } else if (isRefusal && userTurnId && memory.queryEmbedding) {
           // AUDIT FIX (P2-UX-H-07): on refusal, the AI fallback narrative
           // shouldn't enter RAG (canned text has no signal). But the user

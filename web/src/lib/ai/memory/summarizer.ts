@@ -127,8 +127,24 @@ type TurnRow = {
 };
 
 /**
- * Check if a new 20-turn block is ready to summarize and trigger the rollup.
+ * Phase 1 — Scene-aware summarization · runaway cap.
+ * If Director never marks scene_boundary for this many turns, force-fire anyway
+ * (prevents 100-turn unsummarized scenes from blowing context budget).
+ */
+const SCENE_HARD_CAP_TURNS = 25;
+/**
+ * Phase 1 — minimum turns before a forced scene-boundary summary fires.
+ * Prevents micro-summaries (2-turn scenes) which would fragment memory.
+ */
+const SCENE_MIN_TURNS = 4;
+
+/**
+ * Check if a new block is ready to summarize and trigger the rollup.
  * Idempotent — if the next block is already done, this is a fast no-op.
+ *
+ * Phase 1 update — accepts optional `sceneBoundary` flag from Director.
+ * When sceneBoundary=true · fires for [lastSummary, currentTurn+1) regardless
+ * of TURNS_PER_BLOCK threshold (scoped scene-level summary).
  *
  * Returns true if a summarization actually ran (telemetry / debugging).
  */
@@ -138,8 +154,20 @@ export async function maybeRunSummarization(params: {
   currentMaxTurnIndex: number;
   /** Story language for locale-aware summary prompt (P2-UX-H-09). */
   language?: StoryLanguage;
+  /**
+   * Phase 1 — Director's scene_boundary verdict for this turn.
+   * When true · fires summary even if turn count < TURNS_PER_BLOCK
+   * (provided SCENE_MIN_TURNS threshold reached · prevents micro-summaries).
+   */
+  sceneBoundary?: boolean;
 }): Promise<boolean> {
-  const { supabase, playthroughId, currentMaxTurnIndex, language = "zh-Hant" } = params;
+  const {
+    supabase,
+    playthroughId,
+    currentMaxTurnIndex,
+    language = "zh-Hant",
+    sceneBoundary = false,
+  } = params;
 
   // Find highest turn_index already covered by an existing summary.
   let maxSummarized = 0;
@@ -178,18 +206,39 @@ export async function maybeRunSummarization(params: {
   // gets memory engagement within their first session. After that, 20-turn
   // blocks resume.
   const blockSize = maxSummarized === 0 ? FIRST_BLOCK_TURNS : TURNS_PER_BLOCK;
-  const nextBlockUpper = maxSummarized + blockSize;
-  if (currentMaxTurnIndex + 1 < nextBlockUpper) {
-    // Not enough turns yet to complete the next block.
+  const standardBlockUpper = maxSummarized + blockSize;
+  const turnsSinceLastSummary = currentMaxTurnIndex + 1 - maxSummarized;
+
+  // PHASE 1 — three trigger paths:
+  //   (a) Director marked scene_boundary AND we have enough turns → scoped fire
+  //   (b) Standard block size reached → full block fire
+  //   (c) Runaway cap exceeded → force fire (prevents unbounded scenes)
+  let triggerUpper: number;
+  let triggerReason: string;
+  if (sceneBoundary && turnsSinceLastSummary >= SCENE_MIN_TURNS) {
+    triggerUpper = currentMaxTurnIndex + 1;
+    triggerReason = "scene_boundary";
+  } else if (currentMaxTurnIndex + 1 >= standardBlockUpper) {
+    triggerUpper = standardBlockUpper;
+    triggerReason = "block_full";
+  } else if (turnsSinceLastSummary >= SCENE_HARD_CAP_TURNS) {
+    triggerUpper = currentMaxTurnIndex + 1;
+    triggerReason = "runaway_cap";
+  } else {
+    // No trigger condition met
     return false;
   }
 
-  // Run the rollup for [maxSummarized, nextBlockUpper)
+  console.log(
+    `[summarizer] firing rollup [${maxSummarized}, ${triggerUpper}) · reason=${triggerReason}`,
+  );
+
+  // Run the rollup
   return await runSummarization({
     supabase,
     playthroughId,
     fromIndex: maxSummarized,
-    toIndex: nextBlockUpper,
+    toIndex: triggerUpper,
     language,
   });
 }

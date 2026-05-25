@@ -6,6 +6,7 @@ import {
   allCharactersDynamicState,
   type CharacterCard,
   type Disposition,
+  type NpcDynamicState,
 } from "@/schemas/character";
 import { StateDeltaSchema, type StateDelta } from "@/schemas/state-delta";
 import { INTERNAL_STATE_KEY_PREFIX, type StateSchema } from "@/schemas/state-schema";
@@ -194,6 +195,17 @@ export type TurnContext = {
     card: CharacterCard;
     disposition: Disposition;
     permanent_flags: string[];
+    /**
+     * Phase 1 — NPC Level 2 dynamic state (current_mood / current_goal /
+     * topic_focus / last_emotional_shift / emotional_trajectory).
+     *
+     * Loaded from playthrough_character_states.dynamic_state jsonb (Migration
+     * 0024). Surfaces in allCharactersDynamicState for Narrator + Director
+     * context. Updated via apply_npc_dynamic_state RPC after Director runs.
+     */
+    dynamic_state?: NpcDynamicState;
+    /** Phase 1 — character_id for apply_npc_dynamic_state RPC lookup */
+    character_id?: string;
   }>;
   current_state: Record<string, unknown>;
   recent_turns: Array<{

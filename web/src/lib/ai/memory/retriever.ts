@@ -53,6 +53,26 @@ export type LorebookEntry = {
   name: string;
   description: string;
   similarity?: number;
+  /** Phase 1 — hierarchical wing (set after Migration 0023 backfill) */
+  wing?: string;
+  /** Phase 1 — sub-namespace within wing (free text · nullable) */
+  room?: string | null;
+  /** Phase 1 — keywords for hybrid scoring (denormalized from DB) */
+  keywords?: string[];
+  /** Phase 1 — updated_at for temporal boost */
+  updated_at?: string;
+  /** Phase 1 — hybrid score (semantic + keyword + temporal) when applicable */
+  hybrid_score?: number;
+};
+
+/**
+ * Phase 1 — MemoryHints input from Director.
+ * Mirrors `MemoryHintsSchema` in @/schemas/director · duplicated here to avoid
+ * circular dependency (director.ts → retriever.ts via ctx).
+ */
+export type RetrieverMemoryHints = {
+  rooms_to_load: string[];
+  wings_to_load: string[];
 };
 
 export type MemoryRetrievalResult = {
@@ -117,6 +137,228 @@ const DEFAULT_CONFIG: RetrieverConfig = {
   lorebookMinSimilarity: 0.45,
 };
 
+// ─── Phase 1 hybrid scoring ─────────────────────────────────────────────────
+
+/**
+ * Phase 1 — hybrid score weights (sum to 1.0).
+ * - Semantic dominates (60%) — pgvector cosine is the strongest signal
+ * - Keyword boost (30%) — explicit keyword match means high recall confidence
+ * - Temporal decay (10%) — recently-updated entries slightly favored (player
+ *   is actively interacting with these entities)
+ */
+const HYBRID_WEIGHTS = {
+  semantic: 0.6,
+  keyword: 0.3,
+  temporal: 0.1,
+} as const;
+
+/** Temporal half-life · how fast recency boost decays (days). 7 = week-scale. */
+const TEMPORAL_HALF_LIFE_DAYS = 7;
+
+/**
+ * CJK-aware token extraction from user action · used for keyword matching.
+ * Mirrors the Phase 5 FTS pattern (Migration 0012 cjk_bigram_tokenize).
+ *
+ * - Latin alphanumeric: split on whitespace, lowercase, drop short tokens
+ * - CJK characters: emit sliding 2-char bigrams (no word boundary in Chinese)
+ * - Strips zero-width chars + combining marks to neutralize injection attempts
+ */
+function extractTokens(text: string): string[] {
+  // Strip zero-width + combining marks (Migration 0013 W2-FTS-M-09 pattern)
+  const cleaned = text
+    .normalize("NFKC")
+    .replace(/[​-‍⁠﻿]/g, "")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase();
+
+  const tokens = new Set<string>();
+
+  // Latin tokens (length >= 2)
+  const latinRe = /[a-z0-9]{2,30}/g;
+  let m: RegExpExecArray | null;
+  while ((m = latinRe.exec(cleaned)) !== null) {
+    tokens.add(m[0]);
+  }
+
+  // CJK bigrams (any 2 consecutive CJK chars)
+  const cjkRe = /[㐀-鿿぀-ゟ゠-ヿ]/;
+  for (let i = 0; i < cleaned.length - 1; i++) {
+    if (cjkRe.test(cleaned[i]) && cjkRe.test(cleaned[i + 1])) {
+      tokens.add(cleaned[i] + cleaned[i + 1]);
+    }
+  }
+
+  return Array.from(tokens);
+}
+
+/**
+ * Score a lorebook entry on the keyword dimension.
+ * Returns [0, 1] · graded by intersection size / max(userTokens, entryTokens).
+ *
+ * AUDIT FIX P1-UX-M-01 (Wave 2): pre-Wave-2 was binary 0/1 · any single CJK
+ * bigram match returned 1.0. With user actions like "我問林思雅" producing
+ * 4 bigram tokens · ANY mention of an NPC name produced score 1.0 · flat
+ * +0.3 boost above true semantic ordering · 60/30/10 became "60 + 30 const".
+ * Now: graded by overlap proportion · 1 token match in a 5-token action
+ * scores 0.2, not 1.0.
+ *
+ * Match strategy: token-set intersection (case-insensitive, CJK bigram-aware).
+ */
+function keywordMatchScore(entry: LorebookEntry, userTokens: Set<string>): number {
+  if (userTokens.size === 0) return 0;
+  const entryTokens = new Set<string>();
+  // Entry name tokens
+  for (const t of extractTokens(entry.name)) entryTokens.add(t);
+  // Entry keyword tokens (don't bigram-split keywords — they're authored)
+  if (entry.keywords) {
+    for (const kw of entry.keywords) {
+      entryTokens.add(kw.toLowerCase());
+      for (const t of extractTokens(kw)) entryTokens.add(t);
+    }
+  }
+  if (entryTokens.size === 0) return 0;
+  let matches = 0;
+  for (const tok of userTokens) {
+    if (entryTokens.has(tok)) matches++;
+  }
+  if (matches === 0) return 0;
+  // Graded: intersection / max(userTokens, entryTokens) capped at 1
+  return Math.min(1, matches / Math.max(userTokens.size, entryTokens.size));
+}
+
+/**
+ * Score temporal recency · returns [0, 1] · 1 = updated today, decays
+ * exponentially. Half-life 7 days · 14 days = 0.25 · 21 days = 0.125.
+ *
+ * AUDIT FIX P1-UX-H-03 (Wave 2): added NaN guard. `new Date("garbage").getTime()`
+ * returns NaN · all downstream arithmetic would propagate NaN into hybrid_score ·
+ * sort with NaN scores is non-deterministic. Now: invalid timestamps fall back
+ * to neutral 0.5 (matching missing-timestamp behavior · same finding will be
+ * addressed for asymmetry concern in future polish).
+ */
+function temporalScore(entry: LorebookEntry): number {
+  if (!entry.updated_at) return 0.5; // unknown timestamp = neutral
+  const updated = new Date(entry.updated_at).getTime();
+  if (!Number.isFinite(updated)) return 0.5; // corrupted timestamp · defensive
+  const now = Date.now();
+  const ageDays = Math.max(0, (now - updated) / (1000 * 60 * 60 * 24));
+  return Math.exp(-ageDays / TEMPORAL_HALF_LIFE_DAYS);
+}
+
+/**
+ * Apply hybrid scoring to a set of lorebook entries.
+ * Returns same entries sorted by hybrid_score desc · each entry gets
+ * hybrid_score field set for telemetry.
+ */
+function applyHybridScoring(
+  entries: LorebookEntry[],
+  userTokens: Set<string>,
+): LorebookEntry[] {
+  return entries
+    .map((e) => {
+      // AUDIT FIX F-14 (Wave 2): defensive NaN/Infinity guard on similarity ·
+      // protects sort determinism if upstream emits non-finite cosine
+      const sem = Number.isFinite(e.similarity) ? (e.similarity as number) : 0;
+      const kw = keywordMatchScore(e, userTokens);
+      const tmp = temporalScore(e);
+      const hybrid =
+        HYBRID_WEIGHTS.semantic * sem +
+        HYBRID_WEIGHTS.keyword * kw +
+        HYBRID_WEIGHTS.temporal * tmp;
+      return { ...e, hybrid_score: hybrid };
+    })
+    .sort((a, b) => (b.hybrid_score ?? 0) - (a.hybrid_score ?? 0));
+}
+
+/**
+ * Phase 1 — refine lorebook retrieval given Director's memory hints.
+ *
+ * Called by turn route AFTER Director returns hints (if non-empty). Replaces
+ * the initial semantic top-K matched lorebook with hint-guided selective
+ * retrieval. Hybrid scored + trimmed to config K.
+ *
+ * Returns empty array if RPCs fail (caller keeps original retrieval).
+ *
+ * Reuses the SAME queryEmbedding from the first retrieval pass · no extra
+ * embedding API call.
+ */
+export async function refineLorebookByHints(params: {
+  supabase: SupabaseClient;
+  playthroughId: string;
+  queryEmbedding: number[];
+  userAction: string;
+  hints: RetrieverMemoryHints;
+  config?: Partial<RetrieverConfig>;
+}): Promise<LorebookEntry[]> {
+  const cfg = { ...DEFAULT_CONFIG, ...params.config };
+  const { supabase, playthroughId, queryEmbedding, userAction, hints } = params;
+
+  if (hints.rooms_to_load.length === 0 && hints.wings_to_load.length === 0) {
+    return [];
+  }
+
+  try {
+    const { data, error } = await supabase.rpc("match_lorebook_by_rooms", {
+      p_playthrough_id: playthroughId,
+      p_query_embedding: queryEmbedding,
+      p_wings: hints.wings_to_load,
+      p_rooms: hints.rooms_to_load,
+      p_match_count: cfg.lorebookK * 2,
+      p_min_similarity: cfg.lorebookMinSimilarity,
+    });
+    if (error) {
+      const msg = String(error.message ?? "");
+      if (/does not exist/i.test(msg)) {
+        console.warn("[retriever] match_lorebook_by_rooms RPC missing — apply Migration 0023");
+      }
+      return [];
+    }
+    const candidates = (data as LorebookEntry[]) ?? [];
+    if (candidates.length === 0) return [];
+
+    // Enrich with keywords + updated_at for hybrid scoring
+    const ids = candidates.map((e) => e.id);
+    const { data: enrichRows } = await supabase
+      .from("lorebook_entries")
+      .select("id, keywords, updated_at")
+      .in("id", ids);
+    const enrichById = new Map<string, { keywords: string[] | null; updated_at: string }>();
+    for (const row of enrichRows ?? []) {
+      enrichById.set(row.id as string, {
+        keywords: (row.keywords as string[] | null) ?? null,
+        updated_at: row.updated_at as string,
+      });
+    }
+    const enriched = candidates.map((e) => {
+      const enr = enrichById.get(e.id);
+      return {
+        ...e,
+        keywords: enr?.keywords ?? [],
+        updated_at: enr?.updated_at,
+      };
+    });
+
+    const userTokens = new Set(extractTokens(userAction));
+    return applyHybridScoring(enriched, userTokens).slice(0, cfg.lorebookK);
+  } catch (e) {
+    console.warn("[retriever] refineLorebookByHints failed:", e instanceof Error ? e.message : e);
+    return [];
+  }
+}
+
+/**
+ * Phase 1 — re-build the memory context string given a swapped lorebook set.
+ * Exposed for turn route to call after refineLorebookByHints.
+ */
+export function rebuildContextString(parts: {
+  alwaysOnLorebook: LorebookEntry[];
+  matchedLorebook: LorebookEntry[];
+  summaries: SummaryMatch[];
+  ragTurns: TurnMatch[];
+}): string {
+  return buildContextString(parts);
+}
+
 // ─── Main retriever ─────────────────────────────────────────────────────────
 
 export async function retrieveMemory(params: {
@@ -125,9 +367,21 @@ export async function retrieveMemory(params: {
   userAction: string;
   recentTurns: RecentTurn[];
   config?: Partial<RetrieverConfig>;
+  /**
+   * Phase 1 — optional memory hints from Director.
+   * If present (rooms_to_load or wings_to_load non-empty), retriever uses
+   * `match_lorebook_by_rooms` RPC for selective retrieval. Otherwise falls
+   * back to top-K semantic match.
+   *
+   * Empty arrays = unconstrained (semantic top-K · default behavior).
+   */
+  memoryHints?: RetrieverMemoryHints;
 }): Promise<MemoryRetrievalResult> {
   const cfg = { ...DEFAULT_CONFIG, ...params.config };
-  const { supabase, playthroughId, userAction, recentTurns } = params;
+  const { supabase, playthroughId, userAction, recentTurns, memoryHints } = params;
+
+  // Pre-tokenize user action ONCE · reused across hybrid scoring loops.
+  const userTokenSet = new Set(extractTokens(userAction));
 
   // ── 1. Embed the user action (graceful fallback if it fails) ────────────
   const embedResult = await embedTextSafe(userAction, "retriever:user_action");
@@ -153,6 +407,30 @@ export async function retrieveMemory(params: {
   // AUDIT FIX (P2-UX-C-02): pass per-source similarity floor so low-quality
   // matches don't bloat the prompt with irrelevant noise.
   // AUDIT FIX (P2-PERF-H-07): cap always_on count + sort by recent-update.
+  // PHASE 1: if memoryHints specified → use match_lorebook_by_rooms (selective);
+  //          else fall back to match_lorebook_entries (semantic top-K).
+  //          Pull 2x lorebook candidates so hybrid scoring has room to re-rank.
+  const useHints =
+    !!memoryHints &&
+    (memoryHints.rooms_to_load.length > 0 || memoryHints.wings_to_load.length > 0);
+  const lorebookCandidateCount = cfg.lorebookK * 2;
+
+  const lorebookRpcCall = useHints
+    ? supabase.rpc("match_lorebook_by_rooms", {
+        p_playthrough_id: playthroughId,
+        p_query_embedding: queryEmbedding,
+        p_wings: memoryHints!.wings_to_load,
+        p_rooms: memoryHints!.rooms_to_load,
+        p_match_count: lorebookCandidateCount,
+        p_min_similarity: cfg.lorebookMinSimilarity,
+      })
+    : supabase.rpc("match_lorebook_entries", {
+        p_playthrough_id: playthroughId,
+        p_query_embedding: queryEmbedding,
+        p_match_count: lorebookCandidateCount,
+        p_min_similarity: cfg.lorebookMinSimilarity,
+      });
+
   const [
     summariesResult,
     ragTurnsResult,
@@ -172,15 +450,10 @@ export async function retrieveMemory(params: {
       p_exclude_turn_indexes: recentIndexes,
       p_min_similarity: cfg.ragTurnsMinSimilarity,
     }),
-    supabase.rpc("match_lorebook_entries", {
-      p_playthrough_id: playthroughId,
-      p_query_embedding: queryEmbedding,
-      p_match_count: cfg.lorebookK,
-      p_min_similarity: cfg.lorebookMinSimilarity,
-    }),
+    lorebookRpcCall,
     supabase
       .from("lorebook_entries")
-      .select("id, entity_type, name, description")
+      .select("id, entity_type, name, description, wing, room, keywords, updated_at")
       .eq("playthrough_id", playthroughId)
       .eq("always_on", true)
       .order("updated_at", { ascending: false })
@@ -212,8 +485,36 @@ export async function retrieveMemory(params: {
   // Unwrap results — silently dropping any that failed
   const summaries = unwrapRpc<SummaryMatch>(summariesResult);
   const ragTurnsRaw = unwrapRpc<TurnMatch>(ragTurnsResult);
-  const matchedLorebook = unwrapRpc<LorebookEntry>(matchedLorebookResult);
+  const matchedLorebookRaw = unwrapRpc<LorebookEntry>(matchedLorebookResult);
   const alwaysOnLorebook = unwrapSelect<LorebookEntry>(alwaysOnLorebookResult);
+
+  // PHASE 1: enrich matched lorebook with keywords + updated_at for hybrid
+  // scoring · candidates returned 2x · re-rank by hybrid score · trim to K.
+  let matchedLorebook: LorebookEntry[] = matchedLorebookRaw;
+  if (matchedLorebookRaw.length > 0) {
+    const ids = matchedLorebookRaw.map((e) => e.id);
+    const { data: enrichRows } = await supabase
+      .from("lorebook_entries")
+      .select("id, keywords, updated_at")
+      .in("id", ids);
+    const enrichById = new Map<string, { keywords: string[] | null; updated_at: string }>();
+    for (const row of enrichRows ?? []) {
+      enrichById.set(row.id as string, {
+        keywords: (row.keywords as string[] | null) ?? null,
+        updated_at: row.updated_at as string,
+      });
+    }
+    const enriched = matchedLorebookRaw.map((e) => {
+      const enr = enrichById.get(e.id);
+      return {
+        ...e,
+        keywords: enr?.keywords ?? [],
+        updated_at: enr?.updated_at,
+      };
+    });
+    // Hybrid score + trim to configured K
+    matchedLorebook = applyHybridScoring(enriched, userTokenSet).slice(0, cfg.lorebookK);
+  }
 
   // ── 3. Filter overlapping summaries if requested ────────────────────────
   let filteredSummaries = summaries;
