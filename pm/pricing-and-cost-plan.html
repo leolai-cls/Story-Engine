@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Story Engine — 成本同訂價詳細 plan</title>
+<style>
+  :root {
+    --primary: #4F46E5;
+    --primary-soft: #EEF2FF;
+    --bg: #FAFAF7;
+    --card: #FFFFFF;
+    --ink: #18181B;
+    --ink-soft: #3F3F46;
+    --muted: #71717A;
+    --border: #E4E4E7;
+    --green: #10B981;
+    --green-soft: #D1FAE5;
+    --rose: #E11D48;
+    --rose-soft: #FFE4E6;
+    --amber: #D97706;
+    --amber-soft: #FEF3C7;
+    --gray-soft: #F4F4F5;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.6;
+    padding: 48px 24px 120px;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; }
+  h1 {
+    font-size: 36px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 4px;
+  }
+  .eyebrow {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--primary);
+    background: var(--primary-soft);
+    padding: 5px 10px;
+    border-radius: 999px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .lede { font-size: 17px; color: var(--muted); max-width: 720px; margin-bottom: 16px; }
+  h2 {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    margin: 56px 0 6px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  h2 .icon { font-size: 28px; }
+  .h2-sub { font-size: 14px; color: var(--muted); margin-bottom: 18px; }
+
+  /* Pricing table */
+  table.price {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 12px;
+    font-size: 14px;
+  }
+  table.price th {
+    text-align: left;
+    padding: 12px 14px;
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    background: var(--gray-soft);
+  }
+  table.price td {
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--ink-soft);
+    vertical-align: middle;
+  }
+  table.price tr:last-child td { border-bottom: none; }
+  table.price tr.vendor td {
+    background: var(--gray-soft);
+    color: var(--muted);
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 8px 14px;
+  }
+  td.num { font-variant-numeric: tabular-nums; text-align: right; font-weight: 600; color: var(--ink); }
+  td.muted { color: var(--muted); font-size: 12.5px; }
+  .tag {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 4px;
+    letter-spacing: 0.04em;
+    background: var(--gray-soft);
+    color: var(--muted);
+  }
+  .tag.free { background: #DCFCE7; color: #15803D; }
+  .tag.adv { background: #DBEAFE; color: #1E40AF; }
+  .tag.story { background: #FCE7F3; color: #9D174D; }
+  .tag.legend { background: #FEF3C7; color: #92400E; }
+  .tag.nsfw { background: #FEE2E2; color: #B91C1C; }
+  .tag.dir { background: var(--primary-soft); color: var(--primary); }
+
+  /* Tier cards */
+  .tier-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-top: 14px;
+  }
+  @media (max-width: 980px) {
+    .tier-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 540px) {
+    .tier-grid { grid-template-columns: 1fr; }
+  }
+  .tier {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+  }
+  .tier.featured {
+    border-color: var(--primary);
+    background: var(--primary-soft);
+  }
+  .tier .name {
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 6px;
+  }
+  .tier .price {
+    font-size: 30px;
+    font-weight: 800;
+    color: var(--ink);
+    letter-spacing: -0.015em;
+  }
+  .tier .price .per { font-size: 13px; font-weight: 500; color: var(--muted); margin-left: 2px; }
+  .tier .credits {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--primary);
+    margin-top: 6px;
+    margin-bottom: 14px;
+  }
+  .tier .feat {
+    font-size: 13px;
+    color: var(--ink-soft);
+    padding: 4px 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .tier .feat::before {
+    content: "✓";
+    color: var(--green);
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .tier .feat.no::before { content: "—"; color: var(--muted); }
+  .tier .margin {
+    margin-top: 16px;
+    padding: 8px 10px;
+    background: var(--gray-soft);
+    border-radius: 8px;
+    font-size: 11.5px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+
+  /* Per-turn cost cards */
+  .cost-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 14px;
+  }
+  @media (max-width: 800px) {
+    .cost-grid { grid-template-columns: 1fr; }
+  }
+  .cost {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .cost .label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .cost .big {
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+  .cost .sub {
+    font-size: 12.5px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  /* Multiplier tuning table */
+  table.mult {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 12px;
+    font-size: 13.5px;
+  }
+  table.mult th, table.mult td { padding: 10px 14px; border-bottom: 1px solid var(--border); }
+  table.mult th {
+    text-align: left;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    background: var(--gray-soft);
+  }
+  table.mult tr:last-child td { border-bottom: none; }
+  td.delta-up { color: #B91C1C; font-weight: 600; }
+  td.delta-down { color: #15803D; font-weight: 600; }
+  td.delta-same { color: var(--muted); }
+
+  /* Note callouts */
+  .note {
+    background: var(--amber-soft);
+    border: 1px solid #FCD34D;
+    border-radius: 12px;
+    padding: 14px 18px;
+    margin: 14px 0;
+    font-size: 13.5px;
+    color: #78350F;
+    line-height: 1.55;
+  }
+  .note strong { color: #92400E; }
+
+  .formula {
+    background: var(--gray-soft);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    margin: 12px 0;
+  }
+
+  /* CTA */
+  .cta {
+    background: var(--ink);
+    color: white;
+    border-radius: 14px;
+    padding: 22px 24px;
+    margin-top: 40px;
+  }
+  .cta .label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    opacity: 0.6;
+    margin-bottom: 8px;
+  }
+  .cta .body { font-size: 16px; font-weight: 500; line-height: 1.55; opacity: 0.92; }
+  .cta ol { margin: 8px 0 0 22px; }
+  .cta ol li { padding: 4px 0; font-size: 14.5px; opacity: 0.92; }
+
+  /* Top-up box */
+  .topup-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 14px;
+  }
+  @media (max-width: 800px) {
+    .topup-grid { grid-template-columns: 1fr; }
+  }
+  .topup {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+  }
+  .topup.best { border-color: var(--primary); background: var(--primary-soft); }
+  .topup .price { font-size: 22px; font-weight: 800; color: var(--ink); }
+  .topup .credits { font-size: 14px; color: var(--primary); font-weight: 700; margin-top: 4px; }
+  .topup .ppc { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+  .topup .badge { display: inline-block; margin-top: 8px; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--primary); color: white; letter-spacing: 0.06em; text-transform: uppercase; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <span class="eyebrow">💰 訂價 + 成本 plan</span>
+  <h1>Story Engine 收錢 backbone</h1>
+  <p class="lede">基於 Claude (2026 May) + OpenRouter 實際 API 牌價 · 計每 turn 真實成本 · 設訂閱 + credits 制度。</p>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <h2><span class="icon">📊</span>實際 API 牌價 (2026-05 抓取)</h2>
+  <p class="h2-sub">USD per 1M tokens · 兩個 provider: Anthropic 直連 + OpenRouter aggregate</p>
+
+  <table class="price">
+    <thead>
+      <tr><th>Model</th><th>Input</th><th>Output</th><th>Tier</th><th>Role</th></tr>
+    </thead>
+    <tbody>
+      <tr class="vendor"><td colspan="5">Anthropic 直連 — prompt caching 90% off cached input</td></tr>
+      <tr>
+        <td><strong>Claude Haiku 4.5</strong></td>
+        <td class="num">$1.00</td>
+        <td class="num">$5.00</td>
+        <td><span class="tag free">FREE</span></td>
+        <td><span class="tag dir">DIRECTOR</span></td>
+      </tr>
+      <tr>
+        <td><strong>Claude Sonnet 4.6</strong></td>
+        <td class="num">$3.00</td>
+        <td class="num">$15.00</td>
+        <td><span class="tag adv">ADVENTURER</span></td>
+        <td class="muted">Narrator (中文敘事最強)</td>
+      </tr>
+      <tr>
+        <td><strong>Claude Opus 4.7</strong></td>
+        <td class="num">$5.00</td>
+        <td class="num">$25.00</td>
+        <td><span class="tag story">STORYTELLER</span></td>
+        <td class="muted">Narrator (premium)</td>
+      </tr>
+      <tr class="vendor"><td colspan="5">OpenRouter (no prompt caching available)</td></tr>
+      <tr>
+        <td><strong>GPT-4o</strong></td>
+        <td class="num">$2.50</td>
+        <td class="num">$10.00</td>
+        <td><span class="tag adv">ADVENTURER</span></td>
+        <td class="muted">Narrator</td>
+      </tr>
+      <tr>
+        <td><strong>GPT-4o mini</strong></td>
+        <td class="num">$0.15</td>
+        <td class="num">$0.60</td>
+        <td><span class="tag free">FREE</span></td>
+        <td class="muted">Narrator (cheap)</td>
+      </tr>
+      <tr>
+        <td><strong>Gemini 3.1 Pro Preview</strong></td>
+        <td class="num">$2.00</td>
+        <td class="num">$12.00</td>
+        <td><span class="tag adv">ADVENTURER</span></td>
+        <td class="muted">Narrator</td>
+      </tr>
+      <tr>
+        <td><strong>Gemini 3.5 Flash</strong></td>
+        <td class="num">$1.50</td>
+        <td class="num">$9.00</td>
+        <td><span class="tag free">FREE</span></td>
+        <td class="muted">Narrator</td>
+      </tr>
+      <tr>
+        <td><strong>Grok 2</strong></td>
+        <td class="num">~$2.00</td>
+        <td class="num">~$10.00</td>
+        <td><span class="tag adv">ADVENTURER</span></td>
+        <td class="muted">Narrator (est · re-verify before launch)</td>
+      </tr>
+      <tr>
+        <td><strong>Grok 2 Mini</strong></td>
+        <td class="num">~$0.50</td>
+        <td class="num">~$1.50</td>
+        <td><span class="tag free">FREE</span></td>
+        <td class="muted">Narrator (est)</td>
+      </tr>
+      <tr>
+        <td><strong>Llama 3.1 405B</strong></td>
+        <td class="num">~$1.50</td>
+        <td class="num">~$2.00</td>
+        <td><span class="tag story">STORYTELLER</span> <span class="tag nsfw">NSFW</span></td>
+        <td class="muted">NSFW Narrator (only this · Hard rule #5)</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="note">
+    <strong>數據 source</strong> · Claude 由 anthropic.com/pricing 直接 fetch · OpenRouter 由個別 model page fetch (e.g. openrouter.ai/google/gemini-3.5-flash)。Grok 2 + Llama 405B 個別 model page 冇 surface pricing · 用同代 model 估算 · launch 前要 re-verify。
+  </div>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <h2><span class="icon">🧮</span>每 turn 真實成本</h2>
+  <p class="h2-sub">Orchestrator pipeline: Moderation + Embedding + Director + Narrator + Memory layer</p>
+
+  <div class="formula">
+    Per-turn tokens (typical mid-game ~20 turns deep):<br>
+    • Director call: 2K input · 300 output (always Claude Haiku 4.5)<br>
+    • Narrator call: 5K input · 1K output (3K cacheable Bible/Cards for Anthropic)<br>
+    • Moderation: free (OpenAI Moderation API)<br>
+    • Embedding: 200 tokens at $0.02/1M = $0.000004/turn<br>
+    • Memory overhead (RAG + summarizer + lorebook · amortized): ~$0.001/turn
+  </div>
+
+  <table class="price">
+    <thead>
+      <tr><th>Narrator model</th><th>Cost / turn (USD)</th><th>= credits @ 1cr=$0.015</th><th>Notes</th></tr>
+    </thead>
+    <tbody>
+      <tr class="vendor"><td colspan="4">FREE tier 4 個 model</td></tr>
+      <tr><td>Claude Haiku 4.5</td><td class="num">$0.015</td><td class="num">1.0 cr</td><td class="muted">Base · 1 credit reference</td></tr>
+      <tr><td>GPT-4o mini</td><td class="num">$0.005</td><td class="num">0.3 cr</td><td class="muted">Cheapest narrator</td></tr>
+      <tr><td>Gemini 3.5 Flash</td><td class="num">$0.021</td><td class="num">1.4 cr</td><td class="muted">↑ 而家 multiplier 0.5x 低估</td></tr>
+      <tr><td>Grok 2 Mini</td><td class="num">$0.009</td><td class="num">0.6 cr</td><td class="muted"></td></tr>
+      <tr class="vendor"><td colspan="4">ADVENTURER tier 4 個 model</td></tr>
+      <tr><td>Claude Sonnet 4.6 (cached)</td><td class="num">$0.027</td><td class="num">1.8 cr</td><td class="muted">90% input cache 大救星</td></tr>
+      <tr><td>Claude Sonnet 4.6 (uncached)</td><td class="num">$0.035</td><td class="num">2.3 cr</td><td class="muted">First 5 turns · before cache warm</td></tr>
+      <tr><td>GPT-4o</td><td class="num">$0.027</td><td class="num">1.8 cr</td><td class="muted">冇 caching · 平 vs cached Sonnet</td></tr>
+      <tr><td>Gemini 3.1 Pro Preview</td><td class="num">$0.027</td><td class="num">1.8 cr</td><td class="muted"></td></tr>
+      <tr><td>Grok 2</td><td class="num">$0.025</td><td class="num">1.7 cr</td><td class="muted"></td></tr>
+      <tr class="vendor"><td colspan="4">STORYTELLER tier</td></tr>
+      <tr><td>Claude Opus 4.7 (cached)</td><td class="num">$0.055</td><td class="num">3.7 cr</td><td class="muted">Premium · 適合複雜情節</td></tr>
+      <tr><td>Llama 3.1 405B (NSFW)</td><td class="num">$0.015</td><td class="num">1.0 cr</td><td class="muted">出乎意料平 · OpenRouter cheapest</td></tr>
+    </tbody>
+  </table>
+
+  <div class="cost-grid">
+    <div class="cost">
+      <div class="label">1 credit = </div>
+      <div class="big">$0.015</div>
+      <div class="sub">internal token cost · 1 Haiku turn</div>
+    </div>
+    <div class="cost">
+      <div class="label">Sonnet 4.6 turn</div>
+      <div class="big">$0.027</div>
+      <div class="sub">cached · 90% input from Bible/Cards</div>
+    </div>
+    <div class="cost">
+      <div class="label">Opus 4.7 turn</div>
+      <div class="big">$0.055</div>
+      <div class="sub">cached · premium narrator</div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <h2><span class="icon">🎯</span>建議訂閱 tier</h2>
+  <p class="h2-sub">USD 為 primary · Stripe fee ~$0.30 + 2.9% per charge · realistic 70% usage assumed for margin</p>
+
+  <div class="tier-grid">
+
+    <div class="tier">
+      <div class="name">Free</div>
+      <div class="price">$0<span class="per">/月</span></div>
+      <div class="credits">30 credits/月</div>
+      <div class="feat">Haiku 4.5</div>
+      <div class="feat">GPT-4o mini</div>
+      <div class="feat">Gemini 3.5 Flash</div>
+      <div class="feat">Grok 2 Mini</div>
+      <div class="feat no">Sonnet / Opus / GPT-4o</div>
+      <div class="feat no">Adult mode</div>
+      <div class="margin">
+        Max cost: ~$0.45 / user / 月 (loss leader · acquisition)
+      </div>
+    </div>
+
+    <div class="tier featured">
+      <div class="name">Adventurer</div>
+      <div class="price">$9.99<span class="per">/月</span></div>
+      <div class="credits">500 credits/月</div>
+      <div class="feat">所有 Free tier model</div>
+      <div class="feat">Sonnet 4.6 (旗艦中文)</div>
+      <div class="feat">GPT-4o</div>
+      <div class="feat">Gemini 3.1 Pro</div>
+      <div class="feat">Grok 2</div>
+      <div class="feat no">Opus 4.7 / Llama 405B</div>
+      <div class="feat no">Adult mode</div>
+      <div class="margin">
+        Max-use COGS: $7.50 (75%)<br>
+        Realistic 70%: $5.25 = <strong>44% margin</strong>
+      </div>
+    </div>
+
+    <div class="tier">
+      <div class="name">Storyteller</div>
+      <div class="price">$19.99<span class="per">/月</span></div>
+      <div class="credits">1200 credits/月</div>
+      <div class="feat">所有 Adventurer model</div>
+      <div class="feat">Claude Opus 4.7</div>
+      <div class="feat">Llama 3.1 405B</div>
+      <div class="feat">Adult mode 可開</div>
+      <div class="feat no">Priority queue</div>
+      <div class="margin">
+        Max-use COGS: $18.00 (90%)<br>
+        Realistic 60%: $10.80 = <strong>42% margin</strong>
+      </div>
+    </div>
+
+    <div class="tier">
+      <div class="name">Legend</div>
+      <div class="price">$49.99<span class="per">/月</span></div>
+      <div class="credits">3500 credits/月</div>
+      <div class="feat">All models · all tiers</div>
+      <div class="feat">Adult mode</div>
+      <div class="feat">Priority queue</div>
+      <div class="feat">Concurrent playthroughs &gt; 5</div>
+      <div class="feat">Early access 新 model</div>
+      <div class="margin">
+        Max-use COGS: $52.50 (105% · 真係 cap)<br>
+        Realistic 50%: $26.25 = <strong>45% margin</strong>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <h2><span class="icon">⚡</span>Credit 一次性 top-up</h2>
+  <p class="h2-sub">Sub credits 用完想加多啲 · 一次過買 · 永不過期</p>
+
+  <div class="topup-grid">
+    <div class="topup">
+      <div class="price">$4.99</div>
+      <div class="credits">200 credits</div>
+      <div class="ppc">$0.025 / credit</div>
+    </div>
+    <div class="topup">
+      <div class="price">$9.99</div>
+      <div class="credits">500 credits</div>
+      <div class="ppc">$0.020 / credit</div>
+    </div>
+    <div class="topup best">
+      <div class="price">$19.99</div>
+      <div class="credits">1100 credits</div>
+      <div class="ppc">$0.018 / credit</div>
+      <span class="badge">best value</span>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <h2><span class="icon">🔧</span>建議 multiplier 校準</h2>
+  <p class="h2-sub">而家 models.ts 入面啲 credit_multiplier · 同實際 cost 對唔啱嘅地方</p>
+
+  <table class="mult">
+    <thead>
+      <tr><th>Model</th><th>而家 multiplier</th><th>實際 cost / Haiku</th><th>建議</th><th>Delta</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Claude Haiku 4.5</td><td>1.0x</td><td>1.0x</td><td>1.0x</td><td class="delta-same">— keep</td></tr>
+      <tr><td>Claude Sonnet 4.6</td><td>3.0x</td><td>1.8x cached</td><td><strong>2.0x</strong></td><td class="delta-down">↓ 而家收貴咗</td></tr>
+      <tr><td>Claude Opus 4.7</td><td>5.0x</td><td>3.7x cached</td><td><strong>4.0x</strong></td><td class="delta-down">↓ 細細降</td></tr>
+      <tr><td>GPT-4o mini</td><td>0.5x</td><td>0.3x</td><td>0.5x</td><td class="delta-same">— keep (margin buffer)</td></tr>
+      <tr><td>GPT-4o</td><td>2.5x</td><td>1.8x</td><td><strong>2.0x</strong></td><td class="delta-down">↓ 對齊 Sonnet</td></tr>
+      <tr><td>Gemini 3.5 Flash</td><td>0.5x</td><td>1.4x</td><td><strong>1.5x</strong></td><td class="delta-up">↑ <strong>而家蝕緊錢</strong></td></tr>
+      <tr><td>Gemini 3.1 Pro Preview</td><td>2.0x</td><td>1.8x</td><td>2.0x</td><td class="delta-same">— keep</td></tr>
+      <tr><td>Grok 2</td><td>2.5x</td><td>1.7x</td><td><strong>2.0x</strong></td><td class="delta-down">↓ 對齊</td></tr>
+      <tr><td>Grok 2 Mini</td><td>0.8x</td><td>0.6x</td><td>0.8x</td><td class="delta-same">— keep</td></tr>
+      <tr><td>Llama 3.1 405B</td><td>2.5x</td><td>1.0x</td><td><strong>1.5x</strong></td><td class="delta-down">↓ NSFW 出奇平</td></tr>
+    </tbody>
+  </table>
+
+  <div class="note">
+    <strong>⚠️ Gemini 3.5 Flash bug</strong>: 而家設 0.5x multiplier · 但實際 cost $0.021 = 1.4 credits。Free tier 用呢個 model 嘅人每 turn 我哋自己貼 $0.006。500 credits Adventurer 用 Flash 玩 1000 turns = $11.20 cost · 收 $9.99 = lose money。**Launch 前必修**。
+  </div>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <h2><span class="icon">💵</span>整體 unit economics 估算</h2>
+  <p class="h2-sub">假設 launch 第一年 user mix · 月度</p>
+
+  <div class="cost-grid">
+    <div class="cost">
+      <div class="label">每位 paid user 月平均 contribution margin</div>
+      <div class="big">~$5.30</div>
+      <div class="sub">($9.99 Adv 主流 · 70% usage · 44% margin · 扣 Stripe + memory overhead)</div>
+    </div>
+    <div class="cost">
+      <div class="label">Free user cost</div>
+      <div class="big">~$0.30</div>
+      <div class="sub">每月 · 30 credits 用一半 · cheap models only</div>
+    </div>
+    <div class="cost">
+      <div class="label">Break-even conversion</div>
+      <div class="big">~6%</div>
+      <div class="sub">Free → paid 要達到呢個 ratio 先 break even (扣 hosting · Stripe · 客服)</div>
+    </div>
+  </div>
+
+  <div class="note">
+    <strong>Industry comparison</strong>: NovelAI $25/月 conversion ~12% · AI Dungeon $14.99/月 conversion ~8% · Character.AI free unlimited (loss-leader · ad-supported)。Story Engine 嘅 differentiator (Memory · Narrative Integrity · 中文 first) 可以 justify $9.99 而唔 race to $7.99 bottom。
+  </div>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <h2><span class="icon">🚦</span>實施步驟 (Money tier)</h2>
+
+  <div class="cta">
+    <div class="label">建議 ship 順序</div>
+    <ol>
+      <li><strong>修 multiplier bug</strong> — Gemini Flash 0.5 → 1.5 · 其他 4 個 model 對齊 (~5 min · single commit)</li>
+      <li><strong>Pricing page</strong> — /pricing 由 placeholder 變真 · 4 個 tier card + top-up 3 個 + FAQ</li>
+      <li><strong>Stripe Checkout</strong> — Subscription products (4 tier) + Top-up products (3 SKU) · webhook 更新 profiles.subscription_tier + credit_balance</li>
+      <li><strong>Credit meter UI</strong> — Settings 頁顯示「今月用咗 X / Y credits · 重置 D 號」+ 「buy more」CTA</li>
+      <li><strong>Refund saga</strong> — 退款場景 + reverse credit deduction · audit-deferred from Phase 3</li>
+      <li><strong>Stripe Identity (Phase 6 KYC)</strong> — 成人模式 toggle 觸發年齡驗證</li>
+    </ol>
+  </div>
+
+  <p style="font-size: 13px; color: var(--muted); margin-top: 24px;">
+    Sources: anthropic.com/pricing · openrouter.ai/google/gemini-3.5-flash · openrouter.ai/google/gemini-3.1-pro-preview · openrouter.ai/openai/gpt-4o · openrouter.ai/openai/gpt-4o-mini · Grok 2 + Llama 405B est (re-verify before launch).
+  </p>
+
+</div>
+</body>
+</html>
