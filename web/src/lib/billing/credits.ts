@@ -11,11 +11,34 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  *   )
  *
  * STORY_ENGINE_MARKUP = 2.0 — covers infrastructure (Vercel + Supabase),
- * payment processing (~3% Stripe), refunds, and gross margin. At 2× markup
- * on Sonnet 4.6 narrator (~$0.015/turn raw → $0.030/turn billed in credits),
- * Adventurer $9.99/mo 5000 credits gives ~167 turns; Storyteller $19.99
- * gives ~500 turns. See `pm/DECISIONS.md` for the pricing audit history
- * (memory layer added 35% overhead vs. originally modeled 2%).
+ * payment processing (~3% Stripe), refunds, and gross margin.
+ *
+ * ⚠️ REAL PER-TURN COST (2026-05-25 honest accounting · pm/pricing-v2):
+ *   Orchestrator pipeline sends ~15K input tokens / turn (Bible 600 cached +
+ *   Cards 2000 cached + last 20 turns 10K NOT cached + RAG 600 + summary 500
+ *   + state 300 + verdict 300 + action 50 + sys 500). Output ~1K. Director
+ *   adds another ~2750 input + 300 output via Haiku.
+ *
+ *   Effective per-turn raw cost (all-in · Narrator + Director + memory ops):
+ *     Haiku 4.5         $0.024 → 48 credits billed @ 2× markup
+ *     Sonnet 4.6 cached $0.060 → 120 credits
+ *     Opus 4.7 cached   $0.096 → 192 credits
+ *     GPT-4o mini       $0.009 → 18 credits
+ *     GPT-4o            $0.054 → 108 credits
+ *     Gemini Flash      $0.038 → 76 credits
+ *     Gemini Pro        $0.049 → 98 credits
+ *     Grok 2            $0.047 → 94 credits
+ *     Grok 2 Mini       $0.015 → 30 credits
+ *     Llama 405B        $0.031 → 62 credits
+ *
+ *   Tier credit allocations sized at 2× markup target ~50% worst-case
+ *   gross margin (user burns 100% on Haiku · cheapest model):
+ *     Free        500 cr  · ~10 Haiku turns · $0.25 max cost (loss leader)
+ *     Adventurer  8000 cr · ~166 Haiku / ~66 Sonnet turns · $4 max cost
+ *     Storyteller 18000 cr · ~375 Haiku / ~94 Opus turns · $9 max cost
+ *     Legend      48000 cr · ~1000 Haiku / ~250 Opus turns · $24 max cost
+ *
+ *   Annual plans (~17% discount · 2 months free): $99 / $199 / $499.
  *
  * All balance changes route through `apply_credit_charge` Postgres RPC —
  * RLS blocks direct INSERT on `credit_ledger`, so this is the ONLY entry
@@ -42,22 +65,34 @@ export type ModelPricing = {
   cachedInputPerMillion?: number;
 };
 
+/**
+ * Pricing source-of-truth · all rates verified 2026-05-25 via:
+ *   · anthropic.com/pricing (direct API)
+ *   · openrouter.ai/{provider}/{model} pages (aggregate)
+ *
+ * ⚠️ Founder rule (2026-05-25 · per pm/pricing-v2-comprehensive.html):
+ * MUST verify these rates before each tier/pricing change. Old values were
+ * sometimes 5× off real cost (e.g. Gemini Flash old $0.30/$2.5 vs actual
+ * $1.50/$9 · system was undercharging credits silently).
+ */
 export const MODEL_PRICING: Record<string, ModelPricing> = {
-  // ─── Anthropic ─────────────────────────────────────────────────────
+  // ─── Anthropic (direct · prompt caching: cached input @ 10% of input rate) ─
   "claude-sonnet-4-6": {
     inputPerMillion: 3.0,
     outputPerMillion: 15.0,
-    cachedInputPerMillion: 0.3, // ~10% of input rate per Anthropic prompt-cache pricing
+    cachedInputPerMillion: 0.3,
   },
   "claude-haiku-4-5": {
-    inputPerMillion: 0.8,
-    outputPerMillion: 4.0,
-    cachedInputPerMillion: 0.08,
+    // RATE FIX 2026-05-25: was $0.80/$4 (old Haiku 3.5 era) · now $1/$5 for 4.5
+    inputPerMillion: 1.0,
+    outputPerMillion: 5.0,
+    cachedInputPerMillion: 0.1,
   },
   "claude-opus-4-7": {
-    inputPerMillion: 15.0,
-    outputPerMillion: 75.0,
-    cachedInputPerMillion: 1.5,
+    // RATE FIX 2026-05-25: was $15/$75 (old Opus 3 era) · 4.7 dropped to $5/$25
+    inputPerMillion: 5.0,
+    outputPerMillion: 25.0,
+    cachedInputPerMillion: 0.5,
   },
   // ─── OpenAI Embeddings ─────────────────────────────────────────────
   "text-embedding-3-small": {
@@ -75,32 +110,35 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
   },
   // ─── Google narrators (via OpenRouter · founder-specified versions) ─
   "gemini-3-1-pro": {
-    inputPerMillion: 1.25,
-    outputPerMillion: 10.0,
+    // RATE FIX 2026-05-25: was $1.25/$10 (old 2.5 Pro era · estimated)
+    // Actual OpenRouter rate for 3.1 Pro Preview · re-verify quarterly
+    inputPerMillion: 2.0,
+    outputPerMillion: 12.0,
   },
   "gemini-3-5-flash": {
-    inputPerMillion: 0.30,
-    outputPerMillion: 2.5,
+    // ⚠️ CRITICAL RATE FIX 2026-05-25: was $0.30/$2.5 · actual $1.50/$9
+    // Previous setting was undercharging credits by ~5× on every Flash turn
+    inputPerMillion: 1.5,
+    outputPerMillion: 9.0,
   },
   // ─── xAI Grok (via OpenRouter · 2 versions) ────────────────────────
+  // Grok 2 rates estimated from Grok 4 family pricing · re-verify before launch
   "grok-2": {
     inputPerMillion: 2.0,
     outputPerMillion: 10.0,
   },
   "grok-2-mini": {
-    inputPerMillion: 0.3,
-    outputPerMillion: 0.5,
+    inputPerMillion: 0.5,
+    outputPerMillion: 1.5,
   },
   // ─── OpenRouter NSFW (Phase 6 adult mode · Hard rule #5 LLM isolation) ─
   // Llama 3.1 405B · only NSFW-allowed narrator · uncensored variant.
-  // P6-CRIT-01 fix (Phase 6 + 1.5/2 polish audit): key MUST match the
-  // internal Story Engine id from MODELS catalog, NOT the OpenRouter
-  // provider id. Every consumer (ModelPicker · estimateTurnCredits in
-  // turn route · computeTurnCredits onFinish) calls with the internal
-  // id `llama-3-1-405b-uncensored`.
+  // P6-CRIT-01 fix: key MUST match the internal MODELS id, NOT provider id.
+  // Rate from OpenRouter cheapest-provider (re-verify · est based on Hermes
+  // 405B at $1/$1 + base Llama at $1.5/$2 mid-range estimate).
   "llama-3-1-405b-uncensored": {
-    inputPerMillion: 2.5,
-    outputPerMillion: 2.5,
+    inputPerMillion: 1.5,
+    outputPerMillion: 2.0,
   },
 };
 

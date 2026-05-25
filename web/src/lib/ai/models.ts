@@ -32,13 +32,20 @@ export type ModelEntry = {
 
 export const MODELS: Record<string, ModelEntry> = {
   // ─── Anthropic (direct API) ─────────────────────────────────────────
+  // credit_multiplier values below are UI ESTIMATES shown pre-turn (e.g.
+  // model picker · "Sonnet costs 2.5× Haiku"). Actual credit charge per
+  // turn is computed precisely via computeCredits() in lib/billing using
+  // real token usage + MODEL_PRICING. Multipliers calibrated 2026-05-25
+  // against orchestrator-pipeline-honest per-turn costs (see credits.ts
+  // docstring). Base = Haiku 4.5 @ $0.024 effective cost / turn = 1.0×.
+
   "claude-sonnet-4-6": {
     id: "claude-sonnet-4-6",
     provider: "anthropic",
     model_id: "claude-sonnet-4-6",
     display_name: "Claude Sonnet 4.6",
     role: "narrator",
-    credit_multiplier: 3.0,
+    credit_multiplier: 2.5, // $0.060 cached / $0.024 Haiku = 2.5×
     allows_nsfw: false,
     min_tier: "adventurer",
     description: "中文敘事最強。情感細膩。預設 narrator。",
@@ -49,7 +56,7 @@ export const MODELS: Record<string, ModelEntry> = {
     model_id: "claude-haiku-4-5",
     display_name: "Claude Haiku 4.5",
     role: "director",
-    credit_multiplier: 1.0,
+    credit_multiplier: 1.0, // base
     allows_nsfw: false,
     min_tier: "free",
     description: "快、平。Director 仲裁專用。",
@@ -60,20 +67,20 @@ export const MODELS: Record<string, ModelEntry> = {
     model_id: "claude-opus-4-7",
     display_name: "Claude Opus 4.7",
     role: "narrator",
-    credit_multiplier: 5.0,
+    credit_multiplier: 4.0, // $0.096 cached / $0.024 = 4.0×
     allows_nsfw: false,
     min_tier: "storyteller",
     description: "最深層敘事。複雜情節 + 多角色互動。",
   },
 
-  // ─── OpenAI (via OpenRouter) ────────────────────────────────────────
+  // ─── OpenAI (via OpenRouter · no prompt caching available) ──────────
   "gpt-4o": {
     id: "gpt-4o",
     provider: "openrouter",
     model_id: "openai/gpt-4o",
     display_name: "GPT-4o",
     role: "narrator",
-    credit_multiplier: 2.5,
+    credit_multiplier: 2.5, // $0.054 / $0.024 = 2.25× rounded up for margin
     allows_nsfw: false,
     min_tier: "adventurer",
     description: "OpenAI 旗艦。對白自然、英文混雜寫得順。",
@@ -84,7 +91,7 @@ export const MODELS: Record<string, ModelEntry> = {
     model_id: "openai/gpt-4o-mini",
     display_name: "GPT-4o mini",
     role: "narrator",
-    credit_multiplier: 0.5,
+    credit_multiplier: 0.5, // $0.009 / $0.024 = 0.4× rounded up
     allows_nsfw: false,
     min_tier: "free",
     description: "OpenAI 平價版。Free tier 可用。",
@@ -97,7 +104,7 @@ export const MODELS: Record<string, ModelEntry> = {
     model_id: "google/gemini-3.1-pro-preview",
     display_name: "Gemini 3.1 Pro",
     role: "narrator",
-    credit_multiplier: 2.0,
+    credit_multiplier: 2.0, // $0.049 / $0.024 = 2.0×
     allows_nsfw: false,
     min_tier: "adventurer",
     description: "Google 旗艦。長 context · 適合長 playthrough · 強推理。",
@@ -108,7 +115,11 @@ export const MODELS: Record<string, ModelEntry> = {
     model_id: "google/gemini-3.5-flash",
     display_name: "Gemini 3.5 Flash",
     role: "narrator",
-    credit_multiplier: 0.5,
+    // ⚠️ CRITICAL FIX 2026-05-25: was 0.5× · real cost ratio 1.6×
+    // Previously SEVERELY underpriced · users could burn Flash with
+    // 3× more value than they were paying. See credits.ts MODEL_PRICING
+    // rate fix (was $0.30/$2.5 · actual $1.50/$9).
+    credit_multiplier: 1.5,
     allows_nsfw: false,
     min_tier: "free",
     description: "Google 平價版。快 · 長 context · Free tier 可用。",
@@ -121,7 +132,7 @@ export const MODELS: Record<string, ModelEntry> = {
     model_id: "x-ai/grok-2-1212",
     display_name: "Grok 2",
     role: "narrator",
-    credit_multiplier: 2.5,
+    credit_multiplier: 2.0, // $0.047 / $0.024 = 2.0×
     allows_nsfw: false,
     min_tier: "adventurer",
     description: "xAI 旗艦。對話風格活潑 · 多元觀點。",
@@ -132,7 +143,7 @@ export const MODELS: Record<string, ModelEntry> = {
     model_id: "x-ai/grok-2-mini",
     display_name: "Grok 2 Mini",
     role: "narrator",
-    credit_multiplier: 0.8,
+    credit_multiplier: 0.6, // $0.015 / $0.024 = 0.6×
     allows_nsfw: false,
     min_tier: "free",
     description: "xAI 平價版。快 · 同 Grok 2 同 family。",
@@ -145,7 +156,7 @@ export const MODELS: Record<string, ModelEntry> = {
     model_id: "meta-llama/llama-3.1-405b-instruct",
     display_name: "Llama 3.1 405B",
     role: "narrator",
-    credit_multiplier: 2.5,
+    credit_multiplier: 1.5, // $0.031 / $0.024 = 1.3× rounded up
     allows_nsfw: true,
     min_tier: "storyteller",
     description: "Open source · 成人模式可用 (NSFW)。",
