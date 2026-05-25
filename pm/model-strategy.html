@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Story Engine — Model 策略 (10 → 5)</title>
+<style>
+  :root {
+    --primary: #4F46E5;
+    --primary-soft: #EEF2FF;
+    --bg: #FAFAF7;
+    --card: #FFFFFF;
+    --ink: #18181B;
+    --ink-soft: #3F3F46;
+    --muted: #71717A;
+    --border: #E4E4E7;
+    --green: #10B981;
+    --green-soft: #D1FAE5;
+    --rose: #E11D48;
+    --rose-soft: #FFE4E6;
+    --amber: #D97706;
+    --amber-soft: #FEF3C7;
+    --gray-soft: #F4F4F5;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+    background: var(--bg); color: var(--ink); line-height: 1.6;
+    padding: 48px 24px 120px;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; }
+  h1 { font-size: 36px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 4px; }
+  .eyebrow {
+    display: inline-block; font-size: 11px; font-weight: 700; color: var(--primary);
+    background: var(--primary-soft); padding: 5px 10px; border-radius: 999px;
+    letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 12px;
+  }
+  .lede { font-size: 17px; color: var(--muted); max-width: 720px; margin-bottom: 16px; }
+  h2 {
+    font-size: 24px; font-weight: 700; letter-spacing: -0.015em; margin: 52px 0 6px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  h2 .icon { font-size: 28px; }
+  .h2-sub { font-size: 14px; color: var(--muted); margin-bottom: 18px; }
+
+  /* TL;DR */
+  .tldr {
+    background: linear-gradient(135deg, #DCFCE7 0%, #BBF7D0 100%);
+    border: 1px solid #6EE7B7; border-radius: 14px; padding: 24px 28px; margin: 20px 0 28px;
+  }
+  .tldr .label {
+    font-size: 11px; font-weight: 800; color: #065F46;
+    text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px;
+  }
+  .tldr .point {
+    font-size: 15.5px; color: #064E3B; line-height: 1.55; padding: 4px 0;
+  }
+  .tldr .point::before { content: "▸ "; color: #047857; font-weight: 700; }
+  .tldr .point strong { color: #022C22; }
+
+  /* Tables */
+  table {
+    width: 100%; border-collapse: separate; border-spacing: 0;
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    overflow: hidden; margin: 12px 0; font-size: 13.5px;
+  }
+  table th {
+    text-align: left; padding: 11px 14px; font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted);
+    background: var(--gray-soft); border-bottom: 1px solid var(--border);
+  }
+  table td {
+    padding: 11px 14px; border-bottom: 1px solid var(--border); color: var(--ink-soft);
+    vertical-align: top;
+  }
+  table tr:last-child td { border-bottom: none; }
+  table tr.section td {
+    background: var(--gray-soft); color: var(--muted); font-weight: 700; font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.06em; padding: 7px 14px;
+  }
+  td.num { font-variant-numeric: tabular-nums; text-align: right; font-weight: 600; color: var(--ink); }
+  td.muted { color: var(--muted); }
+  td.keep { color: #15803D; font-weight: 700; }
+  td.drop { color: #B91C1C; font-weight: 700; }
+  .tag {
+    display: inline-block; font-size: 10px; font-weight: 700;
+    padding: 2px 7px; border-radius: 4px; letter-spacing: 0.04em;
+  }
+  .tag.keep { background: #DCFCE7; color: #15803D; }
+  .tag.drop { background: #FEE2E2; color: #B91C1C; }
+
+  /* Card grids */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 14px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 14px; }
+  @media (max-width: 800px) {
+    .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+  }
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 18px;
+  }
+  .card.featured { border-color: var(--primary); background: var(--primary-soft); }
+  .card .ico { font-size: 24px; line-height: 1; margin-bottom: 8px; }
+  .card .head { font-size: 15.5px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+  .card .body { font-size: 13px; color: var(--ink-soft); line-height: 1.55; }
+  .card .badge {
+    display: inline-block; font-size: 10px; font-weight: 700;
+    padding: 2px 7px; border-radius: 4px; letter-spacing: 0.04em;
+    background: var(--primary-soft); color: var(--primary); margin-top: 8px;
+  }
+
+  /* Rank table for arena */
+  .rank-row {
+    display: flex; align-items: center; gap: 14px;
+    padding: 12px 14px; background: var(--card);
+    border: 1px solid var(--border); border-radius: 10px; margin-bottom: 8px;
+  }
+  .rank-row .rank {
+    background: var(--ink); color: white;
+    width: 32px; height: 32px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 13px; flex-shrink: 0;
+  }
+  .rank-row.gold .rank { background: #D97706; }
+  .rank-row.silver .rank { background: #71717A; }
+  .rank-row.bronze .rank { background: #A16207; }
+  .rank-row .text { flex: 1; }
+  .rank-row .name { font-weight: 700; font-size: 14px; color: var(--ink); }
+  .rank-row .note { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+
+  /* Notes */
+  .note {
+    border-radius: 12px; padding: 14px 18px; margin: 14px 0;
+    font-size: 13.5px; line-height: 1.55;
+  }
+  .note.warn { background: var(--amber-soft); border: 1px solid #FCD34D; color: #78350F; }
+  .note.good { background: var(--green-soft); border: 1px solid #6EE7B7; color: #065F46; }
+  .note.info { background: var(--primary-soft); border: 1px solid #A5B4FC; color: #312E81; }
+  .note strong { color: inherit; font-weight: 700; }
+
+  /* CTA */
+  .cta {
+    background: var(--ink); color: white; border-radius: 14px;
+    padding: 22px 24px; margin-top: 40px;
+  }
+  .cta .label {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.08em; opacity: 0.6; margin-bottom: 8px;
+  }
+  .cta .body { font-size: 16px; line-height: 1.55; opacity: 0.92; }
+  .cta ol { margin: 8px 0 0 22px; }
+  .cta ol li { padding: 4px 0; font-size: 14.5px; opacity: 0.92; }
+  .cta strong { color: white; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <span class="eyebrow">🤖 Model 策略</span>
+  <h1>10 個 model 太多 · 收返做 5 個 curated</h1>
+  <p class="lede">用戶唔需要喺 10 個 model 之間揀。Research benchmark + 競爭對手 pattern · 建議 curated 5 個 model + 1 個 director · 同時減 5 個 provider integration 到 2 個。</p>
+
+  <div class="tldr">
+    <div class="label">🎯 一句總結</div>
+    <div class="point"><strong>而家</strong>：10 個 model · 5 個 provider (Anthropic + OpenAI + Google + xAI + Meta)</div>
+    <div class="point"><strong>v2</strong>：<strong>5 個 curated model · 2 個 provider</strong> (Anthropic direct + OpenRouter for NSFW + 1 long-context alt)</div>
+    <div class="point"><strong>原因</strong>：Claude (Sonnet/Opus) 喺 narrative + 中文寫作 benchmark 一面倒贏 · 其他 model 入嚟只係增加 paralysis 同 maintenance 負擔</div>
+    <div class="point"><strong>UX win</strong>：用戶唔再 stuck 喺「揀邊個 model」· 預設係**正確答案** · 進階用戶仍可改</div>
+    <div class="point"><strong>Ops win</strong>：少 5 個 integration · 少 5 個 pricing config · 少 5 個 model version 要 track</div>
+  </div>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <h2><span class="icon">🏆</span>Research findings · 2026 benchmarks</h2>
+  <p class="h2-sub">LMSYS Chatbot Arena · NoviAI roleplay ranking · 各大 comparison · 一面倒指向 Claude</p>
+
+  <h3 style="font-size: 17px; margin: 18px 0 10px;">LMSYS Chatbot Arena — Creative Writing leaderboard (2026)</h3>
+
+  <div class="rank-row gold">
+    <span class="rank">1</span>
+    <div class="text">
+      <div class="name">Gemini 3.1 Pro</div>
+      <div class="note">#1 喺 creative writing · #3 overall · 強長 context · less drift · BUT 中文表現一般</div>
+    </div>
+  </div>
+  <div class="rank-row silver">
+    <span class="rank">2</span>
+    <div class="text">
+      <div class="name">Claude Opus 4.7 (Thinking)</div>
+      <div class="note">"Highest Arena IF score 1500" · "most life in the sentence" · voice 一致性最強</div>
+    </div>
+  </div>
+  <div class="rank-row bronze">
+    <span class="rank">3</span>
+    <div class="text">
+      <div class="name">Grok 4.20</div>
+      <div class="note">"Unpredictable in a useful way" · big creative swings · 但唔 stable · 中文一般</div>
+    </div>
+  </div>
+
+  <h3 style="font-size: 17px; margin: 24px 0 10px;">NoviAI · Roleplay LLM ranking 2026</h3>
+
+  <table>
+    <thead>
+      <tr><th>Model</th><th>Strength</th><th>Recommend for Story Engine?</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Claude Sonnet 4.6 / Opus 4.7</strong></td>
+        <td>"Strongest AI for creative writing · most natural prose · handles voice well over long-form"</td>
+        <td class="keep">✅ YES · primary</td>
+      </tr>
+      <tr>
+        <td>GPT-5 / GPT-4o</td>
+        <td>"Slightly robotic · overly enthusiastic tone"</td>
+        <td class="drop">❌ Drop</td>
+      </tr>
+      <tr>
+        <td>Gemini 3.1 Pro</td>
+        <td>"Functional but flat" prose · BUT excellent long context handling</td>
+        <td class="keep">✅ YES · alternative for long playthrough</td>
+      </tr>
+      <tr>
+        <td>Grok</td>
+        <td>"Unpredictable creative swings" · interesting · 但唔 consistent</td>
+        <td class="drop">❌ Drop · not enough story players want unpredictable</td>
+      </tr>
+      <tr>
+        <td>Qwen3-235B / DeepSeek V3 (open source)</td>
+        <td>"Top 3 open source for creative · Chinese strong"</td>
+        <td class="muted">⏳ Future · post-launch eval</td>
+      </tr>
+      <tr>
+        <td>NovelAI Kayra-XL (proprietary)</td>
+        <td>Fine-tuned on fiction · 128K context · industry gold standard</td>
+        <td class="muted">🚫 唔開放俾 third party</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3 style="font-size: 17px; margin: 24px 0 10px;">Chinese-language creative writing (founder rule · 中文 first)</h3>
+
+  <div class="note info">
+    <strong>結論</strong>：所有 benchmark 同 community 反饋一致 — <strong>Claude (Sonnet + Opus) 中文敘事最強</strong>。Gemini 中文 functional 但 flat · GPT 中文 OK 但 robotic · Grok 中文一般 · Llama 開源中文要 fine-tune 先強。<br><br>
+    CLAUDE.md 入面 founder 自己已寫: 「Claude Sonnet 4.6: 中文敘事最強 · 情感細膩 · 預設 narrator」。
+  </div>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <h2><span class="icon">✂️</span>10 個 model · 6 個應該 drop</h2>
+  <p class="h2-sub">逐個分析 · 理據</p>
+
+  <table>
+    <thead>
+      <tr><th>Model</th><th>Tier 屬性</th><th>建議</th><th>原因</th></tr>
+    </thead>
+    <tbody>
+      <tr class="section"><td colspan="4">✅ KEEP — 5 個 curated narrator + 1 director</td></tr>
+      <tr>
+        <td><strong>Claude Haiku 4.5</strong></td>
+        <td>Free + Director (locked)</td>
+        <td><span class="tag keep">KEEP</span></td>
+        <td>Director 永遠用呢個 · 同時係 Free tier fallback · cost 平 · 中文 OK</td>
+      </tr>
+      <tr>
+        <td><strong>Claude Sonnet 4.6</strong></td>
+        <td>Story / Adventurer 預設</td>
+        <td><span class="tag keep">KEEP · ⭐ DEFAULT</span></td>
+        <td>中文最強 · 創作 prose 自然 · 同時用 Anthropic prompt caching 慳成本</td>
+      </tr>
+      <tr>
+        <td><strong>Claude Opus 4.7</strong></td>
+        <td>Legend 預設</td>
+        <td><span class="tag keep">KEEP · ⭐ DEFAULT</span></td>
+        <td>最深層敘事 · 複雜情節 · arena #2 creative</td>
+      </tr>
+      <tr>
+        <td><strong>Gemini 3.1 Pro</strong></td>
+        <td>長 context alternative (Story+)</td>
+        <td><span class="tag keep">KEEP</span></td>
+        <td>#1 creative writing arena · 強長 context · "less drift" · 適合 50+ turn playthrough</td>
+      </tr>
+      <tr>
+        <td><strong>Llama 3.1 405B</strong></td>
+        <td>NSFW only (Storyteller+)</td>
+        <td><span class="tag keep">KEEP</span></td>
+        <td>Hard rule #5 NSFW LLM isolation · 唯一可用嘅 NSFW narrator</td>
+      </tr>
+      <tr class="section"><td colspan="4">❌ DROP — 5 個</td></tr>
+      <tr>
+        <td>Gemini 3.5 Flash</td>
+        <td>Free</td>
+        <td><span class="tag drop">DROP</span></td>
+        <td>Free 已有 Haiku · 重疊。Free user 唔需要 2 個 cheap option · paralysis</td>
+      </tr>
+      <tr>
+        <td>GPT-4o</td>
+        <td>Adventurer</td>
+        <td><span class="tag drop">DROP</span></td>
+        <td>"Robotic tone" · Adventurer 已有 Sonnet 同 Gemini Pro · 多咗冇必要</td>
+      </tr>
+      <tr>
+        <td>GPT-4o mini</td>
+        <td>Free</td>
+        <td><span class="tag drop">DROP</span></td>
+        <td>Free 已有 Haiku · 冇英文 user advantage 過 Haiku</td>
+      </tr>
+      <tr>
+        <td>Grok 2</td>
+        <td>Adventurer</td>
+        <td><span class="tag drop">DROP</span></td>
+        <td>"Unpredictable" 對 RPG narrator 唔係正面 trait · story engine 需要 consistency</td>
+      </tr>
+      <tr>
+        <td>Grok 2 Mini</td>
+        <td>Free</td>
+        <td><span class="tag drop">DROP</span></td>
+        <td>同上理由 · 加上 mini 質量更差</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <h2><span class="icon">📋</span>新 Model Catalog (5 + 1)</h2>
+  <p class="h2-sub">每 tier clear default · advanced settings 入面先有 alternative</p>
+
+  <div class="grid-4">
+
+    <div class="card featured">
+      <div class="ico">🎯</div>
+      <div class="head">Free</div>
+      <div class="body">
+        <strong>Haiku 4.5</strong> (Anthropic)<br>
+        中文 OK · 平 · 試產品<br>
+        <span class="badge">DEFAULT</span>
+      </div>
+    </div>
+
+    <div class="card featured">
+      <div class="ico">📖</div>
+      <div class="head">Story $9.99</div>
+      <div class="body">
+        <strong>Sonnet 4.6</strong> (Anthropic) · 預設<br>
+        Alt: Gemini 3.1 Pro (長 context)<br>
+        <span class="badge">DEFAULT</span>
+      </div>
+    </div>
+
+    <div class="card featured">
+      <div class="ico">👑</div>
+      <div class="head">Legend $19.99</div>
+      <div class="body">
+        <strong>Opus 4.7</strong> (Anthropic) · 預設<br>
+        Alt: Sonnet 4.6 (慳 credits)<br>
+        Alt: Gemini 3.1 Pro<br>
+        <span class="badge">DEFAULT</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="ico">🔞</div>
+      <div class="head">Adult mode</div>
+      <div class="body">
+        <strong>Llama 3.1 405B</strong> (OpenRouter NSFW)<br>
+        Hard rule #5 isolated<br>
+        Storyteller+ tier only
+      </div>
+    </div>
+
+  </div>
+
+  <div class="note info">
+    <strong>+ Director (locked)</strong>：Haiku 4.5 always · 用戶睇唔到 · 唔關 user picker。
+  </div>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <h2><span class="icon">💰</span>慳幾多?</h2>
+
+  <div class="grid-3">
+    <div class="card">
+      <div class="ico">🔧</div>
+      <div class="head">Provider integration</div>
+      <div class="body">5 → <strong>2</strong><br>(Anthropic + OpenRouter)<br>少 60% integration code</div>
+    </div>
+    <div class="card">
+      <div class="ico">⚙️</div>
+      <div class="head">Pricing config</div>
+      <div class="body">10 → <strong>5</strong> entries<br>少 50% MODEL_PRICING maintenance · 少 mistake</div>
+    </div>
+    <div class="card">
+      <div class="ico">📊</div>
+      <div class="head">Model version tracking</div>
+      <div class="body">10 → <strong>4</strong> models<br>(Llama 唔頻繁出新 version)<br>少 60% pricing-page re-verify</div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <h2><span class="icon">🛡️</span>Vendor risk mitigation</h2>
+  <p class="h2-sub">咁少 model · 萬一 Anthropic outage · 點?</p>
+
+  <div class="note warn">
+    <strong>4/5 model 都係 Anthropic · single-point-of-failure 風險</strong>。Mitigation 計劃：
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="ico">🔄</div>
+      <div class="head">Auto-fallback to Gemini</div>
+      <div class="body">
+        Anthropic 429 / 503 / timeout → 自動 retry on Gemini 3.1 Pro · 用戶唔察覺 model 換咗 · 故事繼續。記錄 metric · 月度檢視 Anthropic SLA。
+      </div>
+    </div>
+    <div class="card">
+      <div class="ico">📅</div>
+      <div class="head">Status page subscription</div>
+      <div class="body">
+        Anthropic status page RSS → Slack/email alert · 主動知 incident · 提前 warn 用戶。每年 99.5%+ uptime SLA · ~3 hour/month downtime ceiling。
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <h2><span class="icon">🚀</span>實施 (~10 分鐘)</h2>
+
+  <div class="cta">
+    <div class="label">點落地呢個 simplification</div>
+    <ol>
+      <li><strong>Edit <code>web/src/lib/ai/models.ts</code></strong> · 移除 5 個 model entry (GPT-4o · GPT-4o mini · Gemini 3.5 Flash · Grok 2 · Grok 2 Mini)</li>
+      <li><strong>Edit <code>web/src/lib/billing/credits.ts</code></strong> · MODEL_PRICING 對應 5 個 entry remove</li>
+      <li><strong>Verify model picker UI</strong> · 自動 reflect catalog change (UI iterates MODELS object)</li>
+      <li><strong>Update DECISIONS.md</strong> · 加 ADR-018: 5-model curated strategy · 原因</li>
+      <li><strong>Migration check</strong> · 任何 user 嘅 <code>default_model</code> 設咗 drop 嘅 model → 自動 reset 去 Sonnet 4.6 (next login migrate trigger)</li>
+      <li><strong>Auto-fallback wrapper</strong> · 加喺 lib/ai/providers.ts · Anthropic call fail → Gemini fallback (~30 min)</li>
+    </ol>
+  </div>
+
+  <p style="font-size: 12.5px; color: var(--muted); margin-top: 24px;">
+    Sources:
+    <a href="https://www.noviai.ai/models-prompts/best-llm-for-roleplay/">NoviAI Roleplay LLM Ranking 2026</a> ·
+    <a href="https://www.buildmvpfast.com/blog/claude-opus-4-6-lmsys-arena-benchmark-comparison-2026">LMSys Arena April 2026</a> ·
+    <a href="https://blog.type.ai/post/claude-vs-gpt">Type.ai · Claude vs GPT vs Gemini Writing Comparison</a> ·
+    <a href="https://techpoint.africa/guide/novelai-vs-ai-dungeon/">NovelAI vs AI Dungeon community ranking</a> ·
+    <a href="https://arxiv.org/html/2502.00595v1">RPGBench academic benchmark</a>
+  </p>
+
+</div>
+</body>
+</html>
