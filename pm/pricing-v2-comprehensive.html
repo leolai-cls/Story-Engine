@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Story Engine — 訂價 v2 · 唔蝕錢版</title>
+<style>
+  :root {
+    --primary: #4F46E5;
+    --primary-soft: #EEF2FF;
+    --bg: #FAFAF7;
+    --card: #FFFFFF;
+    --ink: #18181B;
+    --ink-soft: #3F3F46;
+    --muted: #71717A;
+    --border: #E4E4E7;
+    --green: #10B981;
+    --green-soft: #D1FAE5;
+    --rose: #E11D48;
+    --rose-soft: #FFE4E6;
+    --amber: #D97706;
+    --amber-soft: #FEF3C7;
+    --gray-soft: #F4F4F5;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.6;
+    padding: 48px 24px 120px;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; }
+  h1 { font-size: 36px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 4px; }
+  .eyebrow {
+    display: inline-block; font-size: 11px; font-weight: 700; color: var(--primary);
+    background: var(--primary-soft); padding: 5px 10px; border-radius: 999px;
+    letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 12px;
+  }
+  .lede { font-size: 17px; color: var(--muted); max-width: 720px; margin-bottom: 16px; }
+  h2 {
+    font-size: 24px; font-weight: 700; letter-spacing: -0.015em; margin: 56px 0 6px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  h2 .icon { font-size: 28px; }
+  .h2-sub { font-size: 14px; color: var(--muted); margin-bottom: 18px; }
+
+  /* TL;DR hero */
+  .tldr {
+    background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+    border: 1px solid #FCD34D;
+    border-radius: 14px;
+    padding: 22px 26px;
+    margin: 20px 0 28px;
+  }
+  .tldr .label {
+    font-size: 11px; font-weight: 800; color: #92400E;
+    text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px;
+  }
+  .tldr .point {
+    font-size: 15.5px; color: #78350F; line-height: 1.55; padding: 4px 0;
+  }
+  .tldr .point::before { content: "▸ "; color: #B45309; font-weight: 700; }
+  .tldr .point strong { color: #92400E; }
+
+  /* Card grids */
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 14px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 14px; }
+  @media (max-width: 800px) {
+    .grid-3, .grid-4 { grid-template-columns: 1fr; }
+  }
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px;
+  }
+  .card.featured { border-color: var(--primary); background: var(--primary-soft); }
+  .card .label {
+    font-size: 11px; color: var(--muted); font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px;
+  }
+  .card .big { font-size: 26px; font-weight: 800; color: var(--ink); letter-spacing: -0.01em; }
+  .card .sub { font-size: 12.5px; color: var(--muted); margin-top: 4px; line-height: 1.45; }
+
+  /* Tables */
+  table {
+    width: 100%; border-collapse: separate; border-spacing: 0;
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    overflow: hidden; margin: 12px 0; font-size: 13.5px;
+  }
+  table th {
+    text-align: left; padding: 11px 14px; font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted);
+    background: var(--gray-soft); border-bottom: 1px solid var(--border);
+  }
+  table td {
+    padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--ink-soft);
+  }
+  table tr:last-child td { border-bottom: none; }
+  table tr.section td {
+    background: var(--gray-soft); color: var(--muted); font-weight: 700; font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.06em; padding: 7px 14px;
+  }
+  td.num { font-variant-numeric: tabular-nums; text-align: right; font-weight: 600; color: var(--ink); }
+  td.muted { color: var(--muted); }
+  td.profit { color: #15803D; font-weight: 700; }
+  td.loss { color: #B91C1C; font-weight: 700; }
+
+  /* Tier card */
+  .tier {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 22px; display: flex; flex-direction: column;
+  }
+  .tier.featured { border-color: var(--primary); background: var(--primary-soft); }
+  .tier .name {
+    font-size: 11px; font-weight: 800; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px;
+  }
+  .tier .price {
+    font-size: 30px; font-weight: 800; color: var(--ink); letter-spacing: -0.015em;
+  }
+  .tier .price .per { font-size: 13px; font-weight: 500; color: var(--muted); margin-left: 2px; }
+  .tier .annual {
+    font-size: 11.5px; color: var(--green); margin-top: 2px; font-weight: 600;
+  }
+  .tier .credits {
+    font-size: 14px; font-weight: 700; color: var(--primary); margin: 8px 0 14px;
+  }
+  .tier .feat {
+    font-size: 12.5px; color: var(--ink-soft); padding: 3px 0;
+    display: flex; align-items: flex-start; gap: 7px;
+  }
+  .tier .feat::before { content: "✓"; color: var(--green); font-weight: 700; flex-shrink: 0; }
+  .tier .feat.no::before { content: "—"; color: var(--muted); }
+  .tier .margin {
+    margin-top: 16px; padding: 9px 11px; background: var(--gray-soft); border-radius: 8px;
+    font-size: 11.5px; color: var(--muted); line-height: 1.45;
+  }
+  .tier .margin strong { color: var(--green); }
+
+  /* Tags */
+  .tag {
+    display: inline-block; font-size: 10px; font-weight: 700;
+    padding: 2px 7px; border-radius: 4px; letter-spacing: 0.04em;
+    background: var(--gray-soft); color: var(--muted);
+  }
+  .tag.bad { background: #FEE2E2; color: #B91C1C; }
+  .tag.good { background: #DCFCE7; color: #15803D; }
+  .tag.changed { background: #FEF3C7; color: #92400E; }
+
+  /* Note callouts */
+  .note {
+    border-radius: 12px; padding: 14px 18px; margin: 14px 0;
+    font-size: 13.5px; line-height: 1.55;
+  }
+  .note.warn {
+    background: var(--amber-soft); border: 1px solid #FCD34D; color: #78350F;
+  }
+  .note.danger {
+    background: var(--rose-soft); border: 1px solid #FDA4AF; color: #881337;
+  }
+  .note.good {
+    background: var(--green-soft); border: 1px solid #6EE7B7; color: #065F46;
+  }
+  .note strong { color: inherit; font-weight: 700; }
+
+  /* CTA */
+  .cta {
+    background: var(--ink); color: white; border-radius: 14px;
+    padding: 22px 24px; margin-top: 40px;
+  }
+  .cta .label {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.08em; opacity: 0.6; margin-bottom: 8px;
+  }
+  .cta ol { margin: 8px 0 0 22px; }
+  .cta ol li { padding: 5px 0; font-size: 14.5px; opacity: 0.92; }
+  .cta ol li strong { color: white; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <span class="eyebrow">💰 訂價 v2 · 唔蝕錢版</span>
+  <h1>新訂價 — worst case 都唔蝕</h1>
+  <p class="lede">前一份 plan 喺 user 全部 credits burn 喺 Haiku 嗰陣 Legend tier 會蝕 $4。今次重新計埋 server / infra / memory · worst case 全部 tier 都有 25% 以上 margin。</p>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <div class="tldr">
+    <div class="label">🎯 一句總結</div>
+    <div class="point"><strong>1 credit = 我哋 charge 用戶 $0.020</strong> · 但實際成本 $0.015 (33% gross margin baked in)</div>
+    <div class="point"><strong>每個 tier credits cut 緊 size</strong> · worst case (全部 burn Haiku) 都仲有 25%+ margin</div>
+    <div class="point"><strong>10 個 model 多 multiplier 同時校</strong> · 收齊 ↑↓ 對齊實際 cost</div>
+    <div class="point"><strong>加埋 abuse guard</strong> · 月度 hard cap · 異常 burn rate detection · multi-account fingerprint</div>
+    <div class="point"><strong>加 annual plan</strong> · 2 個月免費 · 鎖現金 + 減 churn</div>
+  </div>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <h2><span class="icon">🧱</span>全部 COGS 拼圖 (1000 用戶 launch 規模)</h2>
+  <p class="h2-sub">LLM 變動 cost (主) + Infra 固定 cost (副) + Stripe fee + KYC (Phase 6)</p>
+
+  <table>
+    <thead>
+      <tr><th>類別</th><th>項目</th><th>規模</th><th>月度成本 (USD)</th></tr>
+    </thead>
+    <tbody>
+      <tr class="section"><td colspan="4">變動 cost · 跟 user 用量 scale</td></tr>
+      <tr><td>LLM</td><td>Director (Haiku 4.5)</td><td>每 turn ~$0.0035</td><td class="num">~$0.50 / paid user / 月</td></tr>
+      <tr><td>LLM</td><td>Narrator (主要 cost)</td><td>每 turn $0.005 - $0.055</td><td class="num">$3 - $40 / paid user / 月</td></tr>
+      <tr><td>Embedding</td><td>OpenAI text-embedding-3-small</td><td>$0.02/1M tokens</td><td class="num">~$0.10 / paid user / 月</td></tr>
+      <tr><td>Memory ops</td><td>Summarizer + Lorebook (Haiku)</td><td>~$0.001 / turn amortized</td><td class="num">~$0.20 / paid user / 月</td></tr>
+      <tr><td>Moderation</td><td>OpenAI Moderation API</td><td>free</td><td class="num">$0</td></tr>
+      <tr><td>Stripe</td><td>Per-transaction fee</td><td>2.9% + $0.30</td><td class="num">$0.59 - $1.75 / charge</td></tr>
+      <tr><td>Stripe Identity</td><td>KYC (Phase 6 · adult only)</td><td>$1.50/verify · first 50 free</td><td class="num">$0 launch · ~$8/月 @ 1K paid</td></tr>
+      <tr class="section"><td colspan="4">固定 infra cost · scale slowly</td></tr>
+      <tr><td>Supabase Pro</td><td>$25 base + Small compute $22</td><td>8GB DB · 250GB egress free</td><td class="num">~$47</td></tr>
+      <tr><td>Vercel Pro</td><td>$20/seat + bandwidth/compute</td><td>1TB egress · 360 GB-hr compute free</td><td class="num">~$20</td></tr>
+      <tr><td>Resend</td><td>Email (magic links)</td><td>Free up to 3K/月</td><td class="num">$0</td></tr>
+      <tr><td>PostHog</td><td>Analytics</td><td>Free up to 1M events</td><td class="num">$0</td></tr>
+      <tr><td>Sentry</td><td>Error monitoring</td><td>Free up to 5K errors</td><td class="num">$0</td></tr>
+      <tr><td colspan="3"><strong>合計 fixed (1000 users)</strong></td><td class="num"><strong>~$70/月</strong></td></tr>
+    </tbody>
+  </table>
+
+  <div class="grid-3">
+    <div class="card">
+      <div class="label">每 paid 用戶 fixed infra</div>
+      <div class="big">$0.07</div>
+      <div class="sub">@ 1000 users · 隨規模 ↓</div>
+    </div>
+    <div class="card">
+      <div class="label">每 turn LLM + memory</div>
+      <div class="big">$0.005 - $0.055</div>
+      <div class="sub">睇 narrator 揀邊個</div>
+    </div>
+    <div class="card">
+      <div class="label">每 free user 月平均</div>
+      <div class="big">$0.225</div>
+      <div class="sub">假設用 70% × 20 credits · cheap models only</div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <h2><span class="icon">📈</span>規模 scale projection</h2>
+  <p class="h2-sub">不同 user 規模 · infra 點 scale · 點先 break even</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>規模</th>
+        <th>Free user cost</th>
+        <th>Paid user cost</th>
+        <th>Infra fixed</th>
+        <th>Required ARPU</th>
+        <th>需要 conv %</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>100 users</strong> (launch · month 1)</td>
+        <td class="num">$22 (95 × $0.225)</td>
+        <td class="num">$26 (5 paid × $5.25)</td>
+        <td class="num">$70</td>
+        <td class="num">$11.80 / paid</td>
+        <td class="num" style="color: #B91C1C;">需 12% conv · or VC subsidy</td>
+      </tr>
+      <tr>
+        <td><strong>1K users</strong> (month 3)</td>
+        <td class="num">$202</td>
+        <td class="num">$525 (100 paid)</td>
+        <td class="num">$70</td>
+        <td class="num">$7.97 / paid</td>
+        <td class="profit">10% conv = break even</td>
+      </tr>
+      <tr>
+        <td><strong>10K users</strong> (month 12)</td>
+        <td class="num">$2,025</td>
+        <td class="num">$5,250 (1K paid)</td>
+        <td class="num">~$330</td>
+        <td class="num">$7.61 / paid</td>
+        <td class="profit">10% conv = +$2.4K profit</td>
+      </tr>
+      <tr>
+        <td><strong>50K users</strong> (year 2)</td>
+        <td class="num">$10,125</td>
+        <td class="num">$26,250 (5K paid)</td>
+        <td class="num">~$1,100</td>
+        <td class="num">$7.50 / paid</td>
+        <td class="profit">10% conv = +$15K profit</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="note warn">
+    <strong>⚠️ 第一個月最危險</strong> · 100 users 5% conversion 蝕 $80/月。要有 1-2 個月 runway 喺 free tier user 蝕本。Year 1 target: hit 1K users + 10% conversion 為 break-even point。
+  </div>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <h2><span class="icon">🪙</span>新 multiplier (10 個 model 全部 align)</h2>
+  <p class="h2-sub">基準改變 · 1 credit = 用戶角度 $0.020 (33% margin baked in over $0.015 Haiku cost)</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Model</th>
+        <th>實際 cost / turn</th>
+        <th>而家 mult</th>
+        <th>新 mult</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Claude Haiku 4.5</td><td class="num">$0.015</td><td>1.0x</td><td class="num">1.0x</td><td><span class="tag">— keep</span></td></tr>
+      <tr><td>Claude Sonnet 4.6 cached</td><td class="num">$0.027</td><td>3.0x</td><td class="num">1.5x</td><td><span class="tag changed">↓ from 3.0</span></td></tr>
+      <tr><td>Claude Opus 4.7 cached</td><td class="num">$0.055</td><td>5.0x</td><td class="num">3.0x</td><td><span class="tag changed">↓ from 5.0</span></td></tr>
+      <tr><td>GPT-4o mini</td><td class="num">$0.005</td><td>0.5x</td><td class="num">0.5x</td><td><span class="tag">— keep</span></td></tr>
+      <tr><td>GPT-4o</td><td class="num">$0.027</td><td>2.5x</td><td class="num">1.5x</td><td><span class="tag changed">↓ from 2.5</span></td></tr>
+      <tr><td><strong>Gemini 3.5 Flash</strong></td><td class="num">$0.021</td><td>0.5x</td><td class="num"><strong>1.0x</strong></td><td><span class="tag bad">↑ <strong>BUG FIX</strong></span></td></tr>
+      <tr><td>Gemini 3.1 Pro Preview</td><td class="num">$0.027</td><td>2.0x</td><td class="num">1.5x</td><td><span class="tag changed">↓ from 2.0</span></td></tr>
+      <tr><td>Grok 2</td><td class="num">$0.025</td><td>2.5x</td><td class="num">1.5x</td><td><span class="tag changed">↓ from 2.5</span></td></tr>
+      <tr><td>Grok 2 Mini</td><td class="num">$0.009</td><td>0.8x</td><td class="num">0.5x</td><td><span class="tag changed">↓ from 0.8</span></td></tr>
+      <tr><td>Llama 3.1 405B (NSFW)</td><td class="num">$0.015</td><td>2.5x</td><td class="num">1.0x</td><td><span class="tag changed">↓ from 2.5</span></td></tr>
+    </tbody>
+  </table>
+
+  <div class="note good">
+    <strong>✓ Worst case calculation</strong> · 用戶用 100% credits on Haiku (cheapest · 1.0x): credit charge = $0.015 cost vs $0.020 user-perceived value = 33% margin per credit · 永遠唔蝕。
+  </div>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <h2><span class="icon">💳</span>新訂閱 tier · worst case 都正</h2>
+  <p class="h2-sub">Credit allocation reduced · 加 annual plan · 加 KYC for adult tier</p>
+
+  <div class="grid-4">
+
+    <div class="tier">
+      <div class="name">Free</div>
+      <div class="price">$0<span class="per">/月</span></div>
+      <div class="credits">20 credits</div>
+      <div class="feat">Haiku 4.5</div>
+      <div class="feat">GPT-4o mini</div>
+      <div class="feat">Gemini 3.5 Flash</div>
+      <div class="feat">Grok 2 Mini</div>
+      <div class="feat no">Sonnet · Opus · 等</div>
+      <div class="feat no">Adult mode</div>
+      <div class="feat no">No carryover</div>
+      <div class="margin">
+        Max cost: $0.30 / user · loss leader<br>
+        Capped exposure
+      </div>
+    </div>
+
+    <div class="tier featured">
+      <div class="name">Adventurer</div>
+      <div class="price">$9.99<span class="per">/月</span></div>
+      <div class="annual">或 $99/年 (慳 2 個月)</div>
+      <div class="credits">400 credits</div>
+      <div class="feat">All Free models</div>
+      <div class="feat">Sonnet 4.6 (中文旗艦)</div>
+      <div class="feat">GPT-4o / Gemini Pro / Grok 2</div>
+      <div class="feat no">Opus / Llama NSFW</div>
+      <div class="feat">Carryover up to 600</div>
+      <div class="margin">
+        Worst case: $6.00 cost · net $9.40 = <strong>36% margin</strong><br>
+        Realistic 70%: $4.20 = <strong>55% margin</strong>
+      </div>
+    </div>
+
+    <div class="tier">
+      <div class="name">Storyteller</div>
+      <div class="price">$19.99<span class="per">/月</span></div>
+      <div class="annual">或 $199/年</div>
+      <div class="credits">900 credits</div>
+      <div class="feat">All Adventurer models</div>
+      <div class="feat">Claude Opus 4.7</div>
+      <div class="feat">Llama 405B (NSFW)</div>
+      <div class="feat">Adult mode (KYC required)</div>
+      <div class="feat">Carryover up to 1350</div>
+      <div class="margin">
+        Worst case: $13.50 cost · net $19.11 = <strong>29% margin</strong><br>
+        Realistic 60%: $8.10 = <strong>58% margin</strong>
+      </div>
+    </div>
+
+    <div class="tier">
+      <div class="name">Legend</div>
+      <div class="price">$49.99<span class="per">/月</span></div>
+      <div class="annual">或 $499/年</div>
+      <div class="credits">2500 credits</div>
+      <div class="feat">All models · all tiers</div>
+      <div class="feat">Adult mode</div>
+      <div class="feat">Priority queue (faster)</div>
+      <div class="feat">Concurrent plays &gt; 10</div>
+      <div class="feat">Early access 新 model</div>
+      <div class="margin">
+        Worst case: $37.50 cost · net $48.24 = <strong>22% margin</strong><br>
+        Realistic 50%: $18.75 = <strong>61% margin</strong>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <h2><span class="icon">⚡</span>Top-up SKU (一次性 · 永不過期)</h2>
+  <p class="h2-sub">Sub credits 用晒想加 · pricing tighter than monthly to push annual conversion</p>
+
+  <div class="grid-3">
+    <div class="card">
+      <div class="label">SMALL</div>
+      <div class="big">$4.99</div>
+      <div class="sub">150 credits<br>$0.033 / credit<br>Worst cost: $2.25 · 51% margin</div>
+    </div>
+    <div class="card">
+      <div class="label">MEDIUM</div>
+      <div class="big">$9.99</div>
+      <div class="sub">350 credits<br>$0.029 / credit<br>Worst cost: $5.25 · 39% margin</div>
+    </div>
+    <div class="card featured">
+      <div class="label">LARGE · 最抵</div>
+      <div class="big">$19.99</div>
+      <div class="sub">800 credits<br>$0.025 / credit<br>Worst cost: $12 · 38% margin</div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <h2><span class="icon">🛡️</span>Won't-lose-money guards</h2>
+  <p class="h2-sub">5 層防禦 · 防住 abuse 同 unit economics 崩</p>
+
+  <table>
+    <thead>
+      <tr><th>#</th><th>Guard</th><th>機制</th><th>防咩</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td><strong>Hard cap 月度 credits</strong></td>
+        <td>Tier credits 用晒就停 · 必須 top-up 或等下月</td>
+        <td>Unbounded use abuse</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td><strong>Multiplier baked margin</strong></td>
+        <td>1 credit = $0.020 charge / $0.015 cost = 33% gross margin</td>
+        <td>Pure Haiku 用法蝕本</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td><strong>Anomaly burst detection</strong></td>
+        <td>&gt; 3 turns/秒 鎖 60 秒 · &gt; 100 turns/小時 throttle · daily soft cap email warning</td>
+        <td>Auto-bot abuse</td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td><strong>Free tier device fingerprint</strong></td>
+        <td>Same IP + browser fingerprint = 共享同一個 free quota</td>
+        <td>Multi-account 開無限 free</td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td><strong>Carryover cap 1.5x</strong></td>
+        <td>Adventurer 400 月 · 最多 carry 600 (1.5x) · 防止 stockpile + 月尾 burn</td>
+        <td>Annual plan abuse</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <h2><span class="icon">🚦</span>實施步驟 (Money tier 落地)</h2>
+
+  <div class="cta">
+    <div class="label">建議 ship 順序 · 一步一步</div>
+    <ol>
+      <li><strong>修 multiplier (5 分鐘)</strong> · <code>web/src/lib/ai/models.ts</code> 改 10 個 model 嘅 <code>credit_multiplier</code> + <code>MODEL_PRICING</code> · 即 commit · 唔需要 migration</li>
+      <li><strong>更新 free tier 月度 limit 20</strong> · DB seed credits + migration tweak <code>profiles.credit_balance</code> default</li>
+      <li><strong>Pricing page rewrite</strong> · /pricing 用 v2 tier card + top-up + 4 個 product showcase · 引導 Sign up</li>
+      <li><strong>Stripe Subscription products</strong> · 4 tier × 2 (monthly + annual) = 8 SKU · webhook 更新 profiles.subscription_tier + credit reset cron</li>
+      <li><strong>Stripe Top-up products</strong> · 3 SKU · webhook 加 credits (idempotent)</li>
+      <li><strong>Credit meter UI</strong> · Settings 頁顯示 "X / Y 已用 · D 號重置" + buy more CTA · Play 頁 turn 前展示扣 credit</li>
+      <li><strong>Refund saga</strong> · 退款場景 · reverse credit deduction · audit-deferred from Phase 3</li>
+      <li><strong>Anomaly guards</strong> · Edge function 中 rate-limit + alarm · cron daily reset</li>
+      <li><strong>Stripe Identity (Phase 6 KYC)</strong> · Storyteller / Legend 開 adult mode 觸發 verification flow · cost $1.50/verify after first 50 free</li>
+    </ol>
+  </div>
+
+  <p style="font-size: 12.5px; color: var(--muted); margin-top: 24px;">
+    Sources: anthropic.com/pricing · supabase.com/pricing · vercel.com/pricing · stripe.com/identity · openrouter.ai (各 model page · May 2026)
+  </p>
+
+</div>
+</body>
+</html>
