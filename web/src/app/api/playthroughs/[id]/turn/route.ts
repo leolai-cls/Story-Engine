@@ -23,6 +23,8 @@ import {
 } from "@/lib/ai/turn-runner";
 import { callDirector } from "@/lib/ai/director";
 import { verdictToNarratorInstruction } from "@/schemas/director";
+import { callNpcAgentsParallel } from "@/lib/ai/npc-agents";
+import { npcAgentToNarratorBlock } from "@/schemas/npc-agent";
 import {
   rollSkillCheck,
   skillCheckToNarratorInstruction,
@@ -575,6 +577,90 @@ export async function POST(
     }
   }
 
+  // 4.27 PHASE 1.5 — NPC L3 Agents (Storyteller tier exclusive · founder Q1-Q5)
+  // ─────────────────────────────────────────────────────────────────────────
+  // Parallel Haiku-tier model call per active NPC (max 3) emits POV inner_thought
+  // + intent · Narrator integrates via dynamic system prompt block.
+  //
+  // SKIP conditions (each saves cost · maintains narrative integrity):
+  //   (a) playthrough.npc_l3_enabled === false (opt-in flag · founder Q4)
+  //   (b) Director verdict === "reject" (F-04 mitigation · NPC pushback IS the scene)
+  //   (c) No active NPCs in Director's npc_updates (no one to model)
+  //   (d) directorFailed === true (skip extra LLM if Director already faltered)
+  //
+  // Tier-gate enforced 3-layer (Migration 0028 DB trigger + this server check +
+  // UI hides toggle for non-Storyteller). Belt-and-braces.
+  let npcL3SuccessfulAgents = 0;
+  let npcL3AgentDetails: Array<{
+    output: import("@/schemas/npc-agent").NpcAgentOutput | null;
+    modelId: string;
+    characterId: string;
+    error?: string;
+  }> = [];
+  const npcL3EnabledOnPlaythrough = (pt as { npc_l3_enabled?: boolean }).npc_l3_enabled === true;
+  const shouldRunNpcL3 =
+    npcL3EnabledOnPlaythrough &&
+    !directorFailed &&
+    verdict.verdict !== "reject" &&
+    directorNpcUpdates.length > 0;
+
+  if (shouldRunNpcL3) {
+    try {
+      // Map Director's npc_updates → active characters list (exact match by name).
+      // Cap at 3 (MAX_NPC_L3_AGENTS_PER_TURN · founder Q2 sign-off).
+      const activeCharsForL3 = directorNpcUpdates
+        .map((upd) => {
+          const ch = ctx.characters.find(
+            (c) =>
+              c.card.name.trim().toLowerCase() ===
+              upd.character_name.trim().toLowerCase(),
+          );
+          if (!ch || !ch.character_id) return null;
+          return {
+            id: ch.character_id,
+            card: ch.card,
+            disposition: ch.disposition,
+            permanent_flags: ch.permanent_flags,
+            dynamic_state: ch.dynamic_state,
+          };
+        })
+        .filter((c): c is NonNullable<typeof c> => c !== null)
+        .slice(0, 3);
+
+      if (activeCharsForL3.length > 0) {
+        const batchResult = await callNpcAgentsParallel({
+          supabase,
+          playthroughId,
+          activeCharacters: activeCharsForL3,
+          userAction: action,
+          verdict,
+          recentTurns: turnsChronological.map((t) => ({
+            role: t.role as "user" | "ai",
+            text: t.text,
+          })),
+          storyLanguage: storyBible.hard_locked.language as "zh-Hant" | "zh-Hans" | "en",
+        });
+
+        npcL3SuccessfulAgents = batchResult.outputs.length;
+        npcL3AgentDetails = batchResult.details;
+
+        if (batchResult.outputs.length > 0) {
+          const innerStreamsBlock = npcAgentToNarratorBlock(batchResult.outputs);
+          ctx.npcInnerStreamsBlock = innerStreamsBlock;
+          console.log(
+            `[turn] NPC L3 active: ${batchResult.outputs.length} successful agents · creditsCharged=${batchResult.creditsCharged}`,
+          );
+        }
+      }
+    } catch (e) {
+      // Catch-all · graceful degrade. Narrator still runs without inner streams.
+      console.warn(
+        "[turn] NPC L3 batch exception, falling back to L2-only narration:",
+        e instanceof Error ? e.message : e,
+      );
+    }
+  }
+
   // 4.5 SKILL CHECK — Phase 1.5.2: if Director required a check, roll dice now.
   let skillCheckResult: SkillCheckResult | null = null;
   let directorInstruction: string;
@@ -1102,6 +1188,8 @@ export async function POST(
               // Summarizer is amortized 1/20 turns (~250 in, 40 out per rollup)
               summarizer: { inputTokens: 13, outputTokens: 2 },
               embedTokens: 400,
+              // Phase 1.5 · NPC L3 flat-rate add-on (6 credits per successful agent · founder Q3)
+              npcL3SuccessfulAgents,
             });
             // Back out narrator-only for the metadata log
             narratorCredits = computeCredits({
@@ -1126,6 +1214,9 @@ export async function POST(
                 background_credits: backgroundCredits, // P3-COST-H-05 reserve
                 narrator_model: pt.llm_model ?? "claude-sonnet-4-6",
                 refusal: isRefusal,
+                // Phase 1.5 · NPC L3 telemetry for cost analytics + audit trail
+                npc_l3_active_agents: npcL3SuccessfulAgents,
+                npc_l3_credits: npcL3SuccessfulAgents * 6,
               },
             });
             if (chargeResult.ok) {
@@ -1276,6 +1367,64 @@ export async function POST(
               } catch (e) {
                 console.warn(
                   "[turn] NPC dynamic state persist exception:",
+                  e instanceof Error ? e.message : e,
+                );
+              }
+            });
+          }
+
+          // PHASE 1.5 · NPC L3 inner_thoughts persist (Migration 0027)
+          // Service-role only RPC · embeds in same block to keep latency off
+          // user response · graceful "Migration 0027 missing" handling.
+          if (npcL3AgentDetails.length > 0) {
+            after(async () => {
+              try {
+                const serviceClient = createServiceRoleClient();
+                for (const detail of npcL3AgentDetails) {
+                  if (!detail.output || !detail.characterId) continue;
+                  // Embed the inner_thought for future "NPC remembers" feature.
+                  // Failure here is non-blocking — RPC accepts null embedding.
+                  let embedding: number[] | null = null;
+                  try {
+                    const result = await embedTextSafe(
+                      detail.output.inner_thought,
+                      "npc-l3:inner_thought",
+                    );
+                    embedding = result?.vector ?? null;
+                  } catch (e) {
+                    console.warn(
+                      `[turn] npc-l3 embed failed for ${detail.output.character_name}: ${e instanceof Error ? e.message : e}`,
+                    );
+                  }
+                  const { error: persistErr } = await serviceClient.rpc(
+                    "apply_npc_inner_thought",
+                    {
+                      p_playthrough_id: playthroughId,
+                      p_character_id: detail.characterId,
+                      p_turn_index: aiTurnIndex,
+                      p_inner_thought: detail.output.inner_thought,
+                      p_intent: detail.output.intent,
+                      p_reasoning_trace: detail.output.reasoning_trace,
+                      p_embedding: embedding,
+                      p_model_id: detail.modelId,
+                    },
+                  );
+                  if (persistErr) {
+                    const msg = String(persistErr.message ?? "");
+                    if (/does not exist|function .* does not exist/i.test(msg)) {
+                      console.warn(
+                        "[turn] apply_npc_inner_thought RPC missing — apply Migration 0027",
+                      );
+                      break;
+                    }
+                    console.warn(
+                      `[turn] apply_npc_inner_thought failed for ${detail.output.character_name}: ${msg}`,
+                    );
+                  }
+                }
+              } catch (e) {
+                console.warn(
+                  "[turn] NPC L3 inner_thought persist exception:",
                   e instanceof Error ? e.message : e,
                 );
               }

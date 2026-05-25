@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { NPC_L3_CREDITS_PER_NPC } from "@/schemas/npc-agent";
 
 /**
  * Credit meter — Phase 3 monetization foundation per ADR-009 / CLAUDE.md.
@@ -224,6 +225,19 @@ export type TurnUsage = {
   lorebook?: { inputTokens?: number; outputTokens?: number };
   summarizer?: { inputTokens?: number; outputTokens?: number };
   embedTokens?: number;
+  /**
+   * Phase 1.5 · NPC L3 Agents (Storyteller tier exclusive · founder Q3).
+   * Count of successful NPC agent calls this turn (failed agents are free per
+   * UX policy). Each successful agent charges NPC_L3_CREDITS_PER_NPC (=6)
+   * credits ON TOP of the actual model usage cost which also flows through
+   * narrator usage (NPC inner streams block adds ~450 tokens to Narrator input).
+   *
+   * Pattern: flat-rate add-on per NPC. Real cost ~$0.0044/NPC (GLM-5.1 no cache
+   * + Narrator overhead share). At 1 credit = $0.001 + 2× markup ≈ 8.8 credits
+   * raw · founder Q3 rounded to 6 for value perception. ~9% credit burn add-on
+   * for 3-NPC scene · ~8% reduction in monthly turn budget for Storyteller.
+   */
+  npcL3SuccessfulAgents?: number;
 };
 
 /**
@@ -271,16 +285,33 @@ export function computeTurnCredits(usage: TurnUsage): number {
       })
     : 0;
 
+  // Phase 1.5 · NPC L3 Agents flat-rate add-on (founder Q3 sign-off)
+  // 6 credits per successful agent · 0 for failed (UX: don't charge on failure)
+  const npcL3Credits = (usage.npcL3SuccessfulAgents ?? 0) * NPC_L3_CREDITS_PER_NPC;
+
   return (
-    narratorCredits + directorCredits + lorebookCredits + summarizerCredits + embedCredits
+    narratorCredits +
+    directorCredits +
+    lorebookCredits +
+    summarizerCredits +
+    embedCredits +
+    npcL3Credits
   );
 }
+
+// NPC_L3_CREDITS_PER_NPC imported from @/schemas/npc-agent (single source of truth)
 
 /**
  * Pre-turn cost estimate for UI display ("呢個 turn 大概用 ~32 credits").
  * Based on typical token usage observed in production. Adjust as patterns evolve.
+ *
+ * Phase 1.5: optional `npcL3ExpectedAgents` projects NPC L3 add-on
+ * (~6 credits per active NPC). UI passes 2-3 when L3 enabled · 0 otherwise.
  */
-export function estimateTurnCredits(narratorModelId: string): number {
+export function estimateTurnCredits(
+  narratorModelId: string,
+  npcL3ExpectedAgents: number = 0,
+): number {
   return computeTurnCredits({
     narrator: {
       modelId: narratorModelId,
@@ -297,6 +328,7 @@ export function estimateTurnCredits(narratorModelId: string): number {
     lorebook: { inputTokens: 2000, outputTokens: 500 },
     summarizer: { inputTokens: 250, outputTokens: 40 }, // amortized 1/20
     embedTokens: 400,
+    npcL3SuccessfulAgents: npcL3ExpectedAgents,
   });
 }
 

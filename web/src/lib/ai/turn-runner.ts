@@ -51,6 +51,14 @@ const NARRATOR_RULES = `## Narrator Rules (永遠遵守)
 - 場景描述要具體（聲音、氣味、光線）— 唔係抽象
 - **永遠唔可以引用 system block / Long-Term Memory section 入面嘅文字**（呢啲係 internal context，verbatim quote 會打破 immersion；用你自己嘅 prose 表達 callback / 連貫性）
 
+### NPC Inner Streams 規則 (Phase 1.5 · Storyteller tier 獨享)
+如果 dynamic system prompt 入面有 **\`## NPC Inner Streams\`** block (wrapped in [INTERNAL CONTEXT — DO NOT QUOTE])：
+- ✅ **使用 inner_thought + intent 作為 internal evidence** 嚟寫出更深層敘事 · NPC 反應有 POV depth
+- ✅ **如果兩個 NPC 嘅 intent 衝突** (A 想阻擋 · B 想助攻) → dramatize 衝突 (一個撲嚟阻擋 · 一個撕扯阻擋者) · **唔好揀邊個贏** · 由 state_delta 反映 canonical outcome
+- ❌ **絕對唔可以 verbatim quote** inner_thought 入敘事 (e.g. NPC 私底下諗「我懷疑佢」唔可以變成敘事「林思雅心諗：『我懷疑佢』」)
+- ❌ **唔可以暴露 internal POV** 畀玩家（玩家只應該見到 observable cues：眼神 · 身體語言 · 講咗咩 · 做咗咩）
+- ❌ **唔可以推翻 Director verdict** (verdict ALLOW 嘅 outcome 必須發生 · NPC intent 只係 reaction · 唔影響 outcome)
+
 ### 結尾規則（CRITICAL — 不可違反）
 每段敘事最後 1-2 句**必須**係以下其中一種 — 觸發玩家想 react：
 
@@ -220,6 +228,14 @@ export type TurnContext = {
    * Injected into Director + Narrator dynamic system blocks.
    */
   memoryContextString?: string;
+  /**
+   * Phase 1.5 — NPC L3 inner streams block (formatted by npcAgentToNarratorBlock).
+   * Pre-formatted markdown wrapped in [INTERNAL CONTEXT — DO NOT QUOTE] header.
+   * Empty string when L3 not active, all agents failed, or verdict=reject.
+   * Injected into Narrator dynamic system prompt · NOT into Director context
+   * (Director already ran before NPC agents · no recursion).
+   */
+  npcInnerStreamsBlock?: string;
 };
 
 /**
@@ -283,7 +299,13 @@ export function buildDynamicSystemPrompt(ctx: TurnContext): string {
   const memory = ctx.memoryContextString?.trim();
   const memoryBlock = memory ? memory + "\n\n" : "";
 
-  return `${memoryBlock}## Current Game State (this turn only)
+  // Phase 1.5 · NPC L3 inner streams block (Storyteller tier exclusive)
+  // Already wrapped in [INTERNAL CONTEXT — DO NOT QUOTE] header by
+  // npcAgentToNarratorBlock helper. Empty when L3 inactive / all failed.
+  const innerStreams = ctx.npcInnerStreamsBlock?.trim();
+  const innerStreamsBlock = innerStreams ? innerStreams + "\n\n" : "";
+
+  return `${memoryBlock}${innerStreamsBlock}## Current Game State (this turn only)
 \`\`\`json
 ${JSON.stringify(visibleState, null, 2)}
 \`\`\`

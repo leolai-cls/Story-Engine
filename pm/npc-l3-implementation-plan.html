@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NPC L3 Agent — Story Engine Implementation Plan</title>
+<style>
+  :root {
+    --primary: #4F46E5;
+    --primary-soft: #EEF2FF;
+    --bg: #FAFAF7;
+    --card: #FFFFFF;
+    --ink: #18181B;
+    --ink-soft: #3F3F46;
+    --muted: #71717A;
+    --border: #E4E4E7;
+    --green: #10B981;
+    --green-soft: #D1FAE5;
+    --rose: #E11D48;
+    --rose-soft: #FFE4E6;
+    --amber: #D97706;
+    --amber-soft: #FEF3C7;
+    --gray-soft: #F4F4F5;
+    --gold: #B45309;
+    --gold-soft: #FEF3C7;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+    background: var(--bg); color: var(--ink); line-height: 1.6;
+    padding: 48px 24px 120px;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; }
+  h1 { font-size: 36px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 4px; }
+  .eyebrow {
+    display: inline-block; font-size: 11px; font-weight: 700; color: var(--primary);
+    background: var(--primary-soft); padding: 5px 10px; border-radius: 999px;
+    letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 12px;
+  }
+  .lede { font-size: 17px; color: var(--muted); max-width: 760px; margin-bottom: 16px; }
+  h2 {
+    font-size: 24px; font-weight: 700; letter-spacing: -0.015em; margin: 52px 0 6px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  h2 .icon { font-size: 28px; }
+  .h2-sub { font-size: 14px; color: var(--muted); margin-bottom: 18px; }
+  h3 { font-size: 17px; font-weight: 700; margin: 24px 0 8px; }
+
+  /* TL;DR */
+  .tldr {
+    background: linear-gradient(135deg, #EEF2FF 0%, #C7D2FE 100%);
+    border: 1px solid #A5B4FC; border-radius: 14px; padding: 24px 28px; margin: 20px 0 28px;
+  }
+  .tldr .label {
+    font-size: 11px; font-weight: 800; color: #3730A3;
+    text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px;
+  }
+  .tldr .point {
+    font-size: 15.5px; color: #312E81; line-height: 1.55; padding: 4px 0;
+  }
+  .tldr .point::before { content: "▸ "; color: #4338CA; font-weight: 700; }
+  .tldr .point strong { color: #1E1B4B; }
+
+  /* Cost callouts */
+  .cost-card {
+    background: linear-gradient(135deg, #FEFCE8 0%, #FEF3C7 100%);
+    border: 1px solid #FDE68A; border-radius: 12px; padding: 18px 22px;
+    margin: 14px 0;
+  }
+  .cost-card .label {
+    font-size: 11px; font-weight: 800; color: var(--gold);
+    text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px;
+  }
+  .cost-card .headline {
+    font-size: 28px; font-weight: 800; color: #78350F;
+    font-variant-numeric: tabular-nums; line-height: 1.2;
+  }
+  .cost-card .sub { font-size: 14px; color: #92400E; margin-top: 6px; }
+
+  /* Grids */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 14px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 14px; }
+  @media (max-width: 900px) {
+    .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+  }
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 18px;
+  }
+  .card .ico { font-size: 22px; line-height: 1; margin-bottom: 8px; }
+  .card .head { font-size: 15px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+  .card .body { font-size: 13px; color: var(--ink-soft); line-height: 1.5; }
+  .card .stat {
+    font-size: 22px; font-weight: 800; color: var(--ink);
+    font-variant-numeric: tabular-nums; margin: 6px 0 4px;
+  }
+  .card.featured { border-color: var(--primary); background: var(--primary-soft); }
+  .card.warn { border-color: #FCD34D; background: var(--amber-soft); }
+
+  /* Tables */
+  table {
+    width: 100%; border-collapse: separate; border-spacing: 0;
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    overflow: hidden; margin: 12px 0; font-size: 13.5px;
+  }
+  table th {
+    text-align: left; padding: 11px 14px; font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted);
+    background: var(--gray-soft); border-bottom: 1px solid var(--border);
+  }
+  table td {
+    padding: 11px 14px; border-bottom: 1px solid var(--border); color: var(--ink-soft);
+    vertical-align: top;
+  }
+  table tr:last-child td { border-bottom: none; }
+  td.num { font-variant-numeric: tabular-nums; text-align: right; font-weight: 600; color: var(--ink); }
+  td.muted { color: var(--muted); }
+  td.savings { color: #047857; font-weight: 700; }
+  td.bad { color: #B91C1C; font-weight: 700; }
+  td.highlight { background: #FEF3C7; font-weight: 700; color: #78350F; }
+
+  /* Notes */
+  .note {
+    border-radius: 12px; padding: 14px 18px; margin: 14px 0;
+    font-size: 13.5px; line-height: 1.55;
+  }
+  .note.warn { background: var(--amber-soft); border: 1px solid #FCD34D; color: #78350F; }
+  .note.good { background: var(--green-soft); border: 1px solid #6EE7B7; color: #065F46; }
+  .note.info { background: var(--primary-soft); border: 1px solid #A5B4FC; color: #312E81; }
+  .note strong { color: inherit; font-weight: 700; }
+
+  /* Phase / step cards */
+  .phase {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 18px; margin-bottom: 10px;
+    display: flex; gap: 14px; align-items: flex-start;
+  }
+  .phase .step-num {
+    background: var(--primary); color: white;
+    width: 32px; height: 32px; border-radius: 8px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 800; flex-shrink: 0;
+  }
+  .phase .text { flex: 1; }
+  .phase .head { font-size: 15px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+  .phase .body { font-size: 13px; color: var(--muted); line-height: 1.5; }
+  .phase .meta {
+    margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap; font-size: 11px;
+  }
+  .phase .meta span {
+    background: var(--gray-soft); padding: 3px 8px; border-radius: 4px;
+    color: var(--ink-soft); font-weight: 600;
+  }
+
+  /* Decision card (for founder sign-off) */
+  .decision {
+    background: var(--card); border-left: 4px solid var(--primary);
+    border-radius: 8px; padding: 14px 18px; margin: 10px 0;
+  }
+  .decision .q {
+    font-size: 14px; font-weight: 700; color: var(--ink); margin-bottom: 8px;
+  }
+  .decision .opts { display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+  .decision .opt { color: var(--ink-soft); padding-left: 16px; position: relative; }
+  .decision .opt::before { content: "○"; position: absolute; left: 0; color: var(--muted); }
+  .decision .opt.recommend { color: var(--ink); font-weight: 600; }
+  .decision .opt.recommend::before { content: "●"; color: var(--green); }
+  .decision .opt strong { color: var(--ink); }
+
+  /* CTA */
+  .cta {
+    background: var(--ink); color: white; border-radius: 14px;
+    padding: 22px 24px; margin-top: 40px;
+  }
+  .cta .label {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.08em; opacity: 0.6; margin-bottom: 8px;
+  }
+  .cta .body { font-size: 16px; line-height: 1.55; opacity: 0.92; }
+
+  /* Impact pill */
+  .pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    border-radius: 999px; padding: 4px 12px; font-size: 12px; font-weight: 700;
+  }
+  .pill.green { background: var(--green-soft); color: #065F46; }
+  .pill.amber { background: var(--amber-soft); color: var(--gold); }
+  .pill.rose { background: var(--rose-soft); color: #9F1239; }
+  .pill.gold { background: var(--gold-soft); color: var(--gold); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <span class="eyebrow">🎭 NPC Agent L3 · Implementation Plan</span>
+  <h1>每個 NPC 自己一個 agent · Storyteller tier 獨享</h1>
+  <p class="lede">基於 22-page deep research (Stanford Generative Agents · MIRROR · Drama Machine · CrewAI 教訓) · 揉合 Story Engine 已有 architecture (Director · L1+L2 NPC state · knowledge graph) · 整理一個 fit 我哋產品 + 經濟學嘅 implementation plan。</p>
+
+  <div class="tldr">
+    <div class="label">🎯 一頁總結</div>
+    <div class="point"><strong>What</strong>: 每個 active NPC 並行一個 Haiku agent · 從佢 POV 諗 inner_thought + intent · Narrator 收齊後寫敘事</div>
+    <div class="point"><strong>Who pays</strong>: Storyteller tier ($19.99/月) 獨享 · 用戶自己 burn credit · margin 維持 72%+</div>
+    <div class="point"><strong>Cost overhead</strong>: ~$0.0084/turn (3 NPC scenario · Haiku · cache-hit 主導)</div>
+    <div class="point"><strong>Effort</strong>: 2 migrations (0027 + 0028) · 3 new files · 4 file edits · ~3 sessions + audit</div>
+    <div class="point"><strong>Differentiation</strong>: 解決行業 #3 churn 「NPC 冇靈魂」· Storyteller vs Adventurer 真正差距</div>
+    <div class="point"><strong>Ship sequence</strong>: NOW · 趁 Phase 1 architecture 仲熱 · 但 toggle-OFF default until Stripe + Storyteller 上線</div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <h2><span class="icon">💰</span>Cost Analysis (real numbers · founder 重點)</h2>
+  <p class="h2-sub">3 個層次 cost analysis: per-turn / per-user-month / 規模化 1000 用戶</p>
+
+  <h3>1️⃣ Per-turn cost breakdown</h3>
+
+  <table>
+    <thead>
+      <tr><th>Component</th><th>Token 估算</th><th>Cache?</th><th>Real cost</th><th>備註</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Narrator (Opus 4.7) · base</strong></td>
+        <td class="num">2000 in + 600 out</td>
+        <td>partial</td>
+        <td class="num">~$0.025</td>
+        <td class="muted">既有 Storyteller cost</td>
+      </tr>
+      <tr>
+        <td>Director (Haiku 4.5)</td>
+        <td class="num">800 in + 200 out</td>
+        <td>~90%</td>
+        <td class="num">~$0.001</td>
+        <td class="muted">既有</td>
+      </tr>
+      <tr>
+        <td>Memory ops (embed + RAG)</td>
+        <td class="num">—</td>
+        <td>—</td>
+        <td class="num">~$0.005</td>
+        <td class="muted">既有</td>
+      </tr>
+      <tr style="background: #FEFCE8;">
+        <td><strong>🆕 NPC L3 agent (per NPC · Haiku)</strong></td>
+        <td class="num">2000 in + 310 out</td>
+        <td>~70%</td>
+        <td class="num">~$0.0028</td>
+        <td><strong>新增</strong></td>
+      </tr>
+      <tr>
+        <td>NPC L3 embed (after-block · text-embedding-3-small)</td>
+        <td class="num">~310 tokens</td>
+        <td>—</td>
+        <td class="num">~$0.00002</td>
+        <td class="muted">忽略不計</td>
+      </tr>
+      <tr class="highlight">
+        <td><strong>Total per turn (3 NPC L3 active)</strong></td>
+        <td class="num">—</td>
+        <td>—</td>
+        <td class="num">~$0.039</td>
+        <td><strong>+33% vs base $0.031</strong></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="grid-4" style="margin-top: 18px;">
+    <div class="cost-card">
+      <div class="label">0 active NPC</div>
+      <div class="headline">$0.031</div>
+      <div class="sub">純 narrative scene · L3 skipped (no charge)</div>
+    </div>
+    <div class="cost-card">
+      <div class="label">1 active NPC</div>
+      <div class="headline">$0.034</div>
+      <div class="sub">solo dialogue · +9%</div>
+    </div>
+    <div class="cost-card">
+      <div class="label">2 active NPC</div>
+      <div class="headline">$0.036</div>
+      <div class="sub">最常見 · +16%</div>
+    </div>
+    <div class="cost-card">
+      <div class="label">3 active NPC (cap)</div>
+      <div class="headline">$0.039</div>
+      <div class="sub">group scene · +33%</div>
+    </div>
+  </div>
+
+  <h3>2️⃣ Per-user monthly economics (Storyteller $19.99)</h3>
+
+  <table>
+    <thead>
+      <tr><th>Scenario</th><th>Turn budget</th><th>Avg cost</th><th>Monthly cost to us</th><th>Margin</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Storyteller WITHOUT L3 (今日)</td>
+        <td class="num">150 turns</td>
+        <td class="num">$0.031/turn</td>
+        <td class="num">~$4.65</td>
+        <td class="savings">$15.34 (77%)</td>
+      </tr>
+      <tr>
+        <td>Storyteller WITH L3 · avg 2 NPC active 60%</td>
+        <td class="num">143 turns</td>
+        <td class="num">$0.035/turn avg</td>
+        <td class="num">~$5.01</td>
+        <td class="savings">$14.98 (75%)</td>
+      </tr>
+      <tr>
+        <td>Storyteller WITH L3 · heavy 3 NPC scene 80%</td>
+        <td class="num">143 turns</td>
+        <td class="num">$0.038/turn avg</td>
+        <td class="num">~$5.43</td>
+        <td class="savings">$14.56 (73%)</td>
+      </tr>
+      <tr class="highlight">
+        <td><strong>Worst-case all 3 NPC every turn</strong></td>
+        <td class="num">143 turns</td>
+        <td class="num">$0.039/turn</td>
+        <td class="num">~$5.58</td>
+        <td><strong>$14.41 (72%)</strong></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="note good">
+    <strong>✅ Margin 維持 72%+ 喺 worst case</strong>。對比 industry benchmark (SaaS 60-70% gross margin) · 我哋仲叫做 healthy。Founder 嘅 "burn 佢哋 token" instinct 用 3-credit-per-NPC charge 正好覆蓋 cost overhead。
+  </div>
+
+  <h3>3️⃣ Scale projections (Storyteller 用戶數量)</h3>
+
+  <table>
+    <thead>
+      <tr><th>Storyteller 用戶</th><th>Monthly revenue</th><th>L3 加 cost (avg)</th><th>Total LLM cost</th><th>Gross margin</th><th>Anthropic Tier?</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>10 (closed beta)</td>
+        <td class="num">$199.90</td>
+        <td class="num">+$3.60</td>
+        <td class="num">~$50</td>
+        <td class="savings">$149.90 (75%)</td>
+        <td>Tier 1 OK</td>
+      </tr>
+      <tr>
+        <td>100 (early launch)</td>
+        <td class="num">$1,999</td>
+        <td class="num">+$36</td>
+        <td class="num">~$500</td>
+        <td class="savings">$1,499 (75%)</td>
+        <td>Tier 1-2 OK</td>
+      </tr>
+      <tr>
+        <td>1,000 (growth phase)</td>
+        <td class="num">$19,990</td>
+        <td class="num">+$360</td>
+        <td class="num">~$5,000</td>
+        <td class="savings">$14,990 (75%)</td>
+        <td class="bad">需要 Tier 3+ (rate limit)</td>
+      </tr>
+      <tr>
+        <td>10,000 (scale)</td>
+        <td class="num">$199,900</td>
+        <td class="num">+$3,600</td>
+        <td class="num">~$50,000</td>
+        <td class="savings">$149,900 (75%)</td>
+        <td class="bad">需要 Tier 4 + dedicated capacity</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="note warn">
+    <strong>⚠️ Anthropic Rate Limit 風險</strong>: NPC L3 並行 3 Haiku call/turn · 1000 用戶 concurrent burst = up to 100+ RPM Haiku。<br>
+    Tier 1 = 50 RPM Haiku · <strong>必須 launch Storyteller 前升 Tier 3+</strong> (5000+ RPM)。<br>
+    <strong>Action item</strong>: 喺 ship NPC L3 前 contact Anthropic 申請 tier upgrade (free · just need to demonstrate paid customer status + usage projection)。
+  </div>
+
+  <h3>4️⃣ Credit charge model (founder explicit ask: "burn 佢哋嘅 token")</h3>
+
+  <table>
+    <thead>
+      <tr><th>Credit Line Item</th><th>Charge</th><th>Justification</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Base Opus turn (Pro Max tier)</td>
+        <td class="num">200 credits</td>
+        <td class="muted">既有 estimateTurnCredits 邏輯</td>
+      </tr>
+      <tr>
+        <td>🆕 NPC L3 add-on · per active NPC</td>
+        <td class="num">+3 credits</td>
+        <td class="muted">Real cost $0.0028 × 2× markup × 600 (Story Engine rate) = ~3.4 credits · round to 3</td>
+      </tr>
+      <tr>
+        <td>3 NPC scene total</td>
+        <td class="num">209 credits/turn</td>
+        <td class="muted">+4.5% vs base 200</td>
+      </tr>
+      <tr class="highlight">
+        <td><strong>Monthly turn budget impact</strong></td>
+        <td class="num">150 → 143 turns</td>
+        <td><strong>-5% turns · +100% NPC depth</strong></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="note info">
+    <strong>用戶感知</strong>: 喺 turn UI 顯示「估算 209 credits (200 + 9 NPC depth)」· 用戶見到自己選擇開 L3 嘅實際成本 · 透明 + 唔會 surprise charge。
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <h2><span class="icon">🏗️</span>Architecture · 5 大 decision</h2>
+  <p class="h2-sub">基於 research · 配合我哋產品 customize</p>
+
+  <table>
+    <thead>
+      <tr><th>Decision</th><th>選擇</th><th>Trade-off</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>並行 vs sequential</strong></td>
+        <td><strong>並行</strong> (Promise.allSettled · max 3)</td>
+        <td class="muted">Stanford 證實 · CrewAI hierarchical 失敗 · 1.8s vs 5.4s latency</td>
+      </tr>
+      <tr>
+        <td><strong>Memory 隔離</strong></td>
+        <td><strong>Hybrid</strong> · 共享 L1+L2 ground truth · 隔離 POV view</td>
+        <td class="muted">用 walk_lorebook_graph 過濾 attended/witnessed/located_at · 避免 token 爆炸</td>
+      </tr>
+      <tr>
+        <td><strong>Theory of Mind</strong></td>
+        <td><strong>Shallow only</strong> · 每 NPC 見其他 NPC 嘅 L2 dynamic_state</td>
+        <td class="muted">Recursive ToM hallucinate-prone · MIRROR Step 2 都 1-level</td>
+      </tr>
+      <tr>
+        <td><strong>Output reconciliation</strong></td>
+        <td><strong>冇 synthesizer</strong> · Narrator 自己 weave</td>
+        <td class="muted">省 1 LLM call + $0.003 + 1s · NPC 衝突變故事張力</td>
+      </tr>
+      <tr>
+        <td><strong>Schema design</strong></td>
+        <td><strong>新 table</strong> npc_inner_thoughts</td>
+        <td class="muted">audit trail clear · 可 embed 做 future memory · service-role 鎖死</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>NPC L3 流程 (高層次)</h3>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="ico">1️⃣</div>
+      <div class="head">Director run</div>
+      <div class="body">既有流程不變。Director 輸出 verdict + memory_hints + npc_updates (active NPC list)</div>
+    </div>
+    <div class="card">
+      <div class="ico">2️⃣</div>
+      <div class="head">Verdict check</div>
+      <div class="body">如果 verdict === "reject" · <strong>SKIP NPC L3</strong> (省錢 + narrative integrity · F-04 mitigation)</div>
+    </div>
+    <div class="card">
+      <div class="ico">3️⃣</div>
+      <div class="head">Tier + flag check</div>
+      <div class="body">只 run L3 when: Storyteller tier + playthrough.npc_l3_enabled === true + active NPC count > 0</div>
+    </div>
+    <div class="card featured">
+      <div class="ico">4️⃣</div>
+      <div class="head">並行 NPC agents</div>
+      <div class="body">For each active NPC (max 3): parallel Haiku call · own prompt + POV memories + others' L2 visible state · output inner_thought + intent + reasoning_trace</div>
+    </div>
+    <div class="card">
+      <div class="ico">5️⃣</div>
+      <div class="head">Inject into Narrator</div>
+      <div class="body">N 個 NPC outputs → 整理成「NPC Inner Streams」block → 加入 Narrator dynamic system prompt · 用 [INTERNAL · DO NOT QUOTE] wrapper</div>
+    </div>
+    <div class="card">
+      <div class="ico">6️⃣</div>
+      <div class="head">After-block persist</div>
+      <div class="body">Narrator 開始 stream 之後 · after() block 寫 inner_thoughts 到 DB · 同時 embed for future retrieval</div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <h2><span class="icon">📅</span>Implementation breakdown</h2>
+  <p class="h2-sub">3 sessions + audit · 配合既有 audit-driven workflow</p>
+
+  <div class="phase">
+    <span class="step-num">13</span>
+    <div class="text">
+      <div class="head">Session 13 — Phase 1.5 NPC L3 function (~3 小時)</div>
+      <div class="body">
+        <strong>Migrations (35 min)</strong>:<br>
+        • Migration 0027 · npc_inner_thoughts table + apply_npc_inner_thought RPC (service-role only)<br>
+        • Migration 0028 · playthroughs.npc_l3_enabled flag + tier-gate trigger<br><br>
+        <strong>Code (110 min)</strong>:<br>
+        • NEW lib/ai/npc-agents.ts (orchestration + prompt template + Promise.allSettled)<br>
+        • NEW lib/ai/npc-agents-retrieval.ts (POV memory scoping · walk_lorebook_graph filter)<br>
+        • NEW schemas/npc-agent.ts (Zod NpcAgentOutput · 3-step reasoning_trace)<br>
+        • EDIT turn route (step 4.27 · between memory refine + skill check)<br>
+        • EDIT turn-runner.ts (TurnContext.npcInnerStreamsBlock · NARRATOR_RULES wrapper)<br>
+        • EDIT credits.ts (npcL3Active charge · 3 credits per NPC)<br>
+        • EDIT director.ts (doc only · existing npc_updates seeds active list)<br><br>
+        <strong>Manual smoke test (15 min)</strong>: 1 turn · 2 NPC · verify both agents fire · inner_thoughts persist · Narrator prompt includes block
+      </div>
+      <div class="meta">
+        <span>Migrations: 0027 + 0028</span>
+        <span>New files: 3</span>
+        <span>Edits: 4</span>
+        <span>Risk: 🟡 MED</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <span class="step-num">14</span>
+    <div class="text">
+      <div class="head">Session 14 — UI surface + Audit Wave 1 (~2 小時)</div>
+      <div class="body">
+        <strong>UI (60 min)</strong>:<br>
+        • Settings toggle 「NPC Agents (Storyteller only · +9 credits/turn)」· save to playthroughs.npc_l3_enabled<br>
+        • Memory Journal 4th tab「NPC Inner Voices」(per-playthrough inner thought timeline · Storyteller benefit visible · CLAUDE.md hard rule #19)<br>
+        • Tier-gate UI (隱藏 toggle for non-Storyteller · upsell card「升級至 Storyteller 解鎖 NPC 內心戲」)<br><br>
+        <strong>Audit Wave 1 (60 min)</strong>:<br>
+        • 2-agent parallel (Security/Correctness + UX/Cost/Regression)<br>
+        • Verify: tier gate三層 (DB trigger + turn route + UI) · Promise.allSettled 1-of-3 failure · cache prefix per-NPC · NARRATOR no-verbatim-quote enforce · F-01..F-09 全部 mitigation 落實
+      </div>
+      <div class="meta">
+        <span>UI: 2 new components</span>
+        <span>Audit: 2-agent parallel</span>
+        <span>Risk: 🟢 LOW</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <span class="step-num">15</span>
+    <div class="text">
+      <div class="head">Session 15 — Audit Wave 2 + Wave 3 (~2 小時)</div>
+      <div class="body">
+        <strong>Wave 2 fix (60 min)</strong>: Inline-fix Wave 1 HIGH findings · Migration 0029 if needed<br><br>
+        <strong>Wave 3 audit (60 min)</strong>: 1-agent final convergence check · verify 2 consecutive zero-blocker cycles (Phase 0 + Phase 1 pattern) → CONVERGED → ship-ready<br><br>
+        <strong>Documentation</strong>: STATUS.md + pm-dashboard.html update · memory file update
+      </div>
+      <div class="meta">
+        <span>Audit: 2 waves</span>
+        <span>Goal: 3-cycle convergence per CLAUDE.md hard rule #29</span>
+        <span>Risk: 🟢 LOW</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <h2><span class="icon">🛡️</span>Risk + Mitigation matrix</h2>
+  <p class="h2-sub">9 個 known failure mode · 每個都有 concrete fix · 全部 baked-in 落 Session 13 code</p>
+
+  <table>
+    <thead>
+      <tr><th>Risk ID</th><th>Failure mode</th><th>Severity</th><th>Mitigation</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>F-01</td>
+        <td>NPC agent hallucinates 假事件</td>
+        <td><span class="pill amber">MED</span></td>
+        <td>MIRROR retrieval grounding · reasoning_trace.memories_recalled audit · Director verdict veto power</td>
+      </tr>
+      <tr>
+        <td>F-02</td>
+        <td>NPC intents 互相衝突</td>
+        <td><span class="pill green">LOW</span></td>
+        <td>呢個係 FEATURE 唔係 bug · Narrator prompt 教佢 dramatize tension</td>
+      </tr>
+      <tr>
+        <td>F-03</td>
+        <td>1 of 3 agent timeout / refusal</td>
+        <td><span class="pill amber">MED</span></td>
+        <td>Promise.allSettled (唔係 Promise.all) · degraded narrative still works · 1-retry per agent</td>
+      </tr>
+      <tr>
+        <td>F-04</td>
+        <td>Director reject 但 NPC agent 接受</td>
+        <td><span class="pill rose">HIGH</span></td>
+        <td><strong>verdict === "reject" 完全 SKIP L3 calls</strong> · 省錢 + narrative integrity 雙贏</td>
+      </tr>
+      <tr>
+        <td>F-05</td>
+        <td>OOC (out-of-character) drift</td>
+        <td><span class="pill amber">MED</span></td>
+        <td>Per-NPC character_card voice_sample cached · reasoning_trace.motivation 強制 ground 喺 core_motivation</td>
+      </tr>
+      <tr>
+        <td>F-06</td>
+        <td>Player prompt injection through NPC name</td>
+        <td><span class="pill amber">MED</span></td>
+        <td>既有 turn route ctx.characters.find() exact-match · 唔 match 就 skip · hard cap 3</td>
+      </tr>
+      <tr>
+        <td>F-07</td>
+        <td>Cache miss explosion (3 NPC × 3 cache writes)</td>
+        <td><span class="pill amber">MED</span></td>
+        <td>Per-NPC cache prefix intentional · cost analysis 已 amortize · 5-min TTL 覆蓋 typical scene</td>
+      </tr>
+      <tr>
+        <td>F-08</td>
+        <td>inner_thought 漏入 player narrative</td>
+        <td><span class="pill rose">HIGH</span></td>
+        <td><strong>[INTERNAL CONTEXT — DO NOT QUOTE]</strong> wrapper (既有 Director verdict pattern) · post-launch n-gram overlap audit</td>
+      </tr>
+      <tr>
+        <td>F-09</td>
+        <td>用戶 cancel Storyteller mid-playthrough</td>
+        <td><span class="pill green">LOW</span></td>
+        <td>turn-start tier check · 下 turn 自動 skip L3 · saved inner_thoughts 留住 (re-upgrade 即恢復)</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ─────────────────────────────────────────── -->
+  <h2><span class="icon">🎯</span>Decision points · 等你 sign-off</h2>
+  <p class="h2-sub">5 個 design choice 我有 recommendation · 但你 final 決定</p>
+
+  <div class="decision">
+    <div class="q">Q1. Tier eligibility</div>
+    <div class="opts">
+      <div class="opt recommend"><strong>(a) Storyteller (pro-max) only</strong> ← 我推介 · Adult 用 Llama 405B · L3 agent 永遠用 Haiku (internal · 唔顯示)</div>
+      <div class="opt">(b) Storyteller + Adult 兩個 tier 都有</div>
+    </div>
+  </div>
+
+  <div class="decision">
+    <div class="q">Q2. Active NPC max per turn</div>
+    <div class="opts">
+      <div class="opt recommend"><strong>(a) Max 3</strong> ← 我推介 · 省 25% L3 cost · group scene 都夠用</div>
+      <div class="opt">(b) Max 4 · match 既有 DirectorOutputSchema cap · 更 dramatic</div>
+    </div>
+  </div>
+
+  <div class="decision">
+    <div class="q">Q3. Credit charge per NPC L3 call</div>
+    <div class="opts">
+      <div class="opt recommend"><strong>(a) 3 credits</strong> ← 我推介 · 配合 real cost ~$0.003 × 2× markup × 600 rate ≈ 3.4 · round down to 3</div>
+      <div class="opt">(b) 2 credits · cheaper · more accessible</div>
+      <div class="opt">(c) 5 credits · premium pricing · margin ↑</div>
+    </div>
+  </div>
+
+  <div class="decision">
+    <div class="q">Q4. Default ON 定 opt-in?</div>
+    <div class="opts">
+      <div class="opt recommend"><strong>(a) Default ON for 新 Storyteller playthroughs · UI toggle prominent</strong> ← 我推介 · 即時感受到 differentiation · 用戶可以即刻 opt-out</div>
+      <div class="opt">(b) Opt-in only · discoverability problem · feature 可能 never used</div>
+      <div class="opt">(c) Hybrid: 第一個 Storyteller playthrough auto-ON · 之後新 playthrough 跟用戶上次嘅 preference</div>
+    </div>
+  </div>
+
+  <div class="decision">
+    <div class="q">Q5. Ship 時機</div>
+    <div class="opts">
+      <div class="opt recommend"><strong>(a) NOW (Session 13) · 趁 Phase 1 architecture 仲熱</strong> ← 我推介 · Director npc_updates 已經 emit · trivial 接入</div>
+      <div class="opt">(b) 等 Money tier (Phase 4 Stripe) 上線之後先做 · 確保 Storyteller subscription 可以買到 feature 先 ship</div>
+      <div class="opt">(c) Hybrid (research agent suggestion): NOW ship + feature flag default OFF · 等 Stripe 上線 enable 個 flag</div>
+    </div>
+  </div>
+
+  <div class="note info">
+    <strong>(c) 嘅問題</strong>: feature flag 多餘 · 因為 npc_l3_enabled 已經 per-playthrough boolean · tier-gate trigger 已經 block 非 Storyteller 用戶。等於 (a) + 自然 hidden until Storyteller subscription 可以買。我推介 (a)。
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <h2><span class="icon">🚀</span>Ship sequence + 後續</h2>
+
+  <div class="grid-3">
+    <div class="card featured">
+      <div class="ico">🎭</div>
+      <div class="head">NPC L3 (Sessions 13-15)</div>
+      <div class="body">
+        <div class="stat">~7 hours</div>
+        Function complete + UI + audit converged · 3-cycle convergence per hard rule #29
+      </div>
+    </div>
+    <div class="card">
+      <div class="ico">🟡</div>
+      <div class="head">Money tier (next)</div>
+      <div class="body">
+        <div class="stat">~2 sessions</div>
+        Phase 4 Stripe subscription + checkout + top-up · Phase 6 Stripe Identity KYC · Storyteller 可以買 = NPC L3 自然 unlock
+      </div>
+    </div>
+    <div class="card">
+      <div class="ico">🏁</div>
+      <div class="head">Final stage</div>
+      <div class="body">
+        <div class="stat">~2-3 sessions</div>
+        5 條 launch-ready 官方故事 + comprehensive Manual E2E · launch HK + TW
+      </div>
+    </div>
+  </div>
+
+  <h3 style="margin-top: 32px;">Anthropic Tier upgrade · pre-launch action item</h3>
+
+  <table>
+    <thead>
+      <tr><th>Tier</th><th>Haiku RPM</th><th>支持 Storyteller 用戶</th><th>申請條件</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Tier 1 (default)</td>
+        <td class="num">50</td>
+        <td class="num">~16 concurrent</td>
+        <td class="muted">免費 · 即時</td>
+      </tr>
+      <tr>
+        <td>Tier 2</td>
+        <td class="num">1,000</td>
+        <td class="num">~333 concurrent</td>
+        <td class="muted">$5+ 已花 · 7 日 wait</td>
+      </tr>
+      <tr class="highlight">
+        <td><strong>Tier 3 (推薦 pre-launch)</strong></td>
+        <td class="num">2,000</td>
+        <td class="num"><strong>~666 concurrent</strong></td>
+        <td><strong>$40+ 已花 · 7 日 wait</strong></td>
+      </tr>
+      <tr>
+        <td>Tier 4</td>
+        <td class="num">4,000+</td>
+        <td class="num">1,333+ concurrent</td>
+        <td class="muted">$400+ · 14 日 wait</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="note good">
+    <strong>✅ Action item</strong>: launch NPC L3 後 monitor Anthropic dashboard · 一接近 Tier 1 limit 即 apply Tier 2/3 upgrade。即時 launch beta 應該 Tier 1 OK。
+  </div>
+
+  <!-- ─────────────────────────────────────────── -->
+  <div class="cta">
+    <div class="label">建議 commit + push 順序</div>
+    <div class="body">
+      <strong>Phase A (今日 · 等你 sign-off Q1-Q5)</strong>：confirm 5 個 decision · 我即刻落 Session 13<br><br>
+      <strong>Session 13 (~3 hours)</strong>: ship NPC L3 function (2 migrations + 3 new files + 4 edits) · TypeScript clean · push 1 commit<br><br>
+      <strong>Session 14 (~2 hours)</strong>: UI surface (Settings toggle + Memory Journal NPC tab) + Wave 1 audit (2-agent parallel) · push 1 commit<br><br>
+      <strong>Session 15 (~2 hours)</strong>: Wave 2 fix + Wave 3 audit converged · STATUS + dashboard update · push final commit<br><br>
+      <strong>Audit gate</strong>: 必須 3-cycle convergence (Phase 0/1 proven pattern · zero-blocker × 2) 先去 Money tier · 唔可以 跳格
+    </div>
+  </div>
+
+  <p style="font-size: 12.5px; color: var(--muted); margin-top: 24px;">
+    Source: <code>pm/research-npc-agent-l3.md</code> (964 行 · 22-page · 21 inline citation · Stanford 2304.03442 / MIRROR 2503.08193 / RoleFact 2406.17260 / Drama Machine 2408.01725 / Character.AI infra blog / NovelAI docs / Anthropic Haiku pricing)
+  </p>
+
+  <p style="font-size: 12.5px; color: var(--muted); margin-top: 16px;">
+    Plan generated: 2026-05-26 Session 12 · Status: ✅ Phase 0 + Phase 1 shipped + audit converged · Ready for Phase 1.5 NPC L3 once founder signs off Q1-Q5
+  </p>
+
+</div>
+</body>
+</html>
