@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Story Engine — 記憶系統 v2 (MemPalace pattern)</title>
+<style>
+  :root {
+    --primary: #4F46E5;
+    --primary-soft: #EEF2FF;
+    --bg: #FAFAF7;
+    --card: #FFFFFF;
+    --ink: #18181B;
+    --ink-soft: #3F3F46;
+    --muted: #71717A;
+    --border: #E4E4E7;
+    --green: #10B981;
+    --green-soft: #D1FAE5;
+    --rose: #E11D48;
+    --rose-soft: #FFE4E6;
+    --amber: #D97706;
+    --amber-soft: #FEF3C7;
+    --gray-soft: #F4F4F5;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+    background: var(--bg); color: var(--ink); line-height: 1.6;
+    padding: 48px 24px 120px;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; }
+  h1 { font-size: 36px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 4px; }
+  .eyebrow {
+    display: inline-block; font-size: 11px; font-weight: 700; color: var(--primary);
+    background: var(--primary-soft); padding: 5px 10px; border-radius: 999px;
+    letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 12px;
+  }
+  .lede { font-size: 17px; color: var(--muted); max-width: 720px; margin-bottom: 16px; }
+  h2 {
+    font-size: 24px; font-weight: 700; letter-spacing: -0.015em; margin: 52px 0 6px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  h2 .icon { font-size: 28px; }
+  .h2-sub { font-size: 14px; color: var(--muted); margin-bottom: 18px; }
+
+  /* TL;DR */
+  .tldr {
+    background: linear-gradient(135deg, #EEF2FF 0%, #C7D2FE 100%);
+    border: 1px solid #A5B4FC; border-radius: 14px; padding: 24px 28px; margin: 20px 0 28px;
+  }
+  .tldr .label {
+    font-size: 11px; font-weight: 800; color: #3730A3;
+    text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px;
+  }
+  .tldr .point {
+    font-size: 15.5px; color: #312E81; line-height: 1.55; padding: 4px 0;
+  }
+  .tldr .point::before { content: "▸ "; color: #4338CA; font-weight: 700; }
+  .tldr .point strong { color: #1E1B4B; }
+
+  /* Stack diagram (memory layer flow) */
+  .stack {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 22px; margin: 14px 0;
+  }
+  .stack .layer {
+    display: flex; align-items: center; gap: 12px;
+    padding: 11px 14px; border-radius: 10px; margin-bottom: 8px;
+    background: var(--gray-soft);
+  }
+  .stack .layer.broken { background: var(--rose-soft); }
+  .stack .layer.good { background: var(--green-soft); }
+  .stack .layer .num {
+    background: var(--ink); color: white; min-width: 24px; height: 24px;
+    border-radius: 6px; font-size: 12px; font-weight: 700;
+    display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .stack .layer .name { font-weight: 700; font-size: 14px; color: var(--ink); flex: 1; }
+  .stack .layer .tokens {
+    font-family: ui-monospace, monospace; font-size: 12.5px; color: var(--muted);
+    background: white; padding: 3px 10px; border-radius: 4px;
+    border: 1px solid var(--border); white-space: nowrap;
+  }
+  .stack .layer .tag {
+    font-size: 10.5px; font-weight: 700; padding: 2px 7px;
+    border-radius: 4px; letter-spacing: 0.04em; text-transform: uppercase;
+  }
+  .stack .layer.broken .tag { background: #FECDD3; color: #9F1239; }
+  .stack .layer.good .tag { background: #A7F3D0; color: #047857; }
+  .stack .total {
+    display: flex; justify-content: space-between; padding: 10px 14px;
+    margin-top: 12px; border-top: 1px solid var(--border);
+    font-weight: 700; font-size: 14px;
+  }
+  .stack .total.bad { color: #9F1239; }
+  .stack .total.good { color: #047857; }
+
+  /* Grids */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 14px; }
+  @media (max-width: 800px) {
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  }
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 18px;
+  }
+  .card .ico { font-size: 22px; line-height: 1; margin-bottom: 8px; }
+  .card .head { font-size: 15px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+  .card .body { font-size: 13px; color: var(--ink-soft); line-height: 1.5; }
+  .card.featured { border-color: var(--primary); background: var(--primary-soft); }
+
+  /* MemPalace mapping table */
+  table {
+    width: 100%; border-collapse: separate; border-spacing: 0;
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    overflow: hidden; margin: 12px 0; font-size: 13.5px;
+  }
+  table th {
+    text-align: left; padding: 11px 14px; font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted);
+    background: var(--gray-soft); border-bottom: 1px solid var(--border);
+  }
+  table td {
+    padding: 11px 14px; border-bottom: 1px solid var(--border); color: var(--ink-soft);
+    vertical-align: top;
+  }
+  table tr:last-child td { border-bottom: none; }
+  td.num { font-variant-numeric: tabular-nums; text-align: right; font-weight: 600; color: var(--ink); }
+  td.muted { color: var(--muted); }
+  td.savings { color: #047857; font-weight: 700; }
+  td.bad { color: #B91C1C; font-weight: 700; }
+
+  /* Code blocks */
+  .code {
+    background: #1A1A1F; color: #E4E4E7; border-radius: 10px; padding: 16px 18px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px;
+    margin: 12px 0; line-height: 1.55; overflow-x: auto;
+  }
+  .code .key { color: #A5B4FC; }
+  .code .str { color: #FBBF24; }
+  .code .com { color: #71717A; }
+  .code .pun { color: #71717A; }
+
+  /* Phase / step cards */
+  .phase {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 18px; margin-bottom: 10px;
+    display: flex; gap: 14px; align-items: flex-start;
+  }
+  .phase .step-num {
+    background: var(--primary); color: white;
+    width: 32px; height: 32px; border-radius: 8px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 800; flex-shrink: 0;
+  }
+  .phase .text { flex: 1; }
+  .phase .head { font-size: 15px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+  .phase .body { font-size: 13px; color: var(--muted); line-height: 1.5; }
+  .phase .meta {
+    margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap; font-size: 11px;
+  }
+  .phase .meta span {
+    background: var(--gray-soft); padding: 3px 8px; border-radius: 4px;
+    color: var(--ink-soft); font-weight: 600;
+  }
+
+  /* Notes */
+  .note {
+    border-radius: 12px; padding: 14px 18px; margin: 14px 0;
+    font-size: 13.5px; line-height: 1.55;
+  }
+  .note.warn { background: var(--amber-soft); border: 1px solid #FCD34D; color: #78350F; }
+  .note.good { background: var(--green-soft); border: 1px solid #6EE7B7; color: #065F46; }
+  .note.info { background: var(--primary-soft); border: 1px solid #A5B4FC; color: #312E81; }
+  .note strong { color: inherit; font-weight: 700; }
+
+  /* Impact pill */
+  .impact {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: linear-gradient(135deg, #DCFCE7 0%, #BBF7D0 100%);
+    border: 1px solid #6EE7B7; border-radius: 999px;
+    padding: 6px 14px; font-size: 12.5px; font-weight: 700; color: #065F46;
+  }
+
+  /* CTA */
+  .cta {
+    background: var(--ink); color: white; border-radius: 14px;
+    padding: 22px 24px; margin-top: 40px;
+  }
+  .cta .label {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.08em; opacity: 0.6; margin-bottom: 8px;
+  }
+  .cta .body { font-size: 16px; line-height: 1.55; opacity: 0.92; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <span class="eyebrow">🧠 Memory architecture v2</span>
+  <h1>記憶系統重新設計 · MemPalace pattern</h1>
+  <p class="lede">借 <a href="https://github.com/MemPalace/mempalace" style="color: var(--primary);">MemPalace</a> 嘅 hierarchical namespace + knowledge graph + hybrid retrieval 模式 · 重做 4 層記憶 · 一邊慳成本 一邊提升「AI 真係記得」嘅 UX。</p>
+
+  <div class="tldr">
+    <div class="label">🎯 一頁總結</div>
+    <div class="point"><strong>而家</strong>：4 層記憶 · 每 turn 全部 dump 入 LLM · ~14,000 tokens · noise 多 · 50% irrelevant</div>
+    <div class="point"><strong>v2</strong>：分 namespace (Wings → Rooms → Drawers) · scoped retrieval · keyword + temporal boost · knowledge graph for NPC 關係</div>
+    <div class="point"><strong>結果</strong>：~7,000 tokens per turn (−50%) · 精準度 ↑ · 故事一致性 ↑ · cost ↓ 40-50%</div>
+    <div class="point"><strong>UX win</strong>：用戶感受到「真係記得 NPC X 細節」· 唔再要 dump 全本 history</div>
+    <div class="point"><strong>商業 win</strong>：$19.99 Legend 由 250 Sonnet turns → <strong>~500 turns</strong> · 對標 Claude Pro 嘅 800-1600</div>
+  </div>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <h2><span class="icon">📦</span>而家 4 層記憶 (現況)</h2>
+  <p class="h2-sub">每 turn 全部 always-load · 唔分 relevance · noise 大 cost 高</p>
+
+  <div class="stack">
+    <div class="layer broken">
+      <span class="num">1</span>
+      <span class="name">Last 20 turns 全文</span>
+      <span class="tokens">~10,000 tokens</span>
+      <span class="tag">ALWAYS</span>
+    </div>
+    <div class="layer broken">
+      <span class="num">2</span>
+      <span class="name">Rolling summary (lossy)</span>
+      <span class="tokens">~500 tokens</span>
+      <span class="tag">ALWAYS · LOSSY</span>
+    </div>
+    <div class="layer broken">
+      <span class="num">3</span>
+      <span class="name">RAG top-3 chunks (冇 similarity floor)</span>
+      <span class="tokens">~600 tokens</span>
+      <span class="tag">ALWAYS · NOISE</span>
+    </div>
+    <div class="layer broken">
+      <span class="num">4</span>
+      <span class="name">Lorebook (全部 active entries)</span>
+      <span class="tokens">~500 tokens</span>
+      <span class="tag">ALWAYS</span>
+    </div>
+    <div class="layer">
+      <span class="num">+</span>
+      <span class="name">Bible + Character Cards (Anthropic cached)</span>
+      <span class="tokens">~2,600 cached</span>
+      <span class="tag">OK</span>
+    </div>
+    <div class="total bad">
+      <span>Per turn input → Narrator</span>
+      <span>~14,200 tokens · ~$0.060 / Sonnet turn</span>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <h2><span class="icon">🏛️</span>MemPalace pattern → Story Engine map</h2>
+  <p class="h2-sub">借 MemPalace 嘅組織方式 · 改造我哋 4 層</p>
+
+  <table>
+    <thead>
+      <tr><th>MemPalace concept</th><th>Story Engine 對應</th><th>應用</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Wings</strong> (人 / project)</td>
+        <td>Playthrough · NPC · Quest line</td>
+        <td>頂層 namespace</td>
+      </tr>
+      <tr>
+        <td><strong>Rooms</strong> (主題)</td>
+        <td>Scene (location) · NPC interaction · Quest milestone</td>
+        <td>Mid-level grouping · scoped retrieval</td>
+      </tr>
+      <tr>
+        <td><strong>Drawers</strong> (verbatim)</td>
+        <td>Turn texts · NPC dialogue · player decisions</td>
+        <td>原文存 · 唔 summarize lossy</td>
+      </tr>
+      <tr>
+        <td><strong>Knowledge graph</strong></td>
+        <td>NPC ↔ Item ↔ Location ↔ Event relationships</td>
+        <td>Replace flat lorebook</td>
+      </tr>
+      <tr>
+        <td><strong>Hybrid pipeline</strong></td>
+        <td>Semantic + keyword + temporal boosting</td>
+        <td>Replace pure top-K</td>
+      </tr>
+      <tr>
+        <td><strong>Scoped query</strong></td>
+        <td>「Search 阿明 room」唔係「Search 成個 playthrough」</td>
+        <td>大幅減 noise</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="note info">
+    <strong>MemPalace benchmark</strong>: 96.6% R@5 on LongMemEval · <strong>唔需要 LLM reranking</strong> · 純 structured retrieval 已贏 flat RAG 一截。Story Engine 抄呢個 architecture · 預期 retrieval 精準度提升 1.5-2×。
+  </div>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <h2><span class="icon">🗂️</span>新 schema (Supabase pgvector + SQL)</h2>
+  <p class="h2-sub">改 memory_chunks 表結構 · 加 namespace · 加 knowledge graph 表</p>
+
+  <div class="code">
+<span class="com">-- Migration 0019: hierarchical memory namespace (MemPalace pattern)</span>
+<span class="com">-- Wings = playthrough_id (already in PK)</span>
+<span class="com">-- Rooms = NEW: room_kind + room_id (scoped grouping)</span>
+<span class="com">-- Drawers = chunk text (existing)</span>
+
+<span class="key">alter table</span> memory_chunks <span class="key">add column</span>
+  room_kind text <span class="pun">--</span> 'scene' | 'npc' | 'quest' | 'world'
+    <span class="key">check</span> (room_kind <span class="key">in</span> (<span class="str">'scene'</span>, <span class="str">'npc'</span>, <span class="str">'quest'</span>, <span class="str">'world'</span>));
+<span class="key">alter table</span> memory_chunks <span class="key">add column</span>
+  room_id text; <span class="pun">--</span> 'forest_edge' or 'npc:阿明' or 'main_quest'
+
+<span class="key">create index</span> idx_memory_chunks_scoped
+  <span class="key">on</span> memory_chunks (playthrough_id, room_kind, room_id);
+
+<span class="com">-- Knowledge graph: nodes + edges (relationships between entities)</span>
+<span class="key">create table</span> mem_nodes (
+  id uuid <span class="key">primary key default</span> gen_random_uuid(),
+  playthrough_id uuid <span class="key">references</span> playthroughs <span class="key">on delete cascade</span>,
+  kind text, <span class="pun">--</span> 'npc' | 'item' | 'location' | 'event'
+  label text, <span class="pun">--</span> '阿明' | '咖啡店' | '玩家攻擊狼'
+  attrs jsonb, <span class="pun">--</span> 4-axis disposition / item stats / scene weather
+  created_at timestamptz <span class="key">default</span> now()
+);
+
+<span class="key">create table</span> mem_edges (
+  id uuid <span class="key">primary key default</span> gen_random_uuid(),
+  playthrough_id uuid <span class="key">references</span> playthroughs <span class="key">on delete cascade</span>,
+  src_node_id uuid <span class="key">references</span> mem_nodes <span class="key">on delete cascade</span>,
+  dst_node_id uuid <span class="key">references</span> mem_nodes <span class="key">on delete cascade</span>,
+  relation text, <span class="pun">--</span> 'knows' | 'owns' | 'happened_at' | 'trusts:60'
+  weight numeric <span class="key">default</span> 1.0,
+  evidence_turn_idx int <span class="pun">--</span> source turn for this relationship
+);
+  </div>
+
+  <div class="note good">
+    <strong>Zero downtime</strong>：新 columns + tables 都係 additive · 舊 chunks 用 default <code>room_kind='world'</code> backfill · existing reads 繼續 work。
+  </div>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <h2><span class="icon">🚀</span>新 retrieval pipeline</h2>
+  <p class="h2-sub">由 Director 揀 rooms · scoped RAG + keyword + temporal + graph 一齊 hybrid</p>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="ico">🎬</div>
+      <div class="head">1. Director picks rooms</div>
+      <div class="body">Director (Haiku) 分析用戶輸入 + state · output: <code>rooms_to_load: ["npc:阿明", "scene:咖啡店"]</code></div>
+    </div>
+    <div class="card">
+      <div class="ico">🔍</div>
+      <div class="head">2. Scoped vector search</div>
+      <div class="body">pgvector <code>WHERE room_kind='npc' AND room_id='阿明'</code> · top-3 · similarity floor 0.55</div>
+    </div>
+    <div class="card">
+      <div class="ico">🔑</div>
+      <div class="head">3. Keyword boost</div>
+      <div class="body">User input 內提到嘅 entity name (e.g. 「阿明」「咖啡店」) → bump 對應 chunks score</div>
+    </div>
+    <div class="card">
+      <div class="ico">⏰</div>
+      <div class="head">4. Temporal boost</div>
+      <div class="body">最近 5 turns 嘅 chunks · weight × 1.5 · 早 turn × 0.8</div>
+    </div>
+    <div class="card">
+      <div class="ico">🕸️</div>
+      <div class="head">5. Graph traversal</div>
+      <div class="body">Knowledge graph 揾 active entities 嘅 1-hop neighbors · 加入 context</div>
+    </div>
+    <div class="card featured">
+      <div class="ico">📦</div>
+      <div class="head">6. Compose narrator context</div>
+      <div class="body"><strong>~7,000 tokens</strong> verbatim · scoped · relevant · 比之前 14,200 慳一半</div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <h2><span class="icon">📊</span>Before vs After</h2>
+
+  <table>
+    <thead>
+      <tr><th>Component</th><th>而家 (always-load)</th><th>v2 (scoped + hybrid)</th><th>慳</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Last 20 turns 全文</td><td class="num">~10,000</td><td class="num">~3,500 (last 5 full + 6-15 one-liner)</td><td class="savings">−65%</td></tr>
+      <tr><td>Rolling summary</td><td class="num">~500</td><td class="num">0 (drop · 用 graph replace)</td><td class="savings">−100%</td></tr>
+      <tr><td>RAG chunks</td><td class="num">~600 (top 3 always)</td><td class="num">~400 (scoped · similarity floor)</td><td class="savings">−33%</td></tr>
+      <tr><td>Lorebook</td><td class="num">~500 (all active)</td><td class="num">~200 (keyword-triggered)</td><td class="savings">−60%</td></tr>
+      <tr><td>Graph context (NEW)</td><td class="num">—</td><td class="num">~300 (1-hop neighbors)</td><td class="bad">+300</td></tr>
+      <tr><td>Bible + Cards (cached)</td><td class="num">~2,600</td><td class="num">~2,600</td><td class="muted">同</td></tr>
+      <tr><td><strong>Total per turn</strong></td><td class="num"><strong>~14,200</strong></td><td class="num"><strong>~7,000</strong></td><td class="savings"><strong>−50%</strong></td></tr>
+    </tbody>
+  </table>
+
+  <div class="grid-3">
+    <div class="card">
+      <div class="ico">💰</div>
+      <div class="head">Cost per Sonnet turn</div>
+      <div class="body">$0.060 → <strong>$0.030</strong><br><span class="impact">−50%</span></div>
+    </div>
+    <div class="card">
+      <div class="ico">⚡</div>
+      <div class="head">Latency (input)</div>
+      <div class="body">~2s → ~1s prepare time<br><span class="impact">faster streaming start</span></div>
+    </div>
+    <div class="card">
+      <div class="ico">🎯</div>
+      <div class="head">$19.99 Legend turns</div>
+      <div class="body">250 Sonnet → <strong>~500 Sonnet</strong><br><span class="impact">對標 Claude Pro</span></div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <h2><span class="icon">📅</span>5-step implementation plan</h2>
+  <p class="h2-sub">每步可以獨立 ship · cumulative 50% cost reduction · ~4 session 工夫</p>
+
+  <div class="phase">
+    <span class="step-num">1</span>
+    <div class="text">
+      <div class="head">RAG similarity floor (Quick Win · 30 min)</div>
+      <div class="body">已 design (CLAUDE.md hard rule #18 · pending)。RPC 加 <code>WHERE similarity &gt; 0.55</code> · 唔需 schema change。立即見效 -20% RAG noise。</div>
+      <div class="meta">
+        <span>Migration: 0</span>
+        <span>Files: 1</span>
+        <span>Risk: minimal</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <span class="step-num">2</span>
+    <div class="text">
+      <div class="head">Hierarchical namespace (Wings → Rooms → Drawers · ~1 session)</div>
+      <div class="body">Migration 0019 加 <code>room_kind</code> + <code>room_id</code> columns。 Index. Backfill existing chunks 用 <code>room_kind='world'</code>。 改 write path · 每個新 chunk 喺寫嗰陣決定 room (e.g. NPC 名 / scene name)。</div>
+      <div class="meta">
+        <span>Migration: 0019</span>
+        <span>Files: ~5</span>
+        <span>Risk: low</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <span class="step-num">3</span>
+    <div class="text">
+      <div class="head">Director picks rooms + scoped retrieval (~1 session)</div>
+      <div class="body">改 Director schema 加 <code>rooms_to_load: string[]</code> field。Narrator pipeline 喺 Director 出 verdict 之後 query scoped rooms · 唔再 search 成個 playthrough。</div>
+      <div class="meta">
+        <span>Migration: 0</span>
+        <span>Files: ~3 (Director prompt + retrieval RPC + narrator route)</span>
+        <span>Risk: med (Director schema change)</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <span class="step-num">4</span>
+    <div class="text">
+      <div class="head">Hybrid pipeline · keyword + temporal boost (~0.5 session)</div>
+      <div class="body">RPC 入面加 <code>pg_trgm</code> keyword match (已 extension installed) · 結合 vector score。 Temporal boost: turn_index near current → weight ×1.5。</div>
+      <div class="meta">
+        <span>Migration: 0020 (RPC update)</span>
+        <span>Files: 1</span>
+        <span>Risk: low</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <span class="step-num">5</span>
+    <div class="text">
+      <div class="head">Knowledge graph for NPC relationships (~1.5 session)</div>
+      <div class="body">Migration 0021 加 <code>mem_nodes</code> + <code>mem_edges</code> tables。Entity extraction pipeline (Haiku async after turn) 更新 graph。 Retrieval 加 1-hop neighbor query。Drop Layer 2 rolling summary。</div>
+      <div class="meta">
+        <span>Migration: 0021</span>
+        <span>Files: ~6</span>
+        <span>Risk: med-high (new architecture component)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <h2><span class="icon">🎁</span>Bonus: TOON / TSON encoding 對 input format</h2>
+  <p class="h2-sub">用戶問嘅 TSON format · 真係幫到</p>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="ico">📄</div>
+      <div class="head">JSON (而家)</div>
+      <div class="code" style="margin: 8px 0 0; font-size: 11px;">
+{<br>
+&nbsp;&nbsp;<span class="key">"name"</span>: <span class="str">"阿明"</span>,<br>
+&nbsp;&nbsp;<span class="key">"trust"</span>: 60,<br>
+&nbsp;&nbsp;<span class="key">"items"</span>: [<span class="str">"咖啡"</span>, <span class="str">"小說"</span>]<br>
+}
+      </div>
+    </div>
+    <div class="card featured">
+      <div class="ico">🎒</div>
+      <div class="head">TOON (Token-Oriented · 慳 30-50%)</div>
+      <div class="code" style="margin: 8px 0 0; font-size: 11px;">
+name 阿明<br>
+trust 60<br>
+items[2]:<br>
+&nbsp;&nbsp;咖啡<br>
+&nbsp;&nbsp;小說
+      </div>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr><th>用喺邊度</th><th>JSON tokens</th><th>TOON tokens</th><th>慳</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Story Bible (Hard Locked + Soft Guided)</td><td class="num">~600</td><td class="num">~420</td><td class="savings">−30%</td></tr>
+      <tr><td>Character Cards (3 NPCs)</td><td class="num">~2000</td><td class="num">~1200</td><td class="savings">−40%</td></tr>
+      <tr><td>Game state JSON</td><td class="num">~300</td><td class="num">~200</td><td class="savings">−33%</td></tr>
+      <tr><td>Lorebook entries (after keyword trigger)</td><td class="num">~200</td><td class="num">~100</td><td class="savings">−50%</td></tr>
+      <tr><td><strong>Combined structured input</strong></td><td class="num"><strong>~3100</strong></td><td class="num"><strong>~1920</strong></td><td class="savings"><strong>−38%</strong></td></tr>
+    </tbody>
+  </table>
+
+  <div class="note good">
+    <strong>✅ 適合採用</strong>：TOON 用 <code>npm install @toon-format/toon</code> · TypeScript SDK 齊。我哋只需要 encode 輸入結構 · 唔影響 tool calling output (Director / state delta 仍用 JSON Schema)。<br>
+    <strong>建議</strong>：v2 memory architecture 落地之後 · 再加 TOON encoding · 屬於 Step 6 (~0.5 session)。Cumulative 同 v2 一齊 -55% tokens。
+  </div>
+
+  <div class="note warn">
+    <strong>⚠️ TOON caveat</strong>：要 verify Claude / GPT 對 TOON 嘅解讀準確度 (LLM 訓練主要係 JSON)。建議 launch 前用 100 turn benchmark 試 TOON vs JSON · 確認 retrieval / verdict 精準度 ≥ JSON baseline · 先全面切換。如果有 regression · keep JSON (cost 唔係 50% 而係 30% saving · 都 OK)。
+  </div>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <h2><span class="icon">⚖️</span>Risk + rollback</h2>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="ico">🛡️</div>
+      <div class="head">Backwards compatible</div>
+      <div class="body">每步都係 additive schema change · existing reads + writes 唔斷。Rolling deploy 唔需 stop service。</div>
+    </div>
+    <div class="card">
+      <div class="ico">↩️</div>
+      <div class="head">Per-step rollback</div>
+      <div class="body">每步可以 feature flag toggle off · 跌返舊 pipeline。例如 Director 出 <code>rooms_to_load</code> 但 retrieval 仍用 flat fallback。</div>
+    </div>
+    <div class="card">
+      <div class="ico">🧪</div>
+      <div class="head">A/B benchmark</div>
+      <div class="body">每步 ship 之後 · 用 50 個現有 playthrough · 跑舊 vs 新 retrieval · compare turn-level accuracy。</div>
+    </div>
+    <div class="card">
+      <div class="ico">📊</div>
+      <div class="head">Cost telemetry</div>
+      <div class="body">Cost ledger 入面標記 v1 vs v2 turns · 每日 report 慳幾多。Founder 見實際 trend。</div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <div class="cta">
+    <div class="label">建議 ship 順序</div>
+    <div class="body">
+      <strong>Phase A (today · 30 min)</strong>：Step 1 RAG similarity floor · 立即 -20% noise · 0 risk · quick win<br><br>
+      <strong>Phase B (3-4 session 接住)</strong>：Steps 2-5 · MemPalace pattern 全面落地 · cumulative -50% cost · 同 launch pricing v3 一齊 ship<br><br>
+      <strong>Phase C (post-launch)</strong>：Step 6 TOON encoding · benchmark A/B · 確認後切換 · cumulative -55%
+    </div>
+  </div>
+
+  <p style="font-size: 12.5px; color: var(--muted); margin-top: 24px;">
+    Sources: <a href="https://github.com/MemPalace/mempalace">MemPalace GitHub</a> · <a href="https://github.com/toon-format/toon">TOON Format</a> · <a href="https://github.com/zenoaihq/tson">TSON Format</a> · CLAUDE.md hard rules #11 (memory per-playthrough) #18 (RAG similarity floor) #20 (memory overhead 35%)
+  </p>
+
+</div>
+</body>
+</html>
