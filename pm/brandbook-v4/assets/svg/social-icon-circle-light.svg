@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+
+<circle cx="256" cy="256" r="256" fill="#FFFFFF"></circle>
+<text x="256" y="320" text-anchor="middle" font-family="Gimbal Extended, sans-serif" font-weight="400" font-size="180" style="letter-spacing:-0.025em" fill="#0F0F11">(o)</text>
+</svg>

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-80 -60 1040 500">
+<defs>
+<linearGradient id="chrome" x1="0%" y1="0%" x2="100%" y2="100%">
+  <stop offset="0%" stop-color="#A78BFF"></stop><stop offset="22%" stop-color="#C7B8FF"></stop>
+  <stop offset="44%" stop-color="#FFB6E8"></stop><stop offset="66%" stop-color="#7EDBFF"></stop>
+  <stop offset="85%" stop-color="#D6F0FF"></stop><stop offset="100%" stop-color="#A78BFF"></stop>
+</linearGradient>
+<linearGradient id="spec" x1="50%" y1="0%" x2="50%" y2="100%">
+  <stop offset="0%" stop-color="#ffffff" stop-opacity="0.55"></stop>
+  <stop offset="50%" stop-color="#ffffff" stop-opacity="0"></stop>
+  <stop offset="100%" stop-color="#000000" stop-opacity="0.32"></stop>
+</linearGradient>
+<filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+<feGaussianBlur stdDeviation="14" result="blur"></feGaussianBlur>
+<feMerge><feMergeNode in="blur"></feMergeNode><feMergeNode in="blur"></feMergeNode><feMergeNode in="SourceGraphic"></feMergeNode></feMerge>
+</filter></defs>
+<g filter="url(#glow)">
+<text x="440" y="320" text-anchor="middle" font-family="Gimbal Extended, sans-serif" font-weight="400" font-size="320" fill="url(#chrome)">(o)</text>
+</g>
+</svg>

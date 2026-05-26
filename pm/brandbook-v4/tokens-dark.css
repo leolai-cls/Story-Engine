@@ -1,0 +1,166 @@
+/* ============================================================
+ * Story Engine — Design Tokens · DARK (Phase A reference)
+ * Aesthetic: LLM-app (Grok-flavored) × 沉浸閱讀 (Substack/Are.na)
+ * Used only by Phase A mockups for early review. Canonical
+ * v1 theme is LIGHT — see tokens.css. Token NAMES are stable
+ * across files; engineer swaps file at build to flip theme.
+ * ============================================================ */
+
+:root {
+  /* — Surfaces — */
+  --bg:            #0a0a0b;        /* canvas */
+  --bg-elev:       #101013;        /* sticky bars */
+  --surface:       #15151a;        /* cards */
+  --surface-2:     #1c1c22;        /* nested */
+  --surface-hover: #1f1f26;
+  --overlay:       rgba(8,8,10,.78);
+
+  /* — Strokes — */
+  --border:         #26262c;
+  --border-strong:  #3a3a42;
+  --border-accent:  oklch(0.55 0.16 290 / 0.55);
+
+  /* — Foreground — */
+  --fg:        #f4f3f0;
+  --fg-2:      #d4d3d0;
+  --fg-muted:  #98989c;
+  --fg-dim:    #65656a;
+  --fg-faint:  #42424a;
+
+  /* — Accent (single violet · used very sparingly) — */
+  --accent:        oklch(0.70 0.17 290);
+  --accent-soft:   oklch(0.55 0.14 290);
+  --accent-bg:     oklch(0.30 0.12 290 / 0.18);
+  --accent-line:   oklch(0.60 0.15 290 / 0.4);
+
+  /* — Semantic — */
+  --danger:    oklch(0.68 0.20 25);
+  --danger-bg: oklch(0.30 0.10 25 / 0.20);
+  --warn:      oklch(0.80 0.14 80);
+  --warn-bg:   oklch(0.30 0.08 80 / 0.20);
+  --ok:        oklch(0.72 0.14 160);
+  --ok-bg:     oklch(0.28 0.08 160 / 0.20);
+
+  /* — 4-axis NPC disposition (HARD RULE #6 — must be visible) — */
+  --axis-trust:   oklch(0.74 0.13 205);    /* cool blue · honesty */
+  --axis-romance: oklch(0.72 0.17 0);      /* coral · intimacy */
+  --axis-respect: oklch(0.78 0.13 85);     /* warm gold · regard */
+  --axis-fear:    oklch(0.62 0.12 310);    /* muted violet · dread */
+
+  /* — Type stacks — */
+  --font-cjk:   "Noto Sans HK", "Noto Sans TC", "PingFang HK", "PingFang TC",
+                "Microsoft JhengHei", system-ui, sans-serif;
+  --font-latin: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+                "Inter", system-ui, sans-serif;
+  --font-mono:  "SF Mono", "JetBrains Mono", "IBM Plex Mono",
+                ui-monospace, "Cascadia Code", Menlo, monospace;
+  --font-sans:  var(--font-latin), var(--font-cjk);
+
+  /* — Radii — */
+  --r-sm: 4px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-xl: 16px;
+
+  /* — Shadows (used sparingly · dark UI doesn't need much) — */
+  --shadow-pop:    0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px var(--border);
+  --shadow-modal:  0 24px 64px rgba(0,0,0,0.6), 0 0 0 1px var(--border-strong);
+
+  /* — Motion — */
+  --ease: cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+/* ============================================================
+ * Base resets within design surfaces
+ * ============================================================ */
+.se {
+  font-family: var(--font-sans);
+  color: var(--fg);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "ss01", "cv11";
+  font-size: 14px;
+  line-height: 1.5;
+}
+.se *, .se *::before, .se *::after { box-sizing: border-box; }
+.se button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+.se input, .se textarea { font: inherit; color: inherit; }
+.se ::selection { background: var(--accent-bg); color: var(--fg); }
+
+/* Mono inline-label utility — LLM-app trope for technical chrome */
+.se .mono { font-family: var(--font-mono); letter-spacing: -0.01em; }
+.se .micro {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+}
+
+/* Striped placeholder for cover art (no SVG illustration — fill via CMS) */
+.se .placeholder-cover {
+  position: relative;
+  overflow: hidden;
+  background:
+    repeating-linear-gradient(
+      135deg,
+      rgba(255,255,255,0.018) 0 14px,
+      rgba(255,255,255,0.045) 14px 28px
+    ),
+    linear-gradient(180deg, #1c1c22, #0e0e12);
+  isolation: isolate;
+}
+.se .placeholder-cover::after {
+  content: attr(data-tag);
+  position: absolute;
+  inset: auto 0 8px 0;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  color: rgba(255,255,255,0.32);
+  text-align: center;
+  text-transform: uppercase;
+}
+
+/* Custom scrollbar inside carousels — visible but restrained */
+.se .row-scroll { scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
+.se .row-scroll::-webkit-scrollbar { height: 6px; }
+.se .row-scroll::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
+.se .row-scroll::-webkit-scrollbar-track { background: transparent; }
+
+/* Disabled state shared */
+.se .is-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: grayscale(0.3);
+}
+
+/* ============================================================
+ * Theme-aware helpers (used by atoms.jsx so chip/cover/avatar
+ * render correctly on either token file) — these vary per theme.
+ * ============================================================ */
+:root {
+  /* Genre chip: dark theme uses dark-tinted bg, light-tinted text */
+  --chip-bg-l: 0.22;
+  --chip-bg-c: 0.04;
+  --chip-fg-l: 0.85;
+  --chip-fg-c: 0.08;
+  --chip-border-l: 0.40;
+  --chip-border-c: 0.10;
+
+  /* Avatar gradient anchors (dark theme: mid lightness) */
+  --avatar-l-hi: 0.45;
+  --avatar-l-lo: 0.30;
+  --avatar-c:    0.10;
+
+  /* Cover hue tint anchors */
+  --cover-l-hi: 0.22;
+  --cover-l-lo: 0.12;
+  --cover-c:    0.06;
+
+  /* Hero radial wash */
+  --hero-tint-l: 0.22;
+  --hero-tint-c: 0.08;
+  --hero-tint-a: 0.45;
+  --cover-stripe: rgba(255,255,255,0.05);
+}

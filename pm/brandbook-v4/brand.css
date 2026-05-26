@@ -1,0 +1,60 @@
+/* Kieio brandbook — final direction (v4)
+   Locked: Lakers Purple primary · charcoal anchors · solid fills · no gradients */
+
+@font-face {
+  font-family: 'Termina';
+  src: url('assets/fonts/Termina-Bold.otf') format('opentype');
+  font-weight: 700; font-style: normal; font-display: block;
+}
+@font-face {
+  font-family: 'Gimbal Extended';
+  src: url('assets/fonts/GimbalExtended-Regular.otf') format('opentype');
+  font-weight: 400; font-style: normal; font-display: block;
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;500;600;700&display=swap');
+
+:root {
+  /* Anchors */
+  --k-charcoal:   #0f0f11;
+  --k-charcoal-2: #18181c;
+  --k-charcoal-3: #232329;
+  --k-white:      #ffffff;
+  --k-pearl:      #f5f5f7;
+
+  /* Primary brand color */
+  --k-purple:        #552583;  /* PMS 526 C — Lakers Purple */
+  --k-purple-soft:   #6b3a9c;
+  --k-purple-deep:   #3d1a60;
+
+  /* Alternate accents (decorative use only) */
+  --k-lavender: #c7b8ff;
+  --k-sky:      #7edbff;
+  --k-pink:     #ffb6e8;
+
+  /* Text on dark */
+  --k-on-dark:        #ffffff;
+  --k-on-dark-soft:   rgba(255,255,255,0.65);
+  --k-on-dark-dim:    rgba(255,255,255,0.40);
+  --k-on-dark-faint:  rgba(255,255,255,0.18);
+  --k-line-dark:      rgba(255,255,255,0.10);
+  --k-line-light:     rgba(0,0,0,0.10);
+}
+
+* { box-sizing: border-box; }
+
+.k-page {
+  width: 100%; height: 100%;
+  font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  color: var(--k-on-dark);
+  background: var(--k-charcoal);
+  overflow: hidden;
+  position: relative;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+.k-page.light  { background: var(--k-pearl); color: var(--k-charcoal); }
+.k-page.purple { background: var(--k-purple); color: var(--k-on-dark); }

@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Story Engine · Phase C v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+HK:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+<style>
+  html, body { margin: 0; padding: 0; background: #ece9e2; }
+  body { font-family: var(--font-sans); }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="atoms.jsx"></script>
+<script type="text/babel" src="creation.jsx"></script>
+<script type="text/babel" src="settings-login.jsx"></script>
+
+<script type="text/babel" data-presets="react">
+const GEN_RUNNING = [
+  { status: 'done',    pct: 100 },
+  { status: 'running', pct: 64 },
+  { status: 'running', pct: 41 },
+  { status: 'running', pct: 28 },
+];
+const GEN_NEAR_DONE = [
+  { status: 'done', pct: 100 },
+  { status: 'done', pct: 100 },
+  { status: 'done', pct: 100 },
+  { status: 'running', pct: 82 },
+];
+
+function Phase() {
+  return (
+    <DesignCanvas
+      title="Story Engine · Phase C v2"
+      subtitle="Creation wizard · Settings · Login · Locale · Grok precision · mono technical chrome"
+    >
+      <DCSection id="creation" title="E · Story creation wizard v2"
+        subtitle="Single-page form · 4 parallel LLM call · adult disabled unless adult_mode_enabled (Hard #10)">
+
+        <DCArtboard id="wiz-initial" label="E1 · Wizard / Desktop · blank" width={1280} height={1300}>
+          <WizardShell />
+        </DCArtboard>
+
+        <DCArtboard id="wiz-filled" label="E2 · Wizard / Desktop · filled" width={1280} height={1340}>
+          <WizardShell filled />
+        </DCArtboard>
+
+        <DCArtboard id="wiz-adult-locked" label="E3 · Adult rating disabled [Hard #10]" width={1280} height={580}>
+          <WizardShell adultEnabled={false} contentRating="adult" />
+        </DCArtboard>
+
+        <DCArtboard id="wiz-gen-running" label="E4 · Generating · peak Grok moment" width={1280} height={820}>
+          <WizardGenerating statuses={GEN_RUNNING} eta={23} />
+        </DCArtboard>
+
+        <DCArtboard id="wiz-gen-near" label="E5 · Generating · 3/4 done" width={1280} height={820}>
+          <WizardGenerating statuses={GEN_NEAR_DONE} eta={4} />
+        </DCArtboard>
+
+        <DCArtboard id="wiz-reject" label="E6 · Moderation reject · friendly retry" width={1280} height={780}>
+          <WizardReject />
+        </DCArtboard>
+
+        <DCArtboard id="wiz-mobile" label="E7 · Wizard / Mobile" width={390} height={1280}>
+          <WizardMobile />
+        </DCArtboard>
+
+        <DCPostIt x={20} y={20} w={300}>
+          <strong>Wizard v2 — visual moves</strong><br/><br/>
+          • <strong>42px display headline</strong> · mono kicker <span style={{fontFamily:'monospace'}}>CREATE · 創作新故事</span> above.<br/><br/>
+          • <strong>Field labels = mono kicker + bold CJK label</strong> on one line. Grok signature.<br/><br/>
+          • <strong>Cost panel near submit CTA</strong> · big mono <span style={{fontFamily:'monospace'}}>5–10 cr</span> + 餘額.<br/><br/>
+          • Adult content_rating button visible but locked when adult_mode off (Hard #10).<br/><br/>
+          • NSFW models visible · disabled · 「需成人模式」chip (mirrors backend Hard #3).<br/><br/>
+          • <strong>No 「儲存草稿」</strong> · <strong>no「預覽」</strong>. Backend has neither.
+        </DCPostIt>
+
+        <DCPostIt x={20} y={460} w={300}>
+          <strong>Generation progress (E4 / E5)</strong><br/><br/>
+          Peak Grok dashboard moment. 4 task rows · each with mono <span style={{fontFamily:'monospace'}}>SONNET-4.6 · GENERATING</span> + % numeral + progress bar.<br/><br/>
+          OVERALL strip at bottom. Cancel link low-key. <br/><br/>
+          All 4 tasks labeled <span style={{fontFamily:'monospace'}}>sonnet-4.6</span> (matches backend hardcode). Future: SSE event payload supplies real model id.
+        </DCPostIt>
+
+        <DCPostIt x={20} y={780} w={300}>
+          <strong>Moderation reject (E6)</strong><br/><br/>
+          Mono <span style={{fontFamily:'monospace'}}>403 · MODERATION_REJECTED</span> stamp · friendly 繁中 title.<br/><br/>
+          \u300cpremise 並未保存\u300d— no half-baked stories (4 LLM calls atomic).<br/><br/>
+          Tip box turns rejection into teachable moment. Reuses copy template from Play C7.
+        </DCPostIt>
+      </DCSection>
+
+      <DCSection id="settings" title="F · Settings v2"
+        subtitle="Profile / Preferences / Adult mode (3-state) / Credits / Account">
+
+        <DCArtboard id="set-default" label="F1 · Settings / Desktop · adult not_verified" width={1280} height={2000}>
+          <SettingsDesktop adultState="not_verified" />
+        </DCArtboard>
+
+        <DCArtboard id="set-verified-off" label="F2 · Adult · verified + off" width={1280} height={420}>
+          <ScreenFrame style={{ padding: 32 }}>
+            <div className="mono" style={{ fontSize: 10, color: 'var(--accent)', letterSpacing: '0.14em', marginBottom: 12 }}>VERIFIED_OFF</div>
+            <AdultModeBlock state="verified_off" />
+          </ScreenFrame>
+        </DCArtboard>
+
+        <DCArtboard id="set-verified-on" label="F3 · Adult · verified + on" width={1280} height={540}>
+          <ScreenFrame style={{ padding: 32 }}>
+            <div className="mono" style={{ fontSize: 10, color: 'var(--accent)', letterSpacing: '0.14em', marginBottom: 12 }}>VERIFIED_ON</div>
+            <AdultModeBlock state="verified_on" />
+          </ScreenFrame>
+        </DCArtboard>
+
+        <DCArtboard id="set-confirm" label="F4 · Confirm dialog · enabling adult [P6-LOW-01]" width={1280} height={1000}>
+          <AdultConfirmDialog />
+        </DCArtboard>
+
+        <DCArtboard id="set-mobile" label="F5 · Settings / Mobile" width={390} height={1280}>
+          <SettingsMobile />
+        </DCArtboard>
+
+        <DCPostIt x={20} y={20} w={300}>
+          <strong>Settings v2 — visual moves</strong><br/><br/>
+          • <strong>38px display headline</strong> · mono kicker <span style={{fontFamily:'monospace'}}>SETTINGS · @阿俊</span>.<br/><br/>
+          • Each section has its own <span style={{fontFamily:'monospace'}}>SECTION · PROFILE</span> kicker — Grok dashboard signature.<br/><br/>
+          • <strong>Credits balance hero</strong>: 40px mono <span style={{fontFamily:'monospace'}}>184</span>.<br/><br/>
+          • Adult mode block is self-contained component with CSAM strip baked in (all 3 states).<br/><br/>
+          • Export button: <span style={{fontFamily:'monospace'}}>v1.5+</span> (corrected from Phase 6).
+        </DCPostIt>
+
+        <DCPostIt x={20} y={460} w={300}>
+          <strong>Adult mode 3-state (Hard #2 + #3)</strong><br/><br/>
+          • <span style={{fontFamily:'monospace'}}>NOT_VERIFIED</span> → locked card + KYC explainer (text drops jargon: \u300c一次性身份驗證\u300d).<br/>
+          • <span style={{fontFamily:'monospace'}}>VERIFIED · OFF</span> → flippable toggle.<br/>
+          • <span style={{fontFamily:'monospace'}}>VERIFIED · ON</span> → 18+ badge + warning about model reset on disable.<br/><br/>
+          CSAM strip always last child · visible in all 3 states.
+        </DCPostIt>
+
+        <DCPostIt x={20} y={820} w={300}>
+          <strong>Confirm dialog (F4) · P6-LOW-01</strong><br/><br/>
+          Each enable triggers this dialog · NOT one-click toggle.<br/><br/>
+          Lists what changes + restates CSAM rule + requires explicit\u300c我已年滿 18\u300dcheckbox.<br/><br/>
+          Disable does NOT trigger this dialog.
+        </DCPostIt>
+      </DCSection>
+
+      <DCSection id="login" title="G · Login / Auth v2" subtitle="Magic link + Guest · no password ever">
+        <DCArtboard id="login-initial" label="G1 · Login / initial" width={1280} height={780}>
+          <LoginDesktop stage="initial" />
+        </DCArtboard>
+        <DCArtboard id="login-sent" label="G2 · Login / magic link sent" width={1280} height={780}>
+          <LoginDesktop stage="email_sent" />
+        </DCArtboard>
+        <DCArtboard id="login-mobile" label="G3 · Login / Mobile" width={390} height={700}>
+          <LoginMobile />
+        </DCArtboard>
+        <DCPostIt x={20} y={20} w={300}>
+          <strong>Login v2 — visual moves</strong><br/><br/>
+          • <strong>34px headline + mono kicker</strong> <span style={{fontFamily:'monospace'}}>SIGN IN</span>.<br/><br/>
+          • Magic link first · Guest second (mono <span style={{fontFamily:'monospace'}}>OR</span> separator).<br/><br/>
+          • Guest copy corrected: \u300cGuest 模式 · 即時試玩 · 想長期保存就 sign up 用 email\u300d(no false promise of link-back).<br/><br/>
+          • Minimal topbar — logo + locale only.
+        </DCPostIt>
+      </DCSection>
+
+      <DCSection id="locale" title="H · Locale switcher" subtitle="繁中 / 简中 / EN · cookie + next-intl · 4 placements">
+        <DCArtboard id="locale-placements" label="H1 · Placements showcase" width={960} height={780}>
+          <LocalePlacements />
+        </DCArtboard>
+        <DCPostIt x={20} y={20} w={300}>
+          <strong>Locale switcher — placements</strong><br/><br/>
+          <strong>A</strong> · Topbar pill — visible on every authed page<br/>
+          <strong>B</strong> · Login / auth — top-right of minimal topbar<br/>
+          <strong>C</strong> · Settings full radio with subtitle<br/>
+          <strong>D</strong> · Mobile footer — visitor-landing variant<br/><br/>
+          Affects UI strings only · story narrative language is set per-story (separate <span style={{fontFamily:'monospace'}}>language</span> field on creation).
+        </DCPostIt>
+      </DCSection>
+
+      <DCSection id="audit-c" title="Phase C v2 · audit + backend deps">
+        <DCPostIt x={20} y={20} w={300}>
+          <strong>Hard rules covered</strong><br/><br/>
+          • <span style={{fontFamily:'monospace'}}>#1</span> 繁中 default · zh-Hans + EN everywhere (H1)<br/>
+          • <span style={{fontFamily:'monospace'}}>#2</span> CSAM strip in adult block · all 3 states (F1–F3)<br/>
+          • <span style={{fontFamily:'monospace'}}>#3</span> NSFW model + adult content_rating gated (E1–E3)<br/>
+          • <span style={{fontFamily:'monospace'}}>#8</span> Empty / loading / error designed (E1 / E4 / E6 / G1 / G2)<br/>
+          • <span style={{fontFamily:'monospace'}}>#9</span> Mobile 360px (E7 · F5 · G3)<br/>
+          • <span style={{fontFamily:'monospace'}}>#10</span> Adult content_rating locked with deep-link (E3)<br/>
+          • <strong>P6-LOW-01</strong> · Enable-adult confirm dialog (F4)<br/>
+          • <strong>P6-LOW-02</strong> · No\u300cKYC\u300djargon in tooltips
+        </DCPostIt>
+        <DCPostIt x={340} y={20} w={300}>
+          <strong>6 Phase C corrections (locked)</strong><br/><br/>
+          • <strong>儲存草稿</strong> button removed (no backend draft)<br/>
+          • <strong>預覽</strong> button removed (no preview API)<br/>
+          • Guest copy: no link-back promise<br/>
+          • All 4 task labels = sonnet-4.6 (matches backend)<br/>
+          • Wizard tooltip drops\u300cKYC\u300d<br/>
+          • Export button: v1.5+ (not Phase 6)<br/>
+          • Copy:\u300c4 個並行 task\u300d(not\u300cmodel 並行\u300d)
+        </DCPostIt>
+        <DCPostIt x={660} y={20} w={300}>
+          <strong>Backend deps flagged</strong><br/><br/>
+          • Cost preview (<span style={{fontFamily:'monospace'}}>5-10 cr</span>): <span style={{fontFamily:'monospace'}}>estimate_creation_cost()</span> RPC<br/><br/>
+          • Generation progress: SSE / websocket emitting <span style={{fontFamily:'monospace'}}>{'{task_id, status, pct}'}</span><br/><br/>
+          • Adult mode state: <span style={{fontFamily:'monospace'}}>is_age_verified</span> + <span style={{fontFamily:'monospace'}}>adult_mode_enabled</span> on profiles<br/><br/>
+          • Credits 7-day mini chart: <span style={{fontFamily:'monospace'}}>credit_ledger</span> aggregated by day
+        </DCPostIt>
+      </DCSection>
+    </DesignCanvas>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<Phase/>);
+</script>
+</body>
+</html>

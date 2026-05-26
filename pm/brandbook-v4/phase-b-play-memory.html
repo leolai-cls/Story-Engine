@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Story Engine · Phase B v2 · Play + Memory Journal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+HK:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+<style>
+  html, body { margin: 0; padding: 0; background: #ece9e2; }
+  body { font-family: var(--font-sans); }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="atoms.jsx"></script>
+<script type="text/babel" src="play.jsx"></script>
+<script type="text/babel" src="memory-journal.jsx"></script>
+
+<script type="text/babel" data-presets="react">
+function Phase() {
+  return (
+    <DesignCanvas
+      title="Story Engine · Phase B v2"
+      subtitle="Play screen + Memory Journal · Grok dashboard · book typography · technical readout"
+    >
+      <DCSection id="play" title="C · Play screen v2"
+        subtitle="敘事中心 17px Noto Sans HK 行距 1.95 · 右側 Grok readout (NPC + state) · sticky LLM chat input">
+        <DCArtboard id="play-desktop" label="C1 · Play / Desktop · mid-session" width={1440} height={960}>
+          <PlayDesktop />
+        </DCArtboard>
+
+        <DCArtboard id="play-streaming" label="C2 · Streaming · cursor blink" width={1440} height={960}>
+          <LoadingStreaming />
+        </DCArtboard>
+
+        <DCArtboard id="play-mod" label="C3 · Moderation → gen (pill chip)" width={1440} height={960}>
+          <LoadingModeration />
+        </DCArtboard>
+
+        <DCArtboard id="play-skill-rolling" label="C4 · Skill check · 擲骰中" width={1440} height={960}>
+          <SkillCheckRolling />
+        </DCArtboard>
+
+        <DCArtboard id="play-skill-fail" label="C5a · Skill check · 失敗 [Hard #5]" width={1440} height={960}>
+          <SkillCheckFailure />
+        </DCArtboard>
+
+        <DCArtboard id="play-skill-crit-fail" label="C5b · NAT 1 · critical_failure" width={1440} height={960}>
+          <SkillCheckCritFailure />
+        </DCArtboard>
+
+        <DCArtboard id="play-skill-succ" label="C5c · success" width={1440} height={960}>
+          <SkillCheckSuccess />
+        </DCArtboard>
+
+        <DCArtboard id="play-skill-crit-succ" label="C5d · NAT 20 · critical_success" width={1440} height={960}>
+          <SkillCheckCritSuccess />
+        </DCArtboard>
+
+        <DCArtboard id="play-director" label="C6 · Director re-interp · in-fiction [Hard #4]" width={1440} height={960}>
+          <DirectorPushback />
+        </DCArtboard>
+
+        <DCArtboard id="play-err-400" label="C7 · 400 action_blocked" width={1440} height={960}>
+          <ErrorActionBlocked />
+        </DCArtboard>
+
+        <DCArtboard id="play-err-402" label="C8 · 402 insufficient_credits" width={1440} height={960}>
+          <ErrorInsufficient />
+        </DCArtboard>
+
+        <DCArtboard id="play-err-503" label="C9 · 503 moderation_misconfigured" width={1440} height={960}>
+          <Error503 />
+        </DCArtboard>
+
+        <DCArtboard id="play-mobile" label="C10 · Play / Mobile" width={390} height={780}>
+          <PlayMobile />
+        </DCArtboard>
+
+        <DCPostIt x={20} y={20} w={300}>
+          <strong>Play screen v2 — visual moves</strong><br/><br/>
+          • <strong>Book typography</strong> for narrative: 17px Noto Sans HK · line-height 1.95 · 760px max-width column. Reads like a paperback, not a chat.<br/><br/>
+          • <strong>Right rail = Grok readout</strong>: NPC card + 4-axis bars + state panel · mono labels everywhere · stat-forward.<br/><br/>
+          • <strong>Mono row kickers</strong> on every section: <span style={{fontFamily:'monospace'}}>角色 · CAST · 1 在場</span>, <span style={{fontFamily:'monospace'}}>STATE · AUTO-SCHEMA · 9 RENDERERS</span>.<br/><br/>
+          • <strong>LLM chat input</strong>: violet sparkle badge · `TURN 14 · 你嘅 ACTION` kicker · mono char count + cost + `⌘↵` keyhint.<br/><br/>
+          • Memory Journal entry pill in topbar shows <span style={{fontFamily:'monospace'}}>12 LB · 1 CH</span> · backend layer counts.
+        </DCPostIt>
+
+        <DCPostIt x={20} y={460} w={300}>
+          <strong>4-axis disposition (Hard #6)</strong><br/><br/>
+          Bar drawn from <em>center</em> (zero). Color = <span style={{color:'var(--axis-trust)'}}>信任</span> · <span style={{color:'var(--axis-romance)'}}>戀慕</span> · <span style={{color:'var(--axis-respect)'}}>敬重</span> · <span style={{color:'var(--axis-fear)'}}>懼怕</span>.<br/><br/>
+          Last delta pill (e.g. <span style={{fontFamily:'monospace'}}>+15</span>) appears <em>filled</em> in the axis color — Grok signature stat-callout style. Visible per NPC card.
+        </DCPostIt>
+
+        <DCPostIt x={20} y={800} w={300}>
+          <strong>Skill check (Hard #5)</strong><br/><br/>
+          4 outcomes, parameterized through one component:<br/>
+          • <span style={{fontFamily:'monospace', color:'var(--accent)'}}>NAT 20</span> · violet · ✦ sparkle prefix · unlock bonus<br/>
+          • <span style={{fontFamily:'monospace', color:'var(--ok)'}}>SUCCESS</span> · ok-green tint<br/>
+          • <span style={{fontFamily:'monospace', color:'var(--danger)'}}>FAILURE</span> · red tint · cost shown<br/>
+          • <span style={{fontFamily:'monospace', color:'var(--danger)'}}>NAT 1</span> · dramatic 4px red ring · main-arc break<br/><br/>
+          <strong>No retry button anywhere</strong>. CTA is\u300c繼續\u300d. Aftermath shown before CTA so player reads the cost first.
+        </DCPostIt>
+
+        <DCPostIt x={20} y={1180} w={300}>
+          <strong>Director rejection (Hard #4)</strong><br/><br/>
+          When Director re-interprets player action: narrative turn gets a subtle 2px <span style={{color:'var(--warn)'}}>amber</span> left border. <em>No system label</em>. Tooltip-only.<br/><br/>
+          Casual readers don't notice; power users discover via hover. <strong>NEVER</strong> shows\u300cAction rejected: personality violation\u300d. The amber stripe is the only signal.
+        </DCPostIt>
+
+        <DCPostIt x={20} y={1480} w={300}>
+          <strong>Error states</strong><br/><br/>
+          400 / 402 / 503 = in-app overlay cards. Each: mono code stamp top-right · warn-tinted label · friendly 繁中 title · recovery CTA.<br/><br/>
+          400 action_blocked copy generalised: \u300c未成年人 · 極端暴力 · 自殘 · 仇恨\u300d(matches backend categories, no \u300c真實人物\u300dfalse claim).<br/><br/>
+          403 adult_required reuses Phase A B4 template.
+        </DCPostIt>
+      </DCSection>
+
+      <DCSection id="memory" title="D · Memory Journal v2"
+        subtitle="Per-playthrough · 100% read-only · 4-layer backend surfaced 1:1 · technical readout aesthetic">
+
+        <DCArtboard id="mem-active" label="D1 · 當前活躍記憶 · the killer demo" width={1280} height={920}>
+          <MemoryJournalDesktop initialTab="active" />
+        </DCArtboard>
+
+        <DCArtboard id="mem-active-empty" label="D1b · Active · ∅ similarity floor" width={1280} height={820}>
+          <MemoryJournalDesktop initialTab="active" activeEmpty />
+        </DCArtboard>
+
+        <DCArtboard id="mem-summaries" label="D2 · 回憶錄 · rolling summaries" width={1280} height={840}>
+          <MemoryJournalDesktop initialTab="summaries" />
+        </DCArtboard>
+
+        <DCArtboard id="mem-lorebook" label="D3 · 角色記事 · lorebook · read-only" width={1280} height={1180}>
+          <MemoryJournalDesktop initialTab="lorebook" />
+        </DCArtboard>
+
+        <DCArtboard id="mem-empty" label="D4 · Empty · turn 4" width={1280} height={820}>
+          <MemoryJournalEarly />
+        </DCArtboard>
+
+        <DCArtboard id="mem-adult" label="D5 · Adult mode · CSAM strip [Hard #2]" width={1280} height={950}>
+          <MemoryJournalDesktop initialTab="active" adultMode />
+        </DCArtboard>
+
+        <DCArtboard id="mem-mobile" label="D6 · Mobile" width={390} height={920}>
+          <MemoryJournalMobile />
+        </DCArtboard>
+
+        <DCPostIt x={20} y={20} w={300}>
+          <strong>Memory Journal v2 — visual moves</strong><br/><br/>
+          • <strong>Default tab = 當前活躍記憶</strong>. This is the marketing screenshot moment. RAG snippets with <span style={{fontFamily:'monospace'}}>SIM 0.91</span> bars and\u300c↳ AI 因為呢段...\u300dlines.<br/><br/>
+          • <strong>Pulsing LIVE banner</strong> with violet spinner · \u300cAI 而家用緊呢 4 段\u300d. Reads as inspecting working memory.<br/><br/>
+          • <strong>Big mono numerals</strong> for summary index (28px <span style={{fontFamily:'monospace'}}>01</span>) and entry counts.<br/><br/>
+          • Layer sidebar uses dot indicators (filled accent vs hollow) · same vocabulary as NPC present-dot.
+        </DCPostIt>
+
+        <DCPostIt x={20} y={420} w={300}>
+          <strong>Read-only reinforcement (Hard #11)</strong><br/><br/>
+          • Header subtitle: \u300c唯讀 · 只有你睇到 · FORK 多一次係空白\u300d<br/>
+          • Every lorebook card footer: 🔒 <span style={{fontFamily:'monospace'}}>READ-ONLY</span> chip<br/>
+          • Summary cards footer: <span style={{fontFamily:'monospace'}}>READ-ONLY · AI-WRITTEN</span><br/>
+          • No edit affordance anywhere. Migration 0018 locks RLS — UI just mirrors.
+        </DCPostIt>
+
+        <DCPostIt x={20} y={720} w={300}>
+          <strong>Active memory empty state (D1b)</strong><br/><br/>
+          Per CLAUDE.md hard rule #18: retriever has similarity floors. No match beats noisy match.<br/><br/>
+          Empty state uses big mono <span style={{fontFamily:'monospace'}}>∅</span> + explainer: \u300cAI 純粹用近 20 turn 嘅 context 同你嘅 Story Bible\u300d. Reachable on early turns or semantically novel actions.
+        </DCPostIt>
+
+        <DCPostIt x={20} y={1020} w={300}>
+          <strong>Source labels (corrected)</strong><br/><br/>
+          ACTIVE_MEMORIES sources reflect actual retriever layers:<br/>
+          • <span style={{fontFamily:'monospace'}}>過往 turn</span> — RAG-retrieved past turn embedding<br/>
+          • <span style={{fontFamily:'monospace'}}>相似片段</span> — similar semantic chunk<br/>
+          • <span style={{fontFamily:'monospace'}}>滾動摘要</span> — chapter summary match<br/>
+          • <span style={{fontFamily:'monospace'}}>Lorebook · 人物</span> — lorebook entity match<br/><br/>
+          <span style={{fontFamily:'monospace'}}>近 20 turn</span> is NOT a retrieved source — it's verbatim in prompt. Sidebar shows it as disabled IN-PROMPT label.
+        </DCPostIt>
+      </DCSection>
+
+      <DCSection id="audit" title="Audit · hard rules · backend deps">
+        <DCPostIt x={20} y={20} w={300}>
+          <strong>Hard rules covered</strong><br/><br/>
+          • <span style={{fontFamily:'monospace'}}>#2</span> CSAM strip in Memory Journal when adult_mode on (D5)<br/>
+          • <span style={{fontFamily:'monospace'}}>#4</span> Director rejection in-fiction (C6 amber, no label)<br/>
+          • <span style={{fontFamily:'monospace'}}>#5</span> Skill check permanent · all 4 outcomes · no retry (C4–C5d)<br/>
+          • <span style={{fontFamily:'monospace'}}>#6</span> 4-axis disposition visible per NPC (all play screens)<br/>
+          • <span style={{fontFamily:'monospace'}}>#7</span> Memory Journal surfaces all 4 layers (D1–D3 + sidebar)<br/>
+          • <span style={{fontFamily:'monospace'}}>#8</span> Empty / loading / error states everywhere (C2/C3/C7/C8/C9 · D1b/D4)<br/>
+          • <span style={{fontFamily:'monospace'}}>#9</span> Mobile 360px+ (C10 · D6)<br/>
+          • <span style={{fontFamily:'monospace'}}>#11</span> Memory per-playthrough · 100% read-only
+        </DCPostIt>
+        <DCPostIt x={340} y={20} w={300}>
+          <strong>Backend deps flagged</strong><br/><br/>
+          • Memory layer counts in topbar pill (<span style={{fontFamily:'monospace'}}>12 LB · 1 CH</span>) need <span style={{fontFamily:'monospace'}}>count(memory_summaries)</span>, <span style={{fontFamily:'monospace'}}>count(lorebook_entries)</span>.<br/><br/>
+          • Director re-interp signal (C6 amber): backend must return <span style={{fontFamily:'monospace'}}>director_modified: bool</span> per turn.<br/><br/>
+          • Per-turn cost preview: <span style={{fontFamily:'monospace'}}>estimate_turn_cost(playthrough_id, model_id)</span> RPC.<br/><br/>
+          • Active-memory source labels need retriever to tag each retrieved memory with origin layer.<br/><br/>
+          • Summary token count badge: read <span style={{fontFamily:'monospace'}}>memory_summaries.token_count</span>.
+        </DCPostIt>
+      </DCSection>
+    </DesignCanvas>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<Phase/>);
+</script>
+</body>
+</html>

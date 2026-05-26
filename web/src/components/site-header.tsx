@@ -1,7 +1,8 @@
 import { Link } from "@/i18n/navigation";
 import { getTranslations } from "next-intl/server";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Library, BookMarked } from "lucide-react";
+import { Library, BookMarked, Sparkles } from "lucide-react";
+import { KieioLogo } from "@/components/brand/KieioLogo";
 import { LocaleSwitcher } from "@/components/se/LocaleSwitcher";
 import { SignOutButton } from "@/components/settings/sign-out-button";
 import { getCachedUser } from "@/lib/supabase/cached-user";
@@ -108,14 +109,15 @@ export async function SiteHeader() {
             signup: t("signup"),
           }}
         />
-        <Link href="/" className="mr-7 flex items-center gap-2 font-bold">
-          <Sparkles className="h-5 w-5" style={{ color: "var(--se-accent)" }} />
-          <span
-            className="se-mono"
-            style={{ letterSpacing: "-0.01em", fontSize: 15, color: "var(--se-fg)" }}
-          >
-            Kieio
-          </span>
+        <Link
+          href="/"
+          aria-label="Kieio · home"
+          className="mr-7 flex items-center"
+          style={{ color: "var(--se-fg)" }}
+        >
+          {/* Brandbook v4 locked: (o) Lakers Purple + KIEIO Termina Bold.
+              Inherits --se-fg via parent color so wordmark adapts to surface. */}
+          <KieioLogo size={15} markColor="purple" wordColor="default" />
         </Link>
 
         <nav className="hidden md:flex items-center gap-1 text-sm">

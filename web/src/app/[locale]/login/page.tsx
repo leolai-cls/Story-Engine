@@ -11,7 +11,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Sparkles, CheckCircle2, AlertCircle, Zap } from "lucide-react";
+import { CheckCircle2, AlertCircle, Zap } from "lucide-react";
+import { KieioLogo } from "@/components/brand/KieioLogo";
 import { signInWithEmail, signInAsGuest, signInWithGoogle } from "./actions";
 
 export default async function LoginPage({
@@ -58,10 +59,12 @@ export default async function LoginPage({
         <CardHeader className="text-center pb-4">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 font-bold mx-auto mb-3"
+            aria-label="Kieio · home"
+            className="inline-flex items-center mx-auto mb-3"
+            style={{ color: "var(--se-fg)" }}
           >
-            <Sparkles className="h-5 w-5 text-primary" />
-            <span>Kieio</span>
+            {/* Brandbook v4 locked: (o) KIEIO lockup */}
+            <KieioLogo size={18} markColor="purple" wordColor="default" />
           </Link>
           <CardTitle className="text-2xl">{t("title")}</CardTitle>
           <CardDescription>{t("subtitle")}</CardDescription>

@@ -16,6 +16,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { signOut } from "@/app/[locale]/login/actions";
+import { KieioLogo } from "@/components/brand/KieioLogo";
 import type { GenreKey } from "./genre";
 
 /**
@@ -113,20 +114,12 @@ export function MobileNavDrawer({
               className="flex items-center justify-between px-4 h-14 flex-none"
               style={{ borderBottom: "1px solid var(--se-border)" }}
             >
-              <div className="flex items-center gap-2 font-bold">
-                <Sparkles
-                  size={16}
-                  style={{ color: "var(--se-accent)" }}
-                />
-                <span
-                  className="se-mono text-[13px]"
-                  style={{
-                    letterSpacing: "-0.01em",
-                    color: "var(--se-fg)",
-                  }}
-                >
-                  Kieio
-                </span>
+              <div
+                className="flex items-center"
+                style={{ color: "var(--se-fg)" }}
+              >
+                {/* Brandbook v4: (o) Lakers Purple + KIEIO Termina Bold */}
+                <KieioLogo size={13} markColor="purple" wordColor="default" />
               </div>
               <button
                 type="button"

@@ -144,6 +144,16 @@
   --se-fg-dim:    #9a958d;
   --se-fg-faint:  #c5c1b9;
 
+  /* — Kieio brand color · LOCKED per Brandbook v4 (2026-05-26)
+       Lakers Purple #552583 · PMS 526 C · solid fill only · NO gradients in production.
+       Used for: logo (o) mark · favicon · primary brand CTA · brand chrome.
+       Product UI accent (--se-accent below) intentionally NOT migrated — that's product
+       chrome on warm paper. Brand purple is for brand surfaces. — */
+  --k-purple:        #552583;
+  --k-purple-soft:   #6b3a9c;
+  --k-purple-deep:   #3d1a60;
+  --k-charcoal:      #0f0f11;
+
   /* — Accent (violet retuned for warm white) — */
   --se-accent:        oklch(0.50 0.20 290);
   --se-accent-soft:   oklch(0.62 0.15 290);
