@@ -1,13 +1,16 @@
-# Story Engine — Project Soul
+# Kieio (Story Engine) — Project Soul
 
 > 呢份係 project 嘅 soul file，每次 Claude 喺呢個 directory 開session 都會自動 load。
 > 用嚟記住核心願景、合作風格、關鍵決定。Conversation 被 compact 都唔會丟失。
+
+**Product brand (locked 2026-05-26)**: **Kieio** · 讀「KEE-yo」(2 syllables) · domain **kieio.com** (Cloudflare registrar · Vercel hosted · DNS auto-configured via Vercel Domain Connect)
+**Internal codename**: Story Engine (continue 用喺 internal docs / git history / repo name)
 
 ---
 
 ## 一句話定位
 
-**中文圈嘅互動式故事 RPG 平台 — 每個人都可以走入自己嘅故事，做主角。**
+**Kieio · 中文圈嘅互動式故事 RPG 平台 — 每個人都可以走入自己嘅故事，做主角。**
 
 ---
 

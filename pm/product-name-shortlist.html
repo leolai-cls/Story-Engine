@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Product Name Shortlist · Story Engine 命名研究</title>
+<style>
+  :root {
+    --primary: #4F46E5;
+    --primary-soft: #EEF2FF;
+    --bg: #FAFAF7;
+    --card: #FFFFFF;
+    --ink: #18181B;
+    --ink-soft: #3F3F46;
+    --muted: #71717A;
+    --border: #E4E4E7;
+    --green: #10B981;
+    --green-soft: #D1FAE5;
+    --rose: #E11D48;
+    --rose-soft: #FFE4E6;
+    --amber: #D97706;
+    --amber-soft: #FEF3C7;
+    --gray-soft: #F4F4F5;
+    --gold: #B45309;
+    --gold-soft: #FEF3C7;
+    --indigo-deep: #3730A3;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+    background: var(--bg); color: var(--ink); line-height: 1.6;
+    padding: 48px 24px 120px;
+  }
+  .wrap { max-width: 1200px; margin: 0 auto; }
+  h1 { font-size: 36px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 4px; }
+  .eyebrow {
+    display: inline-block; font-size: 11px; font-weight: 700; color: var(--primary);
+    background: var(--primary-soft); padding: 5px 10px; border-radius: 999px;
+    letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 12px;
+  }
+  .lede { font-size: 17px; color: var(--muted); max-width: 820px; margin-bottom: 16px; }
+  h2 {
+    font-size: 24px; font-weight: 700; letter-spacing: -0.015em; margin: 52px 0 6px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  h2 .icon { font-size: 26px; }
+  .h2-sub { font-size: 14px; color: var(--muted); margin-bottom: 18px; }
+  h3 { font-size: 17px; font-weight: 700; margin: 24px 0 8px; }
+
+  .tldr {
+    background: linear-gradient(135deg, #EEF2FF 0%, #C7D2FE 100%);
+    border: 1px solid #A5B4FC; border-radius: 14px; padding: 24px 28px; margin: 20px 0 28px;
+  }
+  .tldr .label {
+    font-size: 11px; font-weight: 800; color: #3730A3;
+    text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px;
+  }
+  .tldr .point {
+    font-size: 15.5px; color: #312E81; line-height: 1.55; padding: 4px 0;
+  }
+  .tldr .point::before { content: "▸ "; color: #4338CA; font-weight: 700; }
+  .tldr .point strong { color: #1E1B4B; }
+
+  .rubric {
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 22px 26px; margin: 12px 0 28px;
+  }
+  .rubric h3 { margin-top: 0; }
+  .rubric-grid {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-top: 14px;
+  }
+  @media (max-width: 980px) { .rubric-grid { grid-template-columns: repeat(2, 1fr); } }
+  .rubric-cell {
+    background: var(--gray-soft); border-radius: 8px; padding: 12px;
+  }
+  .rubric-cell .max { font-size: 22px; font-weight: 800; color: var(--primary); letter-spacing: -0.02em; }
+  .rubric-cell .lbl { font-size: 12px; font-weight: 700; color: var(--ink); margin: 4px 0 2px; }
+  .rubric-cell .desc { font-size: 11.5px; color: var(--muted); line-height: 1.4; }
+
+  /* Top 10 cards */
+  .top-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin: 12px 0 20px; }
+  @media (max-width: 980px) { .top-grid { grid-template-columns: 1fr; } }
+
+  .name-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 22px; display: flex; flex-direction: column; gap: 12px;
+    position: relative;
+  }
+  .name-card.gold { border: 2px solid var(--gold); box-shadow: 0 4px 24px rgba(180,83,9,0.12); }
+  .name-card.silver { border: 2px solid #94A3B8; box-shadow: 0 4px 24px rgba(148,163,184,0.12); }
+  .name-card.bronze { border: 2px solid #B45309; }
+
+  .name-card .rank {
+    position: absolute; top: -12px; left: 18px;
+    background: var(--ink); color: white; font-size: 11px; font-weight: 800;
+    padding: 4px 10px; border-radius: 999px; letter-spacing: 0.08em;
+  }
+  .name-card.gold .rank { background: var(--gold); }
+  .name-card.silver .rank { background: #475569; }
+  .name-card.bronze .rank { background: #B45309; }
+
+  .name-row {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 12px; padding-top: 6px;
+  }
+  .name-row .name { font-size: 32px; font-weight: 800; letter-spacing: -0.02em; }
+  .name-row .pron { font-size: 13px; color: var(--muted); font-style: italic; }
+
+  .score-row {
+    display: flex; align-items: center; gap: 14px;
+  }
+  .score-big {
+    font-size: 40px; font-weight: 800; letter-spacing: -0.03em; color: var(--primary);
+    font-variant-numeric: tabular-nums; line-height: 1;
+  }
+  .score-bars { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+  .score-bar { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--muted); }
+  .score-bar .bar-label { width: 88px; }
+  .score-bar .bar-track {
+    flex: 1; height: 6px; background: var(--gray-soft); border-radius: 3px; overflow: hidden;
+  }
+  .score-bar .bar-fill { height: 100%; background: var(--primary); border-radius: 3px; }
+  .score-bar .bar-val { width: 28px; text-align: right; font-variant-numeric: tabular-nums; color: var(--ink-soft); font-weight: 600; }
+
+  .tld-row {
+    display: flex; gap: 6px; flex-wrap: wrap; padding: 8px 0;
+    border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+  }
+  .tld-pill {
+    font-size: 12px; padding: 4px 8px; border-radius: 6px; font-weight: 700;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .tld-pill.ok { background: var(--green-soft); color: #065F46; }
+  .tld-pill.bad { background: var(--rose-soft); color: #9F1239; }
+  .tld-pill.warn { background: var(--amber-soft); color: #92400E; }
+  .tld-pill .price { font-weight: 500; opacity: 0.8; }
+
+  .meta-row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12.5px;
+  }
+  .meta-cell { padding: 6px 0; }
+  .meta-cell .k { color: var(--muted); font-weight: 600; font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.04em; }
+  .meta-cell .v { color: var(--ink-soft); font-weight: 600; }
+  .meta-cell .v.ok { color: #065F46; }
+  .meta-cell .v.warn { color: #92400E; }
+  .meta-cell .v.bad { color: #9F1239; }
+
+  .rationale {
+    font-size: 13.5px; color: var(--ink-soft); line-height: 1.55;
+    background: var(--gray-soft); border-radius: 8px; padding: 12px 14px;
+  }
+  .rationale strong { color: var(--ink); }
+
+  /* Honorable + dropped lists */
+  .honor-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  @media (max-width: 720px) { .honor-grid { grid-template-columns: 1fr; } }
+  .honor-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .honor-card .nm { font-size: 18px; font-weight: 800; }
+  .honor-card .scr {
+    display: inline-block; background: var(--primary-soft); color: var(--primary);
+    font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 999px;
+    margin-left: 8px; letter-spacing: 0.05em;
+  }
+  .honor-card .note { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+  .drop-row {
+    display: flex; align-items: center; gap: 12px; padding: 8px 12px;
+    border-bottom: 1px solid var(--border); font-size: 13.5px;
+  }
+  .drop-row:last-child { border-bottom: 0; }
+  .drop-row .nm { font-weight: 700; min-width: 140px; color: var(--ink); }
+  .drop-row .why { color: var(--muted); flex: 1; }
+  .drop-row .tag {
+    font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 4px;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    background: var(--rose-soft); color: #9F1239;
+  }
+  .drop-row .tag.collision { background: var(--amber-soft); color: #92400E; }
+  .drop-row .tag.pron { background: #E0E7FF; color: var(--indigo-deep); }
+
+  /* Comparison table */
+  .cmp-wrap { overflow-x: auto; margin: 14px 0; }
+  table.cmp {
+    width: 100%; border-collapse: collapse; font-size: 13px;
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
+  }
+  table.cmp th, table.cmp td {
+    padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border);
+  }
+  table.cmp th {
+    background: var(--gray-soft); font-size: 11px; font-weight: 800;
+    letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted);
+  }
+  table.cmp td.name { font-weight: 800; font-size: 14px; }
+  table.cmp td.score { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--primary); }
+  table.cmp td.center { text-align: center; }
+  table.cmp tr:last-child td { border-bottom: 0; }
+  table.cmp .ok { color: #065F46; font-weight: 700; }
+  table.cmp .bad { color: #9F1239; font-weight: 700; }
+
+  /* Final pick */
+  .pick-card {
+    background: linear-gradient(135deg, #312E81 0%, #4F46E5 100%);
+    color: white; border-radius: 16px; padding: 32px 36px; margin: 24px 0;
+  }
+  .pick-card .pre {
+    font-size: 11px; font-weight: 800; color: #C7D2FE;
+    letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px;
+  }
+  .pick-card h2 { color: white; margin: 0 0 4px; font-size: 30px; }
+  .pick-card .sub { color: #C7D2FE; font-size: 15px; margin-bottom: 24px; }
+  .pick-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  @media (max-width: 820px) { .pick-grid { grid-template-columns: 1fr; } }
+  .pick-cell {
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 12px; padding: 18px;
+  }
+  .pick-cell .pos {
+    font-size: 11px; font-weight: 800; color: #FDE68A; letter-spacing: 0.1em; text-transform: uppercase;
+  }
+  .pick-cell .nm { font-size: 26px; font-weight: 800; margin: 6px 0 8px; }
+  .pick-cell .why { font-size: 13.5px; color: #E0E7FF; line-height: 1.55; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <span class="eyebrow">Product Naming Research · Session 14.5</span>
+  <h1>Product Name Shortlist</h1>
+  <p class="lede">
+    為 Story Engine 揀一個 <strong>純英文 brand name</strong>，主攻 HK + TW 中文圈用戶，預留國際擴展彈性。
+    研究咗 50+ 候選名 · 全部用 Vercel Domains API 真實 WHOIS lookup · top picks 做 web search brand collision 檢查。
+  </p>
+
+  <div class="tldr">
+    <div class="label">🎯 TL;DR · 結論</div>
+    <div class="point"><strong>市場好擠擁</strong> — 50 個檢查嘅 .com 入面只有 8 個 available。所有「明顯」嘅 narrative / lore / fable / saga 字根全部被 squat 或被人用咗。</div>
+    <div class="point"><strong>Top 3 pick：<em>Kithlore</em> · <em>Voxenne</em> · <em>Saganne</em></strong> — 三個都 4 TLD 齊備（.com + .app + .io + .ai）· 零 brand collision · 純 coined word（最 brandable）。</div>
+    <div class="point"><strong>Founder 揀邊個取決於 vibe</strong>：Kithlore = 文學感 + 溫暖（"kith" = 親友圈 + "lore" = 故事） · Voxenne = 聲音感 + 神秘（"vox" = 聲音 / NPC inner voice） · Saganne = saga + feminine elegance · 適合 narrative-RPG。</div>
+    <div class="point"><strong>避開咗</strong> Fableon（FableAI 衝突）· Loreven（luxury fashion 用咗）· Chapterli（Chapterly writing app adjacent）· Sagaful（"-ful" 後綴有點 utility 味）· Fableum（直接競爭對手 fableum.com 就係 AI RPG platform）。</div>
+  </div>
+
+  <h2><span class="icon">📐</span> Scoring Rubric · 100 分</h2>
+  <div class="h2-sub">每個候選名按 5 個維度評分 · 細節睇 top 10 cards 同 comparison table</div>
+  <div class="rubric">
+    <div class="rubric-grid">
+      <div class="rubric-cell">
+        <div class="max">25</div>
+        <div class="lbl">Memorability</div>
+        <div class="desc">聽過一次能唔能記住？distinctive？</div>
+      </div>
+      <div class="rubric-cell">
+        <div class="max">20</div>
+        <div class="lbl">Pronounceability</div>
+        <div class="desc">HK / TW 用戶口頭講出嚟流唔流暢？</div>
+      </div>
+      <div class="rubric-cell">
+        <div class="max">25</div>
+        <div class="lbl">.com Availability</div>
+        <div class="desc">exact-match .com 可買 · standard price (&lt;$50/yr)</div>
+      </div>
+      <div class="rubric-cell">
+        <div class="max">15</div>
+        <div class="lbl">Brand Uniqueness</div>
+        <div class="desc">無 trademark 衝突 · 無 AI/gaming 同名產品</div>
+      </div>
+      <div class="rubric-cell">
+        <div class="max">15</div>
+        <div class="lbl">Thematic Fit</div>
+        <div class="desc">符合 narrative-RPG-memory positioning</div>
+      </div>
+    </div>
+  </div>
+
+  <h2><span class="icon">🏆</span> Top 10 Recommendations</h2>
+  <div class="h2-sub">每張卡：scores · all-TLD status · brand collision verdict · rationale</div>
+
+  <div class="top-grid">
+
+    <!-- #1 Kithlore -->
+    <div class="name-card gold">
+      <div class="rank">#1 · TOP PICK</div>
+      <div class="name-row">
+        <div class="name">Kithlore</div>
+        <div class="pron">/kɪθ-lɔːr/ · "kif-lor"</div>
+      </div>
+      <div class="score-row">
+        <div class="score-big">91</div>
+        <div class="score-bars">
+          <div class="score-bar"><span class="bar-label">Memorability</span><div class="bar-track"><div class="bar-fill" style="width:92%"></div></div><span class="bar-val">23</span></div>
+          <div class="score-bar"><span class="bar-label">Pronounce</span><div class="bar-track"><div class="bar-fill" style="width:80%"></div></div><span class="bar-val">16</span></div>
+          <div class="score-bar"><span class="bar-label">.com</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><span class="bar-val">25</span></div>
+          <div class="score-bar"><span class="bar-label">Uniqueness</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><span class="bar-val">15</span></div>
+          <div class="score-bar"><span class="bar-label">Thematic</span><div class="bar-track"><div class="bar-fill" style="width:80%"></div></div><span class="bar-val">12</span></div>
+        </div>
+      </div>
+      <div class="tld-row">
+        <span class="tld-pill ok">.com ✓ <span class="price">$11/yr</span></span>
+        <span class="tld-pill ok">.app ✓ <span class="price">$10/yr</span></span>
+        <span class="tld-pill ok">.io ✓ <span class="price">$38/yr</span></span>
+        <span class="tld-pill warn">.ai ✓ <span class="price">$80/yr</span></span>
+      </div>
+      <div class="meta-row">
+        <div class="meta-cell"><div class="k">Trademark</div><div class="v ok">No USPTO hit</div></div>
+        <div class="meta-cell"><div class="k">AI/Game collision</div><div class="v ok">None found</div></div>
+        <div class="meta-cell"><div class="k">Social handles</div><div class="v ok">All available</div></div>
+        <div class="meta-cell"><div class="k">中文發音</div><div class="v ok">Clean · 無歧義</div></div>
+      </div>
+      <div class="rationale">
+        <strong>Kith + Lore</strong> = "親友圈嘅故事傳承"。<strong>"Kith"</strong> 係古英文 "friends &amp; companions"（kith and kin），<strong>"Lore"</strong> 直接 evokes 故事 + 知識 + memory。
+        喺 narrative-RPG context 完美對應產品核心：你同 NPC 嘅關係（kith）累積成獨一無二嘅 lore。發音乾淨 · 兩個音節 · spelling 唯一。
+        全 4 個 TLD 都 available · zero collision · zero social handle taken。
+        <br><br>
+        <strong>缺點</strong>：「Kith」對 native English speakers 略古典，但對 HK / TW 用戶反而係 advantage（聽落 premium / literary，唔似 startup-name-generator 出嚟嘅 "-ly" 結尾）。
+      </div>
+    </div>
+
+    <!-- #2 Voxenne -->
+    <div class="name-card silver">
+      <div class="rank">#2 · STRONG ALT</div>
+      <div class="name-row">
+        <div class="name">Voxenne</div>
+        <div class="pron">/vɒks-en/ · "vox-en"</div>
+      </div>
+      <div class="score-row">
+        <div class="score-big">88</div>
+        <div class="score-bars">
+          <div class="score-bar"><span class="bar-label">Memorability</span><div class="bar-track"><div class="bar-fill" style="width:88%"></div></div><span class="bar-val">22</span></div>
+          <div class="score-bar"><span class="bar-label">Pronounce</span><div class="bar-track"><div class="bar-fill" style="width:85%"></div></div><span class="bar-val">17</span></div>
+          <div class="score-bar"><span class="bar-label">.com</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><span class="bar-val">25</span></div>
+          <div class="score-bar"><span class="bar-label">Uniqueness</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><span class="bar-val">15</span></div>
+          <div class="score-bar"><span class="bar-label">Thematic</span><div class="bar-track"><div class="bar-fill" style="width:60%"></div></div><span class="bar-val">9</span></div>
+        </div>
+      </div>
+      <div class="tld-row">
+        <span class="tld-pill ok">.com ✓ <span class="price">$11/yr</span></span>
+        <span class="tld-pill ok">.app ✓ <span class="price">$10/yr</span></span>
+        <span class="tld-pill ok">.io ✓ <span class="price">$38/yr</span></span>
+        <span class="tld-pill warn">.ai ✓ <span class="price">$80/yr</span></span>
+      </div>
+      <div class="meta-row">
+        <div class="meta-cell"><div class="k">Trademark</div><div class="v ok">No USPTO hit</div></div>
+        <div class="meta-cell"><div class="k">AI/Game collision</div><div class="v ok">None found</div></div>
+        <div class="meta-cell"><div class="k">Adjacent brand</div><div class="v warn">Voxnest (audio SaaS · different vertical)</div></div>
+        <div class="meta-cell"><div class="k">中文發音</div><div class="v ok">Clean</div></div>
+      </div>
+      <div class="rationale">
+        <strong>Vox + -enne</strong>（Latin "voice" + 法語 feminine ending）。直接 echo 產品差異化嘅 <strong>NPC Level 3 Inner Voices</strong> 功能 — 每個 NPC 有自己嘅 inner thoughts / POV。
+        Brandable · 2 音節 · spelling 比 Kithlore 更簡單（5 字母 vs 8 字母）。聽落有神秘感 + literary feel · 似 NovelAI 嘅 brandable 風格但更獨特。
+        <br><br>
+        <strong>缺點</strong>：thematic fit 偏 character-voice angle，唔係直接講 "story / lore / world"。如果以後 product 中心 shift 到 RPG mechanics（HP / 戰鬥）會 less obvious。
+        <br>
+        <strong>Adjacent brand</strong>：Voxnest 係 audio SaaS（不同 vertical · 無 IP 風險），但 "vox" 字根 share。
+      </div>
+    </div>
+
+    <!-- #3 Saganne -->
+    <div class="name-card bronze">
+      <div class="rank">#3 · ELEGANT</div>
+      <div class="name-row">
+        <div class="name">Saganne</div>
+        <div class="pron">/sə-gæn/ · "sa-gan"</div>
+      </div>
+      <div class="score-row">
+        <div class="score-big">85</div>
+        <div class="score-bars">
+          <div class="score-bar"><span class="bar-label">Memorability</span><div class="bar-track"><div class="bar-fill" style="width:84%"></div></div><span class="bar-val">21</span></div>
+          <div class="score-bar"><span class="bar-label">Pronounce</span><div class="bar-track"><div class="bar-fill" style="width:90%"></div></div><span class="bar-val">18</span></div>
+          <div class="score-bar"><span class="bar-label">.com</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><span class="bar-val">25</span></div>
+          <div class="score-bar"><span class="bar-label">Uniqueness</span><div class="bar-track"><div class="bar-fill" style="width:73%"></div></div><span class="bar-val">11</span></div>
+          <div class="score-bar"><span class="bar-label">Thematic</span><div class="bar-track"><div class="bar-fill" style="width:67%"></div></div><span class="bar-val">10</span></div>
+        </div>
+      </div>
+      <div class="tld-row">
+        <span class="tld-pill ok">.com ✓ <span class="price">$11/yr</span></span>
+        <span class="tld-pill ok">.app ✓ <span class="price">$10/yr</span></span>
+        <span class="tld-pill ok">.io ✓ <span class="price">$38/yr</span></span>
+        <span class="tld-pill warn">.ai ✓ <span class="price">$80/yr</span></span>
+      </div>
+      <div class="meta-row">
+        <div class="meta-cell"><div class="k">Trademark</div><div class="v ok">No USPTO hit</div></div>
+        <div class="meta-cell"><div class="k">AI/Game collision</div><div class="v ok">None found</div></div>
+        <div class="meta-cell"><div class="k">Cultural reference</div><div class="v warn">"Fort Saganne" 1984 法國電影 (no IP risk)</div></div>
+        <div class="meta-cell"><div class="k">中文發音</div><div class="v ok">Clean · 「沙根」</div></div>
+      </div>
+      <div class="rationale">
+        <strong>Saga + -anne</strong>（北歐 saga 史詩 + feminine ending）。發音最易 — 兩個音節 · 全 hard consonants · HK / TW 用戶 first-try pronounce 應該 100% 對。
+        聽落 elegant · narrative · 適合 premium narrative platform。
+        <br><br>
+        <strong>缺點</strong>：「Fort Saganne」係 1984 Gérard Depardieu 法國電影（同 Equipment 嘅 Saganne Pant 衣服款）— 兩者都喺唔同行業 · 無 IP 風險，
+        但 google "saganne" 第一頁係呢啲 reference · 唔係 100% blank slate（vs Kithlore / Voxenne 係 fully blank）。
+        Thematic fit 也比 Kithlore 弱一陣 — saga 偏 epic-fantasy · 我哋產品包埋戀愛 / 校園 / NBA 等多元 genre。
+      </div>
+    </div>
+
+    <!-- #4 Sagaful -->
+    <div class="name-card">
+      <div class="rank">#4</div>
+      <div class="name-row">
+        <div class="name">Sagaful</div>
+        <div class="pron">/sɑː-gə-fʊl/</div>
+      </div>
+      <div class="score-row">
+        <div class="score-big">78</div>
+        <div class="score-bars">
+          <div class="score-bar"><span class="bar-label">Memorability</span><div class="bar-track"><div class="bar-fill" style="width:72%"></div></div><span class="bar-val">18</span></div>
+          <div class="score-bar"><span class="bar-label">Pronounce</span><div class="bar-track"><div class="bar-fill" style="width:80%"></div></div><span class="bar-val">16</span></div>
+          <div class="score-bar"><span class="bar-label">.com</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><span class="bar-val">25</span></div>
+          <div class="score-bar"><span class="bar-label">Uniqueness</span><div class="bar-track"><div class="bar-fill" style="width:80%"></div></div><span class="bar-val">12</span></div>
+          <div class="score-bar"><span class="bar-label">Thematic</span><div class="bar-track"><div class="bar-fill" style="width:47%"></div></div><span class="bar-val">7</span></div>
+        </div>
+      </div>
+      <div class="tld-row">
+        <span class="tld-pill ok">.com ✓ <span class="price">$11/yr</span></span>
+        <span class="tld-pill ok">.app ✓ <span class="price">$10/yr</span></span>
+        <span class="tld-pill warn">.io ?</span>
+        <span class="tld-pill warn">.ai ?</span>
+      </div>
+      <div class="meta-row">
+        <div class="meta-cell"><div class="k">Trademark</div><div class="v ok">No USPTO hit</div></div>
+        <div class="meta-cell"><div class="k">AI/Game collision</div><div class="v ok">None found</div></div>
+        <div class="meta-cell"><div class="k">King "Saga" trademark</div><div class="v warn">Candy Crush owns "Saga" — but as prefix word only</div></div>
+        <div class="meta-cell"><div class="k">中文發音</div><div class="v ok">Clean</div></div>
+      </div>
+      <div class="rationale">
+        <strong>Saga + -ful</strong>（"full of saga"）。.com available · concept clean。
+        <br><br>
+        <strong>缺點</strong>：King.com (Candy Crush) 過去極度 aggressive 用 "Saga" trademark 告其他 indie games（Banner Saga 案件）— 我哋 product 唔係 puzzle game 所以實際 IP 風險低，但 founder 可能想避開呢個 minefield。
+        <br>
+        "-ful" 後綴有少少 utility / consumer-good 味（"colorful / mindful / restful"）· 唔似 premium narrative platform · thematic fit 偏弱。
+      </div>
+    </div>
+
+    <!-- #5 Thrynne -->
+    <div class="name-card">
+      <div class="rank">#5</div>
+      <div class="name-row">
+        <div class="name">Thrynne</div>
+        <div class="pron">/θrɪn/ · "thrin"</div>
+      </div>
+      <div class="score-row">
+        <div class="score-big">76</div>
+        <div class="score-bars">
+          <div class="score-bar"><span class="bar-label">Memorability</span><div class="bar-track"><div class="bar-fill" style="width:88%"></div></div><span class="bar-val">22</span></div>
+          <div class="score-bar"><span class="bar-label">Pronounce</span><div class="bar-track"><div class="bar-fill" style="width:50%"></div></div><span class="bar-val">10</span></div>
+          <div class="score-bar"><span class="bar-label">.com</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><span class="bar-val">25</span></div>
+          <div class="score-bar"><span class="bar-label">Uniqueness</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><span class="bar-val">15</span></div>
+          <div class="score-bar"><span class="bar-label">Thematic</span><div class="bar-track"><div class="bar-fill" style="width:27%"></div></div><span class="bar-val">4</span></div>
+        </div>
+      </div>
+      <div class="tld-row">
+        <span class="tld-pill ok">.com ✓ <span class="price">$11/yr</span></span>
+        <span class="tld-pill ok">.app ✓ <span class="price">$10/yr</span></span>
+        <span class="tld-pill ok">.io ✓ <span class="price">$38/yr</span></span>
+        <span class="tld-pill warn">.ai ✓ <span class="price">$80/yr</span></span>
+      </div>
+      <div class="meta-row">
+        <div class="meta-cell"><div class="k">Trademark</div><div class="v ok">No USPTO hit</div></div>
+        <div class="meta-cell"><div class="k">AI/Game collision</div><div class="v ok">None found</div></div>
+        <div class="meta-cell"><div class="k">Social handles</div><div class="v ok">All available</div></div>
+        <div class="meta-cell"><div class="k">中文發音</div><div class="v warn">"TH" 音對 HK/TW 用戶有挑戰</div></div>
+      </div>
+      <div class="rationale">
+        Pure coined word · 全 4 TLD available · zero collision。聽落神秘 · 似奇幻 IP 名（Skyrim 風）。
+        <br><br>
+        <strong>致命缺點</strong>：「TH」音對中文圈用戶係 known pain point — HK Cantonese 同 TW Mandarin 都冇呢個音 · 大部分人會 mispronounce 做 "trin" 或 "frin"。對 word-of-mouth virality 係 friction。
+        <br>
+        無明顯 thematic anchor（thr- 唔 evoke story / lore / narrative） · 可能要靠 logo + tagline 講清楚產品。
+      </div>
+    </div>
+
+    <!-- #6 Loremantra -->
+    <div class="name-card">
+      <div class="rank">#6</div>
+      <div class="name-row">
+        <div class="name">Loremantra</div>
+        <div class="pron">/lɔːr-mæntrə/</div>
+      </div>
+      <div class="score-row">
+        <div class="score-big">74</div>
+        <div class="score-bars">
+          <div class="score-bar"><span class="bar-label">Memorability</span><div class="bar-track"><div class="bar-fill" style="width:72%"></div></div><span class="bar-val">18</span></div>
+          <div class="score-bar"><span class="bar-label">Pronounce</span><div class="bar-track"><div class="bar-fill" style="width:75%"></div></div><span class="bar-val">15</span></div>
+          <div class="score-bar"><span class="bar-label">.com</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><span class="bar-val">25</span></div>
+          <div class="score-bar"><span class="bar-label">Uniqueness</span><div class="bar-track"><div class="bar-fill" style="width:87%"></div></div><span class="bar-val">13</span></div>
+          <div class="score-bar"><span class="bar-label">Thematic</span><div class="bar-track"><div class="bar-fill" style="width:67%"></div></div><span class="bar-val">10</span></div>
+        </div>
+      </div>
+      <div class="tld-row">
+        <span class="tld-pill ok">.com ✓ <span class="price">$11/yr</span></span>
+        <span class="tld-pill warn">.app ?</span>
+        <span class="tld-pill warn">.io ?</span>
+        <span class="tld-pill warn">.ai ?</span>
+      </div>
+      <div class="meta-row">
+        <div class="meta-cell"><div class="k">Trademark</div><div class="v ok">No USPTO hit</div></div>
+        <div class="meta-cell"><div class="k">AI/Game collision</div><div class="v ok">None found</div></div>
+        <div class="meta-cell"><div class="k">Length</div><div class="v warn">10 letters · 4 syllables</div></div>
+        <div class="meta-cell"><div class="k">中文發音</div><div class="v ok">Clean · "Mantra" 多人認識</div></div>
+      </div>
+      <div class="rationale">
+        <strong>Lore + Mantra</strong>（故事 + 唸誦）。Thematic 直接 evoke "storytelling as ritual" — 玩家每 turn 就係 invoking lore。
+        <br><br>
+        <strong>缺點</strong>：10 字母 / 4 音節太長 · mobile 用戶 thumb-typing 麻煩 · 唔啱做 short brand。「Mantra」字根偏冥想 / 健康 / wellness vibe · 用嚟 brand narrative-RPG 有點 off。
+      </div>
+    </div>
+
+    <!-- #7 Lorenel -->
+    <div class="name-card">
+      <div class="rank">#7</div>
+      <div class="name-row">
+        <div class="name">Lorenel</div>
+        <div class="pron">/lɔː-rə-nɛl/</div>
+      </div>
+      <div class="score-row">
+        <div class="score-big">73</div>
+        <div class="score-bars">
+          <div class="score-bar"><span class="bar-label">Memorability</span><div class="bar-track"><div class="bar-fill" style="width:64%"></div></div><span class="bar-val">16</span></div>
+          <div class="score-bar"><span class="bar-label">Pronounce</span><div class="bar-track"><div class="bar-fill" style="width:90%"></div></div><span class="bar-val">18</span></div>
+          <div class="score-bar"><span class="bar-label">.com</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><span class="bar-val">25</span></div>
+          <div class="score-bar"><span class="bar-label">Uniqueness</span><div class="bar-track"><div class="bar-fill" style="width:53%"></div></div><span class="bar-val">8</span></div>
+          <div class="score-bar"><span class="bar-label">Thematic</span><div class="bar-track"><div class="bar-fill" style="width:40%"></div></div><span class="bar-val">6</span></div>
+        </div>
+      </div>
+      <div class="tld-row">
+        <span class="tld-pill ok">.com ✓ <span class="price">$11/yr</span></span>
+        <span class="tld-pill warn">.app ?</span>
+        <span class="tld-pill warn">.io ?</span>
+        <span class="tld-pill warn">.ai ?</span>
+      </div>
+      <div class="meta-row">
+        <div class="meta-cell"><div class="k">Trademark</div><div class="v ok">No USPTO hit</div></div>
+        <div class="meta-cell"><div class="k">AI/Game collision</div><div class="v ok">None found</div></div>
+        <div class="meta-cell"><div class="k">Adjacent</div><div class="v warn">Loreven luxury fashion · 同字根</div></div>
+        <div class="meta-cell"><div class="k">中文發音</div><div class="v ok">Clean</div></div>
+      </div>
+      <div class="rationale">
+        Lore + suffix · 發音流暢 · .com 有貨。但「Lorenel」感覺似個女性人名（"Lauren-el"）多過 product brand · 唔夠 distinctive。
+        <br>
+        加上 loreven.com 已被 luxury fashion 用 · "lor-en/lor-rel" cluster 嘅 brand 已開始飽和 · 我哋差異化吃力。
+      </div>
+    </div>
+
+    <!-- #8 Loredeck (compromise on .com but strong thematic) -->
+    <div class="name-card">
+      <div class="rank">#8</div>
+      <div class="name-row">
+        <div class="name">Loredeck</div>
+        <div class="pron">/lɔːr-dɛk/</div>
+      </div>
+      <div class="score-row">
+        <div class="score-big">70</div>
+        <div class="score-bars">
+          <div class="score-bar"><span class="bar-label">Memorability</span><div class="bar-track"><div class="bar-fill" style="width:96%"></div></div><span class="bar-val">24</span></div>
+          <div class="score-bar"><span class="bar-label">Pronounce</span><div class="bar-track"><div class="bar-fill" style="width:95%"></div></div><span class="bar-val">19</span></div>
+          <div class="score-bar"><span class="bar-label">.com</span><div class="bar-track"><div class="bar-fill" style="width:0%"></div></div><span class="bar-val">0</span></div>
+          <div class="score-bar"><span class="bar-label">Uniqueness</span><div class="bar-track"><div class="bar-fill" style="width:80%"></div></div><span class="bar-val">12</span></div>
+          <div class="score-bar"><span class="bar-label">Thematic</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><span class="bar-val">15</span></div>
+        </div>
+      </div>
+      <div class="tld-row">
+        <span class="tld-pill bad">.com ✗ taken</span>
+        <span class="tld-pill bad">.app ✗ taken</span>
+        <span class="tld-pill ok">.io ✓ <span class="price">$38/yr</span></span>
+        <span class="tld-pill warn">.ai ?</span>
+      </div>
+      <div class="meta-row">
+        <div class="meta-cell"><div class="k">Trademark</div><div class="v ok">No USPTO hit</div></div>
+        <div class="meta-cell"><div class="k">AI/Game collision</div><div class="v ok">None found</div></div>
+        <div class="meta-cell"><div class="k">.com owner</div><div class="v warn">Unknown · parked or in-use</div></div>
+        <div class="meta-cell"><div class="k">中文發音</div><div class="v ok">Clean · 「樂得」</div></div>
+      </div>
+      <div class="rationale">
+        Thematically <strong>perfect</strong> — "deck" perfectly evokes 我哋嘅 4-layer MemPalace (Wings / Rooms / Drawers / 一格格嘅 lore) + 玩家可以 swap / browse 自己嘅 story library 似 deck of cards。
+        Pronounce 100% clean · highly memorable。
+        <br><br>
+        <strong>致命</strong>：.com 被 squat · .app 都冇貨 · 只剩 .io。冇 .com = serious downgrade for app.xxx.com 雙域名 strategy（CLAUDE.md 提到）。
+        如果 founder 接受 loredeck.io 做 launch · 之後 acquire .com · 可以考慮。
+      </div>
+    </div>
+
+    <!-- #9 Loreyx -->
+    <div class="name-card">
+      <div class="rank">#9</div>
+      <div class="name-row">
+        <div class="name">Loreyx</div>
+        <div class="pron">/lɔːr-ɪks/ · "lor-icks"</div>
+      </div>
+      <div class="score-row">
+        <div class="score-big">68</div>
+        <div class="score-bars">
+          <div class="score-bar"><span class="bar-label">Memorability</span><div class="bar-track"><div class="bar-fill" style="width:76%"></div></div><span class="bar-val">19</span></div>
+          <div class="score-bar"><span class="bar-label">Pronounce</span><div class="bar-track"><div class="bar-fill" style="width:55%"></div></div><span class="bar-val">11</span></div>
+          <div class="score-bar"><span class="bar-label">.com</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><span class="bar-val">25</span></div>
+          <div class="score-bar"><span class="bar-label">Uniqueness</span><div class="bar-track"><div class="bar-fill" style="width:87%"></div></div><span class="bar-val">13</span></div>
+          <div class="score-bar"><span class="bar-label">Thematic</span><div class="bar-track"><div class="bar-fill" style="width:0%"></div></div><span class="bar-val">0</span></div>
+        </div>
+      </div>
+      <div class="tld-row">
+        <span class="tld-pill ok">.com ✓ <span class="price">$11/yr</span></span>
+        <span class="tld-pill warn">.app ?</span>
+        <span class="tld-pill warn">.io ?</span>
+        <span class="tld-pill warn">.ai ?</span>
+      </div>
+      <div class="meta-row">
+        <div class="meta-cell"><div class="k">Trademark</div><div class="v ok">No USPTO hit</div></div>
+        <div class="meta-cell"><div class="k">AI/Game collision</div><div class="v ok">None found</div></div>
+        <div class="meta-cell"><div class="k">Spelling clarity</div><div class="v warn">"yx" cluster ambiguous</div></div>
+        <div class="meta-cell"><div class="k">中文發音</div><div class="v warn">"yx" 中文用戶可能讀錯</div></div>
+      </div>
+      <div class="rationale">
+        "Lore" + "-yx"（modern startup suffix）· .com cheap · zero collision。
+        <br><br>
+        <strong>缺點</strong>：「yx」嘅 spelling 對中文用戶含糊 — 讀 "lor-eeks" 定 "lor-yex"？口頭講出嚟人哋打 URL 會出錯。spelling 同 pronunciation 唔 1-to-1 = friction。Thematic 等於零（"-yx" 完全 generic startup 後綴 · 不會 evoke 任何 narrative concept）。
+      </div>
+    </div>
+
+    <!-- #10 Chapterli -->
+    <div class="name-card">
+      <div class="rank">#10</div>
+      <div class="name-row">
+        <div class="name">Chapterli</div>
+        <div class="pron">/ʧæp-tər-li/</div>
+      </div>
+      <div class="score-row">
+        <div class="score-big">65</div>
+        <div class="score-bars">
+          <div class="score-bar"><span class="bar-label">Memorability</span><div class="bar-track"><div class="bar-fill" style="width:64%"></div></div><span class="bar-val">16</span></div>
+          <div class="score-bar"><span class="bar-label">Pronounce</span><div class="bar-track"><div class="bar-fill" style="width:90%"></div></div><span class="bar-val">18</span></div>
+          <div class="score-bar"><span class="bar-label">.com</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><span class="bar-val">25</span></div>
+          <div class="score-bar"><span class="bar-label">Uniqueness</span><div class="bar-track"><div class="bar-fill" style="width:13%"></div></div><span class="bar-val">2</span></div>
+          <div class="score-bar"><span class="bar-label">Thematic</span><div class="bar-track"><div class="bar-fill" style="width:27%"></div></div><span class="bar-val">4</span></div>
+        </div>
+      </div>
+      <div class="tld-row">
+        <span class="tld-pill ok">.com ✓ <span class="price">$11/yr</span></span>
+        <span class="tld-pill warn">.app ?</span>
+        <span class="tld-pill warn">.io ?</span>
+        <span class="tld-pill warn">.ai ?</span>
+      </div>
+      <div class="meta-row">
+        <div class="meta-cell"><div class="k">Trademark</div><div class="v ok">No USPTO hit on exact</div></div>
+        <div class="meta-cell"><div class="k">AI/Game collision</div><div class="v bad">Chapterly = writing app (close adjacent)</div></div>
+        <div class="meta-cell"><div class="k">Risk</div><div class="v bad">User typo lands on competitor</div></div>
+        <div class="meta-cell"><div class="k">中文發音</div><div class="v ok">Clean</div></div>
+      </div>
+      <div class="rationale">
+        .com cheap · pronounce clean。
+        <br><br>
+        <strong>致命</strong>：<a href="https://www.chapterly.com" style="color:var(--primary);">Chapterly.com</a> 已經係 mature writing platform（"where great stories find their audience"），仲有 chapterly.ai 同 chapterly.xyz · 全部 narrative space。
+        Chapterli vs Chapterly 一個字母分別 · 用戶口頭講「chap-ter-lee」絕對會 navigate 錯 · search SEO 完全淹過 Chapterly。
+        Reluctant include — 但 .com 有貨 · 為求 completeness。<strong>實際上唔建議用</strong>。
+      </div>
+    </div>
+
+  </div>
+
+  <h2><span class="icon">🥈</span> Honorable Mentions (#11-20)</h2>
+  <div class="h2-sub">.com 唔 available 但其他 TLD 可行 · 或者 thematic 強但其他維度弱</div>
+
+  <div class="honor-grid">
+    <div class="honor-card">
+      <div><span class="nm">Loreweave</span><span class="scr">61</span></div>
+      <div class="note">.com taken · .io / .ai available · thematic perfect（"weaving lore"）但 .com 阻路。</div>
+    </div>
+    <div class="honor-card">
+      <div><span class="nm">Mythkin</span><span class="scr">60</span></div>
+      <div class="note">.com taken · .app / .io available · 強 thematic（神話 + 親屬）但 .com 必要。</div>
+    </div>
+    <div class="honor-card">
+      <div><span class="nm">Tellaria</span><span class="scr">58</span></div>
+      <div class="note">.com taken · .io / .app available · 「敘事 + -aria 史詩感」elegant 但唔 unique。</div>
+    </div>
+    <div class="honor-card">
+      <div><span class="nm">Storyne</span><span class="scr">57</span></div>
+      <div class="note">.com taken · .app / .io available · 短 · brandable · 但 "story" 字根太 generic。</div>
+    </div>
+    <div class="honor-card">
+      <div><span class="nm">Storica</span><span class="scr">55</span></div>
+      <div class="note">.com taken · .io available · Italian "stories" elegant 但已 squat。</div>
+    </div>
+    <div class="honor-card">
+      <div><span class="nm">Embertale</span><span class="scr">54</span></div>
+      <div class="note">.com taken · .io available · romantic / fantasy vibe 強但 .com 死局。</div>
+    </div>
+    <div class="honor-card">
+      <div><span class="nm">Veylore</span><span class="scr">52</span></div>
+      <div class="note">.com taken · .io available · 神秘感強但 .com 阻路。</div>
+    </div>
+    <div class="honor-card">
+      <div><span class="nm">Fyrelore</span><span class="scr">50</span></div>
+      <div class="note">.com taken · .io / .app available · "fyre" stylized spelling 有點 try-hard。</div>
+    </div>
+    <div class="honor-card">
+      <div><span class="nm">Talevex</span><span class="scr">49</span></div>
+      <div class="note">.com available！ But "-vex" 後綴帶負面（vexing / 煩躁）· thematic 反作用。</div>
+    </div>
+    <div class="honor-card">
+      <div><span class="nm">Fableglade</span><span class="scr">47</span></div>
+      <div class="note">.com available · 但 Fableglade Records 係 indie 音樂 label · weak collision。</div>
+    </div>
+  </div>
+
+  <h2><span class="icon">❌</span> Dropped Candidates (#21-50)</h2>
+  <div class="h2-sub">明確 reject 嘅候選 · 列出原因俾未來避免重覆考慮</div>
+
+  <div style="background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; margin: 12px 0;">
+
+    <div class="drop-row">
+      <span class="nm">Storia</span>
+      <span class="why">.com taken (Italian word · already a brand) · 太 generic</span>
+      <span class="tag">.com taken</span>
+    </div>
+    <div class="drop-row">
+      <span class="nm">Storyforge</span>
+      <span class="why">.com taken · 仲有大量 forge-suffix tools (Adventureforge etc)</span>
+      <span class="tag">.com taken</span>
+    </div>
+    <div class="drop-row">
+      <span class="nm">Plotbound</span>
+      <span class="why">.com taken · 都唔 unique enough</span>
+      <span class="tag">.com taken</span>
+    </div>
+    <div class="drop-row">
+      <span class="nm">Tellio</span>
+      <span class="why">.com taken · "tell-io" 流暢但 dead</span>
+      <span class="tag">.com taken</span>
+    </div>
+    <div class="drop-row">
+      <span class="nm">Yarnly</span>
+      <span class="why">.com taken · "yarn" 美式英文 = "story" 但 HK 用戶唔知</span>
+      <span class="tag">.com taken</span>
+    </div>
+    <div class="drop-row">
+      <span class="nm">Plotara</span>
+      <span class="why">.com taken</span>
+      <span class="tag">.com taken</span>
+    </div>
+    <div class="drop-row">
+      <span class="nm">Loreven</span>
+      <span class="why">.com taken · 已係 LUXURY FASHION 品牌 (loreven.com)</span>
+      <span class="tag collision">brand collision</span>
+    </div>
+    <div class="drop-row">
+      <span class="nm">Foldlore</span>
+      <span class="why">.com taken</span>
+      <span class="tag">.com taken</span>
+    </div>
+    <div class="drop-row">
+      <span class="nm">Loreloft</span>
+      <span class="why">.com taken</span>
+      <span class="tag">.com taken</span>
+    </div>
+    <div class="drop-row">
+      <span class="nm">Mythara</span>
+      <span class="why">.com taken · .io 都 taken · 完全 squat</span>
+      <span class="tag">.com taken</span>
+    </div>
+    <div class="drop-row">
+      <span class="nm">Soulink</span>
+      <span class="why">.com taken · .app / .io 全 squat</span>
+      <span class="tag">.com taken</span>
+    </div>
+    <div class="drop-row">
+      <span class="nm">Personae</span>
+      <span class="why">.com taken (Latin 字 too generic) + 同 Persona JRPG IP 易混淆</span>
+      <span class="tag collision">brand collision</span>
+    </div>
+    <div class="drop-row">
+      <span class="nm">Soulthread</span>
+      <span class="why">.com taken · .io taken</span>
+      <span class="tag">.com taken</span>
+    </div>
+    <div class="drop-row">
+      <span class="nm">Sagacore</span>
+      <span class="why">.com taken</span>
+      <span class="tag">.com taken</span>
+    </div>
+    <div class="drop-row">
+      <span class="nm">Heroline</span>
+      <span class="why">.com taken</span>
+      <span class="tag">.com taken</span>
+    </div>
+    <div class="drop-row">
+      <span class="nm">Mythboard</span>
+      <span class="why">.com taken</span>
+      <span class="tag">.com taken</span>
+    </div>
+    <div class="drop-row">
+      <span class="nm">Questline</span>
+      <span class="why">.com taken (existing game mechanic term)</span>
+      <span class="tag">.com taken</span>
+    </div>
+    <div class="drop-row">
+      <span class="nm">Saganova</span>
+      <span class="why">.com taken</span>
+      <span class="tag">.com taken</span>
+    </div>
+    <div class="drop-row">
+      <span class="nm">Bardly / Inkly / Verseo</span>
+      <span class="why">.com all taken · "-ly" suffix 已飽和</span>
+      <span class="tag">.com taken</span>
+    </div>
+    <div class="drop-row">
+      <span class="nm">Aetheri</span>
+      <span class="why">.com taken</span>
+      <span class="tag">.com taken</span>
+    </div>
+    <div class="drop-row">
+      <span class="nm">Loregrid</span>
+      <span class="why">.com taken</span>
+      <span class="tag">.com taken</span>
+    </div>
+    <div class="drop-row">
+      <span class="nm">Castcraft / Adventron</span>
+      <span class="why">.com taken</span>
+      <span class="tag">.com taken</span>
+    </div>
+    <div class="drop-row">
+      <span class="nm">Sagely / Lorelei / Folio / Quill</span>
+      <span class="why">.com taken (全部係 dictionary word · early squat)</span>
+      <span class="tag">.com taken</span>
+    </div>
+    <div class="drop-row">
+      <span class="nm">Taleforge / Storyveil / Mythwright / Plotari / Narrata</span>
+      <span class="why">.com all taken</span>
+      <span class="tag">.com taken</span>
+    </div>
+    <div class="drop-row">
+      <span class="nm">Aria / Vellum / Kanvas / Scroll</span>
+      <span class="why">.com all taken (premium one-word names · all gone)</span>
+      <span class="tag">.com taken</span>
+    </div>
+    <div class="drop-row">
+      <span class="nm">Storymancer / Loretide / Loremantle / Loreglass</span>
+      <span class="why">.com all taken</span>
+      <span class="tag">.com taken</span>
+    </div>
+    <div class="drop-row">
+      <span class="nm">Loomtale / Mythreel / Loresmith / Loreheart / Loreverse</span>
+      <span class="why">.com all taken</span>
+      <span class="tag">.com taken</span>
+    </div>
+    <div class="drop-row">
+      <span class="nm">Vellumai / Novelune / Storiq / Fableq</span>
+      <span class="why">.com all taken (AI-suffix combos already farmed)</span>
+      <span class="tag">.com taken</span>
+    </div>
+    <div class="drop-row">
+      <span class="nm">Fableum</span>
+      <span class="why">.com TAKEN AND ACTIVELY RUNNING AI RPG PLATFORM — direct competitor</span>
+      <span class="tag collision">brand collision</span>
+    </div>
+    <div class="drop-row">
+      <span class="nm">Fableon</span>
+      <span class="why">.com taken · FableAI app on Apple Store (similar RPG storytelling category)</span>
+      <span class="tag collision">brand collision</span>
+    </div>
+    <div class="drop-row">
+      <span class="nm">Characthr</span>
+      <span class="why">.com available · 但 spelling 太怪 (missing vowels · 中文用戶絕對打錯)</span>
+      <span class="tag pron">spelling</span>
+    </div>
+    <div class="drop-row">
+      <span class="nm">Loreheim / Narratly / Fabliq / Sceneo / Questink</span>
+      <span class="why">.com all taken</span>
+      <span class="tag">.com taken</span>
+    </div>
+    <div class="drop-row">
+      <span class="nm">Veylune / Novellan / Loreaxis</span>
+      <span class="why">.com all taken</span>
+      <span class="tag">.com taken</span>
+    </div>
+    <div class="drop-row">
+      <span class="nm">Scenari / Fabular / Telleon</span>
+      <span class="why">.com all taken</span>
+      <span class="tag">.com taken</span>
+    </div>
+    <div class="drop-row">
+      <span class="nm">Scriba</span>
+      <span class="why">.com / .io / .app ALL taken (Latin 字 too generic)</span>
+      <span class="tag">.com taken</span>
+    </div>
+    <div class="drop-row">
+      <span class="nm">Storyvel</span>
+      <span class="why">.com taken</span>
+      <span class="tag">.com taken</span>
+    </div>
+  </div>
+
+  <h2><span class="icon">📊</span> Comparison Table · Top 10 Side-by-Side</h2>
+  <div class="cmp-wrap">
+    <table class="cmp">
+      <thead>
+        <tr>
+          <th>Rank</th>
+          <th>Name</th>
+          <th>Score</th>
+          <th class="center">Mem</th>
+          <th class="center">Pron</th>
+          <th class="center">.com</th>
+          <th class="center">Uniq</th>
+          <th class="center">Theme</th>
+          <th class="center">.com</th>
+          <th class="center">.app</th>
+          <th class="center">.io</th>
+          <th class="center">.ai</th>
+          <th>Verdict</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="center">#1</td>
+          <td class="name">Kithlore</td>
+          <td class="score">91</td>
+          <td class="center">23</td><td class="center">16</td><td class="center">25</td><td class="center">15</td><td class="center">12</td>
+          <td class="center ok">✓</td><td class="center ok">✓</td><td class="center ok">✓</td><td class="center ok">✓</td>
+          <td>TOP PICK</td>
+        </tr>
+        <tr>
+          <td class="center">#2</td>
+          <td class="name">Voxenne</td>
+          <td class="score">88</td>
+          <td class="center">22</td><td class="center">17</td><td class="center">25</td><td class="center">15</td><td class="center">9</td>
+          <td class="center ok">✓</td><td class="center ok">✓</td><td class="center ok">✓</td><td class="center ok">✓</td>
+          <td>STRONG ALT</td>
+        </tr>
+        <tr>
+          <td class="center">#3</td>
+          <td class="name">Saganne</td>
+          <td class="score">85</td>
+          <td class="center">21</td><td class="center">18</td><td class="center">25</td><td class="center">11</td><td class="center">10</td>
+          <td class="center ok">✓</td><td class="center ok">✓</td><td class="center ok">✓</td><td class="center ok">✓</td>
+          <td>ELEGANT</td>
+        </tr>
+        <tr>
+          <td class="center">#4</td>
+          <td class="name">Sagaful</td>
+          <td class="score">78</td>
+          <td class="center">18</td><td class="center">16</td><td class="center">25</td><td class="center">12</td><td class="center">7</td>
+          <td class="center ok">✓</td><td class="center ok">✓</td><td class="center">?</td><td class="center">?</td>
+          <td>Saga TM risk</td>
+        </tr>
+        <tr>
+          <td class="center">#5</td>
+          <td class="name">Thrynne</td>
+          <td class="score">76</td>
+          <td class="center">22</td><td class="center">10</td><td class="center">25</td><td class="center">15</td><td class="center">4</td>
+          <td class="center ok">✓</td><td class="center ok">✓</td><td class="center ok">✓</td><td class="center ok">✓</td>
+          <td>TH 音難讀</td>
+        </tr>
+        <tr>
+          <td class="center">#6</td>
+          <td class="name">Loremantra</td>
+          <td class="score">74</td>
+          <td class="center">18</td><td class="center">15</td><td class="center">25</td><td class="center">13</td><td class="center">10</td>
+          <td class="center ok">✓</td><td class="center">?</td><td class="center">?</td><td class="center">?</td>
+          <td>太長</td>
+        </tr>
+        <tr>
+          <td class="center">#7</td>
+          <td class="name">Lorenel</td>
+          <td class="score">73</td>
+          <td class="center">16</td><td class="center">18</td><td class="center">25</td><td class="center">8</td><td class="center">6</td>
+          <td class="center ok">✓</td><td class="center">?</td><td class="center">?</td><td class="center">?</td>
+          <td>Generic</td>
+        </tr>
+        <tr>
+          <td class="center">#8</td>
+          <td class="name">Loredeck</td>
+          <td class="score">70</td>
+          <td class="center">24</td><td class="center">19</td><td class="center">0</td><td class="center">12</td><td class="center">15</td>
+          <td class="center bad">✗</td><td class="center bad">✗</td><td class="center ok">✓</td><td class="center">?</td>
+          <td>.com 死局</td>
+        </tr>
+        <tr>
+          <td class="center">#9</td>
+          <td class="name">Loreyx</td>
+          <td class="score">68</td>
+          <td class="center">19</td><td class="center">11</td><td class="center">25</td><td class="center">13</td><td class="center">0</td>
+          <td class="center ok">✓</td><td class="center">?</td><td class="center">?</td><td class="center">?</td>
+          <td>"yx" 難 type</td>
+        </tr>
+        <tr>
+          <td class="center">#10</td>
+          <td class="name">Chapterli</td>
+          <td class="score">65</td>
+          <td class="center">16</td><td class="center">18</td><td class="center">25</td><td class="center">2</td><td class="center">4</td>
+          <td class="center ok">✓</td><td class="center">?</td><td class="center">?</td><td class="center">?</td>
+          <td>Chapterly 衝突</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2><span class="icon">🎯</span> Final Recommendation</h2>
+
+  <div class="pick-card">
+    <div class="pre">Founder Decision Aid · 3 Picks 等你揀</div>
+    <h2>Top 3 — Pick by Vibe</h2>
+    <div class="sub">三個都 4 TLD 齊備 · zero collision · 細節分別在於 vibe + thematic angle</div>
+
+    <div class="pick-grid">
+
+      <div class="pick-cell">
+        <div class="pos">🥇 If you want LITERARY</div>
+        <div class="nm">Kithlore</div>
+        <div class="why">
+          "<strong>Kith and Lore</strong>" — 古英文「親友圈嘅故事」。最強 thematic anchor · 兩個 morpheme 都 evoke 我哋產品核心（NPC 關係 + MemPalace lore）。
+          發音乾淨 · spelling 唯一 · social handle 全空。
+          適合 founder 想 brand 出 <strong>premium narrative platform</strong> 而唔係 utility tool。
+        </div>
+      </div>
+
+      <div class="pick-cell">
+        <div class="pos">🥈 If you want BRANDABLE</div>
+        <div class="nm">Voxenne</div>
+        <div class="why">
+          "<strong>Voice + -enne</strong>" — directly references NPC Level 3 Inner Voices 差異化功能。
+          最 brandable（5 字母 · 2 音節 · 神秘感）· 似 NovelAI / Replika 嘅 modern AI brand 風格。
+          適合 founder 想 modern · mystery vibe · 同 NovelAI 喺同一檔次互相 compete。
+        </div>
+      </div>
+
+      <div class="pick-cell">
+        <div class="pos">🥉 If you want SAFEST PRONOUNCE</div>
+        <div class="nm">Saganne</div>
+        <div class="why">
+          "<strong>Saga + -anne</strong>" — 北歐 saga + elegance ending。發音最 100% 對（HK / TW 用戶 first-try pronounce 應該全對）。
+          缺點：「Fort Saganne」係 1984 法國電影 · google 唔 100% blank slate。Thematic 偏 epic-fantasy · 唔啱戀愛 / 校園 genres。
+          適合 founder 怕 word-of-mouth pronunciation friction · 寧願少少 SEO 競爭都要 perfect pronunciation。
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <h2><span class="icon">💡</span> Key Trade-offs</h2>
+  <div style="background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 22px 26px;">
+    <p style="font-size: 14.5px; line-height: 1.7; color: var(--ink-soft);">
+      <strong style="color: var(--ink);">Memorability ↔ Pronounce trade-off:</strong>
+      最 memorable 嘅名（Loredeck #8 · Thrynne #5）都有 fatal flaw — 一個 .com taken · 一個 TH 音 HK/TW 讀唔到。
+      Top 3（Kithlore / Voxenne / Saganne）都係 balance 好（高 memorable + clean pronounce + .com available）。
+    </p>
+    <p style="font-size: 14.5px; line-height: 1.7; color: var(--ink-soft); margin-top: 12px;">
+      <strong style="color: var(--ink);">Thematic ↔ Brandable trade-off:</strong>
+      最 thematic（Loredeck "deck of lore"）.com 死局 · 唯一 .com 可買嘅 thematic 強候選係 Kithlore（"kith + lore"）。
+      Voxenne thematic 偏 character voice angle · Saganne thematic 偏 epic saga · 各有取捨。
+    </p>
+    <p style="font-size: 14.5px; line-height: 1.7; color: var(--ink-soft); margin-top: 12px;">
+      <strong style="color: var(--ink);">.com market reality:</strong>
+      檢查咗 50 個 candidate · 只有 8 個 .com available。任何「明顯」嘅 story / fable / lore / tale / saga + suffix combination 已全 squat。
+      所以結論 — 純 dictionary word 不可能 · 必須 coined word + slightly literary suffix。Top 3 完美對應呢個 reality。
+    </p>
+    <p style="font-size: 14.5px; line-height: 1.7; color: var(--ink-soft); margin-top: 12px;">
+      <strong style="color: var(--ink);">If I were founder · I'd pick Kithlore.</strong>
+      原因：(1) thematic 最深 — 兩個 morpheme 都直接 anchor 產品 narrative + relationship · 比 Voxenne 一條 vox 線好過。
+      (2) "Kith" 對中文用戶反而係 advantage — 聽落古典 / literary · 唔似廉價 startup name · contributes to premium positioning。
+      (3) 全 TLD 齊備 + zero social handle taken · 完美 launch state。
+      (4) "Kith and kin" 係 native English speakers 知道嘅 expression · 將來 international expansion 有 nostalgia / 文學感 hook。
+    </p>
+  </div>
+
+  <h2><span class="icon">⚡</span> Recommended Next Steps</h2>
+  <div style="background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 22px 26px;">
+    <ol style="padding-left: 20px; font-size: 14.5px; line-height: 1.9; color: var(--ink-soft);">
+      <li><strong>Founder 揀一個 vibe</strong>（Literary / Brandable / Safe-pronounce）— 對應 Kithlore / Voxenne / Saganne。</li>
+      <li><strong>Buy 4 TLDs 即刻</strong> — .com + .app + .io + .ai 一齊買鎖定 brand surface（總成本約 USD $100/yr for first year）。Vercel Domains 直接 checkout。</li>
+      <li><strong>Reserve social handles</strong> — Twitter/X · Instagram · TikTok · Facebook · Reddit · GitHub。今日揀完就要 register handles。</li>
+      <li><strong>USPTO filing</strong>（v1.5 上線後）— class 9 (downloadable software) + class 41 (entertainment services) · DIY 大約 USD $250-350 per class 用 trademarkengine 或揾律師約 $1500 all-in。</li>
+      <li><strong>Logo / wordmark draft</strong> — 揀完名後 Phase 7 之前喺 Figma 落 logo concept · CLAUDE.md design system 對齊。</li>
+    </ol>
+  </div>
+
+  <div style="margin-top: 60px; padding-top: 24px; border-top: 1px solid var(--border); color: var(--muted); font-size: 12px; text-align: center;">
+    Research date: 2026-05-26 · Domain checks via Vercel Domains API (real WHOIS) · Brand collision via web search · Session 14.5 · Story Engine product naming
+  </div>
+
+</div>
+</body>
+</html>

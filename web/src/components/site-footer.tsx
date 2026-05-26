@@ -9,7 +9,7 @@ export async function SiteFooter() {
     <footer className="border-t border-border/40 py-8 mt-16">
       <div className="container mx-auto max-w-6xl px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
         <div>
-          © {new Date().getFullYear()} Story Engine. {tFooter("tagline")}.
+          © {new Date().getFullYear()} Kieio · 讀「KEE-yo」. {tFooter("tagline")}.
         </div>
         <nav className="flex items-center gap-5">
           <Link href="/pricing" className="hover:text-foreground transition">

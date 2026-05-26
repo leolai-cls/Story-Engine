@@ -31,8 +31,8 @@ export const openrouterProvider = createOpenAI({
   baseURL: "https://openrouter.ai/api/v1",
   // OpenRouter requires the OpenAI-compatible "name" header for usage routing.
   headers: {
-    "HTTP-Referer": process.env.NEXT_PUBLIC_SITE_URL ?? "https://story-engine-drab.vercel.app",
-    "X-Title": "Story Engine",
+    "HTTP-Referer": process.env.NEXT_PUBLIC_SITE_URL ?? "https://kieio.com",
+    "X-Title": "Kieio",
   },
 });
 

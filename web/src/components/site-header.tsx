@@ -114,7 +114,7 @@ export async function SiteHeader() {
             className="se-mono"
             style={{ letterSpacing: "-0.01em", fontSize: 15, color: "var(--se-fg)" }}
           >
-            story.engine
+            Kieio
           </span>
         </Link>
 

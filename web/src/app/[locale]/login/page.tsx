@@ -61,7 +61,7 @@ export default async function LoginPage({
             className="inline-flex items-center gap-2 font-bold mx-auto mb-3"
           >
             <Sparkles className="h-5 w-5 text-primary" />
-            <span>Story Engine</span>
+            <span>Kieio</span>
           </Link>
           <CardTitle className="text-2xl">{t("title")}</CardTitle>
           <CardDescription>{t("subtitle")}</CardDescription>

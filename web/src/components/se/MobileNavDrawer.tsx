@@ -125,7 +125,7 @@ export function MobileNavDrawer({
                     color: "var(--se-fg)",
                   }}
                 >
-                  story.engine
+                  Kieio
                 </span>
               </div>
               <button

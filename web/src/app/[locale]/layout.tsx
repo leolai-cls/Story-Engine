@@ -23,9 +23,9 @@ const notoSansTc = Noto_Sans_TC({
 });
 
 export const metadata: Metadata = {
-  title: "Story Engine — 中文圈互動式故事 RPG",
+  title: "Kieio — 中文圈互動式故事 RPG",
   description:
-    "AI 為你度身設計故事，永遠記得你嘅選擇，NPC 真有人格、唔會討好你。",
+    "Kieio (讀「KEE-yo」) · AI 為你度身設計故事，永遠記得你嘅選擇，NPC 真有人格、唔會討好你。",
 };
 
 export function generateStaticParams() {

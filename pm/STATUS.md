@@ -1,4 +1,4 @@
-# STATUS — Story Engine
+# STATUS — Kieio (codename: Story Engine)
 
 > 單一 source of truth。Claude 每次重要進展後更新呢個 file。
 > 開新 session 第一件事：read 呢個 file，知道而家喺邊。
@@ -7,9 +7,10 @@
 
 ## 🎯 而家狀態
 
-**Phase**: **🟢 Phase 0 + Phase 1 + Phase 1.5 NPC L3 backend DONE (Sessions 11-13 · 10 migrations 0019-0028 · 4 audit campaigns converged · 17 ship blockers caught pre-prod) · 落 🟣 UI Session 14 (NPC L3 toggle + Memory Journal NPC tab)**
-**Live URL**: https://story-engine-drab.vercel.app
-**Last updated**: 2026-05-26 (Session 13 — Phase 1.5 NPC L3 Agents backend + Wave 2 audit converged)
+**Brand**: 🆕 **Kieio** · 讀「KEE-yo」· domain **kieio.com** (Cloudflare registrar · Vercel hosted · DNS auto-configured · SSL provisioned)
+**Phase**: **🟢 Phase 0 + Phase 1 + Phase 1.5 NPC L3 backend + Session 14 UI DONE (Sessions 11-14 · 10 migrations 0019-0028 · 4 audit campaigns converged · 17 ship blockers caught pre-prod) · 🆕 Brand locked 「Kieio」+ domain live · 落 🟡 Money tier (Phase 4 Stripe + Phase 6 KYC)**
+**Live URL**: https://kieio.com (was https://story-engine-drab.vercel.app · auto-redirect 301 維持)
+**Last updated**: 2026-05-26 (Session 14 — UI shipped + Kieio brand locked + kieio.com domain live)
 
 ## 🎯 Founder priority rule（鎖死）
 
@@ -63,7 +64,49 @@
 
 **Migrated to backlog** (per pm/BACKLOG.md「Phase 5 deferred polish」section · 20 IDs 跨 4 sub-bucket)：W2.5-GENRE-M-02 alias gap · W2.5-FTS-L-03/L-04 tokenizer polish · W2-COST-H-04 anon ISR · W2.6-MIG-L-02 'curated' enum doc · W2.6-PLAY-L-03/L-04 defensive · W2.6-LIB-L-05 1-char Latin hint · W2.6-LIB-I-06 Settings display_name trim · W2.6-UX-L-03 English error strings · W2.6-MIG-I-07 createStory+trigger origin redundancy · W2.6-INFO-03 getCommentReplies UI TODO · W2.6-MIGRATION-L-04 sanity check pattern · 等等。
 
-## ✅ Just completed (Session 13 — 🎭 Phase 1.5 NPC L3 Agents backend · Wave 2 audit converged)
+## ✅ Just completed (Session 14 — 🎯 UI surface + 🆕 Kieio brand lock + kieio.com domain live)
+
+### TL;DR
+- 🎨 **Session 14 UI surface** ship · NPC L3 toggle (Settings + per-playthrough) · Memory Journal「NPC Inner Voices」tab · per-turn L3 cost indicator · server action `setNpcL3Enabled` · Wave 1 UI audit clean · TypeScript clean
+- 🆕 **Brand locked**: **Kieio** · 讀「KEE-yo」· 2 syllables · easy-to-read · founder bought **kieio.com** independently
+- 🌐 **Domain live**: kieio.com purchased on Cloudflare registrar → Vercel Domain Connect 自動 DNS · SSL provisioned · production live · env vars `NEXT_PUBLIC_SITE_URL` + Supabase auth redirect URLs 全部 updated
+- 🏷️ **Brand propagation**: site-header + footer + MobileNavDrawer + layout metadata + login page + i18n appName (en/zh-Hans/zh-Hant) + OpenRouter X-Title 全部「Story Engine」→「Kieio」· internal codename / git history / repo name 保留「Story Engine」
+- 💰 **Pricing v3 finalized**: 3-tier (Free signup 1k + 50/day · **Standard $9.99** no turn cap + 80 L3 Agent cap · **Pro $19.99** no caps) · per-NPC L3 6 credits flat-rate
+- ✅ Session 14 deliverables 全部上 prod · ready for 🟡 Money tier (Phase 4 Stripe + Phase 6 KYC)
+
+### 🆕 Brand decision (locked)
+| Field | Value |
+|---|---|
+| **Product brand** | **Kieio** |
+| Pronunciation | 「KEE-yo」(2 syllables · 直覺 read · 5 letters) |
+| Internal codename | Story Engine (git history · repo name · LLM system prompts · internal docs 繼續用) |
+| Domain | **kieio.com** (Cloudflare registrar · $10.44/yr) |
+| Hosting | Vercel · Domain Connect 自動 DNS · SSL provisioned |
+| Auth redirect | Supabase URLs updated: `https://kieio.com/auth/callback` + `https://kieio.com/auth/confirm` |
+| Env vars updated | `NEXT_PUBLIC_SITE_URL=https://kieio.com` (Production + Preview) |
+| Marketing prep | `NEXT_PUBLIC_APP_URL` + `NEXT_PUBLIC_MARKETING_URL` env vars wired (today both → kieio.com · future split `xxx.com` marketing vs `app.xxx.com` product zero-code-change) |
+
+### 📦 Session 14 deliverables
+| File | Change |
+|---|---|
+| `web/src/app/[locale]/play/[playthroughId]/actions.ts` | NEW `setNpcL3Enabled` server action · server-side tier recheck · audit fix CRIT-B applied |
+| `web/src/components/se/NpcL3Toggle.tsx` | NEW per-playthrough toggle UI · disabled state for non-Storyteller tier · live credit cost preview |
+| `web/src/components/memory/memory-client.tsx` | NEW「NPC Inner Voices」tab · displays inner_thought + intent + reasoning_trace per NPC per turn |
+| `web/src/components/site-header.tsx` | Brand 「story.engine」→「Kieio」(line 117) |
+| `web/src/components/site-footer.tsx` | Brand 「Story Engine」→「Kieio · 讀「KEE-yo」」(line 12) |
+| `web/src/components/se/MobileNavDrawer.tsx` | Brand 「story.engine」→「Kieio」(line 128) |
+| `web/src/app/[locale]/layout.tsx` | metadata title + description rewrite for Kieio |
+| `web/src/app/[locale]/login/page.tsx` | Header brand 「Story Engine」→「Kieio」(line 64) |
+| `web/messages/en.json` + `zh-Hans.json` + `zh-Hant.json` | i18n `appName: Story Engine` → `Kieio` |
+| `web/src/lib/ai/providers.ts` | OpenRouter `X-Title: Story Engine` → `Kieio` · HTTP-Referer fallback `kieio.com` |
+
+### 🎯 What's next
+- 🟡 **Money tier** — Phase 4 Stripe (subscription · checkout · top-up) + Phase 6 KYC (Stripe Identity) · ~2 sessions
+- 🏁 **Final stage** — Phase 7 5 條官方故事 (small task) + Comprehensive Manual E2E (founder ~1-2 session covers entire happy path)
+
+---
+
+## ✅ Earlier (Session 13 — 🎭 Phase 1.5 NPC L3 Agents backend · Wave 2 audit converged)
 
 ### TL;DR
 - 每個 active NPC (max 3 per turn) 並行一個 Standard tier agent · 出 inner_thought + intent + reasoning_trace (MIRROR 3-step CoT) · Narrator 整合
