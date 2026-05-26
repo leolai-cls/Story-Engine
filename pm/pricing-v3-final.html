@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pricing v3.1 Final · Story Engine (post-audit)</title>
+<style>
+  :root {
+    --primary: #4F46E5;
+    --primary-soft: #EEF2FF;
+    --bg: #FAFAF7;
+    --card: #FFFFFF;
+    --ink: #18181B;
+    --ink-soft: #3F3F46;
+    --muted: #71717A;
+    --border: #E4E4E7;
+    --green: #10B981;
+    --green-soft: #D1FAE5;
+    --rose: #E11D48;
+    --rose-soft: #FFE4E6;
+    --amber: #D97706;
+    --amber-soft: #FEF3C7;
+    --gray-soft: #F4F4F5;
+    --gold: #B45309;
+    --gold-soft: #FEF3C7;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+    background: var(--bg); color: var(--ink); line-height: 1.6;
+    padding: 48px 24px 120px;
+  }
+  .wrap { max-width: 1200px; margin: 0 auto; }
+  h1 { font-size: 36px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 4px; }
+  .eyebrow {
+    display: inline-block; font-size: 11px; font-weight: 700; color: var(--primary);
+    background: var(--primary-soft); padding: 5px 10px; border-radius: 999px;
+    letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 12px;
+  }
+  .lede { font-size: 17px; color: var(--muted); max-width: 780px; margin-bottom: 16px; }
+  h2 {
+    font-size: 24px; font-weight: 700; letter-spacing: -0.015em; margin: 52px 0 6px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  h2 .icon { font-size: 28px; }
+  .h2-sub { font-size: 14px; color: var(--muted); margin-bottom: 18px; }
+  h3 { font-size: 17px; font-weight: 700; margin: 24px 0 8px; }
+
+  .v31-banner {
+    background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+    border: 1px solid #F59E0B; border-radius: 14px; padding: 18px 22px; margin: 12px 0 24px;
+  }
+  .v31-banner .label {
+    font-size: 11px; font-weight: 800; color: #92400E;
+    text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px;
+  }
+  .v31-banner .point {
+    font-size: 14px; color: #78350F; padding: 3px 0;
+  }
+  .v31-banner .point::before { content: "✓ "; color: #047857; font-weight: 800; }
+
+  .tldr {
+    background: linear-gradient(135deg, #EEF2FF 0%, #C7D2FE 100%);
+    border: 1px solid #A5B4FC; border-radius: 14px; padding: 24px 28px; margin: 20px 0 28px;
+  }
+  .tldr .label {
+    font-size: 11px; font-weight: 800; color: #3730A3;
+    text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px;
+  }
+  .tldr .point {
+    font-size: 15.5px; color: #312E81; line-height: 1.55; padding: 4px 0;
+  }
+  .tldr .point::before { content: "▸ "; color: #4338CA; font-weight: 700; }
+  .tldr .point strong { color: #1E1B4B; }
+
+  .pricing-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin: 24px 0 12px;
+  }
+  @media (max-width: 980px) { .pricing-grid { grid-template-columns: 1fr; } }
+  .tier-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 22px; position: relative; display: flex; flex-direction: column;
+  }
+  .tier-card.popular { border-color: var(--primary); box-shadow: 0 4px 24px rgba(79,70,229,0.12); }
+  .tier-card .popular-tag {
+    position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+    background: var(--primary); color: white; font-size: 10.5px; font-weight: 800;
+    padding: 4px 10px; border-radius: 999px; letter-spacing: 0.08em; text-transform: uppercase;
+  }
+  .tier-card .label {
+    font-size: 12.5px; font-weight: 800; color: var(--muted);
+    letter-spacing: 0.08em; text-transform: uppercase;
+  }
+  .tier-card .name { font-size: 22px; font-weight: 800; margin: 4px 0; }
+  .tier-card .price {
+    display: flex; align-items: baseline; gap: 4px; margin-bottom: 16px;
+  }
+  .tier-card .price .num {
+    font-size: 36px; font-weight: 800; letter-spacing: -0.02em;
+  }
+  .tier-card .price .per { font-size: 13px; color: var(--muted); }
+  .tier-card .credits {
+    background: var(--gray-soft); border-radius: 8px; padding: 10px 12px;
+    margin-bottom: 14px;
+  }
+  .tier-card .credits .row {
+    display: flex; justify-content: space-between; font-size: 13px;
+    color: var(--ink-soft); padding: 2px 0;
+  }
+  .tier-card .credits .row strong { color: var(--ink); font-variant-numeric: tabular-nums; }
+  .tier-card ul { list-style: none; padding: 0; margin: 0 0 14px; flex: 1; }
+  .tier-card li {
+    font-size: 13.5px; color: var(--ink-soft); padding: 5px 0; padding-left: 22px;
+    position: relative; line-height: 1.5;
+  }
+  .tier-card li.yes::before {
+    content: "✓"; position: absolute; left: 0; color: var(--green); font-weight: 800;
+  }
+  .tier-card li.no::before {
+    content: "—"; position: absolute; left: 0; color: var(--muted);
+  }
+  .tier-card li.limited::before {
+    content: "◐"; position: absolute; left: 0; color: var(--amber); font-weight: 800;
+  }
+  .tier-card .target {
+    background: var(--primary-soft); color: var(--primary); padding: 8px 12px;
+    border-radius: 8px; font-size: 12.5px; font-weight: 600; text-align: center;
+  }
+
+  .cost-card {
+    background: linear-gradient(135deg, #FEFCE8 0%, #FEF3C7 100%);
+    border: 1px solid #FDE68A; border-radius: 12px; padding: 18px 22px;
+    margin: 14px 0;
+  }
+  .cost-card .label {
+    font-size: 11px; font-weight: 800; color: var(--gold);
+    text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px;
+  }
+  .cost-card .headline {
+    font-size: 28px; font-weight: 800; color: #78350F;
+    font-variant-numeric: tabular-nums; line-height: 1.2;
+  }
+  .cost-card .sub { font-size: 14px; color: #92400E; margin-top: 6px; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 14px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 14px; }
+  @media (max-width: 900px) {
+    .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+  }
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 18px;
+  }
+  .card .ico { font-size: 22px; line-height: 1; margin-bottom: 8px; }
+  .card .head { font-size: 15px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+  .card .body { font-size: 13px; color: var(--ink-soft); line-height: 1.5; }
+  .card .stat {
+    font-size: 22px; font-weight: 800; color: var(--ink);
+    font-variant-numeric: tabular-nums; margin: 6px 0 4px;
+  }
+
+  table {
+    width: 100%; border-collapse: separate; border-spacing: 0;
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    overflow: hidden; margin: 12px 0; font-size: 13.5px;
+  }
+  table th {
+    text-align: left; padding: 11px 14px; font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted);
+    background: var(--gray-soft); border-bottom: 1px solid var(--border);
+  }
+  table td {
+    padding: 11px 14px; border-bottom: 1px solid var(--border); color: var(--ink-soft);
+    vertical-align: top;
+  }
+  table tr:last-child td { border-bottom: none; }
+  td.num { font-variant-numeric: tabular-nums; text-align: right; font-weight: 600; color: var(--ink); }
+  td.muted { color: var(--muted); }
+  td.savings { color: #047857; font-weight: 700; }
+  td.bad { color: #B91C1C; font-weight: 700; }
+  td.highlight { background: #FEF3C7; font-weight: 700; color: #78350F; }
+  td.center { text-align: center; }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px;
+    border-radius: 999px; font-size: 11px; font-weight: 700;
+  }
+  .badge.yes { background: var(--green-soft); color: #047857; }
+  .badge.no { background: var(--gray-soft); color: var(--muted); }
+  .badge.limited { background: var(--amber-soft); color: var(--gold); }
+
+  .note {
+    border-radius: 12px; padding: 14px 18px; margin: 14px 0;
+    font-size: 13.5px; line-height: 1.55;
+  }
+  .note.warn { background: var(--amber-soft); border: 1px solid #FCD34D; color: #78350F; }
+  .note.good { background: var(--green-soft); border: 1px solid #6EE7B7; color: #065F46; }
+  .note.info { background: var(--primary-soft); border: 1px solid #A5B4FC; color: #312E81; }
+  .note.danger { background: var(--rose-soft); border: 1px solid #FCA5A5; color: #9F1239; }
+  .note strong { color: inherit; font-weight: 700; }
+
+  .flow {
+    display: flex; align-items: stretch; gap: 8px; flex-wrap: wrap; margin: 14px 0;
+  }
+  .flow-step {
+    flex: 1; min-width: 180px; background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 14px; position: relative;
+  }
+  .flow-step .ico { font-size: 22px; margin-bottom: 4px; }
+  .flow-step .step-num {
+    position: absolute; top: -10px; left: -10px;
+    background: var(--ink); color: white; width: 22px; height: 22px;
+    border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 800;
+  }
+  .flow-step .head { font-size: 13.5px; font-weight: 700; margin-bottom: 4px; }
+  .flow-step .body { font-size: 12px; color: var(--muted); line-height: 1.5; }
+  .flow-arrow {
+    display: flex; align-items: center; color: var(--muted); font-size: 18px;
+    font-weight: 700; flex: 0;
+  }
+
+  .phase {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 18px; margin-bottom: 10px;
+    display: flex; gap: 14px; align-items: flex-start;
+  }
+  .phase .step-num {
+    background: var(--primary); color: white;
+    width: 32px; height: 32px; border-radius: 8px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 800; flex-shrink: 0;
+  }
+  .phase .text { flex: 1; }
+  .phase .head { font-size: 15px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+  .phase .body { font-size: 13px; color: var(--muted); line-height: 1.5; }
+  .phase .meta {
+    margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap; font-size: 11px;
+  }
+  .phase .meta span {
+    background: var(--gray-soft); padding: 3px 8px; border-radius: 4px;
+    color: var(--ink-soft); font-weight: 600;
+  }
+
+  .decision {
+    background: var(--card); border-left: 4px solid var(--primary);
+    border-radius: 8px; padding: 14px 18px; margin: 10px 0;
+  }
+  .decision .q {
+    font-size: 14px; font-weight: 700; color: var(--ink); margin-bottom: 8px;
+  }
+  .decision .a {
+    font-size: 13.5px; color: var(--ink-soft); line-height: 1.55;
+  }
+  .decision .a strong { color: var(--ink); }
+
+  .cta {
+    background: var(--ink); color: white; border-radius: 14px;
+    padding: 22px 24px; margin-top: 40px;
+  }
+  .cta .label {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.08em; opacity: 0.6; margin-bottom: 8px;
+  }
+  .cta .body { font-size: 16px; line-height: 1.55; opacity: 0.92; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <span class="eyebrow">💰 Pricing v3.1 · Final spec (post-audit)</span>
+  <h1>3-Tier 訂閱 + 一次性 signup + 每日 refresh + 充值</h1>
+  <p class="lede">基於 Wave 1 audit findings revise 過嘅版本。Free tier 對齊 AI Dungeon Wanderer 模式 · Standard tier 移除 Pro turn cap (對齊業界 NovelAI/AID/CAI) · 只保留 NPC L3 Agent cap 作 freemium hook (因為呢個係我哋獨有 feature)。</p>
+
+  <div class="v31-banner">
+    <div class="label">📝 v3.1 改動 (vs v3.0)</div>
+    <div class="point">Free tier 由 1,000 cr 一次過 → <strong>1,000 cr signup + 50 cr/日 daily refresh</strong> (acquisition 對齊 AID Wanderer)</div>
+    <div class="point">Standard tier 移除 <strong>30 Pro turn cap</strong> (對齊 NovelAI/AID/CAI 業界標準) · 只保留 80 NPC L3 Agent cap</div>
+    <div class="point">Pro 訂閱 worst-case margin claim 由 60% → <strong>55%</strong> (根據真實 credit cap 82 turn 計算 · 之前計錯)</div>
+    <div class="point">Stripe 費用公式由 flat 3% → <strong>2.9% + $0.30/txn</strong> (之前漏咗 fixed fee)</div>
+    <div class="point">Standard typical usage example 重新計 · 確保 6,000 credit budget 內 (之前 example 8,360 超 budget)</div>
+    <div class="point">Image generation 加入 Phase 8+ roadmap footnote (對齊 NovelAI/AID market expectation)</div>
+  </div>
+
+  <div class="tldr">
+    <div class="label">🎯 一頁總結 (v3.1)</div>
+    <div class="point"><strong>3 個層次</strong>: Free (1k signup + 50/日 refresh) · Standard $9.99 (Pro 唔 cap · L3 Agent 限 80/月) · Pro $19.99 (全部 unlimited)</div>
+    <div class="point"><strong>Top-up</strong>: 5k/$5 · 15k/$12.50 · 50k/$40 · 任何 tier 都可以買 · 充值唔解鎖 L3 cap (升 Pro 至 reset)</div>
+    <div class="point"><strong>Margin healthy</strong>: Standard 71-79% realistic · Pro worst case 55% · 1000-用戶 scale net ~52% (對齊 ICONIQ AI-native B2B benchmark 50-60%)</div>
+    <div class="point"><strong>Upgrade hook 三條</strong>: 想用 Opus (Pro Max) · 想 NPC L3 無限 · 想開成人模式</div>
+    <div class="point"><strong>用戶 mental model</strong>: Free 試 (慢慢有 credit refresh) · 鍾意就 Standard · 想解鎖 unique feature 就 Pro</div>
+  </div>
+
+  <h2><span class="icon">💎</span>3 個 Tier 視覺對比 (v3.1)</h2>
+  <p class="h2-sub">用戶睇到嘅 pricing page 大致 layout</p>
+
+  <div class="pricing-grid">
+    <div class="tier-card">
+      <div class="label">🎁 試玩</div>
+      <div class="name">Free</div>
+      <div class="price">
+        <span class="num">$0</span>
+        <span class="per">· forever (慢)</span>
+      </div>
+      <div class="credits">
+        <div class="row"><span>Signup bonus</span><strong>1,000 credits</strong></div>
+        <div class="row"><span>Daily refresh</span><strong>+50 credits / 日</strong></div>
+        <div class="row"><span>~ Turns</span><strong>20 試玩 + 1/日 之後</strong></div>
+      </div>
+      <ul>
+        <li class="yes">Standard models (Gemini Flash · GLM 5.1)</li>
+        <li class="no">Pro models</li>
+        <li class="no">Pro Max (Opus)</li>
+        <li class="no">NPC L3 Agents</li>
+        <li class="no">Adult NSFW</li>
+        <li class="yes">完整故事創作 + memory + community</li>
+      </ul>
+      <div class="target">每日有限玩 · 想多啲 → 升 OR 充值</div>
+    </div>
+
+    <div class="tier-card">
+      <div class="label">⚡ 入門付費</div>
+      <div class="name">Standard</div>
+      <div class="price">
+        <span class="num">$9.99</span>
+        <span class="per">/ 月</span>
+      </div>
+      <div class="credits">
+        <div class="row"><span>Monthly</span><strong>6,000 credits</strong></div>
+        <div class="row"><span>Pro turn</span><strong>唔 cap</strong></div>
+        <div class="row"><span>NPC L3 Agent cap</span><strong>80 calls / 月</strong></div>
+      </div>
+      <ul>
+        <li class="yes">Standard models unlimited (within credits)</li>
+        <li class="yes"><strong>Pro models unlimited (within credits)</strong></li>
+        <li class="no">Pro Max (Opus)</li>
+        <li class="limited">NPC L3 Agents · <strong>80 calls / 月 taste</strong> (~26 turns)</li>
+        <li class="no">Adult NSFW</li>
+        <li class="yes">完整故事創作 + memory + community</li>
+      </ul>
+      <div class="target">大部分用戶嘅日常選擇 · 對齊業界 $9.99 tier</div>
+    </div>
+
+    <div class="tier-card popular">
+      <div class="popular-tag">⭐ 最熱門</div>
+      <div class="label">🚀 全功能</div>
+      <div class="name">Pro</div>
+      <div class="price">
+        <span class="num">$19.99</span>
+        <span class="per">/ 月</span>
+      </div>
+      <div class="credits">
+        <div class="row"><span>Monthly</span><strong>18,000 credits</strong></div>
+        <div class="row"><span>Pro turn</span><strong>無限</strong></div>
+        <div class="row"><span>NPC L3 Agent</span><strong>無限</strong></div>
+      </div>
+      <ul>
+        <li class="yes">All models unlimited (within credits)</li>
+        <li class="yes">Pro models unlimited</li>
+        <li class="yes"><strong>Pro Max (Opus) unlimited</strong></li>
+        <li class="yes"><strong>NPC L3 Agents unlimited</strong></li>
+        <li class="yes"><strong>Adult NSFW · 18+ (需身份驗證)</strong></li>
+        <li class="yes">未來 premium features</li>
+      </ul>
+      <div class="target">3 個明顯 upgrade hook · 重度玩家</div>
+    </div>
+  </div>
+
+  <h3>充值 (Top-up · 任何 tier)</h3>
+  <table>
+    <thead>
+      <tr><th>Pack</th><th>Credits</th><th>Price</th><th>Discount</th><th>備註</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Starter</td><td class="num">5,000</td><td class="num">$5.00</td><td class="muted">—</td><td class="muted">~100 Standard turns</td></tr>
+      <tr><td>Pro pack</td><td class="num">15,000</td><td class="num">$12.50</td><td class="savings">慳 16%</td><td class="muted">~300 Standard or 125 Pro turns</td></tr>
+      <tr><td>Mega</td><td class="num">50,000</td><td class="num">$40.00</td><td class="savings">慳 20%</td><td class="muted">~1000 Standard turns</td></tr>
+    </tbody>
+  </table>
+
+  <div class="note info">
+    <strong>📌 Top-up 規則</strong>: 充值只加 credit balance · <strong>唔 reset L3 Agent monthly quota</strong>。Standard 用戶想要 unlimited L3 Agents 嘅唯一方法 = 升 Pro。設計理由: 防止「Standard + 充值」變成 Pro alternative · 保持 Pro tier 嘅 unique feature differentiation (Pro Max · Adult · L3 unlimited 呢 3 個 upgrade hook)。
+  </div>
+
+  <h2><span class="icon">💰</span>Cost analysis (post-audit · honest numbers)</h2>
+  <p class="h2-sub">audit 之後 reconciled · 數字 match 真實 budget</p>
+
+  <h3>1️⃣ Per-tier monthly economics (revised)</h3>
+
+  <table>
+    <thead>
+      <tr><th>Tier</th><th>Monthly credits</th><th>Realistic usage (within budget)</th><th>Real cost</th><th>Revenue</th><th>Margin</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Free</strong></td>
+        <td class="num">1k signup + ~1,500/月 daily</td>
+        <td class="muted">20 Std (signup) + 30 Std (daily) ≈ 50 Std turns/月</td>
+        <td class="num">~$1.25</td>
+        <td class="num">$0</td>
+        <td class="bad">-100% (loss leader · acquisition)</td>
+      </tr>
+      <tr>
+        <td><strong>Standard $9.99 · 輕度</strong></td>
+        <td class="num">6,000 / 月</td>
+        <td class="muted">60 Std + 20 Pro + 10 L3 turns (5,720 cr)</td>
+        <td class="num">$2.30</td>
+        <td class="num">$9.99</td>
+        <td class="savings"><strong>77%</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Standard $9.99 · 重度</strong></td>
+        <td class="num">6,000 / 月</td>
+        <td class="muted">50 Pro turn + 26 L3 turn (5,988 cr · L3 cap hit)</td>
+        <td class="num">$2.94</td>
+        <td class="num">$9.99</td>
+        <td class="savings"><strong>71%</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Standard $9.99 · all-Pro</strong></td>
+        <td class="num">6,000 / 月</td>
+        <td class="muted">50 Pro turns (6,000 cr · no L3)</td>
+        <td class="num">$2.60</td>
+        <td class="num">$9.99</td>
+        <td class="savings"><strong>74%</strong></td>
+      </tr>
+      <tr class="highlight">
+        <td><strong>Pro $19.99 worst case</strong></td>
+        <td class="num">18,000 / 月</td>
+        <td class="muted">82 Pro Max + 3 NPC L3 every turn (18,000 cr · credit cap hit)</td>
+        <td class="num">$8.94</td>
+        <td class="num">$19.99</td>
+        <td class="savings"><strong>55%</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Pro $19.99 typical</strong></td>
+        <td class="num">18,000 / 月</td>
+        <td class="muted">~60% util · mix model · ~50 turns</td>
+        <td class="num">$5.36</td>
+        <td class="num">$19.99</td>
+        <td class="savings"><strong>73%</strong></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="grid-4" style="margin-top: 18px;">
+    <div class="cost-card">
+      <div class="label">Standard 輕度</div>
+      <div class="headline">77%</div>
+      <div class="sub">~60% 用戶嘅 expected pattern</div>
+    </div>
+    <div class="cost-card">
+      <div class="label">Standard 重度</div>
+      <div class="headline">71%</div>
+      <div class="sub">L3 cap hit · Pro 用爆 · 仍 healthy</div>
+    </div>
+    <div class="cost-card">
+      <div class="label">Pro worst case</div>
+      <div class="headline">55%</div>
+      <div class="sub">Opus + L3 全用爆 · 對齊 ICONIQ AI benchmark</div>
+    </div>
+    <div class="cost-card">
+      <div class="label">Pro typical</div>
+      <div class="headline">73%</div>
+      <div class="sub">60% util mix · 大部分 Pro 用戶</div>
+    </div>
+  </div>
+
+  <div class="note good">
+    <strong>✅ Margin reality</strong>: Standard ACTUAL margin 71-77% (audit 發現 plan v3.0 嘅 57% claim 過於保守 · realistic 範圍更高)。Pro worst case 55% match ICONIQ AI-native B2B benchmark 50-60% target。
+  </div>
+
+  <h3>2️⃣ Per-turn cost breakdown</h3>
+
+  <table>
+    <thead>
+      <tr><th>Turn type</th><th>Tokens (in/out)</th><th>Real cost</th><th>UI displays</th><th>Markup</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Standard turn (Gemini/GLM)</td><td class="num">3000/800</td><td class="num">~$0.025</td><td class="num">50 credits</td><td class="muted">2.0×</td></tr>
+      <tr><td>Pro turn (Sonnet/GPT)</td><td class="num">3000/800</td><td class="num">~$0.052</td><td class="num">120 credits</td><td class="muted">2.3×</td></tr>
+      <tr><td>Pro Max turn (Opus)</td><td class="num">3000/800</td><td class="num">~$0.096</td><td class="num">200 credits</td><td class="muted">2.1×</td></tr>
+      <tr><td>+ NPC L3 (3 NPC · GLM agents)</td><td class="num">3×2k/310</td><td class="num">+$0.013</td><td class="num">+18 credits (6×3)</td><td class="muted">1.4×</td></tr>
+      <tr><td>Adult turn (Llama 405B)</td><td class="num">3000/800</td><td class="num">~$0.031</td><td class="num">70 credits</td><td class="muted">2.3×</td></tr>
+    </tbody>
+  </table>
+
+  <h3>3️⃣ Scale projections (1000 用戶 · post-audit honest math)</h3>
+
+  <table>
+    <thead>
+      <tr><th>Mix (assume)</th><th>Revenue / 月</th><th>LLM cost (70% util)</th><th>Stripe fees (real formula)</th><th>Net margin</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>50% Free · 35% Standard · 15% Pro</td>
+        <td class="num">$6,496</td>
+        <td class="num">$1,830</td>
+        <td class="num">$346</td>
+        <td class="savings">$4,320 (67%)</td>
+      </tr>
+      <tr>
+        <td>40% Free · 40% Standard · 20% Pro</td>
+        <td class="num">$7,994</td>
+        <td class="num">$2,265</td>
+        <td class="num">$416</td>
+        <td class="savings">$5,313 (66%)</td>
+      </tr>
+      <tr class="highlight">
+        <td><strong>30% Free · 45% Standard · 25% Pro</strong> (year-2 target)</td>
+        <td class="num">$9,493</td>
+        <td class="num">$2,700</td>
+        <td class="num">$485</td>
+        <td class="savings"><strong>$6,308 (66%)</strong></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="note info">
+    <strong>📊 Stripe fee 公式</strong>: 2.9% + $0.30 per txn (v3.0 漏咗 $0.30 fixed component)。700 月度 subscription txn × ($13.56 avg × 0.029 + $0.30) = $485/月 = $5,820/年。
+  </div>
+
+  <div class="note good">
+    <strong>✅ Net margin 66% at year-2 target</strong>: 對齊 SaaS-AI 行業 healthy range (50-70%)。比 v3.0 plan claim 54% 更高 (因為 v3.0 LLM cost 估高咗)。
+  </div>
+
+  <h3>4️⃣ Free tier 經濟學 (新加: daily refresh impact)</h3>
+
+  <table>
+    <thead>
+      <tr><th>Free user 行為</th><th>每月 credit 用量</th><th>每月 cost to us</th><th>Acquisition rationale</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Signup 但唔 active (1 月後流失)</td><td class="num">1,000 (signup only)</td><td class="num">~$0.50</td><td class="muted">Acquisition · 試咗冇繼續 · OK</td></tr>
+      <tr><td>輕度 active (每日 refresh 用一半)</td><td class="num">1,000 + 750 (15日 × 50)</td><td class="num">~$0.88</td><td class="muted">維繫 · 慢慢有機會 convert</td></tr>
+      <tr class="highlight">
+        <td><strong>重度 active free user</strong> (每日 refresh 用晒 + 1 個月)</td>
+        <td class="num">1,000 + 1,500 (30 × 50)</td>
+        <td class="num">~$1.25</td>
+        <td><strong>Highest cost free user · 一個月後 expected to convert</strong></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="note warn">
+    <strong>⚠️ Daily refresh 上限</strong>: 50 cr/日 × 30 日 = 1,500 cr = 30 Standard turns/月。對比 Standard $9.99 tier (~120 Std turns) · free tier 仍然只有 25% volume · upgrade incentive 明顯。
+  </div>
+
+  <h2><span class="icon">🗺️</span>用戶 mental flow (revised)</h2>
+  <p class="h2-sub">3 個 upgrade hook · 各自獨立</p>
+
+  <div class="flow">
+    <div class="flow-step">
+      <div class="step-num">1</div>
+      <div class="ico">📝</div>
+      <div class="head">Signup</div>
+      <div class="body">1,000 credits 即送 + 50 cr/日 永久 refresh</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <div class="step-num">2</div>
+      <div class="ico">🎮</div>
+      <div class="head">Free 玩</div>
+      <div class="body">~20 Standard turn 試嘅 first session · 之後每日 1 turn 慢玩</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <div class="step-num">3</div>
+      <div class="ico">💳</div>
+      <div class="head">Subscribe Standard</div>
+      <div class="body">想日日玩 · 想用 Pro model · $9.99 · 120 Std OR 50 Pro turns/月</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <div class="step-num">4</div>
+      <div class="ico">🎯</div>
+      <div class="head">Hit upgrade trigger</div>
+      <div class="body">想 NPC L3 多啲 · 或想用 Opus · 或想成人模式 → 3 條 hook 任意一條</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <div class="step-num">5</div>
+      <div class="ico">🚀</div>
+      <div class="head">Upgrade Pro</div>
+      <div class="body">$19.99 · 全部解鎖 · NPC L3 無限 · Opus 任用 · Adult unlocked (KYC)</div>
+    </div>
+  </div>
+
+  <h3>3 個獨立 upgrade trigger (Standard → Pro)</h3>
+  <table>
+    <thead>
+      <tr><th>Trigger</th><th>Standard 限制</th><th>Pro 解鎖</th><th>用戶 mental state</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>🎭 <strong>NPC L3 Agents</strong></td>
+        <td>80 calls / 月 cap</td>
+        <td>無限</td>
+        <td>"我鍾意 NPC 內心戲 · 用爆 80 個 → 升"</td>
+      </tr>
+      <tr>
+        <td>🧠 <strong>Pro Max (Opus)</strong></td>
+        <td>冇得用</td>
+        <td>無限 (within credits)</td>
+        <td>"我想試最深層 narrative → 升"</td>
+      </tr>
+      <tr>
+        <td>🔞 <strong>Adult NSFW</strong></td>
+        <td>冇得用</td>
+        <td>解鎖 (需 KYC 身份驗證)</td>
+        <td>"我想開成人模式 → 升 + 驗證"</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2><span class="icon">🔒</span>Quota enforcement (簡化 vs v3.0)</h2>
+  <p class="h2-sub">移除 Pro turn cap · 只剩 L3 Agent 一個 counter</p>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="ico">🗃️</div>
+      <div class="head">DB schema (v3.1 簡化)</div>
+      <div class="body">
+        新 column on <code>profiles</code>:<br>
+        • <code>agent_calls_used_this_month</code> integer default 0<br>
+        • <code>quota_reset_at</code> timestamptz default now()<br><br>
+        <strong>移除咗</strong>: <code>pro_turns_used_this_month</code> (v3.0 有 · v3.1 用唔住)
+      </div>
+    </div>
+    <div class="card">
+      <div class="ico">⏰</div>
+      <div class="head">Monthly reset</div>
+      <div class="body">
+        Cron 日跑檢查 · <code>now() - quota_reset_at &gt; 30 日</code> AND tier is Standard · reset agent counter + update timestamp。Pro tier 完全 ignore (always-allowed)。Lazy fallback: turn route 同樣會 check 自動 reset · 防 cron miss。
+      </div>
+    </div>
+    <div class="card">
+      <div class="ico">🎭</div>
+      <div class="head">L3 Agent gate (唯一 quota)</div>
+      <div class="body">
+        Before each NPC L3 agent call · Standard tier user check <code>agent_calls_used_this_month + activeNpcCount &lt;= 80</code>。Exceeded → 靜靜 skip L3 (degraded narration · 唔扣 credit)。Pro tier 跳過呢個 check。
+      </div>
+    </div>
+    <div class="card">
+      <div class="ico">📊</div>
+      <div class="head">UI surface</div>
+      <div class="body">
+        Settings 頁: 「呢個月 NPC L3 Agent: 42 / 80 calls」progress bar (Standard tier)<br>
+        Memory Journal NPC Inner Voices tab: 「Standard tier · 仲剩 38 個 agent call」<br>
+        Hit cap: 「L3 額度用晒 · 升 Pro 解鎖無限」+ one-click checkout
+      </div>
+    </div>
+  </div>
+
+  <div class="note good">
+    <strong>✅ 簡化 vs v3.0</strong>: 一個 counter (Agent) 而唔係兩個 (Pro + Agent)。Less code · less audit surface · less user confusion。
+  </div>
+
+  <h2><span class="icon">💳</span>Stripe integration overview</h2>
+  <p class="h2-sub">5 個 product · 5 個 webhook event · ~120 min Stripe wiring</p>
+
+  <h3>Stripe products</h3>
+  <table>
+    <thead>
+      <tr><th>Product</th><th>Type</th><th>Price</th><th>Recurring</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Standard Subscription</td><td class="muted">Subscription</td><td class="num">$9.99 / 月</td><td>monthly</td></tr>
+      <tr><td>Pro Subscription</td><td class="muted">Subscription</td><td class="num">$19.99 / 月</td><td>monthly</td></tr>
+      <tr><td>Starter top-up</td><td class="muted">One-time</td><td class="num">$5.00</td><td class="muted">—</td></tr>
+      <tr><td>Pro pack top-up</td><td class="muted">One-time</td><td class="num">$12.50</td><td class="muted">—</td></tr>
+      <tr><td>Mega top-up</td><td class="muted">One-time</td><td class="num">$40.00</td><td class="muted">—</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Webhook events handled</h3>
+  <table>
+    <thead>
+      <tr><th>Event</th><th>Action</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>checkout.session.completed</code></td><td>Subscription / top-up purchased · 設 tier · grant credits · reset agent quota counter</td></tr>
+      <tr><td><code>customer.subscription.updated</code></td><td>Plan change (upgrade/downgrade) · update tier · prorate credits · maintain quota</td></tr>
+      <tr><td><code>customer.subscription.deleted</code></td><td>Cancellation · tier → free · keep balance · clear npc_l3_enabled flag · clear adult_mode</td></tr>
+      <tr><td><code>invoice.payment_succeeded</code></td><td>月度 renewal · reset credits · reset agent quota</td></tr>
+      <tr><td><code>invoice.payment_failed</code></td><td>Card declined · 3-day grace · 然後 downgrade free · email user</td></tr>
+    </tbody>
+  </table>
+
+  <div class="note warn">
+    <strong>⚠️ Webhook security</strong>: Stripe-Signature header verification 必要 (用 <code>stripe.webhooks.constructEvent()</code>)。否則 attacker forge subscription upgrade。Wave 1 audit 必查。
+  </div>
+
+  <h2><span class="icon">📅</span>Implementation breakdown (v3.1 · 更簡單)</h2>
+  <p class="h2-sub">Phase 4 Money tier · ~4 hours total · 4 migrations + Stripe wiring + audit</p>
+
+  <div class="phase">
+    <span class="step-num">1</span>
+    <div class="text">
+      <div class="head">Migration 0029 · Tier rename + backfill (~30 min)</div>
+      <div class="body">
+        Drop enum 'adventurer', 'storyteller', 'legend'. Add 'standard', 'pro'. Backfill existing users: adventurer → standard · storyteller/legend → pro · free 不變。Update 0028 trigger valid NPC L3 tier 至 'pro'。
+      </div>
+      <div class="meta">
+        <span>Risk: 🟡 MED (live data backfill)</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <span class="step-num">2</span>
+    <div class="text">
+      <div class="head">Migration 0030 · Agent quota counter (~20 min · 簡化)</div>
+      <div class="body">
+        Add columns to <code>profiles</code>: <code>agent_calls_used_this_month integer default 0</code> · <code>quota_reset_at timestamptz default now()</code>. Add atomic RPC <code>increment_agent_call_quota</code> + <code>reset_monthly_quotas</code>. v3.0 嘅 <code>pro_turns_used_this_month</code> 已移除。
+      </div>
+      <div class="meta">
+        <span>Risk: 🟢 LOW (additive)</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <span class="step-num">3</span>
+    <div class="text">
+      <div class="head">Migration 0031 · Free tier daily refresh + signup bonus (~20 min)</div>
+      <div class="body">
+        Update <code>handle_new_user</code> trigger: set <code>credit_balance = 1000</code> at signup。新 cron <code>refresh_free_tier_credits</code> 日跑 · 對所有 free tier user <code>credit_balance + 50</code> (cap at e.g. 3,000 max to prevent stockpiling)。
+      </div>
+      <div class="meta">
+        <span>Risk: 🟢 LOW</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <span class="step-num">4</span>
+    <div class="text">
+      <div class="head">Migration 0032 · Subscription lifecycle (~20 min)</div>
+      <div class="body">
+        新 table <code>stripe_subscriptions</code>: subscription_id (Stripe ref) · user_id · status · price_id · current_period_start/end · cancel_at_period_end。新 table <code>stripe_webhook_log</code>: event_id (unique · idempotency) · event_type · payload · processed_at。
+      </div>
+      <div class="meta">
+        <span>Risk: 🟡 MED (new infra)</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <span class="step-num">5</span>
+    <div class="text">
+      <div class="head">Stripe wiring (~120 min)</div>
+      <div class="body">
+        5 Stripe products via MCP · 2 server actions (<code>createSubscriptionCheckout</code> · <code>createTopupCheckout</code>) · webhook endpoint <code>/api/stripe/webhook</code> (signature verification · idempotent via webhook_log · handle 5 event types) · customer portal redirect。
+      </div>
+      <div class="meta">
+        <span>Risk: 🔴 HIGH (money flow)</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <span class="step-num">6</span>
+    <div class="text">
+      <div class="head">Code refactor (~50 min · 比 v3.0 少)</div>
+      <div class="body">
+        TIER_CONFIG · TIER_GATE · tier-router 全部更新。Turn route 加 L3 Agent quota check (移除 v3.0 嘅 Pro turn quota check)。NpcL3Toggle 改 upsell wording 「升 Pro 解鎖」。
+      </div>
+      <div class="meta">
+        <span>Risk: 🟡 MED</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <span class="step-num">7</span>
+    <div class="text">
+      <div class="head">UI rewrite (~30 min)</div>
+      <div class="body">
+        Pricing page 4 tier → 3 tier · update copy (繁中 + 简中 + EN) · 加 "image gen 嚟緊" footnote。Settings 加 subscription card + agent quota progress bar。
+      </div>
+      <div class="meta">
+        <span>Risk: 🟢 LOW</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <span class="step-num">8</span>
+    <div class="text">
+      <div class="head">Audit Wave 1 (~30 min)</div>
+      <div class="body">
+        2-agent parallel · (a) Security/Correctness (webhook signature · idempotency · race · tier downgrade) (b) UX/Cost/Regression (pricing copy · quota UX · existing user migration)。
+      </div>
+      <div class="meta">
+        <span>Goal: 0 CRIT / 0 HIGH</span>
+      </div>
+    </div>
+  </div>
+
+  <h3>Total estimate: ~4 hours · 1-2 commits</h3>
+
+  <h2><span class="icon">🛡️</span>Risk + Mitigation matrix (revised)</h2>
+
+  <table>
+    <thead>
+      <tr><th>Risk ID</th><th>Failure mode</th><th>Severity</th><th>Mitigation</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>R-01</td>
+        <td>Stripe webhook forgery</td>
+        <td><span class="badge limited">HIGH</span></td>
+        <td>Stripe-Signature verification + idempotent webhook_log</td>
+      </tr>
+      <tr>
+        <td>R-02</td>
+        <td>Tier downgrade 漏 clear NPC L3 / adult flag</td>
+        <td><span class="badge limited">HIGH</span></td>
+        <td>customer.subscription.deleted webhook + turn route server-side tier recheck (Wave 2 CRIT-B 已 ship)</td>
+      </tr>
+      <tr>
+        <td>R-03</td>
+        <td>Agent quota counter race (concurrent turn)</td>
+        <td><span class="badge limited">MED</span></td>
+        <td>Atomic RPC <code>increment_agent_call_quota</code> with check-then-set</td>
+      </tr>
+      <tr>
+        <td>R-04</td>
+        <td>Free tier daily refresh cron miss</td>
+        <td><span class="badge limited">MED</span></td>
+        <td>Cron + lazy fallback: turn route check <code>now() - last_refresh</code> &gt; 24h · refresh on-demand</td>
+      </tr>
+      <tr>
+        <td>R-05</td>
+        <td>Free user stockpile daily credits 用嚟 burst</td>
+        <td><span class="badge limited">MED</span></td>
+        <td>Cap free tier credit_balance at 3,000 (60 日 worth) · 超過唔再 refresh</td>
+      </tr>
+      <tr>
+        <td>R-06</td>
+        <td>Free spam (multi-account)</td>
+        <td><span class="badge limited">MED</span></td>
+        <td>Email verification · IP rate limit · Stripe Identity for paid (Phase 6 KYC)</td>
+      </tr>
+      <tr>
+        <td>R-07</td>
+        <td>Webhook out of order</td>
+        <td><span class="badge no">LOW</span></td>
+        <td>Idempotent webhook_log + state machine</td>
+      </tr>
+      <tr>
+        <td>R-08</td>
+        <td>Existing Storyteller user migration</td>
+        <td><span class="badge limited">MED</span></td>
+        <td>Migration 0029 backfill: storyteller → pro (preserves L3) · 0028 trigger accept 'pro'</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2><span class="icon">📌</span>Edge cases + decisions (v3.1 locked)</h2>
+
+  <div class="decision">
+    <div class="q">Q: Standard 用戶月底 L3 quota 用晒 + 充值 top-up?</div>
+    <div class="a">
+      <strong>L3 quota 不變</strong>。Top-up 只加 credit · 唔 reset Agent counter。Standard 要 unlimited L3 嘅唯一方法 = 升 Pro。設計保持 L3 作為 Pro tier 嘅核心 differentiator。
+    </div>
+  </div>
+
+  <div class="decision">
+    <div class="q">Q: Pro 用戶 downgrade 至 Standard mid-month?</div>
+    <div class="a">
+      Stripe webhook <code>customer.subscription.updated</code> 處理。新 tier 立即生效 · existing credit_balance 保留 · L3 Agent quota counter 即時生效 (用戶可能即見到 "80/80 quota exhausted" if 之前 Pro 用爆 L3)。Pro Max model + Adult mode 同樣即時 lock。
+    </div>
+  </div>
+
+  <div class="decision">
+    <div class="q">Q: Free 用戶用晒 daily refresh credit 想加快?</div>
+    <div class="a">
+      <strong>Yes · 可以買 top-up</strong>。Top-up 任何 tier 都可以買 (包括 Free)。買咗 5k pack 就 credit_balance +5,000 · 但仍然 Free tier (沒有 Pro/L3/Pro Max access)。要解鎖功能必須 subscribe。
+    </div>
+  </div>
+
+  <div class="decision">
+    <div class="q">Q: Free 用戶 stockpile daily credits 然後一個月 burst 一次?</div>
+    <div class="a">
+      Cap free tier credit_balance at <strong>3,000</strong> (60 日 daily refresh worth)。Refresh cron 唔加 credit if balance ≥ 3,000。防止 stockpiling abuse · 同時容許 occasional binge play (60 days = 約 60 turn 一次過)。
+    </div>
+  </div>
+
+  <div class="decision">
+    <div class="q">Q: 舊有 Adventurer ($9.99) / Storyteller ($19.99) / Legend ($49.99) 用戶?</div>
+    <div class="a">
+      Migration 0029 backfill mapping:<br>
+      • <code>adventurer</code> → <code>standard</code> (same price · 多咗 80 L3 quota; 冇咗 30 Pro cap)<br>
+      • <code>storyteller</code> → <code>pro</code> (same features · same price · no change)<br>
+      • <code>legend</code> → <code>pro</code> (price 由 $49.99 → $19.99 · Stripe credit balance refund difference for current period)<br>
+      Email 通知 existing users · honor existing billing period。
+    </div>
+  </div>
+
+  <div class="decision">
+    <div class="q">Q: Image generation · NovelAI / AID 都有 · 我哋幾時加?</div>
+    <div class="a">
+      <strong>Phase 8+ roadmap</strong>。Launch 時 pricing page 加 footnote 「Cover image generation · Phase 8 嚟緊 (預計 launch 後 2-3 個月)」。對齊用戶 expectation · 唔承認 gap。Provider candidates: Fal.ai (cheap · fast) · Replicate (familiar API) · Together AI (中文 friendly)。
+    </div>
+  </div>
+
+  <div class="cta">
+    <div class="label">Sign-off 之後嘅 ship sequence</div>
+    <div class="body">
+      <strong>Phase 4 Stripe (~4 hours)</strong>: 4 migrations + Stripe wiring + code refactor + UI + Wave 1 audit · 1-2 commits<br><br>
+      <strong>Phase 4 fix wave (~1-2 hours)</strong>: Wave 2 audit if CRIT/HIGH found · converge to 0 ship blocker<br><br>
+      <strong>Phase 6 KYC (~1 session)</strong>: Stripe Identity webhook + adult_mode_enabled flow<br><br>
+      <strong>Final stage</strong>: 5 launch-ready 官方故事 + comprehensive Manual E2E + launch HK+TW<br><br>
+      <strong>Recurring revenue ETA</strong>: Phase 4 ship → Pro tier purchasable → NPC L3 fully unlocked end-to-end · 商業 loop closed。
+    </div>
+  </div>
+
+  <p style="font-size: 12.5px; color: var(--muted); margin-top: 24px;">
+    v3.1 audit reference: pricing-v3-audit (industry benchmark research · cost math verification · margin reconciliation · NovelAI / AI Dungeon / Character.AI / Sudowrite competitive analysis · ICONIQ State of AI Jan 2026 gross margin benchmark).
+  </p>
+
+  <p style="font-size: 12.5px; color: var(--muted); margin-top: 16px;">
+    Plan revised: 2026-05-26 Session 14 cont. · Status: ✅ Pricing v3.1 locked · Ready for Phase 4 Stripe implementation upon founder sign-off.
+  </p>
+
+</div>
+</body>
+</html>
