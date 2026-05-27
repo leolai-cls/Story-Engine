@@ -20,6 +20,7 @@ import { type ModelTier, DEFAULT_TIER } from "@/lib/ai/models";
 import { SignOutButton } from "@/components/settings/sign-out-button";
 import { AdultModeToggle } from "@/components/settings/adult-mode-toggle";
 import { BillingPortalButton } from "@/components/settings/billing-portal-button";
+import { TopUpButtons } from "@/components/settings/topup-buttons";
 
 export const dynamic = "force-dynamic";
 
@@ -333,21 +334,10 @@ export default async function SettingsPage({
                           {tier === "free" ? "升級訂閱" : "查看方案"}
                         </Button>
                       )}
-                      <Button variant="outline" size="sm" disabled>
-                        購買 Top-up
-                      </Button>
-                      <span
-                        className="se-mono ml-auto self-center"
-                        style={{
-                          fontSize: 10.5,
-                          padding: "2px 7px",
-                          borderRadius: 3,
-                          background: "var(--se-surface-2)",
-                          color: "var(--se-fg-dim)",
-                        }}
-                      >
-                        top-up · 待開
-                      </span>
+                    </div>
+                    {/* One-time top-up packs (live 2026-05-27) */}
+                    <div className="mt-4 pt-4" style={{ borderTop: "1px solid var(--se-border)" }}>
+                      <TopUpButtons lang={locale.startsWith("en") ? "en" : "zh"} />
                     </div>
                   </div>
                   <div className="p-5">

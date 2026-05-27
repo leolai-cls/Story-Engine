@@ -15,7 +15,7 @@
  */
 
 import { getStripe } from "./client";
-import { priceIdForTier, type PaidTier } from "./products";
+import { priceIdForTier, priceIdForTopUp, type PaidTier, type TopUpPack } from "./products";
 
 export async function createCheckoutSession({
   userId,
@@ -60,5 +60,57 @@ export async function createCheckoutSession({
     // based on customer location. Requires Stripe Tax to be enabled in the
     // dashboard; otherwise it no-ops gracefully.
     automatic_tax: { enabled: true },
+  });
+}
+
+/**
+ * Create a one-time top-up Checkout Session.
+ *
+ * Flow:
+ *   1. User clicks「Top up」on /settings (or /pricing)
+ *   2. Server action calls createTopUpCheckoutSession() → gets session URL
+ *   3. Redirect user to that URL
+ *   4. On success, Stripe fires `checkout.session.completed` with mode=payment
+ *   5. Webhook grants credits based on Price metadata.credits
+ *
+ * Unlike subscription mode, payment mode is single-charge · no recurring
+ * billing · no Stripe customer required (but we still pass it if available
+ * so future portal flows can see the invoice history).
+ */
+export async function createTopUpCheckoutSession({
+  userId,
+  email,
+  pack,
+  successUrl,
+  cancelUrl,
+  customerId,
+}: {
+  userId: string;
+  email?: string;
+  pack: TopUpPack;
+  successUrl: string;
+  cancelUrl: string;
+  customerId?: string | null;
+}) {
+  const stripe = getStripe();
+  const priceId = priceIdForTopUp(pack);
+
+  return stripe.checkout.sessions.create({
+    mode: "payment",
+    payment_method_types: ["card"],
+    line_items: [{ price: priceId, quantity: 1 }],
+    success_url: successUrl,
+    cancel_url: cancelUrl,
+    customer: customerId ?? undefined,
+    customer_email: customerId ? undefined : email,
+    client_reference_id: userId,
+    metadata: { user_id: userId, topup_pack: pack, purchase_kind: "topup" },
+    payment_intent_data: {
+      metadata: { user_id: userId, topup_pack: pack, purchase_kind: "topup" },
+    },
+    allow_promotion_codes: true,
+    automatic_tax: { enabled: true },
+    // Show clear line item description in receipt
+    invoice_creation: { enabled: true },
   });
 }

@@ -18,10 +18,10 @@ import { redirect } from "@/i18n/navigation";
 import { getLocale } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { getCachedUser } from "@/lib/supabase/cached-user";
-import { createCheckoutSession } from "@/lib/stripe/checkout";
+import { createCheckoutSession, createTopUpCheckoutSession } from "@/lib/stripe/checkout";
 import { createBillingPortalSession } from "@/lib/stripe/portal";
 import { getStripe } from "@/lib/stripe/client";
-import type { PaidTier } from "@/lib/stripe/products";
+import type { PaidTier, TopUpPack } from "@/lib/stripe/products";
 import { getAppOrigin } from "@/lib/urls";
 
 /**
@@ -123,6 +123,54 @@ export async function openBillingPortal(): Promise<
 }
 
 /**
+ * One-time top-up credit purchase. Returns Stripe Checkout URL.
+ * No subscription created · just a single-charge credit pack.
+ */
+export async function startTopUpCheckout(pack: TopUpPack): Promise<
+  | { ok: true; url: string }
+  | { ok: false; error: "auth_required" | "unknown_pack" | "stripe_error"; message?: string }
+> {
+  if (pack !== "small" && pack !== "medium" && pack !== "large") {
+    return { ok: false, error: "unknown_pack" };
+  }
+
+  const user = await getCachedUser();
+  if (!user) {
+    return { ok: false, error: "auth_required" };
+  }
+
+  const supabase = await createClient();
+  const { data: existingSub } = await supabase
+    .from("subscriptions")
+    .select("stripe_customer_id")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const origin = getAppOrigin();
+  const locale = await getLocale();
+
+  try {
+    const session = await createTopUpCheckoutSession({
+      userId: user.id,
+      email: user.email ?? undefined,
+      pack,
+      successUrl: `${origin}/${locale}/settings?topup=1`,
+      cancelUrl: `${origin}/${locale}/settings?topup_canceled=1`,
+      customerId: existingSub?.stripe_customer_id ?? null,
+    });
+    if (!session.url) {
+      return { ok: false, error: "stripe_error", message: "no session URL returned" };
+    }
+    return { ok: true, url: session.url };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return { ok: false, error: "stripe_error", message: msg };
+  }
+}
+
+/**
  * Helper to redirect anon users to login with ?next= back to /pricing.
  * Called by the page's Subscribe button when the action returns auth_required.
  *
@@ -134,5 +182,5 @@ export async function redirectToLoginForCheckout() {
 }
 
 // Silence unused-import lint when checkout helpers are imported for type only.
-export type { PaidTier };
+export type { PaidTier, TopUpPack };
 void getStripe; // type-only re-anchor (helps tree-shaking detect import is intentional)

@@ -32,6 +32,7 @@ import {
   grantMonthlyCreditsForInvoice,
   markSubscriptionDeleted,
 } from "@/lib/billing/subscription";
+import { grantTopUpCredits } from "@/lib/billing/topup";
 
 // Stripe requires the raw request body to verify the signature — Next.js
 // route handlers give us that via request.text() (NOT request.json(),
@@ -193,11 +194,36 @@ async function dispatch(
     }
 
     case "checkout.session.completed": {
-      // Logging only. The actual entitlement is granted via the subscription
-      // events that fire alongside this one.
       const session = event.data.object as Stripe.Checkout.Session;
+      // Branch: top-up purchases need credit grant here. Subscription
+      // entitlement is granted via customer.subscription.* events that fire
+      // alongside this one — no action needed here for subscription mode.
+      if (
+        session.mode === "payment" &&
+        session.metadata?.purchase_kind === "topup"
+      ) {
+        const userId = session.metadata?.user_id ?? session.client_reference_id;
+        if (!userId) {
+          console.warn(`Top-up session ${session.id} has no user_id metadata`);
+          return;
+        }
+        const result = await grantTopUpCredits(
+          getStripe(),
+          supabase,
+          session,
+          userId,
+        );
+        if (!result.ok) {
+          throw new Error(`grantTopUpCredits: ${result.reason}`);
+        }
+        console.log(
+          `Top-up granted: session=${session.id} user=${userId} credits=${result.granted}`,
+        );
+        return;
+      }
+      // Subscription checkout · just log (the subscription.* webhooks handle it)
       console.log(
-        `Checkout completed: session=${session.id} customer=${session.customer} user=${session.metadata?.user_id ?? "?"}`,
+        `Checkout completed: session=${session.id} mode=${session.mode} customer=${session.customer} user=${session.metadata?.user_id ?? "?"}`,
       );
       return;
     }

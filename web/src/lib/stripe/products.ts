@@ -119,3 +119,50 @@ export const TIER_MONTHLY_CREDITS: Record<PaidTier, number> = {
   adventurer: 2000,
   storyteller: 4000,
 };
+
+// ─── One-time top-up packs ──────────────────────────────────────────
+// Configured in Stripe with metadata[credits] on both Product + Price
+// (canonical source). Webhook reads metadata.credits at grant time so
+// even if env mapping drifts, the credits-per-purchase stays correct.
+//
+// Env mapping is just the user-selectable bucket → Stripe Price ID.
+
+export type TopUpPack = "small" | "medium" | "large";
+
+const TOPUP_TO_ENV_KEY: Record<TopUpPack, string> = {
+  small: "STRIPE_PRICE_TOPUP_SMALL",
+  medium: "STRIPE_PRICE_TOPUP_MEDIUM",
+  large: "STRIPE_PRICE_TOPUP_LARGE",
+};
+
+export function priceIdForTopUp(pack: TopUpPack): string {
+  const envKey = TOPUP_TO_ENV_KEY[pack];
+  const id = process.env[envKey];
+  if (!id) {
+    throw new Error(
+      `Stripe Top-up Price ID missing · set ${envKey} in Vercel env vars (pack=${pack})`,
+    );
+  }
+  return id;
+}
+
+export function topUpPackFromPriceId(priceId: string): TopUpPack | null {
+  if (priceId === process.env.STRIPE_PRICE_TOPUP_SMALL) return "small";
+  if (priceId === process.env.STRIPE_PRICE_TOPUP_MEDIUM) return "medium";
+  if (priceId === process.env.STRIPE_PRICE_TOPUP_LARGE) return "large";
+  return null;
+}
+
+/**
+ * Display info for top-up packs. Keep in sync with Stripe Product metadata.
+ * Webhook still reads from Stripe metadata as source of truth — these values
+ * are for SSR rendering only.
+ */
+export const TOPUP_DISPLAY: Record<
+  TopUpPack,
+  { name: string; nameZh: string; priceUsd: number; credits: number; bonusPct: number }
+> = {
+  small: { name: "Starter", nameZh: "起步包", priceUsd: 5, credits: 1000, bonusPct: 0 },
+  medium: { name: "Standard", nameZh: "標準包", priceUsd: 15, credits: 3500, bonusPct: 17 },
+  large: { name: "Bulk", nameZh: "大量包", priceUsd: 30, credits: 8000, bonusPct: 33 },
+};
