@@ -386,7 +386,11 @@ function TierCard({
 }
 
 const MARKETING_PRICING_CSS = `
+@import url('https://fonts.googleapis.com/css?family=Google+Sans:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 .kieio-marketing {
+  --font-num: 'Google Sans', 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   --bg: #0a0a0c;
   --bg-2: #131316;
   --bg-3: #18181c;
@@ -522,15 +526,17 @@ const MARKETING_PRICING_CSS = `
 }
 .kieio-marketing .tier-price-row { display: flex; align-items: baseline; gap: 4px; margin-bottom: 4px; }
 .kieio-marketing .tier-price {
-  font-family: var(--font-termina), sans-serif; font-weight: 700;
-  font-size: 44px; letter-spacing: -0.050em; line-height: 1;
+  font-family: var(--font-num); font-weight: 700;
+  font-size: 48px; letter-spacing: -0.030em; line-height: 1;
+  font-feature-settings: "tnum" 1, "lnum" 1;
 }
 .kieio-marketing .tier-period {
-  font-family: var(--font-geist-mono), monospace; font-size: 13px;
-  color: var(--mist); letter-spacing: 0.08em; text-transform: lowercase;
+  font-family: var(--font-num); font-weight: 500; font-size: 14px;
+  color: var(--mist); letter-spacing: 0; text-transform: lowercase;
 }
 .kieio-marketing .tier-credits {
-  font-family: 'Geist', sans-serif; font-size: 13px; color: var(--mist);
+  font-family: var(--font-num); font-size: 13px; color: var(--mist);
+  font-feature-settings: "tnum" 1;
   margin-bottom: 28px; padding-bottom: 20px; border-bottom: 1px solid var(--line);
 }
 .kieio-marketing .tier-bullets { list-style: none; padding: 0; margin: 0 0 28px; flex: 1; }
@@ -609,12 +615,13 @@ const MARKETING_PRICING_CSS = `
   margin-bottom: 8px;
 }
 .kieio-marketing .topup-price {
-  font-family: var(--font-termina), sans-serif; font-weight: 700;
-  font-size: 32px; letter-spacing: -0.040em; line-height: 1;
+  font-family: var(--font-num); font-weight: 700;
+  font-size: 36px; letter-spacing: -0.020em; line-height: 1;
+  font-feature-settings: "tnum" 1, "lnum" 1;
 }
 .kieio-marketing .topup-credits {
-  margin-top: 8px; font-family: 'Geist', sans-serif; font-size: 13px;
-  color: var(--mist);
+  margin-top: 8px; font-family: var(--font-num); font-size: 13px;
+  color: var(--mist); font-feature-settings: "tnum" 1;
 }
 .kieio-marketing .topup-bonus { color: var(--purple-soft); font-weight: 600; }
 .kieio-marketing .topup-foot {

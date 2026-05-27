@@ -316,6 +316,7 @@ export function MarketingLanding() {
         <div className="nav-links">
           <a href="#how">How it works</a>
           <a href="#memory">Memory</a>
+          <a href="/pricing">Pricing</a>
           <a href="#bilingual">繁中</a>
           <a href={APP_LOGIN} className="nav-cta">
             Begin
