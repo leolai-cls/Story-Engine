@@ -31,6 +31,7 @@ import {
   syncSubscriptionToDb,
   grantMonthlyCreditsForInvoice,
   markSubscriptionDeleted,
+  subscriptionIdFromInvoice,
 } from "@/lib/billing/subscription";
 import { grantTopUpCredits } from "@/lib/billing/topup";
 
@@ -76,7 +77,9 @@ export async function POST(request: NextRequest) {
 
   // Idempotency · insert into stripe_webhook_events with unique constraint
   // on event_id. If already processed, exit early with 200 so Stripe stops
-  // retrying.
+  // retrying. Audit Wave 1 A2 fix: on 23505 duplicate, check processed_at
+  // — if NULL, the prior delivery FAILED mid-dispatch and we must retry
+  // (otherwise state never converges).
   const { error: idempErr } = await supabase
     .from("stripe_webhook_events")
     .insert({
@@ -86,15 +89,25 @@ export async function POST(request: NextRequest) {
     });
 
   if (idempErr) {
-    // Unique violation = duplicate delivery · we already handled this event.
     if (idempErr.code === "23505") {
-      return NextResponse.json({ ok: true, duplicate: true });
+      // Already-logged event. Check if it was actually processed.
+      const { data: prior } = await supabase
+        .from("stripe_webhook_events")
+        .select("processed_at")
+        .eq("event_id", event.id)
+        .maybeSingle();
+      if (prior?.processed_at) {
+        return NextResponse.json({ ok: true, duplicate: true });
+      }
+      // Prior delivery failed (insert succeeded but dispatch threw)
+      // → fall through to re-dispatch.
+    } else {
+      console.error("Webhook idempotency insert failed:", idempErr);
+      return NextResponse.json(
+        { error: "idempotency log failure" },
+        { status: 500 },
+      );
     }
-    console.error("Webhook idempotency insert failed:", idempErr);
-    return NextResponse.json(
-      { error: "idempotency log failure" },
-      { status: 500 },
-    );
   }
 
   // Dispatch — wrap each handler in try so we always return a useful response.
@@ -150,11 +163,10 @@ async function dispatch(
     case "invoice.payment_succeeded": {
       const invoice = event.data.object as Stripe.Invoice;
       // Only grant credits for SUBSCRIPTION invoices, not one-time top-up
-      // invoices (which we'll handle separately later via a different
-      // metadata marker).
-      // In Stripe API ≥ 2025, invoice.subscription is a string id when set.
-      const subId = (invoice as Stripe.Invoice & { subscription?: string | null })
-        .subscription;
+      // invoices. Use helper that handles both legacy `invoice.subscription`
+      // and newer `invoice.parent.subscription_details.subscription` paths
+      // (Stripe API ≥ 2024-09-30) — audit Wave 1 A3 fix.
+      const subId = subscriptionIdFromInvoice(invoice);
       if (!subId) return; // not a subscription invoice (top-up, etc.)
 
       const sub = await getStripe().subscriptions.retrieve(subId);

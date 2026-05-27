@@ -187,71 +187,58 @@ export async function grantMonthlyCreditsForInvoice(
     return { ok: false, reason: `no credit grant for tier ${tier}` };
   }
 
-  // Idempotency check: have we already credited for THIS invoice?
-  const { data: existing } = await supabase
-    .from("credit_ledger")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("ref_type", "stripe_invoice")
-    .eq("reason", "monthly_subscription_grant")
-    .eq("metadata->>invoice_id", invoice.id)
-    .limit(1)
-    .maybeSingle();
-
-  if (existing) {
-    return { ok: true, granted: 0 }; // already granted
-  }
-
-  // Read current balance (need balance_after for the ledger row).
-  const { data: profile, error: profErr } = await supabase
-    .from("profiles")
-    .select("credit_balance")
-    .eq("id", userId)
-    .single();
-  if (profErr || !profile) {
-    return { ok: false, reason: `profile read failed: ${profErr?.message}` };
-  }
-
-  const newBalance = (profile.credit_balance ?? 0) + credits;
-
-  // Atomic-ish: write the ledger row first (immutable history), then bump
-  // balance. If the balance update fails after ledger write, we have a row
-  // saying we "intended" to grant — reconciler can replay.
-  const { error: ledgerErr } = await supabase.from("credit_ledger").insert({
-    user_id: userId,
-    delta: credits,
-    balance_after: newBalance,
-    reason: "monthly_subscription_grant",
-    ref_type: "stripe_invoice",
-    ref_id: null, // ledger.ref_id is uuid; Stripe ids are strings → put in metadata
-    metadata: {
+  // Audit-fix Wave 1 (2026-05-27): switched from manual SELECT→INSERT→UPDATE
+  // race-prone pattern to atomic `apply_billing_credit` RPC (Migration 0030).
+  // RPC handles idempotency via metadata.idempotency_key (= invoice.id) and
+  // uses single-statement `UPDATE … RETURNING` to eliminate the lost-update
+  // race when concurrent grants fire (B1 audit). Also fixes the enum
+  // violations: 'monthly_subscription_grant' → 'sub_renewal' + 'stripe_invoice'
+  // → 'subscription' (D7/B3 ship-blocker — previous code silently
+  // CHECK-constraint-failed and rolled back the webhook).
+  const subId = subscriptionIdFromInvoice(invoice);
+  const { data, error } = await supabase.rpc("apply_billing_credit", {
+    p_user_id: userId,
+    p_delta: credits,
+    p_reason: "sub_renewal",
+    p_ref_type: "subscription",
+    p_idempotency_key: invoice.id,
+    p_metadata: {
       invoice_id: invoice.id,
-      subscription_id:
-        typeof (invoice as Stripe.Invoice & { subscription?: unknown }).subscription === "string"
-          ? (invoice as Stripe.Invoice & { subscription: string }).subscription
-          : null,
+      subscription_id: subId,
       tier,
       amount_paid_cents: invoice.amount_paid,
     },
   });
 
-  if (ledgerErr) {
-    return { ok: false, reason: `ledger insert failed: ${ledgerErr.message}` };
+  if (error) {
+    return { ok: false, reason: `apply_billing_credit failed: ${error.message}` };
   }
-
-  const { error: bumpErr } = await supabase
-    .from("profiles")
-    .update({
-      credit_balance: newBalance,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", userId);
-
-  if (bumpErr) {
-    return { ok: false, reason: `balance bump failed: ${bumpErr.message}` };
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row?.success) {
+    return { ok: false, reason: "apply_billing_credit returned no row" };
   }
+  return { ok: true, granted: row.was_duplicate ? 0 : credits };
+}
 
-  return { ok: true, granted: credits };
+/**
+ * Pull the subscription ID out of an Invoice across Stripe API versions.
+ *
+ * - Pre-2024-09-30 API: invoice.subscription (string | null)
+ * - 2024-09-30+ API:    invoice.parent.subscription_details.subscription
+ *
+ * Return null if neither path resolves (top-up invoice etc.).
+ */
+export function subscriptionIdFromInvoice(invoice: Stripe.Invoice): string | null {
+  // Try modern API path first (newer pinned versions)
+  const parent = (invoice as Stripe.Invoice & {
+    parent?: { subscription_details?: { subscription?: string | null } | null } | null;
+  }).parent;
+  const modern = parent?.subscription_details?.subscription;
+  if (typeof modern === "string") return modern;
+  // Fallback to legacy API path
+  const legacy = (invoice as Stripe.Invoice & { subscription?: string | null }).subscription;
+  if (typeof legacy === "string") return legacy;
+  return null;
 }
 
 /**
@@ -283,11 +270,20 @@ export async function markSubscriptionDeleted(
     return { ok: false, reason: `subscriptions update failed: ${subErr.message}` };
   }
 
+  // Audit Wave 1 D1: also clear adult_mode_enabled. Adult mode is Pro-only
+  // (TIER_DISPLAY.storyteller bullet). After cancel→free, the toggle should
+  // visually + logically reset. Keep is_age_verified intact so a re-subscribe
+  // user doesn't have to re-KYC. CLAUDE.md hard rule #5 (NSFW LLM isolation)
+  // is enforced by the DB CHECK on adult_mode_enabled needing is_age_verified
+  // PLUS by routing at credits.ts userTierAllowsModel — but flipping the bit
+  // off here closes a UI footgun where canceled users see "已開啟" while
+  // routing has actually blocked them.
   const { error: profErr } = await supabase
     .from("profiles")
     .update({
       subscription_tier: "free",
       credit_period_end: null,
+      adult_mode_enabled: false,
       updated_at: new Date().toISOString(),
     })
     .eq("id", userId);

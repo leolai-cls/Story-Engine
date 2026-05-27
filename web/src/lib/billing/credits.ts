@@ -582,32 +582,37 @@ export const TIER_CONFIG: Record<
     description: "50 credits 每日 · 限基礎 model",
     allowsNsfw: false,
   },
+  // Pricing v3 locked (2026-05-26 · superseded earlier 5k/15k/50k draft).
+  // Standard = adventurer · Pro = storyteller · legend deprecated but kept
+  // for backward-compat with existing TIER_GATE references.
   adventurer: {
-    label: "Adventurer",
+    label: "Standard",
     priceUsd: 9.99,
-    monthlyCredits: 5000,
-    description: "5,000 credits 每月 · 所有 SFW model · 約 150 turns",
+    monthlyCredits: 2000,
+    description: "2,000 credits 每月 · 無 turn 上限 · Pro + Pro Max model 解鎖 · 80 NPC L3 turn/月",
     allowsNsfw: false,
   },
   storyteller: {
-    label: "Storyteller",
+    label: "Pro",
     priceUsd: 19.99,
-    monthlyCredits: 15000,
-    description: "15,000 credits 每月 · 全部 model · 成人模式 (要 KYC) · 約 450 turns",
+    monthlyCredits: 4000,
+    description: "4,000 credits 每月 · 全部 model · 成人模式 (要 KYC) · NPC L3 無限",
     allowsNsfw: true,
   },
   legend: {
-    label: "Legend",
+    label: "Legend (deprecated)",
     priceUsd: 49.99,
-    monthlyCredits: 50000,
-    description: "50,000 credits 每月 · 全部 model · 早鳥功能 · 約 1500 turns",
+    monthlyCredits: 4000,
+    description: "已下架 · 同 Pro 一樣",
     allowsNsfw: true,
   },
 };
 
 /**
- * Top-up packages — one-time credit purchases independent of subscription.
- * Phase 4 Stripe Checkout creates one-time payment for these.
+ * @deprecated Use TOPUP_DISPLAY from @/lib/stripe/products instead.
+ * Kept temporarily for legacy references — Stripe Top-up flow uses the
+ * Stripe Price IDs configured in env (Pricing v3 locked: $5/1k · $15/3.5k
+ * · $30/8k). This array is no longer the source of truth.
  */
 export const TOPUP_PACKAGES: Array<{
   id: string;
@@ -615,7 +620,7 @@ export const TOPUP_PACKAGES: Array<{
   priceUsd: number;
   label: string;
 }> = [
-  { id: "topup_5k", credits: 5000, priceUsd: 5.0, label: "5,000 credits · $5" },
-  { id: "topup_15k", credits: 15000, priceUsd: 12.5, label: "15,000 credits · $12.50（慳 16%）" },
-  { id: "topup_50k", credits: 50000, priceUsd: 40.0, label: "50,000 credits · $40（慳 20%）" },
+  { id: "topup_small", credits: 1000, priceUsd: 5.0, label: "Starter · 1,000 credits · $5" },
+  { id: "topup_medium", credits: 3500, priceUsd: 15.0, label: "Standard · 3,500 credits · $15（+17%）" },
+  { id: "topup_large", credits: 8000, priceUsd: 30.0, label: "Bulk · 8,000 credits · $30（+33%）" },
 ];

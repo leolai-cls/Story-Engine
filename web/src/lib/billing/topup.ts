@@ -52,62 +52,37 @@ export async function grantTopUpCredits(
   | { ok: true; granted: number; pack: string | null }
   | { ok: false; reason: string }
 > {
-  // Idempotency: have we already granted for this exact Session?
-  const { data: existing } = await supabase
-    .from("credit_ledger")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("reason", "topup_purchase")
-    .eq("ref_type", "stripe_session")
-    .eq("metadata->>session_id", session.id)
-    .limit(1)
-    .maybeSingle();
-  if (existing) {
-    return { ok: true, granted: 0, pack: null }; // already credited
-  }
-
   const info = await readCreditsFromSession(stripe, session);
   if (!info) {
     return { ok: false, reason: "session has no top-up price metadata" };
   }
   const { credits, priceId, pack } = info;
 
-  // Read current balance to compute balance_after for the ledger row.
-  const { data: profile, error: profErr } = await supabase
-    .from("profiles")
-    .select("credit_balance")
-    .eq("id", userId)
-    .single();
-  if (profErr || !profile) {
-    return { ok: false, reason: `profile read failed: ${profErr?.message}` };
-  }
-  const newBalance = (profile.credit_balance ?? 0) + credits;
-
-  const { error: ledgerErr } = await supabase.from("credit_ledger").insert({
-    user_id: userId,
-    delta: credits,
-    balance_after: newBalance,
-    reason: "topup_purchase",
-    ref_type: "stripe_session",
-    ref_id: null,
-    metadata: {
+  // Audit-fix Wave 1 (2026-05-27): route through atomic apply_billing_credit
+  // RPC (Migration 0030). Fixes B1 race + B3/D7 enum violations:
+  //   reason 'topup_purchase' → 'topup'
+  //   ref_type 'stripe_session' → 'topup'
+  // Idempotency keyed on session.id at DB level.
+  const { data, error } = await supabase.rpc("apply_billing_credit", {
+    p_user_id: userId,
+    p_delta: credits,
+    p_reason: "topup",
+    p_ref_type: "topup",
+    p_idempotency_key: session.id,
+    p_metadata: {
       session_id: session.id,
       pack,
       price_id: priceId,
       amount_total_cents: session.amount_total,
     },
   });
-  if (ledgerErr) {
-    return { ok: false, reason: `ledger insert failed: ${ledgerErr.message}` };
-  }
 
-  const { error: bumpErr } = await supabase
-    .from("profiles")
-    .update({ credit_balance: newBalance, updated_at: new Date().toISOString() })
-    .eq("id", userId);
-  if (bumpErr) {
-    return { ok: false, reason: `balance bump failed: ${bumpErr.message}` };
+  if (error) {
+    return { ok: false, reason: `apply_billing_credit failed: ${error.message}` };
   }
-
-  return { ok: true, granted: credits, pack };
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row?.success) {
+    return { ok: false, reason: "apply_billing_credit returned no row" };
+  }
+  return { ok: true, granted: row.was_duplicate ? 0 : credits, pack };
 }
