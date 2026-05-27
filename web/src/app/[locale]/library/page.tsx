@@ -421,6 +421,22 @@ function LibraryHero({
             ⌘K
           </span>
         </form>
+        {/* Create-story CTA · primary brand action over hero
+            (2026-05-27: previously only reachable via /my page or direct
+            URL · added here so library landers have a clear entry into
+            the AI wizard) */}
+        <Link
+          href={`/${locale}/stories/new`}
+          className="inline-flex items-center gap-2 h-[38px] px-4 rounded-lg text-sm font-medium se-cjk"
+          style={{
+            background: "var(--se-fg)",
+            color: "var(--se-bg)",
+            whiteSpace: "nowrap",
+          }}
+        >
+          <Plus size={14} />
+          開新故事
+        </Link>
       </div>
 
       {/* Cycle indicator · bottom-right (designer: 01 / 04 pagination + active dot) */}

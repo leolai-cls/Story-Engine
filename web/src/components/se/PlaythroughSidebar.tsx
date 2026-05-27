@@ -160,9 +160,11 @@ function SidebarBody({
         )}
       </div>
 
-      {/* New story CTA */}
+      {/* New story CTA — route fix (2026-05-27): was /library (browse)
+          but label implies creation. Now points at /stories/new where the
+          AI wizard lives. */}
       <Link
-        href={`/${locale}/library`}
+        href={`/${locale}/stories/new`}
         onClick={onItemClick}
         className="mx-3 mt-3 mb-2 inline-flex items-center gap-2 px-3 py-2 rounded-md text-xs font-medium flex-none"
         style={{

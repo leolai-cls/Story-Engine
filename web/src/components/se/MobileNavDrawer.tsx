@@ -227,10 +227,12 @@ function AuthedBody({
 }) {
   return (
     <>
-      {/* New story CTA */}
+      {/* New story CTA — route fix (2026-05-27): was /library (browse)
+          but label implies creation. Now points at /stories/new where the
+          AI wizard lives. */}
       <div className="px-3 pt-3">
         <Link
-          href={`/${locale}/library`}
+          href={`/${locale}/stories/new`}
           onClick={onItemClick}
           className="flex items-center gap-2 px-3 py-2.5 rounded-md text-sm font-medium"
           style={{
