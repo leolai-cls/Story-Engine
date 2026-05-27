@@ -1,16 +1,15 @@
 /**
- * Subdomain-split architecture (founder rule · 2026-05-25).
+ * Subdomain-split architecture (founder rule · 2026-05-25 · ACTIVE 2026-05-27).
  *
- * Plan:
- *   - Marketing pages live on xxx.com         (public · SEO-friendly · pre-login)
- *   - Product pages live on app.xxx.com       (auth-gated · the app surface)
+ * Live state:
+ *   - Marketing pages live on kieio.com         (public · SEO-friendly · pre-login)
+ *   - Product pages live on app.kieio.com       (auth-gated · the app surface)
  *
- * Today everything ships from ONE origin (e.g. story-engine-drab.vercel.app).
- * When founder ships the split:
- *   1. Set NEXT_PUBLIC_APP_URL=https://app.xxx.com on Vercel
- *   2. Set NEXT_PUBLIC_MARKETING_URL=https://xxx.com on Vercel
- *   3. (Same Next.js project · Vercel handles routing both domains to the
- *      same build; middleware can branch by hostname if needed.)
+ * Enforced in two places:
+ *   1. This file's appUrl() / marketingUrl() helpers — generate cross-domain
+ *      absolute URLs when env vars NEXT_PUBLIC_APP_URL ≠ NEXT_PUBLIC_MARKETING_URL.
+ *   2. middleware.ts — hostname-based 308 redirects when a route lands on the
+ *      wrong subdomain (kieio.com/library → app.kieio.com/library, etc.).
  *
  * No code outside this file should hardcode either origin. Use the helpers
  * below so the split is a config-only change.

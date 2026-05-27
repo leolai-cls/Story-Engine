@@ -23,10 +23,16 @@ import type { CSSProperties } from "react";
 type MarkColor = "purple" | "white" | "charcoal";
 type WordColor = "default" | "white" | "charcoal" | "purple";
 
+/**
+ * Wired to the --k-purple CSS variable in globals.css so that swapping
+ * the brand color in one place propagates everywhere. Fallback hex matches
+ * #552583 for tooling/SSR scenarios where var() isn't resolved (Storybook,
+ * standalone snapshots).
+ */
 const COLOR: Record<MarkColor | "default", string> = {
-  purple: "#552583", // Lakers Purple primary
+  purple: "var(--k-purple, #552583)", // Lakers Purple primary
   white: "#ffffff",
-  charcoal: "#0f0f11",
+  charcoal: "var(--k-charcoal, #0f0f11)",
   default: "currentColor",
 };
 
@@ -83,20 +89,28 @@ export function KieioMark({
 
 /**
  * The KIEIO wordmark only — set in Termina Bold.
+ *
+ * `decorative` (default false) hides the text from assistive tech — set true
+ * when the wordmark is wrapped inside an outer container that already
+ * provides the "Kieio" announcement (see KieioLogo below). Prevents double-
+ * announce ("Kieio" + "K-I-E-I-O") on screen readers.
  */
 export function KieioWordmark({
   size = 16,
   color = "default",
+  decorative = false,
   className,
   style,
 }: {
   size?: number;
   color?: WordColor;
+  decorative?: boolean;
   className?: string;
   style?: CSSProperties;
 }) {
   return (
     <span
+      aria-hidden={decorative || undefined}
       className={className}
       style={{
         fontFamily: "var(--font-termina), sans-serif",
@@ -160,7 +174,7 @@ export function KieioLogo({
       }}
     >
       <KieioMark size={size * markRatio} color={markColor} />
-      <KieioWordmark size={size} color={wordColor} />
+      <KieioWordmark size={size} color={wordColor} decorative />
     </span>
   );
 }
