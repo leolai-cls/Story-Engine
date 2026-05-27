@@ -1,0 +1,169 @@
+/* ============================================================
+ * Story Engine — Design Tokens · LIGHT (canonical v1)
+ * Aesthetic: warm paper × LLM-app chrome
+ * Targeting HK+TW readers — Wattpad / 起點 / Pixiv light-dominant.
+ * Token NAMES are stable; only values differ from tokens-dark.css.
+ * ============================================================ */
+
+:root {
+  /* — Surfaces (warm off-white "paper" base) — */
+  --bg:            #fbfaf6;        /* canvas */
+  --bg-elev:       #f4f3ef;        /* sticky bars */
+  --surface:       #ffffff;        /* cards */
+  --surface-2:     #f5f4f0;        /* nested */
+  --surface-hover: #efede7;
+  --overlay:       rgba(20,18,14,0.32);
+
+  /* — Strokes — */
+  --border:         #e8e6e0;
+  --border-strong:  #d3d0c9;
+  --border-accent:  oklch(0.55 0.16 290 / 0.45);
+
+  /* — Foreground (warm near-black scale) — */
+  --fg:        #1a1814;
+  --fg-2:      #3a3833;
+  --fg-muted:  #6b6862;
+  --fg-dim:    #9a958d;
+  --fg-faint:  #c5c1b9;
+
+  /* — Accent (violet retuned for warm white) — */
+  --accent:        oklch(0.50 0.20 290);
+  --accent-soft:   oklch(0.62 0.15 290);
+  --accent-bg:     oklch(0.92 0.05 290 / 0.55);
+  --accent-line:   oklch(0.55 0.16 290 / 0.35);
+
+  /* — Semantic (deep saturated for legibility on white) — */
+  --danger:    oklch(0.52 0.20 25);
+  --danger-bg: oklch(0.93 0.06 25 / 0.55);
+  --warn:      oklch(0.55 0.13 75);
+  --warn-bg:   oklch(0.93 0.07 80 / 0.55);
+  --ok:        oklch(0.48 0.13 160);
+  --ok-bg:     oklch(0.92 0.07 160 / 0.5);
+
+  /* — 4-axis NPC disposition (HARD RULE #6 — must be visible)
+       Tuned to read on warm white at >=4.5:1 contrast. — */
+  --axis-trust:   oklch(0.48 0.15 220);
+  --axis-romance: oklch(0.55 0.19 10);
+  --axis-respect: oklch(0.56 0.14 75);
+  --axis-fear:    oklch(0.42 0.13 305);
+
+  /* — Type stacks — */
+  --font-cjk:   "Noto Sans HK", "Noto Sans TC", "PingFang HK", "PingFang TC",
+                "Microsoft JhengHei", system-ui, sans-serif;
+  --font-latin: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+                "Inter", system-ui, sans-serif;
+  --font-mono:  "SF Mono", "JetBrains Mono", "IBM Plex Mono",
+                ui-monospace, "Cascadia Code", Menlo, monospace;
+  --font-sans:  var(--font-latin), var(--font-cjk);
+
+  /* — Radii — */
+  --r-sm: 4px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-xl: 16px;
+
+  /* — Shadows (light needs subtle but real depth) — */
+  --shadow-pop:    0 4px 16px rgba(20,18,14,0.06), 0 0 0 1px var(--border);
+  --shadow-modal:  0 24px 60px rgba(20,18,14,0.16), 0 0 0 1px var(--border-strong);
+  --shadow-card:   0 1px 2px rgba(20,18,14,0.04), 0 1px 0 rgba(20,18,14,0.02);
+
+  /* — Motion — */
+  --ease: cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+/* ============================================================
+ * Base resets within design surfaces
+ * ============================================================ */
+.se {
+  font-family: var(--font-sans);
+  color: var(--fg);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "ss01", "cv11";
+  font-size: 14px;
+  line-height: 1.5;
+}
+.se *, .se *::before, .se *::after { box-sizing: border-box; }
+.se button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+.se input, .se textarea { font: inherit; color: inherit; }
+.se ::selection { background: var(--accent-bg); color: var(--fg); }
+
+/* Mono inline-label utility — LLM-app trope for technical chrome */
+.se .mono { font-family: var(--font-mono); letter-spacing: -0.01em; }
+.se .micro {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+}
+
+/* Striped placeholder for cover art (no SVG illustration — fill via CMS)
+   On light bg: neutral warm gray stripes that still read as "placeholder". */
+.se .placeholder-cover {
+  position: relative;
+  overflow: hidden;
+  background:
+    repeating-linear-gradient(
+      135deg,
+      rgba(20,18,14,0.03) 0 14px,
+      rgba(20,18,14,0.06) 14px 28px
+    ),
+    linear-gradient(180deg, #ece9e1, #d4cfc4);
+  isolation: isolate;
+}
+.se .placeholder-cover::after {
+  content: attr(data-tag);
+  position: absolute;
+  inset: auto 0 8px 0;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  color: rgba(20,18,14,0.45);
+  text-align: center;
+  text-transform: uppercase;
+}
+
+/* Custom scrollbar inside carousels — visible but restrained */
+.se .row-scroll { scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
+.se .row-scroll::-webkit-scrollbar { height: 6px; }
+.se .row-scroll::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
+.se .row-scroll::-webkit-scrollbar-track { background: transparent; }
+
+/* Disabled state shared */
+.se .is-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: grayscale(0.3);
+}
+
+/* ============================================================
+ * Theme-aware helpers (used by atoms.jsx so chip/cover/avatar
+ * render correctly on either token file) — these vary per theme.
+ * ============================================================ */
+:root {
+  /* Genre chip surface: a tinted background that reads as "chip on paper".
+     Lightness ~0.94 keeps it pale; chroma adds the genre hue. */
+  --chip-bg-l: 0.94;       /* lightness for chip bg */
+  --chip-bg-c: 0.05;       /* chroma for chip bg */
+  --chip-fg-l: 0.40;       /* lightness for chip text + icon */
+  --chip-fg-c: 0.14;       /* chroma for chip text */
+  --chip-border-l: 0.85;
+  --chip-border-c: 0.07;
+
+  /* Avatar gradient lightness anchors (light theme: mid → slightly darker) */
+  --avatar-l-hi: 0.62;
+  --avatar-l-lo: 0.48;
+  --avatar-c:    0.10;
+
+  /* Cover hue tint anchors */
+  --cover-l-hi: 0.86;
+  --cover-l-lo: 0.74;
+  --cover-c:    0.07;
+
+  /* Hero radial wash */
+  --hero-tint-l: 0.85;
+  --hero-tint-c: 0.10;
+  --hero-tint-a: 0.55;
+  --cover-stripe: rgba(20,18,14,0.05);
+}

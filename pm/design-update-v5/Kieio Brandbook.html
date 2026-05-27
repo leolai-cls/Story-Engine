@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kieio · Brandbook v2</title>
+<link rel="stylesheet" href="brand.css">
+<style>
+  html, body { margin: 0; padding: 0; background: #f0eee9; overflow: hidden; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="brandbook.jsx"></script>
+
+<script type="text/babel">
+const AB_W = 1100;
+const AB_H = 780;
+
+function App() {
+  return (
+    <DesignCanvas>
+      <DCSection
+        id="brandbook"
+        title="Kieio · Brandbook v4 · Locked"
+        subtitle="Locked: (o) KIEIO · Termina Bold + Gimbal Extended · Lakers Purple (#552583, PMS 526 C) as primary brand color · solid fills, no gradients."
+      >
+        <DCArtboard id="bb-cover"    label="01 · Cover" width={AB_W} height={AB_H}><BBCover /></DCArtboard>
+        <DCArtboard id="bb-name"     label="02 · The name" width={AB_W} height={AB_H}><BBName /></DCArtboard>
+        <DCArtboard id="bb-wordmark" label="03 · Wordmark" width={AB_W} height={AB_H}><BBWordmark /></DCArtboard>
+        <DCArtboard id="bb-mark"     label="04 · The mark (O)" width={AB_W} height={AB_H}><BBMark /></DCArtboard>
+        <DCArtboard id="bb-lockups"  label="05 · Lockups" width={AB_W} height={AB_H}><BBLockups /></DCArtboard>
+        <DCArtboard id="bb-color"    label="06 · Color" width={AB_W} height={AB_H}><BBColor /></DCArtboard>
+        <DCArtboard id="bb-type"     label="07 · Typography" width={AB_W} height={AB_H}><BBType /></DCArtboard>
+        <DCArtboard id="bb-voice"    label="08 · Voice & tone" width={AB_W} height={AB_H}><BBVoice /></DCArtboard>
+        <DCArtboard id="bb-icons"    label="09 · Iconography" width={AB_W} height={AB_H}><BBIcons /></DCArtboard>
+        <DCArtboard id="bb-appicon"  label="10 · App icon & favicon" width={AB_W} height={AB_H}><BBAppIcon /></DCArtboard>
+        <DCArtboard id="bb-social"   label="11 · Social card" width={AB_W} height={AB_H}><BBSocial /></DCArtboard>
+        <DCArtboard id="bb-hero"     label="12 · Landing hero" width={AB_W} height={AB_H}><BBHero /></DCArtboard>
+      </DCSection>
+    </DesignCanvas>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

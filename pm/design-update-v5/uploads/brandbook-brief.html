@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kieio — Brand Brief for Claude Design</title>
+<style>
+  :root {
+    --bg: #fbfaf6;
+    --fg: #1a1a1a;
+    --muted: #6b6b6b;
+    --dim: #9a9a9a;
+    --border: #e5e2da;
+    --surface: #ffffff;
+    --surface-2: #f3f0e8;
+    --accent: #1a1a1a;
+    --highlight: #fff5d6;
+    --code-bg: #f3f0e8;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--fg); }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC",
+      "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+    line-height: 1.6;
+    font-size: 15px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 64px 32px 96px; }
+  .eyebrow {
+    font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    display: inline-block;
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+  }
+  h1 {
+    font-size: 52px;
+    line-height: 1.05;
+    letter-spacing: -0.025em;
+    font-weight: 800;
+    margin: 20px 0 18px;
+  }
+  h2 {
+    font-size: 26px;
+    letter-spacing: -0.015em;
+    font-weight: 700;
+    margin: 56px 0 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  h3 {
+    font-size: 16px;
+    letter-spacing: -0.005em;
+    font-weight: 700;
+    margin: 24px 0 6px;
+  }
+  p { margin: 0 0 14px; color: #2a2a2a; }
+  .lead { font-size: 18px; line-height: 1.55; color: #2a2a2a; }
+  .meta {
+    font-family: "SF Mono", ui-monospace, monospace;
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+  }
+  ul { padding-left: 22px; margin: 8px 0 16px; }
+  li { margin: 4px 0; }
+  strong { color: #000; font-weight: 700; }
+  em { font-style: normal; background: var(--highlight); padding: 1px 4px; border-radius: 3px; }
+  code, .mono {
+    font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+    font-size: 13px;
+    background: var(--code-bg);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px 24px;
+    margin: 12px 0;
+  }
+  .pronounce-card {
+    background: var(--fg);
+    color: var(--bg);
+    border-radius: 16px;
+    padding: 32px;
+    margin: 28px 0 32px;
+  }
+  .pronounce-card .name {
+    font-size: 64px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    margin-bottom: 14px;
+  }
+  .pronounce-card .ipa {
+    font-family: "SF Mono", ui-monospace, monospace;
+    font-size: 20px;
+    color: #ddd;
+    margin-bottom: 18px;
+  }
+  .pronounce-card .rhyme {
+    font-size: 14px;
+    color: #bbb;
+    margin: 0;
+  }
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin: 16px 0;
+  }
+  .grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin: 16px 0;
+  }
+  @media (max-width: 720px) {
+    .wrap { padding: 36px 20px 64px; }
+    h1 { font-size: 36px; }
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    .pronounce-card .name { font-size: 48px; }
+  }
+  .pillar {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+  }
+  .pillar .num {
+    font-family: "SF Mono", ui-monospace, monospace;
+    font-size: 11px;
+    color: var(--dim);
+    letter-spacing: 0.1em;
+    display: block;
+    margin-bottom: 4px;
+  }
+  .pillar h4 {
+    font-size: 15px;
+    font-weight: 700;
+    margin: 0 0 6px;
+    letter-spacing: -0.005em;
+  }
+  .pillar p {
+    font-size: 13.5px;
+    color: var(--muted);
+    margin: 0;
+    line-height: 1.55;
+  }
+  .quote {
+    border-left: 3px solid var(--fg);
+    padding: 4px 0 4px 18px;
+    margin: 18px 0;
+    font-size: 17px;
+    color: #2a2a2a;
+    font-weight: 500;
+  }
+  .quote-cite {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 6px;
+    display: block;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    font-size: 14px;
+  }
+  th, td {
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  th {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 600;
+    background: var(--surface-2);
+  }
+  .prompt-box {
+    background: #0e0e0e;
+    color: #f0f0f0;
+    border-radius: 14px;
+    padding: 28px;
+    margin: 24px 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+      "PingFang TC", "Noto Sans TC", sans-serif;
+    line-height: 1.62;
+    font-size: 14px;
+    position: relative;
+    white-space: pre-wrap;
+  }
+  .prompt-box .label {
+    font-family: "SF Mono", ui-monospace, monospace;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    color: #888;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    display: block;
+  }
+  .callout {
+    background: var(--highlight);
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 18px 0;
+    font-size: 14px;
+  }
+  .callout strong { color: #000; }
+  .toc {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 22px;
+    margin: 18px 0 36px;
+  }
+  .toc ol { padding-left: 20px; margin: 6px 0 0; }
+  .toc li { margin: 2px 0; font-size: 14px; }
+  .toc a { color: var(--fg); text-decoration: none; border-bottom: 1px dashed var(--border); }
+  .toc a:hover { border-bottom-color: var(--fg); }
+  .divider { height: 1px; background: var(--border); margin: 36px 0; }
+  .footnote {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 28px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<span class="eyebrow">📘 Brand brief · for Claude Design</span>
+<h1>Kieio</h1>
+<p class="lead">中文圈嘅互動式故事 RPG 平台。每個人都可以走入自己嘅故事，做主角。</p>
+<p class="meta">PREPARED 2026-05-26 · KIEIO.COM · BRAND BRIEF v1</p>
+
+<div class="pronounce-card">
+  <div class="name">Kieio</div>
+  <div class="ipa">/ˈkiː.oʊ/ &middot; 「KEE-yo」</div>
+  <p class="rhyme">2 syllables · 5 letters · rhymes with "Leo" but starts with K-EE. Not "KIGH-yo", not "ki-EYE-yo".</p>
+</div>
+
+<div class="toc">
+  <strong>What's in this brief</strong>
+  <ol>
+    <li><a href="#what">What Kieio is</a></li>
+    <li><a href="#who">Who it's for</a></li>
+    <li><a href="#why">Why it exists (industry pain it solves)</a></li>
+    <li><a href="#pillars">Core product pillars</a></li>
+    <li><a href="#journey">User journey</a></li>
+    <li><a href="#soul">Brand soul (emotional · conceptual)</a></li>
+    <li><a href="#pricing">Business model</a></li>
+    <li><a href="#landscape">Competitive landscape (for reference)</a></li>
+    <li><a href="#constraints">Functional constraints (non-creative)</a></li>
+    <li><a href="#deliverables">Brandbook deliverables wanted</a></li>
+    <li><a href="#prompt">Prompt for Claude Design</a></li>
+  </ol>
+</div>
+
+<h2 id="what">1 · What Kieio is</h2>
+
+<p>Kieio is an <strong>AI-powered interactive fiction RPG platform</strong> built for the Chinese-language internet (Hong Kong, Taiwan, overseas Chinese diaspora · 繁體中文 default).</p>
+
+<p>Users either <strong>write their own story seed</strong>, <strong>play a community-shared story</strong>, or <strong>pick from official curated stories</strong>. AI then generates a custom game world — including a tailor-made interface, persistent characters with their own personalities, and an evolving narrative that remembers everything the player does.</p>
+
+<p>Unlike a chatbot, Kieio is a <strong>place to live another life</strong>. A turn-based, choice-driven, consequence-heavy world where NPCs have opinions, push back, and remember.</p>
+
+<div class="quote">
+  「每個人都可以走入自己嘅故事，做主角。」
+  <span class="quote-cite">— Founder positioning statement</span>
+</div>
+
+<h2 id="who">2 · Who it's for</h2>
+
+<table>
+  <tr>
+    <th>Primary audience</th>
+    <th>Detail</th>
+  </tr>
+  <tr>
+    <td>Geography</td>
+    <td>Hong Kong + Taiwan first (synchronized launch · TW market 4× HK size). Overseas Chinese diaspora secondary. Mainland China later (simplified Chinese ready Day 1).</td>
+  </tr>
+  <tr>
+    <td>Age</td>
+    <td>18–35 primarily. Heavy readers, writers, anime/web-novel fans, tabletop RPG players, fanfic readers.</td>
+  </tr>
+  <tr>
+    <td>Mindset</td>
+    <td>People who read 起點/Wattpad/Pixiv-style web novels. Want agency over the story, not just consumption. Want to <em>be</em> a character, not watch one.</td>
+  </tr>
+  <tr>
+    <td>Sophistication</td>
+    <td>Higher than average for Chinese gaming. These users notice when AI gives "yes-man" responses and lose trust immediately.</td>
+  </tr>
+  <tr>
+    <td>Devices</td>
+    <td>Mobile-first (60%+) · desktop heavy users in second tier. Reading + playing both happen vertically on phone.</td>
+  </tr>
+</table>
+
+<h2 id="why">3 · Why it exists</h2>
+
+<p>The big international platforms (AI Dungeon, Character.AI, NovelAI, Replika) <strong>do not serve the Chinese-language market</strong>. Their UI, story library, character archetypes, and AI tuning are all built for English-speaking Western audiences. Chinese users get bad translations, no curated Chinese stories, and AI that doesn't understand 繁中 cultural context (HK slang, TW idioms, web novel tropes).</p>
+
+<p>Beyond market gap, Kieio also fixes three industry-wide design failures that drive churn on every existing platform:</p>
+
+<div class="grid-3">
+  <div class="pillar">
+    <span class="num">PROBLEM 1</span>
+    <h4>AI forgets</h4>
+    <p>After 50 turns, the AI doesn't remember what happened in turn 5. Player frustration #1.</p>
+  </div>
+  <div class="pillar">
+    <span class="num">PROBLEM 2</span>
+    <h4>Yes-man AI</h4>
+    <p>NPCs always agree, always reward the player. No real consequence. No real character.</p>
+  </div>
+  <div class="pillar">
+    <span class="num">PROBLEM 3</span>
+    <h4>Generic interface</h4>
+    <p>Every story uses the same chat UI. A romance story and a dungeon crawl look identical. Immersion destroyed.</p>
+  </div>
+</div>
+
+<h2 id="pillars">4 · Core product pillars</h2>
+
+<p>Six things make Kieio different. The brandbook should reflect that this product has technical depth — it's not a toy chatbot wrapper.</p>
+
+<div class="card">
+  <h3>① Adaptive Interface (故事自適應介面)</h3>
+  <p>AI generates a custom UI for each story. A romance story gets affection meters, NPC mood displays, relationship axes. A wuxia adventure gets HP/internal-energy bars, technique inventories. A modern detective story gets clue boards, suspect dossiers. <strong>No two stories look the same.</strong></p>
+</div>
+
+<div class="card">
+  <h3>② MemPalace — 4-layer Persistent Memory</h3>
+  <p>Recent turns held in full · scene-level rolling summaries · semantic vector retrieval (pgvector) · automatic lorebook that catalogs people, places, items, events. NPCs remember what you said 200 turns ago. Story continuity that current platforms can't match.</p>
+</div>
+
+<div class="card">
+  <h3>③ Narrative Integrity Engine</h3>
+  <p>Every story has a Story Bible (immutable world rules · central conflict · 3–5 act milestones). Every character has a Character Card with red lines they will not cross. A Director AI vets every player action — risky moves trigger skill checks with dice rolls and permanent consequences. NPCs push back. The story has weight.</p>
+</div>
+
+<div class="card">
+  <h3>④ NPC Level 3 Generative Agents</h3>
+  <p>Premium tier feature: up to 3 NPCs per turn run their own parallel AI agent. Each NPC has an inner thought stream, intentions, and a chain-of-thought reasoning trace the player can read in the "Memory Journal · NPC Inner Voices" tab. Each NPC is its own perspective, not just a puppet of the narrator.</p>
+</div>
+
+<div class="card">
+  <h3>⑤ Multi-LLM Choice</h3>
+  <p>Users pick their preferred AI model — Claude (Anthropic), GPT (OpenAI), Gemini (Google), Grok (xAI), or open-source via OpenRouter. Credits work universally across models. Adult content uses a separately routed pipeline.</p>
+</div>
+
+<div class="card">
+  <h3>⑥ Three entry points, one engine</h3>
+  <p>Write your own story seed · play a community story (fork & play) · pick an official curated story. Same engine powers all three.</p>
+</div>
+
+<h2 id="journey">5 · User journey</h2>
+
+<table>
+  <tr><th>Step</th><th>What happens</th></tr>
+  <tr>
+    <td><strong>Discovery</strong></td>
+    <td>Lands on Library (Netflix-style covers) or Visitor landing (3-pillar hero). Browses official stories, community trending, genre carousels.</td>
+  </tr>
+  <tr>
+    <td><strong>Creation</strong></td>
+    <td>Either writes a seed prompt (a few sentences of premise) OR forks an existing community story. AI generates: state schema (custom UI fields) → story bible → 1–6 character cards with red lines → opening narrative. 4-task generation dashboard shows progress.</td>
+  </tr>
+  <tr>
+    <td><strong>Play</strong></td>
+    <td>Turn-based. Player types or picks an action. Director AI vets it (allow / reject / skill check / allow-with-constraint). If skill check → dice rolls inline, 4 outcomes (crit success / success / fail / crit fail). Narrator AI streams the response. State updates. NPCs have new dispositions. Memory grows.</td>
+  </tr>
+  <tr>
+    <td><strong>Memory Journal</strong></td>
+    <td>Dedicated tab. Shows lorebook entries auto-extracted, scene summaries, NPC inner thoughts (premium tier), the unfolding story arc. Player can see the AI <em>actually remembers</em>.</td>
+  </tr>
+  <tr>
+    <td><strong>Continue / Share</strong></td>
+    <td>Sessions persist forever. Player can mark a playthrough public to share with friends or the community. Others can fork it and play their own version.</td>
+  </tr>
+</table>
+
+<h2 id="soul">6 · Brand soul</h2>
+
+<p>This section is the most important one for the brandbook. Not what Kieio looks like — what Kieio <em>feels like</em>.</p>
+
+<div class="grid-2">
+  <div class="pillar">
+    <span class="num">SOUL 01</span>
+    <h4>A place, not a toy</h4>
+    <p>Kieio is somewhere you go. You don't "use" it for 5 minutes. You live in it for an evening. The brand should feel inhabited, lived-in — not gamified or playful in a kid-friendly way.</p>
+  </div>
+  <div class="pillar">
+    <span class="num">SOUL 02</span>
+    <h4>Tailored, not generic</h4>
+    <p>Every story is its own world. The brand needs to communicate "made for you" — the platform shapes itself around your premise. Like a tailor, not a vending machine.</p>
+  </div>
+  <div class="pillar">
+    <span class="num">SOUL 03</span>
+    <h4>Respect over flattery</h4>
+    <p>NPCs don't tell players they're right when they're wrong. Choices have weight. The brand voice should reflect that — direct, intelligent, treats the user as a peer. Never sycophantic, never patronizing, never "魔法世界等緊你哦~" cute.</p>
+  </div>
+  <div class="pillar">
+    <span class="num">SOUL 04</span>
+    <h4>Asia, not ethnic</h4>
+    <p>Kieio is Chinese-language-first but the aesthetic should feel internationally Asian — closer to Studio Ghibli, mubi, A24, 設計家 — than to ethnic-themed mascots or red-lantern stereotype. Sophisticated Asian, not "Chinatown".</p>
+  </div>
+  <div class="pillar">
+    <span class="num">SOUL 05</span>
+    <h4>Quiet intelligence</h4>
+    <p>The product does heavy technical work (4-layer memory, parallel agents, adaptive UI generation) but the user shouldn't feel that complexity. The brand should feel calm and confident, not loud or feature-bragging.</p>
+  </div>
+  <div class="pillar">
+    <span class="num">SOUL 06</span>
+    <h4>Mystery has value</h4>
+    <p>The name "Kieio" is intentionally abstract — it doesn't tell you what the product does. That's the point. Like Notion, Linear, Arc, Atlas — names that become meaningful through use, not on first read. The brand should embrace that mystique, not over-explain itself.</p>
+  </div>
+</div>
+
+<h2 id="pricing">7 · Business model</h2>
+
+<table>
+  <tr><th>Tier</th><th>Price</th><th>What's in it</th></tr>
+  <tr>
+    <td>Free</td>
+    <td>$0</td>
+    <td>1,000 signup credits + 50 daily credits replenish. Evaluation tier.</td>
+  </tr>
+  <tr>
+    <td>Standard</td>
+    <td>$9.99/mo</td>
+    <td>2,000 monthly credits · no turn cap · 80 NPC L3 Agent credits/mo cap (unique freemium hook).</td>
+  </tr>
+  <tr>
+    <td>Pro</td>
+    <td>$19.99/mo</td>
+    <td>4,000 monthly credits · no caps · full NPC L3 access · adult mode (after KYC).</td>
+  </tr>
+  <tr>
+    <td>Top-up</td>
+    <td>variable</td>
+    <td>One-time credit purchases at any tier.</td>
+  </tr>
+</table>
+
+<p>Adult mode (NSFW) is opt-in only and requires KYC age verification via Stripe Identity. Adult content runs through a separately routed LLM pipeline (won't get the platform's Anthropic/OpenAI accounts banned).</p>
+
+<h2 id="landscape">8 · Competitive landscape</h2>
+
+<p>For your reference only — these are the products users might compare Kieio to. <strong>Not</strong> a visual reference list.</p>
+
+<table>
+  <tr><th>Product</th><th>What they do</th><th>Where they fall short for our audience</th></tr>
+  <tr>
+    <td>AI Dungeon</td>
+    <td>Pioneer text adventure with AI</td>
+    <td>English-only, no curated Chinese content, dated UX, memory weak</td>
+  </tr>
+  <tr>
+    <td>Character.AI</td>
+    <td>Chat with AI characters</td>
+    <td>Chat-only (no game state), no story arcs, yes-man AI, kid-skewing brand</td>
+  </tr>
+  <tr>
+    <td>NovelAI</td>
+    <td>AI-assisted story writing</td>
+    <td>Writer-tool, not player-tool. No interactive RPG layer. Mostly English/JP.</td>
+  </tr>
+  <tr>
+    <td>Replika</td>
+    <td>AI companion</td>
+    <td>Single character only. No story, no world, no agency.</td>
+  </tr>
+  <tr>
+    <td>起點 / Wattpad</td>
+    <td>Read serialized fiction</td>
+    <td>Passive reading only. No interaction. No personalized stories.</td>
+  </tr>
+</table>
+
+<h2 id="constraints">9 · Functional constraints</h2>
+
+<p>These are the non-creative constraints — practical requirements the brand must work within. <strong>Everything else is open creative territory.</strong></p>
+
+<ul>
+  <li><strong>繁體中文 first</strong> — primary content language. Simplified Chinese + English ready Day 1 but secondary.</li>
+  <li><strong>Mobile-first</strong> — wordmark and logo must read at small sizes (16px favicon · app icon · social avatar).</li>
+  <li><strong>Pronunciation aid needed</strong> — most users will see "Kieio" before they hear it. The brand system should somehow help them say it right ("KEE-yo" or 「讀 KEE-yo」). Founder uses 「讀『KEE-yo』」in product copy already.</li>
+  <li><strong>Adult mode coexistence</strong> — brand must be able to gracefully handle the existence of NSFW content without becoming an "adult brand". Think: Reddit, AO3, Discord — not OnlyFans.</li>
+  <li><strong>Accessibility</strong> — minimum 4.5:1 contrast for body text (WCAG AA). Type system must support 繁中 (PingFang TC / Noto Sans TC / etc.) at long-read sizes.</li>
+  <li><strong>International future</strong> — eventually launches in EN markets too. The brand must not be locked to Chinese aesthetics.</li>
+  <li><strong>Domain</strong> — <code>kieio.com</code> is live.</li>
+</ul>
+
+<h2 id="deliverables">10 · Brandbook deliverables</h2>
+
+<p>What we hope a full Kieio brandbook would cover. <strong>Not prescribed — explore freely:</strong></p>
+
+<div class="grid-2">
+  <div class="pillar">
+    <h4>Logo system</h4>
+    <p>Wordmark · symbol/mark · monogram · lockups · sizing rules · clear space · what NOT to do.</p>
+  </div>
+  <div class="pillar">
+    <h4>Color</h4>
+    <p>Primary palette · accent · neutral grays · semantic (success/warning/error) · how to apply across light + dark surface types.</p>
+  </div>
+  <div class="pillar">
+    <h4>Typography</h4>
+    <p>Display + body + monospace pairings · Chinese + Latin coexistence · size scale · weight system · line-height guidelines.</p>
+  </div>
+  <div class="pillar">
+    <h4>Voice & tone</h4>
+    <p>How Kieio writes. Examples of on-brand vs off-brand copy. How it greets users, gives errors, explains features.</p>
+  </div>
+  <div class="pillar">
+    <h4>Iconography</h4>
+    <p>Icon system that works alongside the existing lucide-react foundation, or a custom suggestion.</p>
+  </div>
+  <div class="pillar">
+    <h4>Photography / illustration</h4>
+    <p>Story cover art direction · NPC avatar treatment · empty-state illustrations · marketing-page imagery.</p>
+  </div>
+  <div class="pillar">
+    <h4>Sample applications</h4>
+    <p>How the brand shows up: app icon · favicon · social cards · email · landing page hero · merch (if relevant) · in-product surfaces.</p>
+  </div>
+  <div class="pillar">
+    <h4>Logo ideation exploration</h4>
+    <p>3–5 distinct directions for the logo, each with rationale. We want range — show us we have options before converging.</p>
+  </div>
+</div>
+
+<div class="callout">
+  <strong>Important · creative latitude:</strong> Don't anchor on what the current Kieio product looks like (the v5 Grok × Netflix UI mockup). That was a functional UI exercise. The brand can — and probably should — push further. Start from soul (Section 6), not from the existing screens.
+</div>
+
+<h2 id="prompt">11 · Prompt for Claude Design</h2>
+
+<p>Copy-paste this into Claude Design (claude.ai/design) along with this brief HTML attached:</p>
+
+<div class="prompt-box">
+<span class="label">📋 Copy-paste this</span>I'm building Kieio (pronounced "KEE-yo") — a Chinese-language interactive fiction RPG platform. Domain is kieio.com, currently live with a functional product.
+
+I need a full brandbook + logo exploration. The attached brief covers what the product is, who it's for, and the soul of the brand. Please read it carefully before starting.
+
+A few things I want to emphasize:
+
+The name "Kieio" is intentionally abstract — it's not meant to literally describe the product. Think Notion, Linear, Arc, Atlas. The brand should feel inhabited, sophisticated, and intelligent — closer to A24, mubi, or Studio Ghibli than to a gaming or chatbot product.
+
+The audience is Chinese-language readers (HK + Taiwan + diaspora), but the aesthetic should feel internationally Asian, not ethnic-themed. Avoid red-lantern / ink-brush / mascot tropes unless you have a genuinely fresh take.
+
+The brand needs to gracefully house adult content (opt-in NSFW after KYC) without becoming an "adult brand" — think Reddit / AO3 / Discord, not OnlyFans.
+
+What I'd love from you:
+
+1. Three to five distinct logo directions, each with rationale. Show me range before we converge.
+2. A complete brandbook for the direction we eventually pick — wordmark, symbol, color system, typography (繁中 + Latin), voice & tone with sample copy, iconography approach, sample applications (app icon, favicon, social card, landing hero).
+3. The brand should help first-time users pronounce "Kieio" correctly — most will see the name before they hear it. Open to creative solutions.
+
+Please don't let the current product UI constrain you — the v5 mockup we shipped is a functional artifact, not a brand statement. Start from the soul of the product.
+
+繁體中文 + English bilingual deliverables welcome. Mobile-first considerations matter (16px favicon, app icon legibility).
+
+Show me your range. Have fun with it.
+</div>
+
+<div class="callout">
+  <strong>How to use this:</strong> Open <a href="https://claude.ai/design" target="_blank">claude.ai/design</a>, paste the prompt above into the conversation, and attach this HTML file (right-click → Save As → drag the saved file in). Claude Design will have full context to start exploring.
+</div>
+
+<div class="divider"></div>
+
+<p class="footnote">
+  Kieio · kieio.com · 讀「KEE-yo」 · Brief v1 · 2026-05-26 · Internal codename Story Engine retained in git history / repo / system prompts.
+</p>
+
+</div>
+</body>
+</html>

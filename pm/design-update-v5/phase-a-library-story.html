@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Story Engine · Phase A v2 · Library + Story detail</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+HK:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+<style>
+  html, body { margin: 0; padding: 0; background: #ece9e2; }
+  body { font-family: var(--font-sans); }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="atoms.jsx"></script>
+<script type="text/babel" src="library.jsx"></script>
+<script type="text/babel" src="story-detail.jsx"></script>
+
+<script type="text/babel" data-presets="react">
+function Phase() {
+  return (
+    <DesignCanvas
+      title="Story Engine · Phase A v2"
+      subtitle="Library + Story detail · Grok × Netflix · light theme · cover-dominant cards · cinematic hero"
+    >
+      <DCSection id="system" title="Aesthetic system v2"
+        subtitle="Light theme · Noto Sans HK + SF Pro + JetBrains Mono · violet accent · cinematic cover composition">
+        <DCArtboard id="tokens" label="A0 · Atoms · type · color · covers" width={920} height={620}>
+          <ScreenFrame scroll={false} style={{ padding: 28, overflow: 'auto' }}>
+            <div className="mono" style={{ fontSize: 11, letterSpacing: '0.16em', color: 'var(--accent)', marginBottom: 14 }}>
+              TYPE SCALE · DISPLAY → MICRO
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 24 }}>
+              <div style={{ fontSize: 56, fontWeight: 700, letterSpacing: '-0.035em', fontFamily: 'var(--font-cjk)', lineHeight: 1.02 }}>銅鑼灣偵探事務所</div>
+              <div style={{ fontSize: 28, fontWeight: 600, letterSpacing: '-0.02em', fontFamily: 'var(--font-cjk)' }}>章節 · 揭發階段</div>
+              <div style={{ fontSize: 17, fontFamily: 'var(--font-cjk)', color: 'var(--fg-2)', lineHeight: 1.65 }}>
+                凌晨一點四十七分，你接咗一單尋人。冇預咗呢個人，其實五年前已經死過一次。
+              </div>
+              <div className="mono" style={{ fontSize: 11, color: 'var(--fg-dim)', letterSpacing: '0.1em' }}>
+                TURN 84 · SONNET-4.6 · 2 CREDITS · 0.91 SIMILARITY
+              </div>
+            </div>
+
+            <div className="mono" style={{ fontSize: 11, letterSpacing: '0.16em', color: 'var(--accent)', marginBottom: 14 }}>
+              4-AXIS DISPOSITION · HARD RULE #6
+            </div>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, marginBottom: 24 }}>
+              {[
+                { v:'--axis-trust',   l:'信任 trust' },
+                { v:'--axis-romance', l:'戀慕 romance' },
+                { v:'--axis-respect', l:'敬重 respect' },
+                { v:'--axis-fear',    l:'懼怕 fear' },
+              ].map(c => (
+                <div key={c.v} style={{
+                  padding: 12, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:10,
+                }}>
+                  <div style={{ height: 48, borderRadius: 6, background:`var(${c.v})` }} />
+                  <div style={{ fontSize:12, marginTop: 8, color:'var(--fg)', fontFamily: 'var(--font-cjk)' }}>{c.l}</div>
+                  <div className="mono" style={{ fontSize: 9.5, color:'var(--fg-dim)' }}>{c.v}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mono" style={{ fontSize: 11, letterSpacing: '0.16em', color: 'var(--accent)', marginBottom: 14 }}>
+              COVER SAMPLES · GENRE-CODED · TYPE COMPOSED
+            </div>
+            <div style={{ display: 'flex', gap: 12 }}>
+              {['mystery','romance','fantasy','horror'].map(g => (
+                <div key={g} style={{ width: 130 }}>
+                  <Cover story={{ title: { mystery:'銅鑼灣偵探事務所', romance:'霓虹之夜', fantasy:'修真‧峨眉劍訣', horror:'新界北靈異夜' }[g], genre: g, hue: 220 }} size="md" />
+                </div>
+              ))}
+            </div>
+          </ScreenFrame>
+        </DCArtboard>
+
+        <DCPostIt x={960} y={20} w={260}>
+          <strong>Direction · Grok × Netflix</strong><br/><br/>
+          Light paper base ·  warm off-white #fbfaf6 · violet accent reserved for primary CTA, brand mark, AI/mature signal.<br/><br/>
+          <strong>Type hierarchy</strong>: 56-64px display · 22-28 section · 15-17 body · 10-11 mono micro. Letterspacing tight on display, loose on mono.<br/><br/>
+          <strong>Mono</strong> JetBrains Mono on every technical signal — turn, model, credits, similarity, time, HTTP code.<br/><br/>
+          <strong>Covers</strong> are designed objects, not placeholders. Each gradient + composed title + grain texture = A24 poster vibe. Single source of truth in <span style={{fontFamily:'monospace'}}>atoms.jsx COVER_PALETTE</span>.
+        </DCPostIt>
+      </DCSection>
+
+      <DCSection id="library" title="A · Library v2"
+        subtitle="Cinematic full-bleed hero · cover-dominant cards · Netflix cadence · Grok mono row kickers">
+
+        <DCArtboard id="lib-desktop" label="A1 · Library / Desktop · cinematic hero + 6 carousels" width={1440} height={1640}>
+          <LibraryDesktop />
+        </DCArtboard>
+
+        <DCArtboard id="lib-visitor" label="A2 · Visitor landing · cover collage + 3-pillar pitch" width={1440} height={1300}>
+          <LibraryVisitor />
+        </DCArtboard>
+
+        <DCArtboard id="lib-search" label="A3 · Search · 1-char hint [W2.6-LIB-L-05]" width={1440} height={900}>
+          <LibrarySearchEmpty />
+        </DCArtboard>
+
+        <DCArtboard id="lib-adult" label="A4 · Adult mode ON · CSAM banner [Hard #2]" width={1440} height={1400}>
+          <LibraryAdultOn />
+        </DCArtboard>
+
+        <DCArtboard id="lib-loading" label="A5 · Loading skeleton · hero-shaped" width={1440} height={1000}>
+          <LibraryLoading />
+        </DCArtboard>
+
+        <DCArtboard id="lib-mobile" label="A6 · Library / Mobile · 390px" width={390} height={1900}>
+          <LibraryMobile />
+        </DCArtboard>
+
+        <DCPostIt x={20} y={20} w={300}>
+          <strong>Library — what changed (v1 → v2)</strong><br/><br/>
+          • <strong>Cinematic 520px hero</strong> replaces the old greeting strip. Cover IS the canvas; type sits over it (48-56px display headline).<br/><br/>
+          • <strong>Cards flip text/cover ratio</strong>: cover now ~85% of card weight with title baked into the artwork. Only sparse author + plays line below.<br/><br/>
+          • <strong>Row kickers in Grok mono</strong>: <span style={{fontFamily:'monospace'}}>熱門 · TRENDING 24H</span>. Brand chrome speaks.<br/><br/>
+          • 56px page gutter · 224px cards · 18px gap. Netflix breathes.<br/><br/>
+          • Genre rail is sticky-translucent under the topbar — filters never lost during scroll.
+        </DCPostIt>
+
+        <DCPostIt x={20} y={460} w={300}>
+          <strong>Cover composition</strong><br/><br/>
+          Each cover = unique gradient tinted by genre + per-story hue, with title composed into the artwork (top-left genre kicker · bottom-left title). Grain texture overlay + edge vignette.<br/><br/>
+          Genre palette table in <span style={{fontFamily:'monospace'}}>atoms.jsx COVER_PALETTE</span> — 8 distinct moods. Designer can override per-story when real cover photography lands (image-slot future).<br/><br/>
+          Title size scales (sm=17 / md=22 / lg=38). Library hero uses full-bleed `auto` ratio with no title overlay — content sits in HTML over the cover instead.
+        </DCPostIt>
+
+        <DCPostIt x={20} y={840} w={300}>
+          <strong>「繼續玩」cards</strong><br/><br/>
+          Wider (380px) · horizontal layout · cover left, <em>narrative snippet</em> middle, disposition delta + CTA right.<br/><br/>
+          Snippet (\u300c\u4f60\u500b\u4eba\u4e0d\u5982\u6211\u60f3\u50cf\u4e2d\u90a3\u9ebc\u696c\u3002\u300d) is the resume anchor — evocative + lossless. Disposition delta (e.g. <span style={{fontFamily:'monospace'}}>信任 +15</span>) shows real backend signal.<br/><br/>
+          No chapter, no progress %.
+        </DCPostIt>
+
+        <DCPostIt x={20} y={1180} w={300}>
+          <strong>Audit IDs · hard rules</strong><br/><br/>
+          • <span style={{fontFamily:'monospace'}}>W2.6-LIB-L-05</span> · search hint copy (A3) — 中 2字 / EN 3字<br/>
+          • <span style={{fontFamily:'monospace'}}>P5-LIB-01</span> · pinned 繼續玩 row<br/>
+          • Hard <span style={{fontFamily:'monospace'}}>#2</span> · CSAM banner persistent in adult mode (A4)<br/>
+          • Hard <span style={{fontFamily:'monospace'}}>#3</span> · 18+ filter mirrors server flag (A1 vs A4)<br/>
+          • Hard <span style={{fontFamily:'monospace'}}>#9</span> · 360px+ mobile (A6)
+        </DCPostIt>
+      </DCSection>
+
+      <DCSection id="detail" title="B · Story detail v2"
+        subtitle="Full-bleed cover hero · stats strip floats across boundary · scenario landing meta">
+
+        <DCArtboard id="det-desktop" label="B1 · Story detail / Desktop · 64px display" width={1440} height={2000}>
+          <StoryDetailDesktop />
+        </DCArtboard>
+
+        <DCArtboard id="det-fork" label="B2 · Fork modal · model picker [P6-LOW-03]" width={1440} height={1100}>
+          <ForkModal />
+        </DCArtboard>
+
+        <DCArtboard id="det-mobile" label="B3 · Story detail / Mobile · sticky bottom CTA" width={390} height={1900}>
+          <StoryDetailMobile />
+        </DCArtboard>
+
+        <DCArtboard id="det-403" label="B4 · 403 friendly · adult required [P6-UX-L-03]" width={1440} height={900}>
+          <StoryDetail403 />
+        </DCArtboard>
+
+        <DCPostIt x={20} y={20} w={300}>
+          <strong>Story detail — what changed</strong><br/><br/>
+          • <strong>620px full-bleed cover hero</strong>. 64px display title left-aligned (Netflix), white CTA on the dark gradient.<br/><br/>
+          • <strong>Stats strip floats across hero/body boundary</strong> — sits in an elevated card hovering between sections. Big 24px mono numbers.<br/><br/>
+          • 2-col body: opening narrative (2/3) + cast (1/3). Mono section kickers reused (Grok signature).<br/><br/>
+          • Scenario landing framing: <em>opened · active · forked · median session</em>. No completion %, no length recommendation.
+        </DCPostIt>
+
+        <DCPostIt x={20} y={420} w={300}>
+          <strong>Fork modal (B2)</strong><br/><br/>
+          Addresses <span style={{fontFamily:'monospace'}}>P6-LOW-03</span>: model picker surfaced at run-start, not buried in Settings.<br/><br/>
+          Tier-locked models visible but disabled with hint chip. NSFW models render only if adult_mode on (Hard #3).<br/><br/>
+          Cost line per-turn only · no \u300c全程\u300d (story is scenario, not novel).
+        </DCPostIt>
+
+        <DCPostIt x={20} y={760} w={300}>
+          <strong>403 friendly (B4)</strong><br/><br/>
+          Addresses <span style={{fontFamily:'monospace'}}>P6-UX-L-03</span>: replaces raw\u300c403 Forbidden\u300d.<br/><br/>
+          Same template reused for: 402 insufficient_credits, 403 tier_required, in-Play 503.<br/><br/>
+          Body says \u300c身份驗證\u300dnot \u300cKYC\u300d (P6-LOW-02 jargon).
+        </DCPostIt>
+
+        <DCPostIt x={20} y={1060} w={300}>
+          <strong>Backend deps flagged</strong><br/><br/>
+          • \u300cOPENED · TOTAL\u300d: <span style={{fontFamily:'monospace'}}>count(playthroughs)</span> per story.<br/>
+          • \u300cACTIVE NOW\u300d: <span style={{fontFamily:'monospace'}}>playthroughs</span> with updated_at within 7d window.<br/>
+          • \u300cMEDIAN SESSION\u300d: <span style={{fontFamily:'monospace'}}>median(turn_count)</span> aggregated per story.<br/>
+          • Rating histogram in v1 deferred — needs <span style={{fontFamily:'monospace'}}>rating_distribution</span> jsonb.
+        </DCPostIt>
+      </DCSection>
+    </DesignCanvas>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<Phase/>);
+</script>
+</body>
+</html>
