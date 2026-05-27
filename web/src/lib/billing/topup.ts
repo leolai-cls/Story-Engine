@@ -84,5 +84,22 @@ export async function grantTopUpCredits(
   if (!row?.success) {
     return { ok: false, reason: "apply_billing_credit returned no row" };
   }
+
+  // Audit Wave 3 🟡: persist Stripe customer_id on profile so Free users who
+  // only did a top-up (no subscription row) can still reach Customer Portal
+  // to manage saved card / view invoice history. Subscriptions table writes
+  // a customer_id too · this is the only path for top-up-only users.
+  const stripeCustomerId =
+    typeof session.customer === "string"
+      ? session.customer
+      : session.customer?.id;
+  if (stripeCustomerId) {
+    await supabase
+      .from("profiles")
+      .update({ stripe_customer_id: stripeCustomerId })
+      .eq("id", userId)
+      .is("stripe_customer_id", null);
+  }
+
   return { ok: true, granted: row.was_duplicate ? 0 : credits, pack };
 }

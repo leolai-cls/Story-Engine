@@ -47,14 +47,25 @@ export async function startCheckout(tier: PaidTier): Promise<
 
   const supabase = await createClient();
 
-  // Find existing Stripe customer for this user (resubscribe case).
-  const { data: existingSub } = await supabase
-    .from("subscriptions")
-    .select("stripe_customer_id")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  // Find existing Stripe customer — Wave 3 fix: check both sources.
+  // Free user who did a top-up has a customer on profile (Migration 0032)
+  // but no subscription row · should reuse not create duplicate.
+  const [{ data: existingSub }, { data: existingProfile }] = await Promise.all([
+    supabase
+      .from("subscriptions")
+      .select("stripe_customer_id")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from("profiles")
+      .select("stripe_customer_id")
+      .eq("id", user.id)
+      .maybeSingle(),
+  ]);
+  const customerId =
+    existingSub?.stripe_customer_id ?? existingProfile?.stripe_customer_id ?? null;
 
   const origin = getAppOrigin();
   const locale = await getLocale();
@@ -66,7 +77,7 @@ export async function startCheckout(tier: PaidTier): Promise<
       tier,
       successUrl: `${origin}/${locale}/settings?subscribed=1`,
       cancelUrl: `${origin}/${locale}/pricing?canceled=1`,
-      customerId: existingSub?.stripe_customer_id ?? null,
+      customerId,
     });
 
     if (!session.url) {
@@ -95,16 +106,27 @@ export async function openBillingPortal(): Promise<
 
   const supabase = await createClient();
 
-  // Need a customer id to open the portal — only paid users have one.
-  const { data: sub } = await supabase
-    .from("subscriptions")
-    .select("stripe_customer_id")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  // Audit Wave 3 🟡 fix: check BOTH subscriptions table AND profiles column.
+  // Free user who only did a top-up has a Stripe customer (stored on profile
+  // via Migration 0032) but no subscriptions row → previously returned
+  // no_customer error · could not manage saved card.
+  const [{ data: sub }, { data: profile }] = await Promise.all([
+    supabase
+      .from("subscriptions")
+      .select("stripe_customer_id")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from("profiles")
+      .select("stripe_customer_id")
+      .eq("id", user.id)
+      .maybeSingle(),
+  ]);
 
-  if (!sub?.stripe_customer_id) {
+  const customerId = sub?.stripe_customer_id ?? profile?.stripe_customer_id ?? null;
+  if (!customerId) {
     return { ok: false, error: "no_customer" };
   }
 
@@ -113,7 +135,7 @@ export async function openBillingPortal(): Promise<
 
   try {
     const session = await createBillingPortalSession({
-      customerId: sub.stripe_customer_id,
+      customerId,
       returnUrl: `${origin}/${locale}/settings`,
     });
     return { ok: true, url: session.url };

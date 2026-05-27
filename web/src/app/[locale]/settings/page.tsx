@@ -65,7 +65,9 @@ export default async function SettingsPage({
     supabase
       .from("profiles")
       .select(
-        "display_name, locale, avatar_url, subscription_tier, credit_balance, credit_period_end, default_llm_provider, default_model, default_tier, created_at, adult_mode_enabled, is_age_verified",
+        // Wave 3 fix: include stripe_customer_id · enables BillingPortalButton
+        // for Free top-up-only users (Migration 0032).
+        "display_name, locale, avatar_url, subscription_tier, credit_balance, credit_period_end, default_llm_provider, default_model, default_tier, created_at, adult_mode_enabled, is_age_verified, stripe_customer_id",
       )
       .eq("id", user.id)
       .single(),
@@ -79,6 +81,11 @@ export default async function SettingsPage({
       .from("subscriptions")
       .select("tier, status, current_period_end, cancel_at_period_end, stripe_customer_id")
       .eq("user_id", user.id)
+      // Wave 3 🔵 fix: order + limit · Migration 0030 dropped user_id UNIQUE
+      // so a resubscribe-after-cancel user has multiple rows. maybeSingle()
+      // without ordering picks an arbitrary row.
+      .order("created_at", { ascending: false })
+      .limit(1)
       .maybeSingle(),
   ]);
 
@@ -341,11 +348,12 @@ export default async function SettingsPage({
                       </div>
                     )}
                     <div className="flex flex-wrap gap-2 mt-4">
-                      {/* Phase 4 Stripe live (2026-05-27):
-                          - Free or no Stripe customer → /pricing for Checkout
-                          - Has Stripe customer → BillingPortalButton routes
-                            to Stripe-hosted manage page */}
-                      {subscription?.stripe_customer_id ? (
+                      {/* Phase 4 Stripe live (2026-05-27 · Wave 3 fix 2026-05-27):
+                          - Has Stripe customer (sub OR top-up) → BillingPortalButton
+                          - No Stripe customer → /pricing CTA
+                          Sources: subscriptions row (paid users) OR profile column
+                          (Free top-up-only users · Migration 0032). */}
+                      {subscription?.stripe_customer_id || profile?.stripe_customer_id ? (
                         <BillingPortalButton />
                       ) : (
                         <Button
