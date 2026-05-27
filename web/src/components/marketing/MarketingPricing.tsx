@@ -15,60 +15,13 @@
 import { useEffect, useRef } from "react";
 import { TIER_DISPLAY, TOPUP_DISPLAY, type PublicTier, type PaidTier } from "@/lib/stripe/products";
 import { MarketingSubscribeButton } from "./MarketingSubscribeButton";
+import { LOCALE_SWITCHER, type MarketingLang } from "./copy";
 
 const APP_LOGIN_BASE = "https://app.kieio.com";
 
 const PUBLIC_TIERS: PublicTier[] = ["free", "adventurer", "storyteller"];
 
 const COPY = {
-  zh: {
-    eyebrow: "Pricing · 訂價",
-    title: "揀適合你嘅",
-    titleAccent: "故事節奏",
-    sub: "免費永遠係免費。要無限故事，先升級。",
-    usdNotice: "USD 計價 · Stripe 結帳支援港幣 / 台幣 / 信用卡 / Apple Pay / Google Pay",
-    popular: "最熱門",
-    perMonth: "/月",
-    ctaLogin: "登入後訂閱",
-    ctaSubscribe: "立即訂閱",
-    ctaCurrent: "你而家用緊呢個方案",
-    ctaPendingCancel: "已預約取消 · 點擊續訂",
-    ctaSwitch: "切換到呢個方案",
-    ctaManage: "管理訂閱 / 取消",
-    freeStart: "註冊就有 · 唔使卡",
-    topupTitle: "或者一次過充值",
-    topupSub: "唔想訂閱？一次性買 credits · 用幾耐都得",
-    faqTitle: "常見問題",
-    faqs: [
-      {
-        q: "Free tier 真係永遠免費？",
-        a: "係 · 1,000 credits 註冊送 + 每日 50 credits 自動補。冇 credit card · 冇 expiry · 冇 trial。",
-      },
-      {
-        q: "Credits 用完點算？",
-        a: "等明日 50 credits 補返 · 或者一次性買 top-up · 或者升級訂閱拎更多 monthly credits。",
-      },
-      {
-        q: "可唔可以隨時取消？",
-        a: "可以 · 任何時候喺 Settings → 管理訂閱裡面 cancel。當前 billing period 玩到完先停權。",
-      },
-      {
-        q: "成人模式點解鎖？",
-        a: "需要 Stripe Identity 年齡驗證 (KYC) · 一次過 · 永久解鎖。預設關閉。",
-      },
-      {
-        q: "唔同 model 點揀？",
-        a: "Standard / Pro / Pro Max / Adult 四個 tier · 自動按你揀嘅 model + content 路由。Free tier 限 Standard model。",
-      },
-    ],
-    canceledTitle: "訂閱取消",
-    canceledBody: "你冇 charge 到。隨時可以再試。",
-    ctaBottomTitle: "Begin your",
-    ctaBottomAccent: "first life",
-    ctaBottomSub: "第一段故事永遠係免費",
-    ctaBottomBtn: "Begin →",
-    backToHome: "← 返主頁",
-  },
   en: {
     eyebrow: "Pricing",
     title: "Pick your",
@@ -84,30 +37,18 @@ const COPY = {
     ctaSwitch: "Switch to this plan",
     ctaManage: "Manage / cancel",
     freeStart: "Free with signup · no card",
+    topupEyebrow: "One-time",
     topupTitle: "Or top up one-time",
     topupSub: "Don't want a subscription? Buy credits outright · use forever",
+    topupFoot: "Purchase top-ups from Settings after signing in · Stripe secure checkout",
+    faqEyebrow: "FAQ",
     faqTitle: "Questions",
     faqs: [
-      {
-        q: "Is the free tier actually free forever?",
-        a: "Yes. 1,000 credits on signup + 50 credits refreshed daily. No card. No expiry. No trial.",
-      },
-      {
-        q: "What happens when credits run out?",
-        a: "Wait for tomorrow's 50-credit refresh, top up one-time, or subscribe for more monthly credits.",
-      },
-      {
-        q: "Can I cancel anytime?",
-        a: "Yes. From Settings → Manage subscription. You keep access until the end of your current period.",
-      },
-      {
-        q: "How do I unlock adult mode?",
-        a: "Stripe Identity age verification (KYC) — one-time, permanent unlock. Off by default.",
-      },
-      {
-        q: "How do AI tiers work?",
-        a: "Standard / Pro / Pro Max / Adult — auto-routed by your selected model. Free tier is Standard only.",
-      },
+      { q: "Is the free tier actually free forever?", a: "Yes. 1,000 credits on signup + 50 credits refreshed daily. No card. No expiry. No trial." },
+      { q: "What happens when credits run out?", a: "Wait for tomorrow's 50-credit refresh, top up one-time, or subscribe for more monthly credits." },
+      { q: "Can I cancel anytime?", a: "Yes. From Settings → Manage subscription. You keep access until the end of your current period." },
+      { q: "How do I unlock adult mode?", a: "Stripe Identity age verification (KYC) — one-time, permanent unlock. Off by default." },
+      { q: "How do AI tiers work?", a: "Standard / Pro / Pro Max / Adult — auto-routed by your selected model. Free tier is Standard only." },
     ],
     canceledTitle: "Subscription canceled",
     canceledBody: "You weren't charged. Try again anytime.",
@@ -115,7 +56,100 @@ const COPY = {
     ctaBottomAccent: "first life",
     ctaBottomSub: "The first story is always free.",
     ctaBottomBtn: "Begin →",
+    ctaBottomBrowse: "Browse the library",
     backToHome: "← Back home",
+    creditsLine: (n: number) => `${n.toLocaleString()} credits / month`,
+    freeCreditsLine: "1,000 signup · 50 daily",
+    navHow: "How it works",
+    navMemory: "Memory",
+    navPricing: "Pricing",
+    navBegin: "Begin",
+  },
+  zhHant: {
+    eyebrow: "Pricing · 訂價",
+    title: "揀適合你嘅",
+    titleAccent: "故事節奏",
+    sub: "免費永遠係免費。要無限故事，先升級。",
+    usdNotice: "USD 計價 · Stripe 結帳支援港幣 / 台幣 / 信用卡 / Apple Pay / Google Pay",
+    popular: "最熱門",
+    perMonth: "/月",
+    ctaLogin: "登入後訂閱",
+    ctaSubscribe: "立即訂閱",
+    ctaCurrent: "你而家用緊呢個方案",
+    ctaPendingCancel: "已預約取消 · 點擊續訂",
+    ctaSwitch: "切換到呢個方案",
+    ctaManage: "管理訂閱 / 取消",
+    freeStart: "註冊就有 · 唔使卡",
+    topupEyebrow: "一次性",
+    topupTitle: "或者一次過充值",
+    topupSub: "唔想訂閱？一次性買 credits · 用幾耐都得",
+    topupFoot: "登入後喺 Settings 頁面充值 · Stripe 安全結帳",
+    faqEyebrow: "常見問題",
+    faqTitle: "常見問題",
+    faqs: [
+      { q: "Free tier 真係永遠免費？", a: "係 · 1,000 credits 註冊送 + 每日 50 credits 自動補。唔使信用卡 · 冇 expiry · 冇 trial。" },
+      { q: "Credits 用完點算？", a: "等聽日 50 credits 補返 · 或者一次性買 top-up · 或者升級訂閱拎更多 monthly credits。" },
+      { q: "可唔可以隨時取消？", a: "可以 · 任何時候喺 Settings → 管理訂閱裡面 cancel。當前 billing period 玩到完先停權。" },
+      { q: "成人模式點解鎖？", a: "需要 Stripe Identity 年齡驗證 (KYC) · 一次過 · 永久解鎖。預設關閉。" },
+      { q: "唔同 model 點揀？", a: "Standard / Pro / Pro Max / Adult 四個 tier · 自動按你揀嘅 model + content 路由。Free tier 限 Standard model。" },
+    ],
+    canceledTitle: "訂閱取消",
+    canceledBody: "你冇 charge 到。隨時可以再試。",
+    ctaBottomTitle: "開始你嘅",
+    ctaBottomAccent: "第一段人生",
+    ctaBottomSub: "第一段故事永遠係免費",
+    ctaBottomBtn: "立即開始 →",
+    ctaBottomBrowse: "睇下故事庫",
+    backToHome: "← 返主頁",
+    creditsLine: (n: number) => `每月 ${n.toLocaleString()} credits`,
+    freeCreditsLine: "1,000 註冊送 · 每日 50",
+    navHow: "點玩",
+    navMemory: "記憶",
+    navPricing: "訂價",
+    navBegin: "立即開始",
+  },
+  zhHans: {
+    eyebrow: "Pricing · 订价",
+    title: "选适合你的",
+    titleAccent: "故事节奏",
+    sub: "免费永远是免费。想要无限故事，再升级。",
+    usdNotice: "USD 计价 · Stripe 接受港币 / 台币 / 信用卡 / Apple Pay / Google Pay",
+    popular: "最热门",
+    perMonth: "/月",
+    ctaLogin: "登入后订阅",
+    ctaSubscribe: "立即订阅",
+    ctaCurrent: "你正在用这个方案",
+    ctaPendingCancel: "已预约取消 · 点击续订",
+    ctaSwitch: "切换到这个方案",
+    ctaManage: "管理订阅 / 取消",
+    freeStart: "注册就有 · 不用卡",
+    topupEyebrow: "一次性",
+    topupTitle: "或者一次性充值",
+    topupSub: "不想订阅？一次性买 credits · 用多久都行",
+    topupFoot: "登入后在 Settings 页面充值 · Stripe 安全结账",
+    faqEyebrow: "常见问题",
+    faqTitle: "常见问题",
+    faqs: [
+      { q: "Free tier 真的永远免费？", a: "是 · 1,000 credits 注册送 + 每日 50 credits 自动补。不用信用卡 · 没有 expiry · 没有 trial。" },
+      { q: "Credits 用完怎么办？", a: "等明天 50 credits 补回 · 或者一次性买 top-up · 或者升级订阅拿更多 monthly credits。" },
+      { q: "可以随时取消吗？", a: "可以 · 任何时候在 Settings → 管理订阅里面 cancel。当前 billing period 玩到完才停权。" },
+      { q: "成人模式怎么解锁？", a: "需要 Stripe Identity 年龄验证 (KYC) · 一次性 · 永久解锁。默认关闭。" },
+      { q: "不同 model 怎么选？", a: "Standard / Pro / Pro Max / Adult 四个 tier · 自动按你选的 model + content 路由。Free tier 限 Standard model。" },
+    ],
+    canceledTitle: "订阅取消",
+    canceledBody: "你没被 charge 到。随时可以再试。",
+    ctaBottomTitle: "开始你的",
+    ctaBottomAccent: "第一段人生",
+    ctaBottomSub: "第一段故事永远免费",
+    ctaBottomBtn: "立即开始 →",
+    ctaBottomBrowse: "看故事库",
+    backToHome: "← 返主页",
+    creditsLine: (n: number) => `每月 ${n.toLocaleString()} credits`,
+    freeCreditsLine: "1,000 注册送 · 每日 50",
+    navHow: "怎么玩",
+    navMemory: "记忆",
+    navPricing: "订价",
+    navBegin: "立即开始",
   },
 };
 
@@ -128,7 +162,7 @@ export function MarketingPricing({
   showCanceledToast,
   locale,
 }: {
-  lang: "zh" | "en";
+  lang: MarketingLang;
   isAuthed: boolean;
   currentTier: string | null;
   hasStripeCustomer: boolean;
@@ -159,18 +193,32 @@ export function MarketingPricing({
       <style>{MARKETING_PRICING_CSS}</style>
 
       <nav className="nav" ref={navRef}>
-        <a href="/" className="brand">
+        <a href={`/${locale}`} className="brand">
           <span className="k-mark">(o)</span>
           <span className="k-word">KIEIO</span>
         </a>
         <div className="nav-links">
-          <a href="/#how">How it works</a>
-          <a href="/#memory">Memory</a>
-          <a href="/pricing" className="active">
-            Pricing
+          <a href={`/${locale}#how`}>{c.navHow}</a>
+          <a href={`/${locale}#memory`}>{c.navMemory}</a>
+          <a href={`/${locale}/pricing`} className="active">
+            {c.navPricing}
           </a>
+          <span className="locale-switch">
+            {LOCALE_SWITCHER.map((l, i) => (
+              <span key={l.locale}>
+                {i > 0 && <span className="sep">·</span>}
+                <a
+                  href={`/${l.locale}/pricing`}
+                  className={l.lang === lang ? "locale-active" : ""}
+                  aria-current={l.lang === lang ? "page" : undefined}
+                >
+                  {l.label}
+                </a>
+              </span>
+            ))}
+          </span>
           <a href={appLogin} className="nav-cta">
-            Begin
+            {c.navBegin}
           </a>
         </div>
       </nav>
@@ -226,7 +274,7 @@ export function MarketingPricing({
         <div className="topup-inner">
           <div className="eyebrow">
             <span className="dot" />
-            One-time
+            {c.topupEyebrow}
           </div>
           <h2>{c.topupTitle}</h2>
           <p className="topup-sub">{c.topupSub}</p>
@@ -235,7 +283,7 @@ export function MarketingPricing({
               const d = TOPUP_DISPLAY[pack];
               return (
                 <div key={pack} className={`topup-card ${pack === "large" ? "highlight" : ""}`}>
-                  <div className="topup-name">{lang === "zh" ? d.nameZh : d.name}</div>
+                  <div className="topup-name">{lang !== "en" ? d.nameZh : d.name}</div>
                   <div className="topup-price">${d.priceUsd.toFixed(0)}</div>
                   <div className="topup-credits">
                     {d.credits.toLocaleString()} credits
@@ -245,11 +293,7 @@ export function MarketingPricing({
               );
             })}
           </div>
-          <p className="topup-foot">
-            {lang === "zh"
-              ? "登入後喺 Settings 頁面充值 · Stripe 安全結帳"
-              : "Purchase top-ups from Settings after signing in · Stripe secure checkout"}
-          </p>
+          <p className="topup-foot">{c.topupFoot}</p>
         </div>
       </section>
 
@@ -258,7 +302,7 @@ export function MarketingPricing({
         <div className="faq-inner">
           <div className="eyebrow">
             <span className="dot" />
-            FAQ
+            {c.faqEyebrow}
           </div>
           <h2>{c.faqTitle}</h2>
           <div className="faq-list">
@@ -290,7 +334,7 @@ export function MarketingPricing({
               {c.ctaBottomBtn}
             </a>
             <a href={appLibrary} className="btn-secondary">
-              Browse the library
+              {c.ctaBottomBrowse}
             </a>
           </div>
         </div>
@@ -321,18 +365,18 @@ function TierCard({
   copy,
 }: {
   tier: PublicTier;
-  lang: "zh" | "en";
+  lang: MarketingLang;
   isAuthed: boolean;
   currentTier: string | null;
   hasStripeCustomer: boolean;
   pendingCancel: boolean;
   loginHref: string;
-  copy: typeof COPY.zh;
+  copy: (typeof COPY)[MarketingLang];
 }) {
   const d = TIER_DISPLAY[tier];
   const isPopular = tier === "storyteller";
   const isFree = tier === "free";
-  const name = lang === "zh" ? d.publicNameZh : d.publicName;
+  const name = lang !== "en" ? d.publicNameZh : d.publicName;
 
   return (
     <div className={`tier-card ${isPopular ? "popular" : ""}`}>
@@ -343,19 +387,13 @@ function TierCard({
         {!isFree && <span className="tier-period">{copy.perMonth}</span>}
       </div>
       <div className="tier-credits">
-        {isFree
-          ? lang === "zh"
-            ? "1,000 註冊送 · 每日 50"
-            : "1,000 signup · 50 daily"
-          : lang === "zh"
-            ? `每月 ${d.monthlyCredits.toLocaleString()} credits`
-            : `${d.monthlyCredits.toLocaleString()} credits / month`}
+        {isFree ? copy.freeCreditsLine : copy.creditsLine(d.monthlyCredits)}
       </div>
       <ul className="tier-bullets">
         {d.bullets.map((b) => (
           <li key={b.en}>
             <span className="check">✓</span>
-            <span>{lang === "zh" ? b.zh : b.en}</span>
+            <span>{lang !== "en" ? b.zh : b.en}</span>
           </li>
         ))}
       </ul>
@@ -441,6 +479,18 @@ const MARKETING_PRICING_CSS = `
   font-family: 'Geist', sans-serif;
 }
 .kieio-marketing .nav-cta:hover { background: #6b3a9c; }
+.kieio-marketing .locale-switch {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--font-geist-mono), monospace; font-size: 11px;
+  letter-spacing: 0.08em;
+}
+.kieio-marketing .locale-switch a {
+  color: var(--dim) !important; text-decoration: none;
+  padding: 4px 2px; transition: color 0.2s;
+}
+.kieio-marketing .locale-switch a:hover { color: var(--mist) !important; }
+.kieio-marketing .locale-switch .locale-active { color: var(--purple-soft) !important; font-weight: 600; }
+.kieio-marketing .locale-switch .sep { color: var(--faint); padding: 0 2px; }
 
 .kieio-marketing .eyebrow {
   font-family: var(--font-geist-mono), monospace; font-size: 11px;

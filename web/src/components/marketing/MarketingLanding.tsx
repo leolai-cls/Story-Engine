@@ -23,6 +23,7 @@
  */
 
 import { useEffect, useRef } from "react";
+import { MARKETING_COPY, LOCALE_SWITCHER, type MarketingLang } from "./copy";
 
 const STORIES = [
   { art: 1, tag: "Wuxia", live: true, rating: "TV-MA", zh: "長安十二時辰", en: "Chang'an, Twelve Hours", plays: "4.2K", turn: "turn 18" },
@@ -42,10 +43,31 @@ const STORIES = [
 const SECTIONS = ["hero", "portal", "how", "memory", "bilingual", "adult", "cta"] as const;
 
 /** Sign-up / login URL · respects subdomain split (lives on app subdomain). */
-const APP_LOGIN = "https://app.kieio.com/zh-Hant/login";
-const APP_LIBRARY = "https://app.kieio.com/zh-Hant/library";
+function appLoginUrl(locale: string) {
+  return `https://app.kieio.com/${locale}/login`;
+}
+function appLibraryUrl(locale: string) {
+  return `https://app.kieio.com/${locale}/library`;
+}
 
-export function MarketingLanding() {
+export function MarketingLanding({
+  lang,
+  locale,
+}: {
+  lang: MarketingLang;
+  locale: string;
+}) {
+  const nav = MARKETING_COPY.nav[lang];
+  const hero = MARKETING_COPY.hero[lang];
+  const stream = MARKETING_COPY.stream[lang];
+  const how = MARKETING_COPY.how[lang];
+  const memory = MARKETING_COPY.memory[lang];
+  const bilingual = MARKETING_COPY.bilingual[lang];
+  const adult = MARKETING_COPY.adult[lang];
+  const cta = MARKETING_COPY.cta[lang];
+  const misc = MARKETING_COPY.misc[lang];
+  const APP_LOGIN = appLoginUrl(locale);
+  const APP_LIBRARY = appLibraryUrl(locale);
   const progressRef = useRef<HTMLDivElement>(null);
   const navRef = useRef<HTMLElement>(null);
   const counterRef = useRef<HTMLDivElement>(null);
@@ -314,12 +336,25 @@ export function MarketingLanding() {
           <span className="k-word">KIEIO</span>
         </a>
         <div className="nav-links">
-          <a href="#how">How it works</a>
-          <a href="#memory">Memory</a>
-          <a href="/pricing">Pricing</a>
-          <a href="#bilingual">繁中</a>
+          <a href="#how">{nav.how}</a>
+          <a href="#memory">{nav.memory}</a>
+          <a href={`/${locale}/pricing`}>{nav.pricing}</a>
+          <span className="locale-switch">
+            {LOCALE_SWITCHER.map((l, i) => (
+              <span key={l.locale}>
+                {i > 0 && <span className="sep">·</span>}
+                <a
+                  href={`/${l.locale}`}
+                  className={l.lang === lang ? "locale-active" : ""}
+                  aria-current={l.lang === lang ? "page" : undefined}
+                >
+                  {l.label}
+                </a>
+              </span>
+            ))}
+          </span>
           <a href={APP_LOGIN} className="nav-cta">
-            Begin
+            {nav.begin}
           </a>
         </div>
       </nav>
@@ -345,33 +380,35 @@ export function MarketingLanding() {
               <div className="hero-left">
                 <div className="eyebrow">
                   <span className="dot" />
-                  AI Interactive Story RPG · 中文圈
+                  {hero.eyebrow}
                 </div>
                 <h1>
-                  Write a line.
+                  {hero.titleLine1}
                   <br />
-                  Live a <span className="accent">life</span>.
+                  {hero.titleLine2Pre}
+                  <span className="accent">{hero.titleAccent}</span>
+                  {hero.titleSuffix}
                 </h1>
                 <div className="zh-tag">
-                  寫一句種子，
-                  <br />同 <span className="pop">AI 一齊</span>講你嘅故事。
+                  {hero.zhTagLine1}
+                  <br />
+                  {hero.zhTagLine2Pre}
+                  <span className="pop">{hero.zhTagPop}</span>
+                  {hero.zhTagLine2Post}
                 </div>
-                <p className="sub">
-                  KIEIO turns one sentence into a world, a cast, and a life you can step into. NPCs that remember 200+
-                  turns. Native Cantonese, Traditional Chinese, English. First story always free.
-                </p>
+                <p className="sub">{hero.sub}</p>
                 <div className="ctas">
                   <a href={APP_LOGIN} className="btn-primary">
-                    Begin your first life →
+                    {hero.ctaPrimary}
                   </a>
                   <a href="#how" className="btn-secondary">
-                    See how it works
+                    {hero.ctaSecondary}
                   </a>
                 </div>
                 <div className="meta">
-                  <span>200+ turn memory</span>
-                  <span>繁中 · 廣東話</span>
-                  <span>Free to start</span>
+                  <span>{hero.meta1}</span>
+                  <span>{hero.meta2}</span>
+                  <span>{hero.meta3}</span>
                 </div>
               </div>
               <div className="hero-right">
@@ -382,49 +419,47 @@ export function MarketingLanding() {
                       <span className="tab active" />
                       <span className="tab" />
                     </div>
-                    <div className="title">深夜客棧 · Live</div>
-                    <div className="turn">turn 1 / ∞</div>
+                    <div className="title">{hero.previewTitle}</div>
+                    <div className="turn">{hero.previewTurn}</div>
                   </div>
                   <div className="hero-preview-body">
                     <div className="msg m1">
-                      <div className="who narrator">阿美 · Innkeeper</div>
+                      <div className="who narrator">{hero.chat.m1Who}</div>
                       <div className="text">
-                        客棧聞到冷茶同濕羊毛嘅味。阿美放低本帳簿，望住你。
+                        {hero.chat.m1Text}
                         <br />
-                        「你<span className="em">遲咗</span>。」
+                        {hero.chat.m1Quote}
+                        <span className="em">{hero.chat.m1QuoteEm}</span>
+                        {hero.chat.m1QuotePost}
                       </div>
                     </div>
                     <div className="msg you m2">
-                      <div className="who you">You</div>
-                      <div className="text">「對唔住，條河比預期高。」</div>
+                      <div className="who you">{hero.chat.m2Who}</div>
+                      <div className="text">{hero.chat.m2Text}</div>
                     </div>
                     <div className="msg m3">
-                      <div className="who narrator">阿美 · Innkeeper</div>
-                      <div className="text">
-                        佢嘅眉皺咗一陣，然後鬆開。「上次你都係咁講。」
-                        <br />
-                        佢遞返一碗熱茶過嚟。
-                      </div>
+                      <div className="who narrator">{hero.chat.m3Who}</div>
+                      <div className="text">{hero.chat.m3Text}</div>
                       <div className="msg-mem">
                         <span className="pulse" />
-                        阿美記得 · trust −4 · 第 87 回合對白
+                        {hero.chat.m3Mem}
                       </div>
                     </div>
                     <div className="msg m4">
-                      <div className="who narrator">Narrator</div>
-                      <div className="text italic-mist">She has been waiting. You are not as forgotten as you hoped.</div>
+                      <div className="who narrator">{hero.chat.m4Who}</div>
+                      <div className="text italic-mist">{hero.chat.m4Text}</div>
                     </div>
                   </div>
                   <div className="hero-preview-input">
                     <span className="prompt-glyph">&gt;</span>
-                    <span>What do you say to Mei?</span>
+                    <span>{hero.previewInputHint}</span>
                     <span className="caret" />
                   </div>
                 </div>
               </div>
             </div>
           </div>
-          <div className="scroll-hint">Scroll</div>
+          <div className="scroll-hint">{misc.scroll}</div>
         </div>
       </section>
 
@@ -434,14 +469,14 @@ export function MarketingLanding() {
           <div className="stream-header">
             <div className="eyebrow">
               <span className="dot" />
-              Stories · 社區現在玩緊
+              {stream.eyebrow}
             </div>
             <h2>
-              One folder.
+              {stream.titleLine1}
               <br />
-              <span className="accent">A million lives.</span>
+              <span className="accent">{stream.titleAccent}</span>
             </h2>
-            <div className="sub">來自 Kieio 全球社區嘅故事</div>
+            <div className="sub">{stream.sub}</div>
           </div>
           <div className="stream-scene">
             <div className="stream-stage" ref={stageRef}>
@@ -453,8 +488,8 @@ export function MarketingLanding() {
                   <div className="folder-front" />
                 </div>
                 <div className="folder-label">
-                  Stories
-                  <span className="zh">故事</span>
+                  {stream.folderLabelEn}
+                  <span className="zh">{stream.folderLabelZh}</span>
                 </div>
               </div>
               <svg className="cursor" viewBox="0 0 24 30" style={{ left: "80%", top: "20%" }} ref={cursorRef}>
@@ -500,46 +535,34 @@ export function MarketingLanding() {
               <div className="how-left">
                 <div className="eyebrow">
                   <span className="dot" />
-                  How it works
+                  {how.eyebrow}
                 </div>
                 <h2>
-                  Three steps.
+                  {how.titleLine1}
                   <br />
-                  One life.
+                  {how.titleLine2}
                 </h2>
-                <p>
-                  You write a single line. KIEIO builds a world from it. NPCs arrive — with memory, with opinions, with
-                  their own agendas. The story remembers you back.
-                </p>
+                <p>{how.lead}</p>
                 <ol className="how-steps" id="howSteps">
                   <li className="how-step active" data-step="0">
                     <span className="how-step-num">01</span>
                     <div>
-                      <div className="how-step-body">Write a seed</div>
-                      <div className="how-step-detail">
-                        A line, a paragraph, a premise. &quot;An inn at midnight. The keeper studies a stranger.&quot; That&apos;s
-                        enough.
-                      </div>
+                      <div className="how-step-body">{how.step1Title}</div>
+                      <div className="how-step-detail">{how.step1Detail}</div>
                     </div>
                   </li>
                   <li className="how-step" data-step="1">
                     <span className="how-step-num">02</span>
                     <div>
-                      <div className="how-step-body">Enter the world</div>
-                      <div className="how-step-detail">
-                        KIEIO renders a place, populates it, and hands you the protagonist. The narrator listens before
-                        they speak.
-                      </div>
+                      <div className="how-step-body">{how.step2Title}</div>
+                      <div className="how-step-detail">{how.step2Detail}</div>
                     </div>
                   </li>
                   <li className="how-step" data-step="2">
                     <span className="how-step-num">03</span>
                     <div>
-                      <div className="how-step-body">Live a life</div>
-                      <div className="how-step-detail">
-                        Speak, act, choose. Every consequence is weighed. NPCs remember. The world bends around what
-                        you&apos;ve done.
-                      </div>
+                      <div className="how-step-body">{how.step3Title}</div>
+                      <div className="how-step-detail">{how.step3Detail}</div>
                     </div>
                   </li>
                 </ol>
@@ -547,37 +570,32 @@ export function MarketingLanding() {
               <div className="how-right">
                 <div className="story-stage" id="storyStage">
                   <div className="story-panel show" data-step="0">
-                    <div className="story-tag">Step 01 · Seed</div>
-                    <div className="story-input user">An inn at midnight. The keeper studies a stranger who arrived too late.</div>
-                    <div className="story-input user zh">客棧。半夜。掌櫃望住一個遲到嘅陌生人。</div>
+                    <div className="story-tag">{how.panel1Tag}</div>
+                    {how.panel1En && <div className="story-input user">{how.panel1En}</div>}
+                    {how.panel1Zh && <div className="story-input user zh">{how.panel1Zh}</div>}
                   </div>
                   <div className="story-panel" data-step="1">
-                    <div className="story-tag">Step 02 · World</div>
-                    <div className="story-narrate">
-                      The inn smells of cold tea and damp wool. Mei sets down her ledger. The rain hasn&apos;t let up in
-                      three days. &quot;You&apos;re late,&quot; she says. She doesn&apos;t ask your name.
-                    </div>
-                    <div className="story-narrate small">
-                      客棧聞到冷茶同濕羊毛嘅味。阿美放低本帳簿。雨已經落咗三日。「你遲咗。」佢冇問你個名。
-                    </div>
+                    <div className="story-tag">{how.panel2Tag}</div>
+                    {how.panel2En && <div className="story-narrate">{how.panel2En}</div>}
+                    {how.panel2Zh && <div className="story-narrate small">{how.panel2Zh}</div>}
                   </div>
                   <div className="story-panel" data-step="2">
-                    <div className="story-tag">Step 03 · Choose</div>
-                    <div className="story-narrate small">Mei is waiting. The fire crackles. What do you say?</div>
+                    <div className="story-tag">{how.panel3Tag}</div>
+                    <div className="story-narrate small">{how.panel3Narrate}</div>
                     <div className="story-choice">
                       <button type="button" className="choice-btn selected">
-                        &quot;I&apos;m sorry. The river was higher than I expected.&quot;
+                        {how.panel3Choice1}
                       </button>
                       <button type="button" className="choice-btn">
-                        Sit down without answering. Let the silence speak.
+                        {how.panel3Choice2}
                       </button>
                       <button type="button" className="choice-btn">
-                        &quot;Do you remember me, Mei?&quot;
+                        {how.panel3Choice3}
                       </button>
                     </div>
                     <div className="memory-chip">
                       <span className="pulse" />
-                      Mei remembers · trust +12 · turn 1 of ∞
+                      {how.panel3Mem}
                     </div>
                   </div>
                 </div>
@@ -592,39 +610,32 @@ export function MarketingLanding() {
         <div className="memory-inner">
           <div className="eyebrow">
             <span className="dot" />
-            Memory architecture
+            {memory.eyebrow}
           </div>
           <h2>
-            NPCs <span className="accent">remember</span>.
+            {memory.titlePre}
+            <span className="accent">{memory.titleAccent}</span>
+            {memory.titleSuffix}
           </h2>
-          <p className="memory-lede">
-            Not the last three messages. Not a shallow cache. KIEIO uses a four-layer memory system that holds what
-            you&apos;ve done, who you&apos;ve hurt, who you&apos;ve loved — for two hundred turns and beyond.
-          </p>
+          <p className="memory-lede">{memory.lede}</p>
           <div className="memory-grid">
             <div className="memory-card">
-              <div className="memory-card-tag">Layer 01 · Episodic</div>
-              <h3>What just happened</h3>
-              <p>The last few exchanges. Tone, mood, the immediate beat. Resolves &quot;Mei looks at you&quot; without asking who Mei is.</p>
-              <div className="turn">turn 247 — recall 100%</div>
+              <div className="memory-card-tag">{memory.card1Tag}</div>
+              <h3>{memory.card1Title}</h3>
+              <p>{memory.card1Body}</p>
+              <div className="turn">{memory.card1Turn}</div>
             </div>
             <div className="memory-card">
-              <div className="memory-card-tag">Layer 02 · Semantic</div>
-              <h3>Who is who</h3>
-              <p>
-                Names, relationships, the shape of the world. Mei is the innkeeper. The river floods every spring. You are a courier
-                who lost something.
-              </p>
-              <div className="turn">turn 247 — recall 96%</div>
+              <div className="memory-card-tag">{memory.card2Tag}</div>
+              <h3>{memory.card2Title}</h3>
+              <p>{memory.card2Body}</p>
+              <div className="turn">{memory.card2Turn}</div>
             </div>
             <div className="memory-card">
-              <div className="memory-card-tag">Layer 03 · Emotional</div>
-              <h3>How they feel</h3>
-              <p>
-                Trust, suspicion, affection, grudges. NPCs carry their emotional state forward. They will hold a grudge
-                for two hundred turns.
-              </p>
-              <div className="turn">turn 247 — Mei trust 38/100</div>
+              <div className="memory-card-tag">{memory.card3Tag}</div>
+              <h3>{memory.card3Title}</h3>
+              <p>{memory.card3Body}</p>
+              <div className="turn">{memory.card3Turn}</div>
             </div>
           </div>
         </div>
@@ -635,49 +646,33 @@ export function MarketingLanding() {
         <div className="bilingual-inner">
           <div className="bilingual-grid">
             <div>
-              <div className="en">Built for the Chinese-speaking world.</div>
+              <div className="en">{bilingual.eyebrow}</div>
               <h2>
-                用<span className="pop">廣東話</span>
+                {bilingual.titlePre}
+                <span className="pop">{bilingual.titlePop}</span>
+                {bilingual.titleMid}
                 <br />
-                講你嘅故事
+                {bilingual.titleSuffix}
               </h2>
-              <p>
-                KIEIO 嘅 NPC 識講廣東話、繁中、普通話 — 同你講人話。會有自己嘅情緒同性格。記得你做過嘅嘢。會反駁你，會原諒你，會記住。
-              </p>
-              <p className="mt-3">每一個故事都係屬於你一個人。每一個 NPC 都係為你而活。</p>
+              <p>{bilingual.p1}</p>
+              <p className="mt-3">{bilingual.p2}</p>
             </div>
             <div className="bilingual-side">
               <div className="stat-row">
-                <span className="stat-num">繁中</span>
-                <span className="stat-label">
-                  Traditional
-                  <br />
-                  Chinese first
-                </span>
+                <span className="stat-num">{bilingual.stat1Num}</span>
+                <span className="stat-label">{bilingual.stat1Label}</span>
               </div>
               <div className="stat-row">
-                <span className="stat-num">廣東話</span>
-                <span className="stat-label">
-                  Cantonese
-                  <br />
-                  native
-                </span>
+                <span className="stat-num">{bilingual.stat2Num}</span>
+                <span className="stat-label">{bilingual.stat2Label}</span>
               </div>
               <div className="stat-row">
-                <span className="stat-num">200+</span>
-                <span className="stat-label">
-                  turns of
-                  <br />
-                  memory
-                </span>
+                <span className="stat-num">{bilingual.stat3Num}</span>
+                <span className="stat-label">{bilingual.stat3Label}</span>
               </div>
               <div className="stat-row">
-                <span className="stat-num">∞</span>
-                <span className="stat-label">
-                  stories per
-                  <br />
-                  seed
-                </span>
+                <span className="stat-num">{bilingual.stat4Num}</span>
+                <span className="stat-label">{bilingual.stat4Label}</span>
               </div>
             </div>
           </div>
@@ -689,34 +684,31 @@ export function MarketingLanding() {
         <div className="adult-inner">
           <div className="eyebrow">
             <span className="dot" />
-            Mature content · opt-in
+            {adult.eyebrow}
           </div>
           <h2>
-            Adult stories,
+            {adult.titleLine1}
             <br />
-            handled with maturity.
+            {adult.titleLine2}
           </h2>
-          <p>
-            KIEIO supports mature themes — but only behind age verification. We use Stripe Identity for one-time KYC. Verify
-            once, unlock for good. Off by default. Never the front page.
-          </p>
-          <div className="adult-zh">
-            成人內容需要年齡驗證。Stripe Identity 一次驗證，永久解鎖。
-            <br />
-            預設關閉。永遠唔會出現喺首頁。
-          </div>
+          <p>{adult.p}</p>
+          {adult.zhSub && <div className="adult-zh">{adult.zhSub}</div>}
           <div className="adult-pills">
             <span className="adult-pill">
-              <span className="o">(o)</span>Opt-in only
+              <span className="o">(o)</span>
+              {adult.pill1}
             </span>
             <span className="adult-pill">
-              <span className="o">(o)</span>KYC verified
+              <span className="o">(o)</span>
+              {adult.pill2}
             </span>
             <span className="adult-pill">
-              <span className="o">(o)</span>Off by default
+              <span className="o">(o)</span>
+              {adult.pill3}
             </span>
             <span className="adult-pill">
-              <span className="o">(o)</span>No surprises
+              <span className="o">(o)</span>
+              {adult.pill4}
             </span>
           </div>
         </div>
@@ -730,21 +722,26 @@ export function MarketingLanding() {
             <span className="k-word">KIEIO</span>
           </div>
           <h2>
-            Begin your
+            {cta.titleLine1}
             <br />
-            <span className="accent">first life</span>.
+            <span className="accent">{cta.titleAccent}</span>
+            {cta.titleSuffix}
           </h2>
           <div className="lede">
-            第一段故事永遠係免費。
-            <br />
-            The first story is always free.
+            {cta.ledeLine1}
+            {cta.ledeLine2 && (
+              <>
+                <br />
+                {cta.ledeLine2}
+              </>
+            )}
           </div>
           <div className="cta-buttons">
             <a href={APP_LOGIN} className="btn-primary">
-              Begin your adventure →
+              {cta.ctaPrimary}
             </a>
             <a href={APP_LIBRARY} className="btn-secondary">
-              Browse the library
+              {cta.ctaSecondary}
             </a>
           </div>
         </div>
@@ -815,6 +812,18 @@ const MARKETING_CSS = `
   font-family: 'Geist', sans-serif;
 }
 .kieio-marketing .nav-cta:hover { background: #6b3a9c; }
+.kieio-marketing .locale-switch {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--font-geist-mono), monospace; font-size: 11px;
+  letter-spacing: 0.08em;
+}
+.kieio-marketing .locale-switch a {
+  color: var(--dim) !important; text-decoration: none;
+  padding: 4px 2px; transition: color 0.2s;
+}
+.kieio-marketing .locale-switch a:hover { color: var(--mist) !important; }
+.kieio-marketing .locale-switch .locale-active { color: var(--purple-soft) !important; font-weight: 600; }
+.kieio-marketing .locale-switch .sep { color: var(--faint); padding: 0 2px; }
 
 .kieio-marketing section { position: relative; }
 .kieio-marketing .pin-section { position: relative; }

@@ -2,6 +2,7 @@ import { setRequestLocale } from "next-intl/server";
 import { getCachedUser } from "@/lib/supabase/cached-user";
 import { createClient } from "@/lib/supabase/server";
 import { MarketingPricing } from "@/components/marketing/MarketingPricing";
+import { langFromLocale } from "@/components/marketing/copy";
 
 /**
  * Pricing page · marketing route · dark cinematic theme matching kieio.com.
@@ -59,11 +60,9 @@ export default async function PricingPage({
     pendingCancel = !!sub?.cancel_at_period_end && sub.status === "active";
   }
 
-  const lang: "zh" | "en" = locale.startsWith("en") ? "en" : "zh";
-
   return (
     <MarketingPricing
-      lang={lang}
+      lang={langFromLocale(locale)}
       isAuthed={!!user}
       currentTier={currentTier}
       hasStripeCustomer={hasStripeCustomer}

@@ -5,6 +5,7 @@ import { getCachedUser } from "@/lib/supabase/cached-user";
 import { createClient } from "@/lib/supabase/server";
 import { getLandingPath } from "@/lib/auth/landing";
 import { MarketingLanding } from "@/components/marketing/MarketingLanding";
+import { langFromLocale } from "@/components/marketing/copy";
 
 export default async function HomePage({
   params,
@@ -35,5 +36,5 @@ export default async function HomePage({
     }
   }
 
-  return <MarketingLanding />;
+  return <MarketingLanding lang={langFromLocale(locale)} locale={locale} />;
 }
