@@ -19,6 +19,7 @@ import { TierPicker } from "@/components/settings/tier-picker";
 import { type ModelTier, DEFAULT_TIER } from "@/lib/ai/models";
 import { SignOutButton } from "@/components/settings/sign-out-button";
 import { AdultModeToggle } from "@/components/settings/adult-mode-toggle";
+import { BillingPortalButton } from "@/components/settings/billing-portal-button";
 
 export const dynamic = "force-dynamic";
 
@@ -65,7 +66,7 @@ export default async function SettingsPage({
       .limit(8),
     supabase
       .from("subscriptions")
-      .select("tier, status, current_period_end, cancel_at_period_end")
+      .select("tier, status, current_period_end, cancel_at_period_end, stripe_customer_id")
       .eq("user_id", user.id)
       .maybeSingle(),
   ]);
@@ -316,10 +317,22 @@ export default async function SettingsPage({
                       </div>
                     )}
                     <div className="flex flex-wrap gap-2 mt-4">
-                      <Button variant="default" size="sm" disabled>
-                        <CreditCard className="h-4 w-4" />
-                        升級訂閱
-                      </Button>
+                      {/* Phase 4 Stripe live (2026-05-27):
+                          - Free or no Stripe customer → /pricing for Checkout
+                          - Has Stripe customer → BillingPortalButton routes
+                            to Stripe-hosted manage page */}
+                      {subscription?.stripe_customer_id ? (
+                        <BillingPortalButton />
+                      ) : (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          render={<Link href="/pricing" />}
+                        >
+                          <CreditCard className="h-4 w-4" />
+                          {tier === "free" ? "升級訂閱" : "查看方案"}
+                        </Button>
+                      )}
                       <Button variant="outline" size="sm" disabled>
                         購買 Top-up
                       </Button>
@@ -333,7 +346,7 @@ export default async function SettingsPage({
                           color: "var(--se-fg-dim)",
                         }}
                       >
-                        top-up · Phase 4
+                        top-up · 待開
                       </span>
                     </div>
                   </div>
