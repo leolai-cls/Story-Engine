@@ -21,9 +21,12 @@ type Props = {
   currentTier: string | null;
   /** Whether the user has any Stripe customer record (used for "Manage" fallback). */
   hasStripeCustomer: boolean;
+  /** True if current subscription has cancel_at_period_end=true · audit Wave 2 B4. */
+  pendingCancel?: boolean;
   /** Label shown on the button — keeps copy in the parent component. */
   labelSubscribe: string;
   labelCurrent: string;
+  labelPendingCancel: string;
   labelManage: string;
   labelSwitch: string;
   labelLogin: string;
@@ -34,8 +37,10 @@ export function SubscribeButton({
   isAuthed,
   currentTier,
   hasStripeCustomer,
+  pendingCancel = false,
   labelSubscribe,
   labelCurrent,
+  labelPendingCancel,
   labelManage,
   labelSwitch,
   labelLogin,
@@ -53,12 +58,36 @@ export function SubscribeButton({
   }
 
   // Already on this tier · disabled "Current plan" + Manage link.
+  // Audit Wave 2 B4: if subscription has cancel scheduled at period end,
+  // change CTA to "click to resume" — point user at the portal where they
+  // can un-cancel.
   if (currentTier === tier) {
     return (
       <div className="space-y-2">
-        <Button className="w-full" disabled variant="secondary">
-          {labelCurrent}
-        </Button>
+        {pendingCancel ? (
+          <Button
+            className="w-full"
+            variant="default"
+            disabled={pending}
+            onClick={() =>
+              startTransition(async () => {
+                setErr(null);
+                const res = await openBillingPortal();
+                if (res.ok) {
+                  window.location.href = res.url;
+                } else {
+                  setErr(res.message ?? res.error);
+                }
+              })
+            }
+          >
+            {labelPendingCancel}
+          </Button>
+        ) : (
+          <Button className="w-full" disabled variant="secondary">
+            {labelCurrent}
+          </Button>
+        )}
         <button
           type="button"
           className="w-full text-xs underline text-muted-foreground hover:text-foreground"

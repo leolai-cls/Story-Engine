@@ -8,6 +8,7 @@ import { getCachedUser } from "@/lib/supabase/cached-user";
 import { createClient } from "@/lib/supabase/server";
 import { TIER_DISPLAY, type PublicTier, type PaidTier } from "@/lib/stripe/products";
 import { SubscribeButton } from "./subscribe-button";
+import { BillingToast } from "@/components/settings/billing-toast";
 
 /**
  * Pricing page · 3-tier (Pricing v3 locked 2026-05-26).
@@ -38,6 +39,7 @@ const COPY = {
     ctaLogin: "登入後訂閱",
     ctaSubscribe: "立即訂閱",
     ctaCurrent: "你而家用緊呢個方案",
+    ctaPendingCancel: "已預約取消 · 點擊續訂",
     ctaSwitch: "切換到呢個方案",
     ctaManage: "管理訂閱 / 取消",
     freeNoChange: "註冊就可以用",
@@ -51,6 +53,7 @@ const COPY = {
     ctaLogin: "Sign in to subscribe",
     ctaSubscribe: "Subscribe",
     ctaCurrent: "Your current plan",
+    ctaPendingCancel: "Cancel scheduled · click to resume",
     ctaSwitch: "Switch to this plan",
     ctaManage: "Manage / cancel",
     freeNoChange: "Free with signup",
@@ -59,17 +62,21 @@ const COPY = {
 
 export default async function PricingPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<{ canceled?: string }>;
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
+  const sp = await searchParams;
 
   const user = await getCachedUser();
 
   // Determine current subscription state for CTA logic.
   let currentTier: string | null = null;
   let hasStripeCustomer = false;
+  let pendingCancel = false;
   if (user) {
     const supabase = await createClient();
     const [{ data: profile }, { data: sub }] = await Promise.all([
@@ -80,7 +87,7 @@ export default async function PricingPage({
         .maybeSingle(),
       supabase
         .from("subscriptions")
-        .select("stripe_customer_id, status")
+        .select("stripe_customer_id, status, cancel_at_period_end")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(1)
@@ -88,6 +95,7 @@ export default async function PricingPage({
     ]);
     currentTier = profile?.subscription_tier ?? "free";
     hasStripeCustomer = !!sub?.stripe_customer_id;
+    pendingCancel = !!sub?.cancel_at_period_end && sub.status === "active";
   }
 
   const lang: keyof typeof COPY = locale.startsWith("en") ? "en" : "zh";
@@ -98,6 +106,11 @@ export default async function PricingPage({
       <SiteHeader />
       <main className="flex-1">
         <section className="container mx-auto max-w-5xl px-4 sm:px-6 py-16">
+          {sp.canceled === "1" && (
+            <div className="max-w-2xl mx-auto">
+              <BillingToast variant="checkout_canceled" lang={lang} />
+            </div>
+          )}
           <div className="text-center mb-12">
             <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight mb-3">
               {c.title}
@@ -114,6 +127,7 @@ export default async function PricingPage({
                 isAuthed={!!user}
                 currentTier={currentTier}
                 hasStripeCustomer={hasStripeCustomer}
+                pendingCancel={pendingCancel}
                 lang={lang}
               />
             ))}
@@ -138,12 +152,14 @@ function TierCard({
   isAuthed,
   currentTier,
   hasStripeCustomer,
+  pendingCancel,
   lang,
 }: {
   tier: PublicTier;
   isAuthed: boolean;
   currentTier: string | null;
   hasStripeCustomer: boolean;
+  pendingCancel: boolean;
   lang: "zh" | "en";
 }) {
   const display = TIER_DISPLAY[tier];
@@ -203,8 +219,10 @@ function TierCard({
             isAuthed={isAuthed}
             currentTier={currentTier}
             hasStripeCustomer={hasStripeCustomer}
+            pendingCancel={pendingCancel}
             labelSubscribe={c.ctaSubscribe}
             labelCurrent={c.ctaCurrent}
+            labelPendingCancel={c.ctaPendingCancel}
             labelManage={c.ctaManage}
             labelSwitch={c.ctaSwitch}
             labelLogin={c.ctaLogin}

@@ -21,6 +21,7 @@ import { SignOutButton } from "@/components/settings/sign-out-button";
 import { AdultModeToggle } from "@/components/settings/adult-mode-toggle";
 import { BillingPortalButton } from "@/components/settings/billing-portal-button";
 import { TopUpButtons } from "@/components/settings/topup-buttons";
+import { BillingToast } from "@/components/settings/billing-toast";
 
 export const dynamic = "force-dynamic";
 
@@ -36,11 +37,20 @@ export const dynamic = "force-dynamic";
  */
 export default async function SettingsPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<{
+    subscribed?: string;
+    topup?: string;
+    topup_canceled?: string;
+    verified?: string;
+  }>;
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
+  const sp = await searchParams;
+  const billingLang = locale.startsWith("en") ? "en" : "zh";
 
   // AUDIT FIX MG-PERF-HIGH-01: cached — SiteHeader dedupes against this call.
   const user = await getCachedUser();
@@ -100,6 +110,19 @@ export default async function SettingsPage({
           className="mx-auto px-4 sm:px-6 lg:px-14 py-10 pb-20"
           style={{ maxWidth: 1100 }}
         >
+          {/* Audit Wave 2 B2: surface Stripe redirect status — was dead query params */}
+          {sp.subscribed === "1" && (
+            <BillingToast variant="subscribed" lang={billingLang} autoRefreshSeconds={8} />
+          )}
+          {sp.topup === "1" && (
+            <BillingToast variant="topup" lang={billingLang} autoRefreshSeconds={8} />
+          )}
+          {sp.topup_canceled === "1" && (
+            <BillingToast variant="topup_canceled" lang={billingLang} />
+          )}
+          {sp.verified === "pending" && (
+            <BillingToast variant="verifying" lang={billingLang} autoRefreshSeconds={12} />
+          )}
           <div className="flex items-baseline gap-3 mb-8">
             <h1
               className="text-3xl font-bold m-0 se-cjk"

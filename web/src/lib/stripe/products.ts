@@ -91,10 +91,15 @@ export const TIER_DISPLAY: Record<
     priceUsd: 9.99,
     monthlyCredits: 2000,
     bullets: [
+      // Audit Wave 2 (2026-05-27): drop "80 NPC L3 turns / month" claim ·
+      // current DB trigger (Migration 0028) gates L3 to Storyteller/Legend
+      // only. Conservative fix: match code reality. If founder later wants
+      // Standard to have capped L3, requires (a) widen trigger + (b) add
+      // count_l3_turns_30d function + (c) runtime check.
       { en: "2,000 credits / month", zh: "每月 2,000 credits" },
       { en: "No turn cap · play as long as you want", zh: "無回合上限 · 玩到夠" },
       { en: "Pro + Pro Max AI tiers unlocked", zh: "解鎖 Pro + Pro Max 模型" },
-      { en: "Up to 80 NPC Inner Voice turns / month", zh: "每月 80 turn NPC 內心戲" },
+      { en: "Memory Palace + full Skill Check system", zh: "記憶宮殿 + 完整擲骰系統" },
     ],
   },
   storyteller: {
