@@ -3,8 +3,9 @@
 import { useState, useTransition } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ShieldAlert, Lock, AlertCircle, TriangleAlert, X } from "lucide-react";
+import { ShieldAlert, Lock, AlertCircle, TriangleAlert, X, ShieldCheck } from "lucide-react";
 import { setAdultMode } from "@/app/[locale]/settings/actions";
+import { startAgeVerification } from "@/app/[locale]/pricing/actions";
 
 /**
  * Adult mode toggle — Phase 6 non-money function tier.
@@ -39,8 +40,30 @@ export function AdultModeToggle({
   // (low-friction off · safer default).
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [consentChecked, setConsentChecked] = useState(false);
+  const [verifyPending, setVerifyPending] = useState(false);
 
   const canToggle = isAgeVerified;
+
+  function handleStartVerification() {
+    setError(null);
+    setVerifyPending(true);
+    startTransition(async () => {
+      const res = await startAgeVerification();
+      if (res.ok) {
+        window.location.href = res.url;
+        // Don't reset pending — page is navigating away
+        return;
+      }
+      setVerifyPending(false);
+      setError(
+        res.error === "already_verified"
+          ? "你已經驗證咗 · 重 reload 個 page 應該見到 toggle 解鎖"
+          : res.error === "auth_required"
+            ? "請先登入"
+            : `驗證初始化失敗：${res.message ?? res.error}`,
+      );
+    });
+  }
 
   function handleToggleClick() {
     if (!canToggle) return;
@@ -98,23 +121,33 @@ export function AdultModeToggle({
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        {/* State 1: age not verified — locked */}
+        {/* State 1: age not verified — show verification CTA */}
         {!isAgeVerified && (
-          <div className="rounded-md border border-muted bg-muted/30 p-3">
+          <div className="rounded-md border border-muted bg-muted/30 p-3 space-y-3">
             <div className="flex items-start gap-3">
               <Lock className="h-4 w-4 flex-shrink-0 text-muted-foreground mt-0.5" />
               <div className="flex-1 text-xs space-y-2">
-                <p className="font-semibold text-foreground">需要年齡驗證</p>
+                <p className="font-semibold text-foreground">需要年齡驗證 (18+)</p>
                 <p className="text-muted-foreground">
                   根據平台政策 · 成人模式需要 Stripe Identity 完成身份驗證 ·
-                  確保只有 18+ 用戶 access。呢個 flow Phase 6 money tier 開放
-                  之後就可以做。
+                  確保只有 18+ 用戶 access。點下面 button 跳轉去 Stripe 安全頁面 ·
+                  完成後自動 unlock toggle。
                 </p>
-                <p className="text-muted-foreground">
-                  暫時 toggle 鎖死 · 你 SFW + Soft 內容齊備可玩。
+                <p className="text-muted-foreground text-[10.5px]">
+                  Stripe Identity 只攞身份證 + selfie 確認年齡 · Kieio 唔會
+                  存儲圖片。
                 </p>
               </div>
             </div>
+            <button
+              type="button"
+              onClick={handleStartVerification}
+              disabled={pending || verifyPending}
+              className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium border border-rose-300 bg-rose-50 text-rose-700 hover:bg-rose-100 disabled:opacity-60 disabled:cursor-not-allowed dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300 dark:hover:bg-rose-950/60"
+            >
+              <ShieldCheck className="h-4 w-4" />
+              {verifyPending ? "正在前往 Stripe…" : "開始年齡驗證"}
+            </button>
           </div>
         )}
 

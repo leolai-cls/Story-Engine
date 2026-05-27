@@ -228,6 +228,44 @@ async function dispatch(
       return;
     }
 
+    case "identity.verification_session.verified": {
+      const session = event.data.object as Stripe.Identity.VerificationSession;
+      const userId =
+        session.metadata?.user_id ||
+        (typeof session.client_reference_id === "string"
+          ? session.client_reference_id
+          : null);
+      if (!userId) {
+        console.warn(`Identity verified but no user_id metadata: ${session.id}`);
+        return;
+      }
+      // CLAUDE.md hard rule: is_age_verified writes ONLY via service_role.
+      // We're in the webhook · service-role client · safe to flip.
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          is_age_verified: true,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", userId);
+      if (error) {
+        throw new Error(`is_age_verified update failed: ${error.message}`);
+      }
+      console.log(`Identity verified: user=${userId} session=${session.id}`);
+      return;
+    }
+
+    case "identity.verification_session.requires_input":
+    case "identity.verification_session.canceled": {
+      // User abandoned or failed verification · log only. UI will re-render
+      // with verify button still active so they can retry.
+      const session = event.data.object as Stripe.Identity.VerificationSession;
+      console.log(
+        `Identity ${event.type.split(".").pop()}: user=${session.metadata?.user_id ?? "?"} session=${session.id} last_error=${JSON.stringify(session.last_error)}`,
+      );
+      return;
+    }
+
     default:
       // Other event types are stored in stripe_webhook_events for audit but
       // not actively handled. Add cases here as you wire more flows.
