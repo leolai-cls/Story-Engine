@@ -305,14 +305,68 @@
   /&gt;
 )}</pre>
 
-    <h4 style="margin-top: 14px;">⚠ IP / safety guardrails</h4>
+    <h4 style="margin-top: 14px;">⚠ Legal posture · founder UX update (2026-05-28)</h4>
+    <p>Founder direction: 「法律責任嗰啲我哋全部轉移曬畀個用戶」— TOS-shift model · same as Midjourney / Civitai / Stable Diffusion services。Platform 只保留 hard legal floor (CSAM)。</p>
+    <table class="table">
+      <thead><tr><th>Concern</th><th>Owner</th><th>Mechanism</th></tr></thead>
+      <tbody>
+        <tr><td>🔴 CSAM / 未成年人性內容</td><td><strong>Platform (hard floor · cannot transfer)</strong></td><td>Pre-flight OpenAI Moderation on uploaded reference · pre-flight on generated image output · law line</td></tr>
+        <tr><td>🟡 Copyright on user upload (e.g., screenshot from manga)</td><td>User via TOS</td><td>Upload UI checkbox: 「我擁有此圖版權 或 此圖屬 fair use · 我承擔所有 IP 責任」· DMCA notice process on /terms</td></tr>
+        <tr><td>🟡 Real-person likeness (user uploads photo of real person)</td><td>User via TOS</td><td>TOS clause: 「Uploaded reference must not include real person identifiable likeness 除非用戶有 consent」· user warrants + indemnifies platform</td></tr>
+        <tr><td>🟡 Trademark / IP infringement in generated image (e.g., Mickey Mouse)</td><td>User via TOS</td><td>Provider 自己 filter (Gemini · GPT) · platform 唔特別 check · generated output 用戶 responsible</td></tr>
+        <tr><td>🟢 Artistic style copy (e.g., "in style of [artist]")</td><td>User</td><td>Industry norm = fair use for style · no platform action needed</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top: 8px; font-size: 13.5px; color: var(--ink-soft);">
+      <strong>Net simplification</strong>: drop original 「real-person face detection modal」+「copyright disclaimer checkbox」per-upload (was 2 friction points) · keep CSAM moderation only (hard rule #6) · keep auto-delete 24h (privacy + cost · not legal). Beef up TOS instead with explicit warranties + indemnification clauses.
+    </p>
+
+    <h4 style="margin-top: 14px;">📝 TOS additions needed (lawyer review · already deferred to launch-eve)</h4>
     <ul class="bullets">
-      <li><strong>CSAM pre-filter on upload</strong>: OpenAI Moderation API + Google SafeSearch <strong>before</strong> file lands in Storage · 唔合格 instant reject + log</li>
-      <li><strong>Privacy: real-person face detection</strong>: AWS Rekognition / Google Vision face detection · 如果 detect 真人 face 且唔係用戶自己 (我哋唔知 · 直接 warn) → 顯示 disclaimer 「Reference image 唔可以涉及真實人物身份 · 否則違反 TOS」 · user 確認先繼續</li>
-      <li><strong>Auto-delete after 24h</strong>: 用戶 upload 嘅 style reference 唔長期 store · scene gen 用完 · cron 自動 cleanup。Saves storage cost + privacy</li>
-      <li><strong>Copyright disclaimer</strong>: Upload UI 加細字「我擁有此圖嘅版權 或者 此圖係 fair-use reference · 唔會用於商業 reproduction」· checkbox 確認</li>
-      <li><strong>Style ≠ exact copy</strong>: Reference image 用嚟 extract STYLE (色彩 · 線條 · 構圖) · 唔係 reproduce subject。Output 永遠係 different scene with reference's *aesthetic* · 唔會出現 reference 本身嘅內容</li>
+      <li>User warrants ownership / fair-use of uploaded reference images</li>
+      <li>User assumes IP liability for generated content (style imitation · likeness · trademarks)</li>
+      <li>Platform reserves right to soft-delete content via admin moderation queue (already shipped in P-03)</li>
+      <li>DMCA takedown process: email <code>legal@kieio.com</code> · admin reviews via /admin/moderation queue</li>
+      <li>Indemnification clause: user defends + indemnifies platform from third-party IP claims</li>
+      <li>Class of content always rejected: CSAM · explicit minors · doxxing · revenge porn (hard legal floor · cannot be waived by user)</li>
     </ul>
+
+    <h4 style="margin-top: 14px;">🔞 NSFW image gen UX (founder Q · 2026-05-28)</h4>
+    <p>Founder question: 「allow user to gen nsfw image · 睇下要唔要加個掣定係嗰個對話係呢個模式咁就會 default nsfw mode」</p>
+    <p><strong>建議: 跟 story content_rating · 唔加 per-image toggle</strong>。Cleanest UX · matches existing architecture · zero new state to manage.</p>
+
+    <table class="table">
+      <thead><tr><th>Story state</th><th>User state</th><th>Image gen 行為</th><th>Provider routing</th></tr></thead>
+      <tbody>
+        <tr><td><code>content_rating = 'sfw'</code> 或 <code>'soft'</code></td><td>任何</td><td>SFW gen 模式 · 用 prompt 自然遵守 provider safety</td><td>Gemini Nano Banana / GPT Image</td></tr>
+        <tr><td><code>content_rating = 'adult'</code></td><td><code>adult_mode_enabled = true</code> + KYC verified</td><td><strong>自動 NSFW mode</strong> · 每張 scene image 都可以 NSFW · 唔需要 per-image toggle</td><td>Grok Aurora (NSFW-permissive)</td></tr>
+        <tr><td><code>content_rating = 'adult'</code></td><td><code>adult_mode_enabled = false</code></td><td>Image gen disabled · 同 turn route 一致 · 顯示「Re-enable adult mode in Settings」</td><td>(N/A · gated upstream)</td></tr>
+      </tbody>
+    </table>
+
+    <h4 style="margin-top: 12px;">點解 NSFW follows story · 唔加 per-image toggle</h4>
+    <ul class="bullets">
+      <li><strong>Mental model 一致</strong>: 用戶喺 story creation 已經 declare 咗呢個故事係 adult-rated · 故事入面所有內容 (text turns + visualizations) 都跟同一個 rating 行為</li>
+      <li><strong>避免「inconsistent images in same story」</strong>: 用戶 SFW 故事突然 gen 一張 NSFW 圖 · UX 上 weird · 而且 character consistency 都會崩 (SFW portrait vs NSFW scene)</li>
+      <li><strong>Per-image toggle 會無意間 trigger NSFW 喺 SFW story 用戶</strong>: 用戶手快 click 錯 toggle · 出咗 NSFW 圖喺 SFW 故事 · 然後 share → embarrassment</li>
+      <li><strong>已有 architecture carry</strong>: content_rating + adult_mode_enabled + KYC verified 三 layer gating 已經 ship (Phase 6 money tier · Migration 0009-0028) · image gen 沿用 zero new code</li>
+      <li><strong>用戶想 NSFW 圖嘅做法</strong>: 創 adult-rated story · 喺 adult-mode 入面 · 自然每張 scene image 都係 adult capable</li>
+    </ul>
+
+    <h4 style="margin-top: 12px;">⚠ 不過要 add: 「Visualize this turn」button disable 喺 adult-mode-off + adult story</h4>
+    <p>Edge case: Pro user 創咗 adult-rated story · 之後 cancel Pro (markSubscriptionDeleted forces adult_mode_enabled=false) · 仲返去 visualize · 應該 disable 個 button 顯示「Re-enable adult mode to visualize this story」link to /settings。Same pattern as P-12 (Adult mode lock badge on /my page · already shipped)。</p>
+
+    <h4 style="margin-top: 14px;">Realistic API rejection rate</h4>
+    <p>Founder note: 「一般唔會有啲乜嘢畀 api reject」— correct。In practice OpenRouter / Gemini / GPT Image / Grok 嘅 rejection rate 對我哋 use case 極低:</p>
+    <ul class="bullets">
+      <li><strong>CSAM</strong>: all providers · automatic instant reject · 我哋 hard rule #6 一致</li>
+      <li><strong>Explicit gore / torture</strong>: rare in fiction · default off via prompt phrasing</li>
+      <li><strong>Real public figure (celebrities · politicians)</strong>: provider varies · Gemini stricter · Grok permissive · Kieio fiction context 用戶幾乎唔會撞</li>
+      <li><strong>NSFW</strong>: Gemini + GPT reject · Grok permissive (Q5 已 lock · adult routes to Grok)</li>
+    </ul>
+    <p style="margin-top: 6px;">
+      Expected real-world rejection rate: <strong>&lt; 1%</strong> of gen calls。Mitigation: if provider returns content_filter error · refund user credits · suggest 「try different style preset or rephrase prompt」· no platform penalty。
+    </p>
 
     <h4 style="margin-top: 14px;">Schema additions (sub-set of original)</h4>
     <pre class="code-block">alter table public.stories
