@@ -41,7 +41,36 @@
  * this is the hard rule line.
  */
 
-type ModerationCategory =
+/**
+ * Map moderation verdict categories → stable error code that client
+ * localizes via the `errors.moderation.*` catalog namespace.
+ *
+ * Session 16 PM Review #2 (C-01 follow-up): was duplicated locally in
+ * community/actions.ts; moved here so turn route + stories/new + community
+ * all share the same mapping. Was leaking verdict.reason (繁中-only) to
+ * EN / zh-Hans users at 4 sites.
+ */
+export function verdictToCode(categories: ModerationCategory[]): string {
+  const has = (c: ModerationCategory) => categories.includes(c);
+  if (has("sexual/minors")) return "moderation_csam_sexual_minor";
+  if (has("self-harm") || has("self-harm/intent") || has("self-harm/instructions")) {
+    return "moderation_self_harm";
+  }
+  if (
+    has("hate") ||
+    has("hate/threatening") ||
+    has("violence") ||
+    has("violence/graphic") ||
+    has("harassment") ||
+    has("harassment/threatening")
+  ) {
+    return "moderation_hate_violence";
+  }
+  if (has("sexual")) return "moderation_sexual";
+  return "moderation_blocked";
+}
+
+export type ModerationCategory =
   | "sexual"
   | "sexual/minors"
   | "hate"
@@ -87,6 +116,16 @@ const HARD_BLOCK_CATEGORIES: ModerationCategory[] = [
   "self-harm/intent",
   "self-harm/instructions",
 ];
+
+// Session 16 audit HIGH-10: module-load assertion that the CSAM hard-block
+// is never inadvertently removed (CLAUDE.md hard rule #6 — law line). If a
+// future refactor pulls "sexual/minors" out of HARD_BLOCK, throw at startup
+// so the misconfig is impossible to deploy.
+if (!HARD_BLOCK_CATEGORIES.includes("sexual/minors")) {
+  throw new Error(
+    "[moderation] HARD_BLOCK_CATEGORIES must include 'sexual/minors' — CLAUDE.md hard rule #6 violation",
+  );
+}
 
 /**
  * Categories that block in SFW content (default content_rating). Adult tier

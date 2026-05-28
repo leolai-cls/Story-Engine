@@ -44,9 +44,20 @@ export default async function MemoryJournalPage({
 
   const { data: pt } = await supabase
     .from("playthroughs")
-    .select("id, turn_count, story_id, character_name")
+    .select("id, turn_count, story_id, character_name, npc_l3_enabled")
     .eq("id", playthroughId)
     .single();
+
+  // Session 16 PM Review #2 (P-09): fetch subscription tier so memory client
+  // can render Inner Voices tab even when empty (Pro user upgrade-day reassurance
+  // · Free/Standard user upgrade CTA).
+  const { data: tierRow } = await supabase
+    .from("profiles")
+    .select("subscription_tier")
+    .eq("id", user.id)
+    .single();
+  const subscriptionTier =
+    (tierRow?.subscription_tier as "free" | "adventurer" | "storyteller" | "legend" | null) ?? "free";
   if (!pt) notFound();
 
   // D5 audit fix · Hard rule #2 CSAM reach from Memory Journal in adult mode
@@ -152,6 +163,8 @@ export default async function MemoryJournalPage({
       }))}
       lorebook={lorebookRows ?? []}
       npcInnerVoices={npcInnerVoices}
+      subscriptionTier={subscriptionTier}
+      npcL3Enabled={pt.npc_l3_enabled === true}
     />
   );
 }

@@ -6,6 +6,7 @@ import { PlayClient } from "./play-client";
 import { StateSchemaShape } from "@/schemas/state-schema";
 import { getMyPlaythroughs } from "@/lib/community/queries";
 import type { SidebarPlaythrough } from "@/components/se/PlaythroughSidebar";
+import { getActiveTier } from "@/lib/billing/credits";
 
 export default async function PlayPage({
   params,
@@ -33,7 +34,7 @@ export default async function PlayPage({
   // Session 14: include npc_l3_enabled for Storyteller-tier opt-in toggle UI
   const { data: pt } = await supabase
     .from("playthroughs")
-    .select("id, user_id, story_id, character_name, current_state, turn_count, npc_l3_enabled")
+    .select("id, user_id, story_id, character_name, current_state, turn_count, npc_l3_enabled, llm_model")
     .eq("id", playthroughId)
     .single();
 
@@ -43,7 +44,7 @@ export default async function PlayPage({
 
   const { data: story } = await supabase
     .from("stories")
-    .select("title, description, state_schema")
+    .select("title, description, state_schema, content_rating, style_key")
     .eq("id", pt.story_id)
     .single();
 
@@ -81,6 +82,8 @@ export default async function PlayPage({
     { count: totalPlaythroughCount },
     // Session 14: profile.subscription_tier for NPC L3 toggle visibility
     { data: profileForTier },
+    // Phase 8: cached scene_images for inline display
+    { data: sceneImagesRaw },
   ] = await Promise.all([
     supabase
       .from("story_characters")
@@ -97,15 +100,21 @@ export default async function PlayPage({
       .eq("user_id", user.id),
     supabase
       .from("profiles")
-      .select("subscription_tier")
+      .select("subscription_tier, credit_balance")
       .eq("id", user.id)
       .single(),
+    supabase
+      .from("scene_images")
+      .select("id, turn_index, storage_url, image_type, style_mode, style_value")
+      .eq("playthrough_id", playthroughId)
+      .eq("moderation_status", "approved")
+      .order("created_at", { ascending: true }),
   ]);
-  const subscriptionTier = (profileForTier?.subscription_tier ?? "free") as
-    | "free"
-    | "adventurer"
-    | "storyteller"
-    | "legend";
+  // Wave 3 cycle 2 fix: use getActiveTier so canceled-Pro users don't see the
+  // Visualize button on Phase 8 (server rejects them via the same helper).
+  // profile.subscription_tier may be stale during cancel→period_end window.
+  const subscriptionTier = await getActiveTier(supabase, user.id);
+  const currentBalance = (profileForTier?.credit_balance ?? 0) as number;
 
   // Merge characters + states into a single array for PlayClient
   type DispJson = { trust?: number; romance?: number; respect?: number; fear?: number } | null;
@@ -135,7 +144,7 @@ export default async function PlayPage({
     storyGenre: p.story_genre,
     turnCount: p.turn_count,
     status: p.status,
-    relativeTime: relativeTime(p.last_played_at, tLibTime),
+    relativeTime: relativeTime(p.last_played_at, tLibTime, locale),
   }));
 
   // Wave 2 i18n migration (2026-05-27): default protagonist label per-locale.
@@ -147,11 +156,31 @@ export default async function PlayPage({
         ? "主角"
         : "主角";
 
+  // Phase 8 · normalize scene_images row for client consumption
+  type SceneImageRow = {
+    id: string;
+    turn_index: number;
+    storage_url: string;
+    image_type: string;
+    style_mode: string;
+    style_value: string | null;
+  };
+  const initialSceneImages = ((sceneImagesRaw ?? []) as SceneImageRow[]).map(
+    (s) => ({
+      id: s.id,
+      turnIndex: s.turn_index,
+      storageUrl: s.storage_url,
+      imageType: s.image_type as "illustration" | "comic" | "wallpaper",
+      styleMode: s.style_mode,
+      styleValue: s.style_value ?? "",
+    }),
+  );
+
   return (
     <PlayClient
       playthroughId={playthroughId}
       storyTitle={story.title}
-      storyDescription={story.description}
+      storyDescription={story.description ?? ""}
       stateSchema={schemaParse.data}
       initialState={(pt.current_state as Record<string, unknown>) ?? {}}
       initialTurns={(turns ?? []).map((t) => ({
@@ -167,6 +196,13 @@ export default async function PlayPage({
       sidebarTotalCount={totalPlaythroughCount ?? sidebarPlaythroughs.length}
       npcL3Enabled={pt.npc_l3_enabled ?? false}
       subscriptionTier={subscriptionTier}
+      playthroughModel={(pt.llm_model as string) ?? null}
+      storyContentRating={
+        (story.content_rating as "sfw" | "soft" | "adult" | null) ?? "sfw"
+      }
+      storyDefaultStyleKey={(story.style_key as string | null) ?? null}
+      currentBalance={currentBalance}
+      initialSceneImages={initialSceneImages}
     />
   );
 }
@@ -181,6 +217,7 @@ type Turn = import("./play-client").Turn;
 function relativeTime(
   iso: string,
   t: (key: string, params?: Record<string, string | number>) => string,
+  locale: string,
 ): string {
   const ms = new Date(iso).getTime();
   const now = Date.now();
@@ -193,5 +230,6 @@ function relativeTime(
   if (diffDay === 1) return t("yesterday");
   if (diffDay < 7) return t("daysAgo", { count: diffDay });
   if (diffDay < 30) return t("weeksAgo", { count: Math.floor(diffDay / 7) });
-  return new Date(iso).toLocaleDateString();
+  // Session 16 audit MED-02 fix: pass locale (Vercel default = en-US otherwise)
+  return new Date(iso).toLocaleDateString(locale);
 }

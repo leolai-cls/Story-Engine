@@ -52,7 +52,7 @@ import {
   userTierAllowsModel,
 } from "@/lib/billing/credits";
 // ─── Phase 5 Wave 2 moderation (W1-MOD-H-03 audit fix) ──────────────────
-import { ModerationConfigError, moderateText } from "@/lib/moderation/openai-moderation";
+import { ModerationConfigError, moderateText, verdictToCode } from "@/lib/moderation/openai-moderation";
 // ─── Phase 6 non-money function: adult mode gate ────────────────────────
 import { MODELS, tierForModel, recentTurnsLimitForTier } from "@/lib/ai/models";
 
@@ -203,11 +203,13 @@ export async function POST(
     );
   }
   const userAdultMode = profileGate?.adult_mode_enabled === true;
+  // Session 16 audit HIGH-04: was using -1 as fail-open sentinel which
+  // could leak into UI / logs. Now use null + boolean sufficient.
   const balance =
     typeof profileGate?.credit_balance === "number"
       ? profileGate.credit_balance
-      : -1;
-  const sufficient = balance < 0 ? true : balance >= estimatedTurnCost;
+      : null;
+  const sufficient = balance === null ? true : balance >= estimatedTurnCost;
 
   if (modelEntry?.allows_nsfw && !userAdultMode) {
     // Wave 2 i18n cycle-3 fix (2026-05-28): error code + structured data
@@ -230,7 +232,9 @@ export async function POST(
     return NextResponse.json(
       {
         error: "insufficient_credits",
-        currentBalance: balance,
+        // Session 16 HIGH-04: balance is null only on fail-open (sufficient=true)
+        // so this branch always has a real number — coalesce to 0 for type safety.
+        currentBalance: balance ?? 0,
         estimatedCost: estimatedTurnCost,
       },
       { status: 402 }, // 402 Payment Required
@@ -318,8 +322,11 @@ export async function POST(
     console.warn(
       `[turn] moderation blocked action on pt ${playthroughId} user ${user.id}: ${moderationResult.verdict.categories.join(", ")}`,
     );
+    // Session 16 PM Review #2 (C-01 follow-up sweep): was returning
+    // verdict.reason (繁中-only). Now return stable code · client maps
+    // via errors.moderation.* catalog.
     return NextResponse.json(
-      { error: "action_blocked", message: moderationResult.verdict.reason },
+      { error: "action_blocked", code: verdictToCode(moderationResult.verdict.categories) },
       { status: 400 },
     );
   }
@@ -1284,6 +1291,22 @@ export async function POST(
               console.log(
                 `[turn] charged ${totalCredits} credits (narrator=${narratorCredits}, director=${directorCredits}, background_reserve=${backgroundCredits}) — new balance: ${chargeResult.newBalance}`,
               );
+              // Session 16 PM Review #2 (P-02): fire first_turn_played event
+              // for activation funnel. pt.turn_count was read at request start —
+              // if it was 0, this was the user's very first turn ever.
+              if (pt.turn_count === 0) {
+                try {
+                  const { captureServerEvent } = await import("@/lib/posthog/server");
+                  await captureServerEvent(user.id, "first_turn_played", {
+                    playthrough_id: playthroughId,
+                    story_id: pt.story_id,
+                    model: playthroughModel,
+                    credits_charged: totalCredits,
+                  });
+                } catch (e) {
+                  console.warn("[turn] PostHog first_turn event failed:", e);
+                }
+              }
             } else if (chargeResult.error === "insufficient_credits") {
               // Should NOT happen because pre-check passed, but defensive log.
               // Phase 3 Wave 2 will add refund saga; for now flag for admin review.

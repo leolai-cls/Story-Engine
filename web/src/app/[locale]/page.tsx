@@ -27,14 +27,42 @@ export default async function HomePage({
   const host = (await headers()).get("host") ?? "";
   const isProdMarketingHost = host === "kieio.com" || host === "www.kieio.com";
 
+  // Session 16 PM Review #2 (P-06) fix: even on prod marketing host, detect
+  // if the visiting user is already logged in (cookies scoped to .kieio.com
+  // parent → marketing host CAN read auth session). If so, pass the user's
+  // display_name to MarketingLanding so the nav can render「歡迎 X · 打開遊戲」
+  // CTA instead of「Sign up」 — returning users 唔再以為 logged out。
+  let authedUser: { displayName: string | null } | null = null;
   if (!isProdMarketingHost) {
+    // Dev / preview: keep legacy behavior · authed user skips marketing landing
     const user = await getCachedUser();
     if (user) {
       const supabase = await createClient();
       const landingPath = await getLandingPath(supabase, user.id);
       redirect({ href: landingPath as never, locale });
     }
+  } else {
+    // Prod marketing host: render landing for everyone · but pass auth context
+    // so authed users see「Open app」instead of「Sign up」
+    const user = await getCachedUser();
+    if (user) {
+      const supabase = await createClient();
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("id", user.id)
+        .maybeSingle();
+      authedUser = {
+        displayName: (profile?.display_name as string | null) ?? user.email?.split("@")[0] ?? null,
+      };
+    }
   }
 
-  return <MarketingLanding lang={langFromLocale(locale)} locale={locale} />;
+  return (
+    <MarketingLanding
+      lang={langFromLocale(locale)}
+      locale={locale}
+      authedUser={authedUser}
+    />
+  );
 }

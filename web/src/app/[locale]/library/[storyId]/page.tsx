@@ -49,6 +49,17 @@ export default async function StoryDetailPage({
 
   const story = await getStoryById(supabase, storyId);
   if (!story) notFound();
+  // Session 16 P-03: if admin soft-deleted the story, treat as not-found from
+  // visitor perspective. Owner can still see via /my (separate query) and
+  // optionally see-as-author message. Public discovery surfaces hide it.
+  const { data: hiddenCheck } = await supabase
+    .from("stories")
+    .select("is_hidden, owner_id")
+    .eq("id", storyId)
+    .single();
+  if (hiddenCheck?.is_hidden && hiddenCheck.owner_id !== user?.id) {
+    notFound();
+  }
 
   // Phase 6 audit fix (P6-MED-01): if story is adult-rated and user adult_mode
   // off, show 403-friendly card instead of full page (info-only · no fork
@@ -433,7 +444,7 @@ export default async function StoryDetailPage({
                           className="se-mono ml-auto text-[10.5px]"
                           style={{ color: "var(--se-fg-dim)" }}
                         >
-                          {new Date(r.created_at).toLocaleDateString()}
+                          {new Date(r.created_at).toLocaleDateString(locale)}
                         </span>
                       </div>
                       {r.review_text && (
@@ -483,7 +494,7 @@ export default async function StoryDetailPage({
                           className="se-mono ml-auto text-[10.5px]"
                           style={{ color: "var(--se-fg-dim)" }}
                         >
-                          {new Date(c.created_at).toLocaleDateString()}
+                          {new Date(c.created_at).toLocaleDateString(locale)}
                         </span>
                       </div>
                       {c.deleted ? (
@@ -546,7 +557,7 @@ export default async function StoryDetailPage({
                 <StatTile label={t("stats.playthroughs")} value={story.play_count.toLocaleString()} />
                 <StatTile label={t("stats.ratings")} value={String(story.rating_count)} />
                 <StatTile label={t("stats.comments")} value={String(comments.length)} />
-                <StatTile label={t("stats.published")} value={new Date(story.created_at).toLocaleDateString()} />
+                <StatTile label={t("stats.published")} value={new Date(story.created_at).toLocaleDateString(locale)} />
               </div>
 
               {/* Cost framing · per-turn only · NO 全程 estimate */}

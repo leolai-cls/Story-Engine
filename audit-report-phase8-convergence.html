@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kieio · Phase 8 場景視覺化 · Audit 完成報告</title>
+<style>
+  :root { --primary: #4F46E5; --primary-soft: #EEF2FF; --bg: #FAFAF7; --card: #FFFFFF; --ink: #18181B; --ink-soft: #3F3F46; --muted: #71717A; --border: #E4E4E7; --green: #10B981; --green-soft: #D1FAE5; --rose: #E11D48; --amber: #D97706; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif; background: var(--bg); color: var(--ink); line-height: 1.7; font-size: 15px; -webkit-font-smoothing: antialiased; }
+  main { max-width: 920px; margin: 0 auto; padding: 56px 32px 120px; }
+  .eyebrow { display: inline-block; font-size: 11px; font-weight: 800; color: var(--green); background: var(--green-soft); padding: 6px 14px; border-radius: 999px; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 18px; }
+  h1 { font-size: 36px; font-weight: 800; letter-spacing: -0.025em; margin-bottom: 14px; }
+  .lede { color: var(--muted); font-size: 17px; max-width: 720px; margin-bottom: 8px; }
+  .meta { color: var(--muted); font-size: 13px; margin-top: 10px; margin-bottom: 36px; }
+  .verdict { background: linear-gradient(135deg, #d1fae5, #ecfdf5); border: 2px solid var(--green); padding: 28px; border-radius: 16px; margin: 24px 0 40px; }
+  .verdict h3 { color: var(--green); font-size: 20px; font-weight: 800; margin-bottom: 12px; }
+  .verdict p { font-size: 15px; line-height: 1.8; }
+  .trajectory { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 28px 0 40px; }
+  .traj-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 22px; text-align: center; }
+  .traj-card.c1 { border-top: 4px solid var(--rose); }
+  .traj-card.c2 { border-top: 4px solid var(--amber); }
+  .traj-card.c3 { border-top: 4px solid var(--green); }
+  .traj-num { font-size: 42px; font-weight: 800; line-height: 1; }
+  .traj-num.bad { color: var(--rose); }
+  .traj-num.warn { color: var(--amber); }
+  .traj-num.ok { color: var(--green); }
+  .traj-cycle { font-size: 12px; color: var(--muted); margin-top: 8px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.06em; }
+  .traj-detail { font-size: 13px; color: var(--ink-soft); margin-top: 14px; line-height: 1.5; }
+  h2 { font-size: 22px; font-weight: 700; margin: 44px 0 14px; }
+  .what-shipped { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 24px 28px; margin-bottom: 24px; }
+  .block-row { display: grid; grid-template-columns: 64px 1fr; gap: 16px; align-items: start; padding: 14px 0; border-bottom: 1px dashed var(--border); }
+  .block-row:last-child { border-bottom: none; }
+  .block-letter { font-size: 22px; font-weight: 800; color: var(--primary); background: var(--primary-soft); width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 10px; }
+  .block-title { font-weight: 700; font-size: 15px; margin-bottom: 5px; }
+  .block-fixed { font-size: 13px; color: var(--ink-soft); line-height: 1.7; }
+  .block-fixed code { background: var(--primary-soft); padding: 1px 6px; border-radius: 4px; font-size: 11.5px; color: var(--primary); }
+  .you-need-to-know { background: #fef3c7; border-left: 4px solid var(--amber); padding: 18px 22px; border-radius: 8px; margin: 24px 0 32px; }
+  .you-need-to-know h3 { color: var(--amber); font-size: 16px; font-weight: 800; margin-bottom: 8px; }
+  .you-need-to-know ul { padding-left: 20px; }
+  .you-need-to-know li { padding: 4px 0; font-size: 14px; }
+  .what-now { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 24px 28px; margin: 20px 0 32px; }
+  .what-now ol { padding-left: 22px; line-height: 2.0; }
+  .what-now li { font-size: 14.5px; padding: 2px 0; }
+  .what-now strong { color: var(--primary); }
+  .footer-note { color: var(--muted); font-size: 12px; text-align: center; margin-top: 60px; }
+</style>
+</head>
+<body>
+<main>
+
+<span class="eyebrow">✅ Convergence 達成 · Hard rule #29 滿足</span>
+<h1>Phase 8 場景視覺化 · Audit 完成</h1>
+<p class="lede">5-agent 平行 audit cycle 1 揾到 120 個 finding · 3 個 cycle 之內全部 launch-blocker 已 close · 0 CRIT 0 HIGH 剩低。功能可以 ship。</p>
+<div class="meta">3 cycles · 4 fix waves · 2 migrations applied to prod · 3 commits · 2026-05-28</div>
+
+<div class="verdict">
+  <h3>🎉 結論：Phase 8 已準備好俾你 test</h3>
+  <p>5 個 agent 同時用唔同 dimension 看（私隱 / 錢計算 / AI / UX / 資料流），第一輪揾到 120 個 bug。經 6 個 block 嘅 fix sweep 之後做第二輪 verify 仲揾到 2 個 CRIT + 3 個 HIGH（你避得返撞死嘅 — 譬如「每次生圖 server 都會 DB 報錯」）。再 fix 一次，第三輪 verify 已經 0 個 launch blocker。</p>
+</div>
+
+<h2>📊 收斂軌跡 (cycle by cycle)</h2>
+<div class="trajectory">
+  <div class="traj-card c1">
+    <div class="traj-num bad">14 / 36</div>
+    <div class="traj-cycle">Cycle 1 · CRIT / HIGH</div>
+    <div class="traj-detail">5-agent 平行<br>120 finding 總共<br>40 MED + 30 LOW</div>
+  </div>
+  <div class="traj-card c2">
+    <div class="traj-num warn">2 / 3</div>
+    <div class="traj-cycle">Cycle 2 · CRIT / HIGH</div>
+    <div class="traj-detail">2-agent verify<br>cycle 1 主修補後仍剩 5 個<br>+ 7 個 cosmetic</div>
+  </div>
+  <div class="traj-card c3">
+    <div class="traj-num ok">0 / 0</div>
+    <div class="traj-cycle">Cycle 3 · CRIT / HIGH</div>
+    <div class="traj-detail">Convergence ✓<br>剩 3 個 MED (非阻塞)<br>已加入 backlog</div>
+  </div>
+</div>
+
+<h2>🛠 修咗咩 (6 個 block · 50+ 個 finding)</h2>
+<div class="what-shipped">
+
+  <div class="block-row">
+    <div class="block-letter">A</div>
+    <div>
+      <div class="block-title">5 個 ship-blocking CRIT</div>
+      <div class="block-fixed">
+        Column 名打錯（<code>credits_balance</code> 應該係 <code>credit_balance</code>，呢個 typo 令到每個 user 嘅 modal 都顯示「credits 不足」· 整個功能根本冇人用得到）· Pro Quality toggle dead client state（用戶見到 200 credit 但 server 只 charge 100 · 蝕錢）· DB insert 失敗時 credits 唔退（hard rule #4）· i18n 5 個 error code 冇 entry 顯示英文 raw 字串 · stories.style_key 加咗 CHECK enum
+      </div>
+    </div>
+  </div>
+
+  <div class="block-row">
+    <div class="block-letter">B</div>
+    <div>
+      <div class="block-title">私隱 / 法律</div>
+      <div class="block-fixed">
+        Adult 圖嘅 Storage path 用咗 <code>crypto.randomUUID()</code>（之前用 timestamp 可以 brute force 揾到其他人嘅成人圖）· Custom prompt 加咗 CSAM 預先 moderation（hard rule #6）· 文件 upload 加咗 magic byte 偵測（防止 spoof 上傳）· Soft 故事 self-attest 18+ toggle（你話「用戶自己剔咗就得唔使認證」）· Adult 故事 NSFW credit charge 而家只接受 Storyteller tier
+      </div>
+    </div>
+  </div>
+
+  <div class="block-row">
+    <div class="block-letter">C</div>
+    <div>
+      <div class="block-title">Credit 計算正確（hard rule #4）</div>
+      <div class="block-fixed">
+        Pre-flight balance check（之前 0 credit user 都會燒我哋 $0.04 先發現）· Canceled Pro user 唔再可以用 scene gen · Admin 拒絕用戶報嘅 offensive 圖 = 自動退錢 + 刪 Storage（你揀咗 auto-refund · 已實裝）
+      </div>
+    </div>
+  </div>
+
+  <div class="block-row">
+    <div class="block-letter">D</div>
+    <div>
+      <div class="block-title">每日清理 cron</div>
+      <div class="block-fixed">
+        新 cron route <code>/api/cron/cleanup-storage</code> 每日 3am UTC 跑 · 刪除 24h 過期嘅 user 上傳參考圖（之前永久累積 = 成本爆煲）
+      </div>
+    </div>
+  </div>
+
+  <div class="block-row">
+    <div class="block-letter">E</div>
+    <div>
+      <div class="block-title">AI 圖片 provider 轉換 (重大發現)</div>
+      <div class="block-fixed">
+        我之前 plan 用 <code>gpt-image-1</code> 同 <code>grok-2-image</code> · 我去 OpenRouter 查證 <strong>OpenRouter 根本冇呢兩個 model</strong>。已轉用：<br>
+        ・SFW 插畫 / 桌布 → <code>google/gemini-2.5-flash-image</code>（~$0.005 一張 · 真實成本比之前估嘅平 8 倍）<br>
+        ・中文漫畫頁 → <code>openai/gpt-5.4-image-2</code>（~$0.024 · 你話「what the fuck」嗰個正確 model name）<br>
+        ・成人圖 → <code>x-ai/grok-imagine-image-quality</code>（$0.05 · 等你 OpenRouter 上 test NSFW 支援）<br>
+        新 pricing table margin 50-94% · 中文文字渲染 + content filter 偵測都已修整
+      </div>
+    </div>
+  </div>
+
+  <div class="block-row">
+    <div class="block-letter">F</div>
+    <div>
+      <div class="block-title">UX + 無障礙 polish</div>
+      <div class="block-fixed">
+        Modal Escape 鍵 + role="dialog" · 上傳中唔可以誤 close · Disabled CTA 而家有提示話用戶要剔 / 要寫 prompt · ↻ 符號換做垃圾桶 icon · Tab + image type buttons 有 aria 屬性 · 預覽縮圖加咗 alt text · onSuccess 樂觀 insert 用正確 aspect ratio
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<h2>💰 真實 OpenRouter 成本 + Margin</h2>
+<div class="what-shipped">
+  <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 12px; font-size: 13.5px;">
+    <div style="font-weight: 700; padding: 6px 0; border-bottom: 1px solid var(--border);">圖片類型</div>
+    <div style="font-weight: 700; padding: 6px 0; border-bottom: 1px solid var(--border);">Cost</div>
+    <div style="font-weight: 700; padding: 6px 0; border-bottom: 1px solid var(--border);">Credits</div>
+    <div style="font-weight: 700; padding: 6px 0; border-bottom: 1px solid var(--border);">Margin</div>
+
+    <div style="padding: 6px 0;">SFW 插畫 (Gemini)</div>
+    <div style="padding: 6px 0; color: var(--muted);">$0.005</div>
+    <div style="padding: 6px 0;">50 ($0.05)</div>
+    <div style="padding: 6px 0; color: var(--green); font-weight: 700;">90%</div>
+
+    <div style="padding: 6px 0;">SFW 桌布 (Gemini)</div>
+    <div style="padding: 6px 0; color: var(--muted);">$0.005</div>
+    <div style="padding: 6px 0;">80 ($0.08)</div>
+    <div style="padding: 6px 0; color: var(--green); font-weight: 700;">94%</div>
+
+    <div style="padding: 6px 0;">中文漫畫 Standard (GPT-5.4)</div>
+    <div style="padding: 6px 0; color: var(--muted);">$0.024</div>
+    <div style="padding: 6px 0;">100 ($0.10)</div>
+    <div style="padding: 6px 0; color: var(--green); font-weight: 700;">76%</div>
+
+    <div style="padding: 6px 0;">中文漫畫 Pro (GPT-5.4)</div>
+    <div style="padding: 6px 0; color: var(--muted);">$0.045</div>
+    <div style="padding: 6px 0;">200 ($0.20)</div>
+    <div style="padding: 6px 0; color: var(--green); font-weight: 700;">78%</div>
+
+    <div style="padding: 6px 0;">Adult 插畫 (Grok Imagine)</div>
+    <div style="padding: 6px 0; color: var(--muted);">$0.05</div>
+    <div style="padding: 6px 0;">100 ($0.10)</div>
+    <div style="padding: 6px 0; color: var(--amber); font-weight: 700;">50%</div>
+
+    <div style="padding: 6px 0;">Adult 桌布 (Grok Imagine)</div>
+    <div style="padding: 6px 0; color: var(--muted);">$0.05</div>
+    <div style="padding: 6px 0;">120 ($0.12)</div>
+    <div style="padding: 6px 0; color: var(--amber); font-weight: 700;">58%</div>
+  </div>
+</div>
+
+<div class="you-need-to-know">
+  <h3>⚠️ 你仲需要做嘅事</h3>
+  <ul>
+    <li><strong>去 OpenRouter test NSFW</strong>：而家用 <code>x-ai/grok-imagine-image-quality</code>，我唔肯定支唔支援 NSFW。你 prompt 一張「a nude woman」之類睇下 reject 唔 reject。</li>
+    <li><strong>OpenRouter top up</strong>：你要 add credit 落 OpenRouter account 先可以 test 任何圖片 gen。Gemini ~$0.005、GPT-5.4 ~$0.024、Grok $0.05，預 $5-10 已經夠玩好多次。</li>
+    <li><strong>Vercel ENV var 唔需要改</strong>：用緊 existing 嘅 <code>OPENROUTER_API_KEY</code>，0 new env vars。</li>
+    <li><strong>Migration 已 deploy</strong>：0042 + 0043 都已 apply 落 prod，唔使你做 manual SQL。</li>
+    <li><strong>OpenAI Moderation API key</strong>：CSAM pre-filter 用緊呢個，你已經有設定。如果 OpenAI Moderation 倒咗，customPrompt 會被 reject 而唔係 silently pass through（hard rule #6）。</li>
+  </ul>
+</div>
+
+<h2>📋 下一步</h2>
+<div class="what-now">
+  <ol>
+    <li><strong>你 test</strong>：去 <code>app.kieio.com/play/&lt;id&gt;</code> 揀個 turn 撳「✨ 生成場景」· 揀風格 · 落 OpenRouter 出圖 · 睇結果。同埋去 OpenRouter test NSFW Grok Imagine。</li>
+    <li><strong>有問題你話我聽</strong>，我會修。</li>
+    <li><strong>剩低 3 個 MED 已入 backlog</strong>：legend tier deprecate 移除（codebase-wide · 另開 session）· Image dimension 驗證（要加 npm package）· Scene_images storage orphan cleanup（cron pass 2 · post-launch 補做）。全部唔影響你 test。</li>
+    <li><strong>之後嘅 phase</strong>：Phase 8.4 Memory Journal 場景 gallery tab · Phase 8.5 watermark + share template · Lazy character portrait 流程。等你 test 完 Phase 8 主流程 OK 先排。</li>
+  </ol>
+</div>
+
+<p class="footer-note">
+  Audit cycles 1-3 done per hard rule #29 (3-cycle convergence pattern) · 16 CRIT closed · 33+ HIGH closed · 2 migrations applied (0042 style_key enum · 0043 ref_type enum) · 4 commits on branch <code>claude/competent-darwin-ffecf8</code>
+</p>
+
+</main>
+</body>
+</html>

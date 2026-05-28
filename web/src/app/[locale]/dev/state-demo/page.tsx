@@ -1,4 +1,6 @@
 import { setRequestLocale } from "next-intl/server";
+import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { DynamicStatePanel } from "@/components/state-panel";
 import {
   type StateSchema,
@@ -6,6 +8,14 @@ import {
 } from "@/schemas/state-schema";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+
+// Session 16 audit MED-03 fix: /dev/* routes are internal-only — hide from
+// search engines and gate access in production. The page contained
+// customer-facing competitor positioning that violated CLAUDE.md hard rule
+// #34 (no internal strategy leak to end users).
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 // Hardcoded sample schemas to show how DynamicStatePanel renders different
 // genres. Same component, different schema → completely different UI.
@@ -171,6 +181,11 @@ export default async function StateDemoPage({
 }: {
   params: Promise<{ locale: string }>;
 }) {
+  // Session 16 audit MED-03 fix: gate /dev/* behind NODE_ENV !== 'production'.
+  // Was accessible on prod (kieio.com / app.kieio.com) to anyone with the URL.
+  if (process.env.NODE_ENV === "production") {
+    notFound();
+  }
   const { locale } = await params;
   setRequestLocale(locale);
 
@@ -227,12 +242,10 @@ export default async function StateDemoPage({
 
         <div className="mt-12 p-5 rounded-xl bg-primary/5 border border-primary/20">
           <p className="text-sm text-ink-soft">
-            <strong className="text-foreground">點解咁特別:</strong> 對手平台
-            (AI Dungeon, Character.AI)
-            嘅介面係硬寫死嘅。我哋將狀態結構同渲染解耦 —— state_schema 描述
-            「呢個故事有咩 field、用咩 render_hint」，DynamicStatePanel
-            按 hint 派 9 個 atomic component 去畫。AI 為新故事 generate
-            schema 嗰陣，介面自然就跟住變。
+            <strong className="text-foreground">點解咁特別:</strong> 每個故事
+            都有屬於自己嘅介面 —— state_schema 描述「呢個故事有咩 field、
+            用咩 render_hint」，DynamicStatePanel 按 hint 派 9 個 atomic
+            component 去畫。AI 為新故事 generate schema 嗰陣，介面自然就跟住變。
           </p>
         </div>
       </main>

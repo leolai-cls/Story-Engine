@@ -361,9 +361,19 @@ export type ChargeReason =
   | "admin_adjust"
   | "free_tier_refresh"
   | "sub_renewal"
-  | "sub_canceled";
+  | "sub_canceled"
+  // Phase 8 scene visualization (Migration 0041)
+  | "scene_image_charge"
+  | "portrait_charge";
 
-export type ChargeRefType = "turn" | "story" | "subscription" | "topup" | "admin";
+export type ChargeRefType =
+  | "turn"
+  | "story"
+  | "subscription"
+  | "topup"
+  | "admin"
+  | "scene_image"           // Phase 8 · ref_id = scene_images.id
+  | "character_portrait";   // Phase 8 · ref_id = story_characters.id
 
 export type ChargeResult =
   | { ok: true; newBalance: number; ledgerId: string }
@@ -453,14 +463,18 @@ export async function chargeCredits(
  * AUDIT FIX (P3-LOGIC-H-05): on transient errors (network blip, RLS deny,
  * lock timeout), this used to return {balance:0, sufficient:false} —
  * showing the user "Credit 唔夠（剩 0）" even when they had 50k credits.
- * Now: fail-open. We log + return {balance:-1, sufficient:true} so the
+ * Now: fail-open. We log + return {balance:null, sufficient:true} so the
  * atomic RPC remains the true gate. If RPC then fails for the same
  * underlying reason, user sees the real error.
+ *
+ * Session 16 audit HIGH-04 fix: was returning balance=-1 (sentinel) which
+ * leaked into UI as「-1 credits」on settings/turn. Now returns null so the
+ * UI can render "—" / spinner instead.
  */
 export async function getBalanceAndCheck(
   supabase: SupabaseClient,
   params: { userId: string; estimatedCost: number },
-): Promise<{ balance: number; sufficient: boolean }> {
+): Promise<{ balance: number | null; sufficient: boolean }> {
   const { data, error } = await supabase
     .from("profiles")
     .select("credit_balance")
@@ -471,7 +485,7 @@ export async function getBalanceAndCheck(
     console.warn(
       `[credits] getBalanceAndCheck transient failure (fail-open): ${error?.message ?? "no data"}`,
     );
-    return { balance: -1, sufficient: true };
+    return { balance: null, sufficient: true };
   }
   const balance = data.credit_balance as number;
   return { balance, sufficient: balance >= params.estimatedCost };
@@ -557,6 +571,43 @@ export async function userTierAllowsModel(
     return { allowed: false, tier, reason: "tier_too_low" };
   }
   return { allowed: true, tier };
+}
+
+/**
+ * Resolve the user's CURRENTLY-ACTIVE tier · respecting subscription status.
+ *
+ * Returns 'free' when subscription is canceled / past_due / unpaid even if
+ * profile.subscription_tier still says paid (sync lag possible). Used by
+ * Phase 8 scene-image gen which is tier-gated independent of any specific
+ * LLM model (so userTierAllowsModel isn't the right helper).
+ *
+ * Hard rule #4 (credits absolutely right) · CR-HIGH-02 fix.
+ */
+export async function getActiveTier(
+  supabase: SupabaseClient,
+  userId: string,
+): Promise<"free" | "adventurer" | "storyteller" | "legend"> {
+  const [profileRes, subRes] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("subscription_tier")
+      .eq("id", userId)
+      .single(),
+    supabase
+      .from("subscriptions")
+      .select("tier, status")
+      .eq("user_id", userId)
+      .maybeSingle(),
+  ]);
+  if (
+    subRes.data &&
+    (subRes.data.status === "active" || subRes.data.status === "trialing")
+  ) {
+    return subRes.data.tier as "adventurer" | "storyteller" | "legend";
+  }
+  // No active sub → return "free" regardless of profile.subscription_tier
+  // (stale paid tier from canceled subscription should NOT grant access).
+  return "free";
 }
 
 // ─── Tier definitions (Phase 4 will move these to DB) ───────────────────

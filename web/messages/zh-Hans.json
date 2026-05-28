@@ -322,7 +322,31 @@
     "forkModalSubmitting": "启动中…",
     "forkModalCancel": "取消",
     "forkErrorAuth": "不能开始故事：请先登入。",
-    "forkErrorFallback": "不能开始故事：{reason}"
+    "forkErrorFallback": "不能开始故事：{reason}",
+    "errorUnauthorized": "请先登入。",
+    "errorStoryNotFound": "找不到这个故事。",
+    "errorStoryNotPublic": "这个故事是私人的，只有作者可以互动。",
+    "errorNotStoryOwner": "只有故事作者才能做这个动作。",
+    "errorPublishFailed": "发布失败，请再试。",
+    "errorUnpublishFailed": "取消发布失败，请再试。",
+    "errorInvalidScore": "评分须在 1 至 5 星之间。",
+    "errorReviewTooLong": "评论太长（最多 2000 字）。",
+    "errorInvalidInput": "输入不正确。",
+    "errorRateFailed": "保存评分失败，请再试。",
+    "errorCommentFailed": "留言失败，请再试。",
+    "errorDeleteFailed": "删除失败，请再试。",
+    "errorNotCommentOwner": "只有留言作者才能做这个动作。",
+    "errorCommentNotFound": "找不到这条留言。",
+    "errorDetailsTooLong": "说明太长（最多 1000 字）。",
+    "errorReportFailed": "举报失败，请再试。",
+    "errorModelTierRequired": "此模型需要升级到更高订阅层级。",
+    "errorForkFailed": "不能开始故事，请再试。",
+    "errorForkReturnedEmpty": "不能开始故事 — 未知错误。",
+    "errorModerationCsam": "禁止涉及未成年人的内容。",
+    "errorModerationSelfHarm": "禁止包含自残指引的内容。如果你需要帮助，请联系当地危机热线。",
+    "errorModerationHateViolence": "内容包含威胁、仇恨言论或极端暴力。",
+    "errorModerationSexual": "性描写超出此故事的内容分级。",
+    "errorModerationBlocked": "内容违反平台规则。请修改后再试。"
   },
   "memory": {
     "defaultStoryTitle": "故事",
@@ -381,6 +405,7 @@
       "charactersHint": "人物 · 地点 · 物品 · 事件 · 概念",
       "innerVoicesLabel": "NPC 内心戏",
       "innerVoicesSub": "{count} 段 · {npcs} 个 NPC",
+      "innerVoicesSubEmpty": "Pro 独享 · 未录",
       "innerVoicesHint": "Storyteller 独享 · 每个 NPC 的 POV + 心理活动",
       "recentLabel": "近 20 turn 全文",
       "recentBadge": "自动",
@@ -421,9 +446,15 @@
     },
     "innerVoices": {
       "emptyTitle": "暂无 NPC 内心戏记录",
-      "emptyBody": "在 Play 页启动「NPC 内心戏」(Storyteller 独享)。",
+      "emptyBody": "在 Play 页启动「NPC 内心戏」(Pro 独享)。",
+      "emptyTitleEnable": "内心戏已就绪 · 开了就有",
+      "emptyBodyEnable": "你是 Pro tier。在 Play 页 NPC panel 点「NPC 内心戏」toggle ON。下一个 turn 开始记录每个 NPC 的 POV。",
+      "emptyTitleReady": "下个 turn 开始录",
+      "emptyBodyReady": "NPC 内心戏已开。下个 turn 会 parallel 跑每个出场 NPC 的 POV，将他们的心底话记录在这里。",
+      "emptyTitleUpgrade": "NPC 内心戏 · Pro 独享",
+      "emptyBodyUpgrade": "每个 NPC 都有自己的隐藏内心 — 在隐藏什么、在筹划什么、真正怎么想。Pro tier 解锁此功能 · 叙事跟着他们的秘密走，不是跟剧本。",
       "emptyHint": "之后每个 turn 的 NPC POV 会 record 在这里。",
-      "storyteller": "Storyteller 独享",
+      "storyteller": "Pro 独享",
       "innerThought": "心底",
       "intent": "意图",
       "internalPov": "内部 POV",
@@ -455,7 +486,9 @@
     },
     "input": {
       "placeholder": "你想做什么？（描述行动、对白、决定…）",
-      "submit": "行动"
+      "submit": "行动",
+      "costEstimate": "≈ {credits} credits / turn",
+      "l3Note": "+ NPC 内心戏"
     },
     "rail": {
       "npcCount": "NPC · {count}",
@@ -465,6 +498,8 @@
       "insufficientCreditsTitle": "Credit 不够",
       "insufficientCreditsBody": "你现在有 {balance} credits · 这个 turn 需要 ~{needed}。",
       "insufficientCreditsCta": "去 Settings 升级 / Top-up",
+      "insufficientCreditsSubscribeCta": "升 Standard $9.99 / 月",
+      "insufficientCreditsTopupCta": "或一次性 top-up →",
       "modelTierTitle": "Model 需要升级 tier",
       "modelTierBody": "你的 tier ({tier}) 不能用 {model}。去 Settings 选其他 model 或升级。",
       "modelTierCta": "去 Settings",
@@ -481,7 +516,73 @@
       "httpError": "请求失败（HTTP {status}）"
     },
     "permanentBadge": "PERMANENT · 不可重试",
-    "permanentTooltip": "Hard rule #5 · 不可同一 turn 再试"
+    "permanentTooltip": "Hard rule #5 · 不可同一 turn 再试",
+    "visualize": {
+      "button": "✨ 生成此场景",
+      "buttonShort": "✨ 生成场景",
+      "modalTitle": "生成场景图片",
+      "modalSubtitle": "把这一刻变成插画 · 漫画 · 或者手机壁纸",
+      "imageType": {
+        "label": "图片类型",
+        "illustration": "场景插画",
+        "illustrationHint": "16:9 宽屏 · 默认",
+        "comic": "漫画页",
+        "comicHint": "4:3 配合原生文字渲染（GPT Image）",
+        "wallpaper": "手机壁纸",
+        "wallpaperHint": "9:19.5 竖屏 · 可保存到手机"
+      },
+      "styleMode": {
+        "label": "视觉风格",
+        "preset": "预设风格",
+        "upload": "上传参考图",
+        "custom": "自定义 prompt",
+        "presetHint": "从 10 种地区风格选择",
+        "uploadHint": "上传一张图 · AI 会模仿它的风格（你确认拥有版权 · TOS）",
+        "uploadButton": "选择图片（PNG / JPG / WEBP · 最大 5MB）",
+        "uploadAck": "我确认拥有 / 已获授权使用此图",
+        "customHint": "自己写风格 prompt（Pro tip · 可以从 civitai 等地方 paste）",
+        "customPlaceholder": "例如：油画 · 吉卜力柔和粉彩 · 90 年代少年漫画网点..."
+      },
+      "styleSuggestion": "推荐用于此故事",
+      "proQualityLabel": "Pro 质量（更高细节 · +100 credits）",
+      "cta": "生成 · {credits} credits",
+      "ctaInsufficient": "需要 {needed} credits · 你有 {balance}",
+      "ctaNeedsFile": "请先选择一张参考图",
+      "ctaNeedsAck": "请先勾选版权确认",
+      "ctaNeedsCustom": "请先写下你的风格描述",
+      "loading": "绘制场景中 · 5-15 秒",
+      "loadingComic": "绘制漫画页中 · 10-25 秒",
+      "successTitle": "场景生成完成",
+      "download": "下载",
+      "tryAgain": "再生成一次",
+      "close": "关闭",
+      "tier": {
+        "freeBlocked": "场景图片生成需要 Standard / Pro tier",
+        "freeBlockedCta": "升级 →"
+      },
+      "errors": {
+        "tier_required": "需要 Standard 或 Pro tier",
+        "adult_mode_required": "需要先在设置开启成人模式 · 成人故事可能需要身份验证",
+        "insufficient_credits": "Credits 不足 · 这张图需要 {needed}，你有 {balance}",
+        "content_filter": "Provider 拒绝了此场景 · 试下换风格或者改写上一回合",
+        "rate_limited": "图片 provider 繁忙 · 稍等再试",
+        "provider_unavailable": "图片 provider 暂时不可用 · 稍等再试",
+        "storage_upload_failed": "保存图片失败 · 请再试",
+        "config_error": "图片生成未配置 · 请联系客服",
+        "invalid_file": "请选择 PNG / JPG / WEBP 文件",
+        "file_too_large": "图片太大 · 最大 5MB",
+        "moderation_blocked": "参考图文件名被拒 · 试下用另一个文件",
+        "unauthorized": "登录已过期 · 请重新登录",
+        "playthrough_not_found": "这场 playthrough 已删除或不存在 · 请刷新页面",
+        "not_owner": "你没有权限执行此操作",
+        "turn_not_found": "这个 turn 已不存在 · 请刷新页面",
+        "unknown": "出了点问题 · 请再试"
+      },
+      "thumbnailHover": "点击查看大图 · {imageType} · {style}",
+      "fullSizeAlt": "生成场景 · {imageType}",
+      "tosShort": "点击生成即表示你确认上传的参考图属于你，并同意我们的",
+      "tosLink": "服务条款"
+    }
   },
   "skillCheck": {
     "rolling": "SKILL CHECK · 掷骰中",
@@ -646,7 +747,7 @@
       "verifyPending": "正在前往 Stripe…",
       "alreadyVerified": "你已经验证过 · 重 reload 页面应该见到 toggle 解锁",
       "authRequired": "请先登入",
-      "verifyInitError": "验证初始化失败：{error}",
+      "verifyInitError": "验证初始化失败，请稍后再试。",
       "csamReminder": "注意：所有模式都禁止 CSAM、未成年人性描写、违法内容 · 无论 adult mode 开关都会被 moderation 拦截 (hard rule)。",
       "consentDialog": {
         "eyebrow": "确认开启成人模式",
@@ -700,6 +801,8 @@
   "my": {
     "pageTitle": "我的游戏",
     "subtitleEmpty": "你还没开始任何故事 — 选一个 scenario 开始你的冒险。",
+    "adultLockBadge": "成人模式已关",
+    "adultLockTooltip": "此为成人故事。去 Settings 重新开启成人模式继续玩 · 或 archive 此故事。",
     "subtitleCount": "共 {total} 个 playthrough · {active} 个进行中",
     "tabs": {
       "all": "全部",
@@ -733,6 +836,14 @@
     },
     "continueCard": {
       "resume": "继续"
+    },
+    "lobbyHero": {
+      "title": "你想活在哪个故事里？",
+      "subtitle": "告诉我你想要的世界 · AI 帮你建好角色、规则、开场。然后故事就你说了算。或者看看其他玩家做了什么。",
+      "primaryCta": "开新故事",
+      "browseTrending": "热门",
+      "browseCommunity": "社群",
+      "examplesHeader": "或者选一个 scenario 一 click 开始"
     },
     "hero": {
       "editorPick": "★ 编辑精选",
@@ -876,6 +987,67 @@
       "callbackFailed": "登入回调失败，请重新登入。",
       "missingCode": "登入链接不正确或已过期。",
       "googleUnavailable": "Google 登入暂未启用，请用 email magic link。"
+    },
+    "moderation": {
+      "csam": "禁止涉及未成年人的内容。",
+      "selfHarm": "禁止包含自残指引的内容。如果你需要帮助，请联系当地危机热线。",
+      "hateViolence": "内容包含威胁、仇恨言论或极端暴力。",
+      "sexual": "性描写超出此故事的内容分级。",
+      "blocked": "内容违反平台规则。请修改后再试。"
+    }
+  },
+  "legal": {
+    "footerTerms": "服务条款",
+    "footerPrivacy": "隐私政策",
+    "footerCookies": "Cookie 政策",
+    "terms": {
+      "eyebrow": "法律",
+      "title": "服务条款",
+      "subtitle": "使用 Kieio 的规则与预期。",
+      "placeholderNotice": "⚠️ 暂定版本 · 最终条款等律师 review (HK + TW 司法管辖)。",
+      "section1Title": "1. 服务描述",
+      "section1Body": "Kieio (kieio.com) 提供 AI 驱动的互动式故事。我们使用第三方 LLM (Anthropic · OpenAI · Google · Meta via OpenRouter) 根据你的 prompt 生成叙事。输出为虚构内容，不构成建议。",
+      "section2Title": "2. 账户 + 年龄要求",
+      "section2Body": "你需要 13 岁或以上才能开账户。成人模式 (NSFW) 需要 Stripe Identity 验证 18 岁或以上。违反社群规范或法律我们可以暂停账户。",
+      "section3Title": "3. 可接受用法",
+      "section3Body": "你同意不会：(a) 生成或分享涉及未成年人的性内容 (CSAM · 已 pre-filter + 上报执法机构)，(b) 生成未经同意的真人内容，(c) 大规模 scrape 或 reverse-engineer LLM 输出，(d) 用平台做骚扰、起底或非法活动。",
+      "section4Title": "4. 付款 + Credits",
+      "section4Body": "订阅每月 Stripe billing。付款成功后 grant credits (Standard $9.99 / Pro $19.99 USD)。我们可以在购买后 14 日内酌情退款。Top-up 购买不设退款。最新价钱看 Pricing 页。",
+      "section5Title": "5. 责任 + 终止",
+      "section5Body": "服务按现状提供。AI 生成内容、用户上传内容或间接损害我们不负责。我们可以酌情终止账户。资料导出权利写在隐私政策里。",
+      "lastUpdated": "最后更新：{date} · 有问题 email legal@kieio.com"
+    },
+    "privacy": {
+      "eyebrow": "法律",
+      "title": "隐私政策",
+      "subtitle": "我们收什么 · 为什么收 · 你的 controls。",
+      "placeholderNotice": "⚠️ 暂定版本 · 最终隐私政策等律师 review PCPD (HK) + PIPL (TW) 合规。",
+      "section1Title": "1. 我们收什么",
+      "section1Body": "账户：email、display name (OAuth provider 或你自己改)、语言偏好。游玩：故事、playthrough、角色、记忆、credit ledger。Operational：IP、user agent、error report (Sentry)、product analytics (PostHog) — 全部 link 你的 user ID。",
+      "section2Title": "2. 第三方 processor",
+      "section2Body": "我们透过：Supabase (DB + auth · US-East)、Vercel (hosting · global edge)、Anthropic / OpenAI / Google / OpenRouter (LLM inference)、Stripe (payments)、Sentry (errors)、PostHog (analytics) 处理资料。LLM prompt 只 send 去 model provider · 我们不会用你的内容 train model。",
+      "section3Title": "3. 成人模式 + 身份验证",
+      "section3Body": "成人模式需要 Stripe Identity 年龄验证 (selfie + ID)。验证 metadata (yes/no · timestamp) 我们保留；selfie + ID 图像由 Stripe 处理 · 我们不 store。成人模式内容由 NSFW-friendly provider (OpenRouter) 生成 · 同 default LLM 隔离。",
+      "section4Title": "4. 你的权利",
+      "section4Body": "你可以：导出资料 (email privacy@kieio.com)、删除账户 (settings → delete · cascades playthrough + 记忆)、退出 analytics (PostHog honors DNT header)。Data retention：账户资料保留到 deletion；error log 90 天；analytics 12 个月。",
+      "section5Title": "5. 联络 + 司法管辖",
+      "section5Body": "资料控制者：Kieio (香港为本)。纠纷由香港法律管辖。Email privacy@kieio.com 处理 data access / deletion / 修正。PCPD (HK) 同 PIPL (TW) data subject rights 适用。",
+      "lastUpdated": "最后更新：{date} · 有问题 email privacy@kieio.com"
+    },
+    "cookies": {
+      "eyebrow": "法律",
+      "title": "Cookie 政策",
+      "subtitle": "我们设置的 cookie 及为何需要。",
+      "placeholderNotice": "⚠️ 暂定版本 · 最终 cookie 披露等律师 review。",
+      "section1Title": "1. 必要 cookie (一定 on)",
+      "section1Body": "Supabase auth session (httpOnly · scoped to .kieio.com) · next-intl 语言偏好 (NEXT_LOCALE) · Vercel deployment 路由 (vercel-id)。网站运作必须 · 不能 opt out。",
+      "section2Title": "2. Analytics cookie (PostHog)",
+      "section2Body": "PostHog 设 distinct_id cookie 追踪激活漏斗 (signup · first turn · subscribe)。我们不会 link 广告网络 · 不会卖资料给第三方。",
+      "section3Title": "3. Error 报告 (Sentry)",
+      "section3Body": "Sentry session ID 将 error 归类到单一 browser session。Development 不开 · production-only。",
+      "section4Title": "4. Opt-out + browser controls",
+      "section4Body": "Browser 设 Do-Not-Track · PostHog 会 honor。Clear cookies 重置 analytics distinct_id。必要 cookie 不能 opt out 否则 break auth。",
+      "lastUpdated": "最后更新：{date} · 有问题 email privacy@kieio.com"
     }
   }
 }

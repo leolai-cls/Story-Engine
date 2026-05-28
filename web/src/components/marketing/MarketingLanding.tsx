@@ -24,6 +24,7 @@
 
 import { useEffect, useRef } from "react";
 import { MARKETING_COPY, LOCALE_SWITCHER, type MarketingLang } from "./copy";
+import { appUrl } from "@/lib/urls";
 
 const STORIES = [
   { art: 1, tag: "Wuxia", live: true, rating: "TV-MA", zh: "長安十二時辰", en: "Chang'an, Twelve Hours", plays: "4.2K", turn: "turn 18" },
@@ -40,22 +41,18 @@ const STORIES = [
   { art: 12, tag: "Fantasy", live: false, rating: "TV-14", zh: "古長安妖", en: "Demons of Old Chang'an", plays: "4.4K", turn: "turn 27" },
 ] as const;
 
-const SECTIONS = ["hero", "portal", "how", "memory", "bilingual", "adult", "cta"] as const;
-
-/** Sign-up / login URL · respects subdomain split (lives on app subdomain). */
-function appLoginUrl(locale: string) {
-  return `https://app.kieio.com/${locale}/login`;
-}
-function appLibraryUrl(locale: string) {
-  return `https://app.kieio.com/${locale}/library`;
-}
+const SECTIONS = ["hero", "portal", "how", "memory", "agents", "adaptive", "bilingual", "adult", "cta"] as const;
 
 export function MarketingLanding({
   lang,
   locale,
+  authedUser,
 }: {
   lang: MarketingLang;
   locale: string;
+  /** Session 16 P-06: if user is already logged in on .kieio.com cookie scope,
+   *  render「Open app」CTA instead of「Sign up」. */
+  authedUser?: { displayName: string | null } | null;
 }) {
   const nav = MARKETING_COPY.nav[lang];
   const hero = MARKETING_COPY.hero[lang];
@@ -68,8 +65,8 @@ export function MarketingLanding({
   const adult = MARKETING_COPY.adult[lang];
   const cta = MARKETING_COPY.cta[lang];
   const misc = MARKETING_COPY.misc[lang];
-  const APP_LOGIN = appLoginUrl(locale);
-  const APP_LIBRARY = appLibraryUrl(locale);
+  const APP_LOGIN = appUrl(`/${locale}/login`);
+  const APP_LIBRARY = appUrl(`/${locale}/library`);
   const progressRef = useRef<HTMLDivElement>(null);
   const navRef = useRef<HTMLElement>(null);
   const counterRef = useRef<HTMLDivElement>(null);
@@ -355,9 +352,19 @@ export function MarketingLanding({
               </span>
             ))}
           </span>
-          <a href={APP_LOGIN} className="nav-cta">
-            {nav.begin}
-          </a>
+          {authedUser ? (
+            <a href={APP_LIBRARY} className="nav-cta" title={authedUser.displayName ?? undefined}>
+              {lang === "en"
+                ? `Open app${authedUser.displayName ? ` · ${authedUser.displayName}` : ""} →`
+                : lang === "zhHans"
+                  ? `打开应用${authedUser.displayName ? ` · ${authedUser.displayName}` : ""} →`
+                  : `打開應用${authedUser.displayName ? ` · ${authedUser.displayName}` : ""} →`}
+            </a>
+          ) : (
+            <a href={APP_LOGIN} className="nav-cta">
+              {nav.begin}
+            </a>
+          )}
         </div>
       </nav>
 
@@ -1422,7 +1429,9 @@ const MARKETING_CSS = `
 }
 .kieio-marketing .agent-card-quote {
   font-family: 'Noto Sans TC', sans-serif; font-size: 15px; line-height: 1.7;
-  color: var(--cream); margin: 14px 0 18px;
+  /* Session 16 audit LOW-03 fix: --cream is undefined (inherited from a never-shipped palette).
+   * Use --fg (white) which is the actual intended color for inside cards. */
+  color: var(--fg); margin: 14px 0 18px;
 }
 .kieio-marketing .agent-card-tag {
   margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--line);

@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phase 8 · Scene Visualization · 角色一致性 + 監貨 plan</title>
+<style>
+  :root { --primary: #4F46E5; --primary-soft: #EEF2FF; --bg: #FAFAF7; --card: #FFFFFF; --ink: #18181B; --ink-soft: #3F3F46; --muted: #71717A; --border: #E4E4E7; --green: #10B981; --green-soft: #D1FAE5; --rose: #E11D48; --rose-soft: #FFE4E6; --amber: #D97706; --amber-soft: #FEF3C7; --code-bg: #F4F4F5; --purple: #7c3aed; --purple-soft: #f3e8ff; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif; background: var(--bg); color: var(--ink); line-height: 1.65; font-size: 15px; -webkit-font-smoothing: antialiased; }
+  main { max-width: 1080px; margin: 0 auto; padding: 48px 32px 120px; }
+  .hero { text-align: center; margin-bottom: 36px; }
+  .eyebrow { display: inline-block; font-size: 11px; font-weight: 700; color: var(--purple); background: var(--purple-soft); padding: 5px 12px; border-radius: 999px; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 16px; }
+  h1 { font-size: 32px; font-weight: 800; letter-spacing: -0.025em; margin-bottom: 10px; }
+  .hero p { color: var(--muted); font-size: 16px; max-width: 760px; margin: 0 auto; }
+  .meta { color: var(--muted); font-size: 13px; margin-top: 14px; }
+  h2 { font-size: 22px; font-weight: 700; margin: 44px 0 14px; display: flex; align-items: center; gap: 10px; }
+  h3 { font-size: 17px; font-weight: 700; margin: 24px 0 10px; }
+  h4 { font-size: 14.5px; font-weight: 700; margin: 16px 0 8px; color: var(--ink); }
+  .verdict { background: linear-gradient(135deg, var(--purple-soft), #f5f3ff); border: 2px solid var(--purple); padding: 24px 28px; border-radius: 14px; margin: 18px 0 36px; }
+  .verdict h3 { color: var(--purple); font-size: 18px; font-weight: 800; margin-bottom: 10px; }
+  .verdict p { font-size: 14.5px; line-height: 1.75; }
+  .verdict p + p { margin-top: 10px; }
+  .verdict.green { background: linear-gradient(135deg, var(--green-soft), #ecfeff); border-color: var(--green); }
+  .verdict.green h3 { color: var(--green); }
+  .verdict.amber { background: linear-gradient(135deg, var(--amber-soft), #fff7ed); border-color: var(--amber); }
+  .verdict.amber h3 { color: var(--amber); }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px 22px; margin-bottom: 12px; }
+  .card p { font-size: 14px; color: var(--ink-soft); margin-bottom: 8px; line-height: 1.7; }
+  .card p:last-child { margin-bottom: 0; }
+  code, .card code { background: var(--code-bg); padding: 1px 6px; border-radius: 4px; font-family: "SF Mono", Monaco, monospace; font-size: 12.5px; }
+  .table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 13.5px; background: var(--card); border-radius: 10px; overflow: hidden; }
+  .table th { text-align: left; padding: 10px 14px; background: var(--code-bg); border-bottom: 1px solid var(--border); font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 700; }
+  .table td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .table tr:last-child td { border-bottom: none; }
+  .table .ok { color: var(--green); font-weight: 700; }
+  .table .miss { color: var(--rose); font-weight: 700; }
+  .table .warn { color: var(--amber); font-weight: 700; }
+  .nav-toc { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px 22px; margin-bottom: 32px; }
+  .nav-toc strong { display: block; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
+  .nav-toc a { display: inline-block; margin-right: 14px; color: var(--primary); text-decoration: none; font-size: 13.5px; font-weight: 600; }
+  .nav-toc a:hover { text-decoration: underline; }
+  pre.code-block { background: var(--code-bg); padding: 14px 16px; border-radius: 8px; font-family: "SF Mono", Monaco, monospace; font-size: 12px; line-height: 1.6; overflow-x: auto; margin: 12px 0; color: var(--ink-soft); border: 1px solid var(--border); }
+  pre.code-block .key { color: var(--purple); font-weight: 600; }
+  pre.code-block .comment { color: var(--muted); font-style: italic; }
+  .phase-row { display: grid; grid-template-columns: 60px 1fr auto; gap: 14px; align-items: start; padding: 14px 0; border-bottom: 1px dashed var(--border); }
+  .phase-row:last-child { border-bottom: none; }
+  .phase-num { font-size: 18px; font-weight: 800; color: var(--purple); }
+  .phase-text strong { display: block; margin-bottom: 4px; font-size: 14.5px; }
+  .phase-text small { color: var(--muted); font-size: 12.5px; line-height: 1.55; }
+  .pill { font-size: 10px; padding: 3px 9px; border-radius: 999px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; }
+  .pill-mvp { background: var(--green); color: white; }
+  .pill-v11 { background: var(--primary); color: white; }
+  .pill-v15 { background: var(--muted); color: white; }
+  .pill-skip { background: var(--code-bg); color: var(--muted); }
+  ul.bullets { margin-left: 22px; line-height: 1.8; font-size: 14px; color: var(--ink-soft); }
+  ul.bullets li { margin-bottom: 4px; }
+  .quote { background: var(--code-bg); border-left: 4px solid var(--purple); padding: 12px 16px; border-radius: 6px; font-style: italic; font-size: 13.5px; color: var(--ink-soft); margin: 12px 0; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 760px) { .grid-2 { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+
+  <div class="hero">
+    <span class="eyebrow">Phase 8 · Scene Visualization · Plan</span>
+    <h1>角色一致性嘅 Scene 圖像化系統</h1>
+    <p>玩家可以將回合場景變成 漫畫面板 / 場景插圖 / 手機 wallpaper · 護城河 + 收錢 + 病毒擴散三件事一齊做。最難解嘅係<strong>角色樣貌跨圖一致性</strong> — 業界 #1 hard problem。本 plan 推薦 character sheet + reference image conditioning 雙軌方案。</p>
+    <div class="meta">Proposed by Claude · 2026-05-28 · <strong>Founder Q1-Q5 confirmed</strong></div>
+  </div>
+
+  <!-- ═══════════════════════ FOUNDER DECISIONS ═══════════════════════ -->
+  <div class="verdict green">
+    <h3>✅ Founder Q1-Q5 答案 (2026-05-28)</h3>
+    <table class="table" style="margin-top: 10px;">
+      <thead><tr><th>Q</th><th>Founder Answer</th><th>影響</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Q1 · UX trigger</strong></td><td>Single「Generate scene」button per turn → modal opens · user picks comic / wallpaper / illustration</td><td>Character sheet lazy gen (option B) · 唔喺 creation 預先 gen</td></tr>
+        <tr><td><strong>Q2 · Wallpaper content</strong></td><td>Based on turn context — 出場嘅 NPCs 一齊出現 · 唔係 default 主角 solo</td><td>Detect characters from turn text (NPC mentions + dialogue speakers) · pass all to image gen</td></tr>
+        <tr><td><strong>Q3 · Provider</strong></td><td>Gemini Nano Banana Pro · GPT Image 2 · Grok (NSFW) · <strong>all via OpenRouter aggregator (existing OPENROUTER_API_KEY reuse)</strong></td><td>1 API key · 1 billing · provider abstraction沿用 LLM pattern · 唔需要 3 個新 account</td></tr>
+        <tr><td><strong>Q4 · Prompt control</strong></td><td>User can write own prompt · 或者 let AI auto-prompt from turn context</td><td>Modal 加 "AI auto-prompt / I'll write it" toggle</td></tr>
+        <tr><td><strong>Q5 · NSFW</strong></td><td>Grok 可以做 NSFW image · MVP 就支援</td><td>Adult-rated story → 自動 route to Grok · 唔再 defer 到 v1.5</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="nav-toc">
+    <strong>跳去 section</strong>
+    <a href="#vision">🎯 Vision</a>
+    <a href="#consistency">🎭 角色一致性</a>
+    <a href="#provider">🛠 Provider 選擇</a>
+    <a href="#schema">📦 Schema + Architecture</a>
+    <a href="#phases">📅 Phase 拆分</a>
+    <a href="#money">💰 收錢 / Margin</a>
+    <a href="#risks">⚠ 風險</a>
+    <a href="#open">❓ Open questions</a>
+  </div>
+
+  <!-- ═══════════════════════ VISION ═══════════════════════ -->
+  <h2 id="vision">🎯 Vision · 邊個故事都係一本可以視覺化嘅書</h2>
+
+  <div class="verdict">
+    <h3>核心 user moment</h3>
+    <p>玩家打到一個「靚 turn」（NPC 推開佢、Skill Check 大成功、角色第一次接吻）· 想留低做紀念 · 想 share 朋友 · 想當 phone wallpaper。今日 Kieio 只有文字。Phase 8 加上一個 「生成呢個 turn 嘅畫」按鈕 → 用戶花 credit 換到一張高質量插圖 / 漫畫面板 / wallpaper。</p>
+    <p>3 大商業價值：</p>
+    <ul class="bullets" style="margin-top: 6px;">
+      <li><strong>收錢</strong>：每張圖 ~$0.04-0.10 LLM cost · charge 50-200 credits ($0.50-2.00) · margin 80-95% — credit sink 比 turn cost 更猛</li>
+      <li><strong>護城河</strong>：競對 (AI Dungeon · Character.AI) 都係純文字 · 加圖即時 visible differentiator</li>
+      <li><strong>病毒擴散</strong>：玩家 share 漫畫面板到 IG / Threads / 小紅書 → 圖嘅底有「Kieio · 我做緊呢個故事」watermark + 故事 URL → marketing 0-CAC</li>
+    </ul>
+  </div>
+
+  <h3>三種輸出</h3>
+  <table class="table">
+    <thead><tr><th>類型</th><th>用途</th><th>長寬比</th><th>主要消費場景</th></tr></thead>
+    <tbody>
+      <tr><td>📖 <strong>漫畫面板</strong></td><td>包含文字氣泡 · NPC 對白 · 場景動作</td><td>4:3 横向</td><td>玩家收藏 turn · share 朋友</td></tr>
+      <tr><td>🎨 <strong>場景插圖</strong></td><td>純畫面 · 唔加文字 · 高細節</td><td>16:9 横向</td><td>Memory Journal cover · 商業出版</td></tr>
+      <tr><td>📱 <strong>Wallpaper</strong></td><td>主角單人或主角+NPC · 風格化</td><td>9:19.5 (mobile lockscreen)</td><td>玩家手機 wallpaper · 個人物品化</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ═══════════════════════ CONSISTENCY ═══════════════════════ -->
+  <h2 id="consistency">🎭 The Character Consistency Problem</h2>
+
+  <div class="quote">
+    Stable Diffusion / Flux / DALL-E / Imagen 全部喺<strong>同一個 prompt</strong> 內可以畫到一致角色 · 但<strong>跨 prompt 跨 generation</strong> 就會樣樣唔同。「林思雅」第一張圖係黑長髮鳳眼 · 第二張圖變紅短髮 · 第三張變混血 — 玩家 immersion 即時崩潰。
+  </div>
+
+  <h3>業界 4 種解法（cost vs quality）</h3>
+
+  <table class="table">
+    <thead><tr><th>方案</th><th>原理</th><th>Per-image cost</th><th>一致性</th><th>適合</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>1. Character LoRA / DreamBooth</strong></td>
+        <td>訓練一個 small adapter · 5-15 min · 5-10 reference image</td>
+        <td>$0.50-2 / character (1-time training) + $0.04 / gen</td>
+        <td class="ok">95%+</td>
+        <td>v1.5+ 重型用戶 · 唔適合 MVP</td>
+      </tr>
+      <tr>
+        <td><strong>2. IP-Adapter / Reference conditioning</strong> ⭐ MVP</td>
+        <td>每 gen 都 pass 1-3 張 reference image · zero training</td>
+        <td>+$0.02-0.05 / gen</td>
+        <td class="ok">70-85%</td>
+        <td><strong>Phase 8 MVP 最 sweet spot</strong></td>
+      </tr>
+      <tr>
+        <td><strong>3. Structured character card text</strong> ⭐ MVP</td>
+        <td>「黑長髮 · 鳳眼 · 戴銀耳環 · 穿白旗袍」逐次 inject prompt</td>
+        <td>$0 extra (純 prompt token)</td>
+        <td class="warn">40-60%</td>
+        <td>Combine with #2 為 MVP baseline</td>
+      </tr>
+      <tr>
+        <td><strong>4. Multi-reference + pose control</strong></td>
+        <td>Reference + ControlNet pose + style ref · 3-way condition</td>
+        <td>$0.08-0.15 / gen</td>
+        <td class="ok">85-90%</td>
+        <td>v1.5+ Pro Max upgrade path</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3 id="character-sheet">推薦：MVP = #2 + #3 combined</h3>
+
+  <div class="card">
+    <h4>Character sheet · per-character one-time generation</h4>
+    <p>用戶創 story · schema-generator 出 NPC list · 我哋順便 trigger 一個「character portrait generation」:</p>
+    <ol style="margin-left: 22px; line-height: 1.85; font-size: 14px;">
+      <li>從 character card 嘅 traits + voice_sample 抽 visual hints → LLM 寫一段「visual_description」（150-300 字 · 描述外表 · 衣著 · 標誌性特徵）</li>
+      <li>用 visual_description 生成 ONE 張 reference portrait (1024×1024 · 3/4 face shot · 中性背景)</li>
+      <li>存 Supabase Storage · 同 character row link</li>
+      <li>之後每個 scene gen · 拎呢個 portrait 做 IP-Adapter reference + visual_description 做 prompt suffix</li>
+    </ol>
+    <p style="margin-top: 8px;">Cost: portrait $0.04 × N characters · 平均 3-5 個 NPC = $0.12-0.20 / story · grain charge once at creation (e.g., 200 credits add-on)。</p>
+  </div>
+
+  <div class="card">
+    <h4>Style picker · user choice (founder UX update · 2026-05-28)</h4>
+    <p>Founder feedback: 「應該係提供唔同風格畀用家選擇」— style 唔由系統 lock 一個 default · 而係 picker UI 畀用戶喺 story creation OR per-image-gen 揀。</p>
+    <p><strong>Source</strong>: 用 <a href="https://github.com/twri/sdxl_prompt_styler" target="_blank"><code>twri/sdxl_prompt_styler</code></a> (Stability AI 出 · MIT-licensed · 850+ tested style prompts) 做 base · 我哋 curate 12 個最配 Kieio launch genres (戀愛 / 古惑仔 / 玄幻 / D&D / NBA / 校園 / 武俠 等) 嘅 style。Built-in style preset · 加 ~3 個自製 Kieio-specific style。</p>
+  </div>
+
+  <h3>Kieio Style Library · 按文化/地域分 (founder UX simplification · 2026-05-28)</h3>
+  <p style="font-size: 14px; color: var(--ink-soft); margin-bottom: 12px;">
+    Founder feedback: 「最好係簡單啲 · 港式漫畫風 / 日本漫畫風 / 美國漫畫風 / 韓國漫畫風」— 用戶 mental model 跟<strong>文化/地域</strong>分 · 唔係 technical art-style 術語 (anime / cinematic / photographic 等)。每個 style 內部仍然用 SDXL-tested prompt 做 base · UI 層 surface region label 易理解。
+  </p>
+
+  <h4>Launch 8 個 region-based styles (universal recognition)</h4>
+  <table class="table">
+    <thead><tr><th>Style key</th><th>Display name</th><th>Vibe · representative works</th><th>適合 genre</th><th>Prompt anchors</th></tr></thead>
+    <tbody>
+      <tr><td><code>hk-manhua</code></td><td>🇭🇰 港式漫畫風</td><td>馬榮成 + 王家禧時代港漫 · dynamic ink lines · 90s era</td><td>武俠 · 古惑仔 · 都市英雄</td><td>Hong Kong manhua · dynamic action lines · bold ink shadows · 90s comic era</td></tr>
+      <tr><td><code>jp-manga</code></td><td>🇯🇵 日本漫畫風</td><td>少年/少女漫畫 · 黑白 + screentone · 強烈線條</td><td>少年熱血 · 推理 · 校園</td><td>Japanese manga · black and white · screentone shading · dynamic panel composition</td></tr>
+      <tr><td><code>jp-anime</code></td><td>🌸 日系動漫</td><td>Studio Ghibli / 京阿尼 · 彩色 · 柔和光</td><td>戀愛校園 · 異世界 · 治癒</td><td>Japanese anime · vibrant colors · soft lighting · cel-shaded · Studio Ghibli inspired</td></tr>
+      <tr><td><code>kr-webtoon</code></td><td>🇰🇷 韓式 Webtoon</td><td>韓漫 · 垂直滾動 · soft digital watercolor · pastel</td><td>都市戀愛 · 修真重生 · 都市異能</td><td>Korean webtoon · soft digital painting · pastel colors · vertical composition · cleanly outlined</td></tr>
+      <tr><td><code>us-comic</code></td><td>🇺🇸 美漫風</td><td>Marvel / DC · bold color · thick outline · superhero pose</td><td>超能力 · 反英雄 · 動作</td><td>American superhero comic · bold inks · saturated colors · halftone dots · dynamic poses</td></tr>
+      <tr><td><code>cn-ink</code></td><td>🇨🇳 國風水墨</td><td>水墨畫 + 工筆 · 宋朝山水美學</td><td>仙俠 · 古風 · 武俠</td><td>Chinese ink wash painting · 水墨 · misty mountains · calligraphy · Song dynasty aesthetic</td></tr>
+      <tr><td><code>cinematic</code></td><td>🎬 電影感</td><td>王家衛 + Christopher Doyle · live-action film still</td><td>都市現代 · 黑幫 · 文藝</td><td>cinematic film still · shallow depth of field · vignette · moody atmospheric lighting</td></tr>
+      <tr><td><code>photographic</code></td><td>📷 寫實攝影</td><td>新聞紀實 / sports / documentary · 高細節</td><td>NBA · 體育 · 紀錄</td><td>cinematic photo · 35mm · professional · highly detailed · realistic</td></tr>
+    </tbody>
+  </table>
+
+  <h4>Launch +2 兜底 universal styles (culture-neutral)</h4>
+  <table class="table">
+    <thead><tr><th>Style key</th><th>Display name</th><th>Vibe</th><th>適合 genre</th></tr></thead>
+    <tbody>
+      <tr><td><code>cyberpunk</code></td><td>🌃 賽博朋克</td><td>霓虹 + 蒸氣波 · 高反差 · 未來都市</td><td>反烏托邦 · 黑客 · 末世</td></tr>
+      <tr><td><code>fantasy-art</code></td><td>🐉 奇幻插畫</td><td>concept art · ethereal · magical</td><td>D&D · 玄幻 · 異世界</td></tr>
+    </tbody>
+  </table>
+
+  <p style="font-size: 14px; color: var(--ink-soft); margin-top: 8px;">
+    <strong>Total launch: 10 styles</strong> · 8 個 culturally-anchored + 2 個 culturally-neutral · cover 整個 Kieio launch 嘅 genre 矩陣 (戀愛 / 古惑仔 / 玄幻 / 都市 / 武俠 / 校園 / NBA / 末世 / etc.)。
+  </p>
+
+  <h4>v1.1+ Pro tier · 「作者風格」add-on (founder hint · individual artist styles)</h4>
+  <div class="card">
+    <p>Founder 提到 「maybe include 唔同嘅作者風格之類」。Artist-specific styles 喺 v1.1+ 作為 Pro tier exclusive 加入。考慮 5-8 個 well-known artist signatures · 每個係 region style 嘅 finer-grained sub-preset:</p>
+    <ul class="bullets" style="margin-top: 6px;">
+      <li><strong>🇭🇰 港式漫畫風 → 馬榮成風</strong> (《天下畫集》風) · sharper ink · 90s movement style</li>
+      <li><strong>🇭🇰 港式漫畫風 → 王家禧風</strong> (《老夫子》風) · simpler line · humor-leaning</li>
+      <li><strong>🌸 日系動漫 → 宮崎駿風</strong> (Studio Ghibli) · soft pastel · 自然光重</li>
+      <li><strong>🌸 日系動漫 → 新海誠風</strong> · realism-heavy anime · 光線粒子細膩</li>
+      <li><strong>🎬 電影感 → 王家衛風</strong> (Christopher Doyle 攝影) · 1990s HK noir · neon-lit</li>
+      <li><strong>🇺🇸 美漫風 → Frank Miller 風</strong> · stark noir · high-contrast B&W · 紅色 accent</li>
+      <li><strong>🎬 電影感 → 黑澤明風</strong> · Akira Kurosawa · 武士 · wide shots · monochrome epic</li>
+    </ul>
+    <p style="margin-top: 8px; font-size: 13px; color: var(--ink-soft);">
+      <strong>⚠ IP 注意</strong>: Living artists (新海誠 · 馬榮成等) 喺主流 image gen provider 嘅 policy 上有不同處理 — OpenAI explicit ban · Google Gemini 有 partial filter · Grok 較寬鬆。Mitigation: <strong>prompt 唔直接 name artist · 用 stylistic descriptors 表達 essence</strong> (e.g., "1990s HK manhua style with sharp ink dynamic action lines, era of Storm Riders" 比直接「Ma Wing-shing style」安全)。Deceased artists (黑澤明 · Frank Miller 仍在但其風格已成 genre 標準) 較安全。v1.1+ ship 之前要做 IP review。
+    </p>
+  </div>
+
+  <div class="card">
+    <h4>JSON shape (commit 入 repo · 唔需要 DB)</h4>
+    <pre class="code-block"><span class="comment">// web/src/lib/ai/image-styles.ts</span>
+<span class="key">export const</span> KIEIO_STYLES: Record&lt;StyleKey, StyleDef&gt; = {
+  cinematic: {
+    name: { en: <span>"Cinematic"</span>, zhHant: <span>"電影感"</span>, zhHans: <span>"电影感"</span> },
+    emoji: <span>"🎬"</span>,
+    promptPrefix: <span>"cinematic film still"</span>,
+    promptSuffix: <span>"shallow depth of field, vignette, moody atmospheric lighting, highly detailed"</span>,
+    negativePrompt: <span>"anime, cartoon, illustration, painting, drawing"</span>,
+    bestForGenres: [<span>"古惑仔"</span>, <span>"武俠"</span>, <span>"都市"</span>, <span>"驚悚"</span>],
+  },
+  anime: { ... },
+  <span class="comment">// ... 10 more</span>
+}</pre>
+  </div>
+
+  <h3>Style selection · 3-tier flexibility (founder UX update · 2026-05-28)</h3>
+  <p style="font-size: 14px; color: var(--ink-soft); margin-bottom: 12px;">
+    Founder 加 input: 「俾用戶上傳一張佢想要嘅風格然後 AI 就做類似嘅風格」— preset 唔夠 specific 嗰陣 power user 可以 upload reference image。Preset (新手友好) + custom upload (power user) 並存 · cover 所有用例。
+  </p>
+
+  <table class="table">
+    <thead><tr><th>Tier</th><th>Mode</th><th>Effort for user</th><th>Best for</th><th>Cost overhead</th></tr></thead>
+    <tbody>
+      <tr><td><strong>1</strong></td><td>🎨 <strong>Preset (10 region styles)</strong></td><td>1 click</td><td>新手 · genre 標準 · 唔識 prompt 嘅用戶</td><td>$0 — text prompt 直接用</td></tr>
+      <tr><td><strong>2</strong></td><td>📤 <strong>Upload reference image</strong> 🆕</td><td>Drag-drop / paste URL</td><td>Power user · 想精準 match 某種 vibe · 自己有 reference</td><td>~$0.01 (image embedding + storage)</td></tr>
+      <tr><td><strong>3</strong></td><td>✍️ <strong>Write custom prompt</strong></td><td>500-char free-form</td><td>Prompt engineering 熟手 · 想細緻控制</td><td>$0 — text prompt 直接用</td></tr>
+    </tbody>
+  </table>
+
+  <h4>2 個 entry point (preset / upload / custom 任意配)</h4>
+  <ol style="margin-left: 22px; line-height: 1.85; font-size: 14px;">
+    <li><strong>Story creation</strong>: 揀 preset (default) OR upload reference OR mix · 寫入 <code>stories.default_style_key</code> + <code>stories.style_reference_url</code> (optional · nullable) · 之後所有 scene gen 用呢套</li>
+    <li><strong>Per-image-gen modal</strong>: 預設用 story default · 用戶可即時 override (e.g., 揀另一個 preset · upload 不同 reference · 或者寫 custom prompt)</li>
+  </ol>
+
+  <div class="card">
+    <h4>📤 Upload reference image · technical details</h4>
+    <p>Provider native support:</p>
+    <ul class="bullets" style="margin-top: 6px;">
+      <li><strong>Gemini 2.5 Flash Image</strong>: <code>image</code> input parameter · 「style transfer」mode · 自動 extract style features from reference · apply to new gen。Strong.</li>
+      <li><strong>GPT Image 2</strong>: <code>/v1/images/edits</code> API · pass reference as<code>image</code> · prompt 描述新場景。Strong.</li>
+      <li><strong>Grok Aurora</strong>: less mature · v1.1 fallback (跌返去 SFW provider for style transfer · 但 scene content 用 Grok)。</li>
+    </ul>
+
+    <h4 style="margin-top: 14px;">Upload UX</h4>
+    <pre class="code-block"><span class="comment">// In creation modal</span>
+&lt;Tabs&gt;
+  &lt;Tab id=<span>"preset"</span>&gt;🎨 揀風格&lt;/Tab&gt;
+  &lt;Tab id=<span>"upload"</span>&gt;📤 上傳參考圖&lt;/Tab&gt;
+  &lt;Tab id=<span>"custom"</span>&gt;✍️ 自己寫 prompt&lt;/Tab&gt;
+&lt;/Tabs&gt;
+
+{tab === <span>"upload"</span> && (
+  &lt;ImageDropzone
+    accept=<span>"image/jpeg, image/png, image/webp"</span>
+    maxSize={5 * 1024 * 1024}      <span class="comment">// 5MB</span>
+    maxDimension={2048}              <span class="comment">// auto-resize if larger</span>
+    onUpload={async (file) =&gt; {
+      <span class="comment">// 1. Pre-flight moderation (CSAM check on user upload)</span>
+      <span class="key">await</span> moderateUploadedImage(file)
+      <span class="comment">// 2. Upload to Supabase Storage temp bucket (auto-delete after 24h)</span>
+      url = <span class="key">await</span> uploadStyleReference(file, user.id)
+      <span class="comment">// 3. Save URL to creation form state</span>
+      setStyleReferenceUrl(url)
+    }}
+  /&gt;
+)}</pre>
+
+    <h4 style="margin-top: 14px;">⚠ Legal posture · founder UX update (2026-05-28)</h4>
+    <p>Founder direction: 「法律責任嗰啲我哋全部轉移曬畀個用戶」— TOS-shift model · same as Midjourney / Civitai / Stable Diffusion services。Platform 只保留 hard legal floor (CSAM)。</p>
+    <table class="table">
+      <thead><tr><th>Concern</th><th>Owner</th><th>Mechanism</th></tr></thead>
+      <tbody>
+        <tr><td>🔴 CSAM / 未成年人性內容</td><td><strong>Platform (hard floor · cannot transfer)</strong></td><td>Pre-flight OpenAI Moderation on uploaded reference · pre-flight on generated image output · law line</td></tr>
+        <tr><td>🟡 Copyright on user upload (e.g., screenshot from manga)</td><td>User via TOS</td><td>Upload UI checkbox: 「我擁有此圖版權 或 此圖屬 fair use · 我承擔所有 IP 責任」· DMCA notice process on /terms</td></tr>
+        <tr><td>🟡 Real-person likeness (user uploads photo of real person)</td><td>User via TOS</td><td>TOS clause: 「Uploaded reference must not include real person identifiable likeness 除非用戶有 consent」· user warrants + indemnifies platform</td></tr>
+        <tr><td>🟡 Trademark / IP infringement in generated image (e.g., Mickey Mouse)</td><td>User via TOS</td><td>Provider 自己 filter (Gemini · GPT) · platform 唔特別 check · generated output 用戶 responsible</td></tr>
+        <tr><td>🟢 Artistic style copy (e.g., "in style of [artist]")</td><td>User</td><td>Industry norm = fair use for style · no platform action needed</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top: 8px; font-size: 13.5px; color: var(--ink-soft);">
+      <strong>Net simplification</strong>: drop original 「real-person face detection modal」+「copyright disclaimer checkbox」per-upload (was 2 friction points) · keep CSAM moderation only (hard rule #6) · keep auto-delete 24h (privacy + cost · not legal). Beef up TOS instead with explicit warranties + indemnification clauses.
+    </p>
+
+    <h4 style="margin-top: 14px;">📝 TOS additions needed (lawyer review · already deferred to launch-eve)</h4>
+    <ul class="bullets">
+      <li>User warrants ownership / fair-use of uploaded reference images</li>
+      <li>User assumes IP liability for generated content (style imitation · likeness · trademarks)</li>
+      <li>Platform reserves right to soft-delete content via admin moderation queue (already shipped in P-03)</li>
+      <li>DMCA takedown process: email <code>legal@kieio.com</code> · admin reviews via /admin/moderation queue</li>
+      <li>Indemnification clause: user defends + indemnifies platform from third-party IP claims</li>
+      <li>Class of content always rejected: CSAM · explicit minors · doxxing · revenge porn (hard legal floor · cannot be waived by user)</li>
+    </ul>
+
+    <h4 style="margin-top: 14px;">🔞 NSFW image gen UX (founder Q · 2026-05-28)</h4>
+    <p>Founder question: 「allow user to gen nsfw image · 睇下要唔要加個掣定係嗰個對話係呢個模式咁就會 default nsfw mode」</p>
+    <p><strong>建議: 跟 story content_rating · 唔加 per-image toggle</strong>。Cleanest UX · matches existing architecture · zero new state to manage.</p>
+
+    <table class="table">
+      <thead><tr><th>Story state</th><th>User state</th><th>Image gen 行為</th><th>Provider routing</th></tr></thead>
+      <tbody>
+        <tr><td><code>content_rating = 'sfw'</code> 或 <code>'soft'</code></td><td>任何</td><td>SFW gen 模式 · 用 prompt 自然遵守 provider safety</td><td>Gemini Nano Banana / GPT Image</td></tr>
+        <tr><td><code>content_rating = 'adult'</code></td><td><code>adult_mode_enabled = true</code> + KYC verified</td><td><strong>自動 NSFW mode</strong> · 每張 scene image 都可以 NSFW · 唔需要 per-image toggle</td><td>Grok Aurora (NSFW-permissive)</td></tr>
+        <tr><td><code>content_rating = 'adult'</code></td><td><code>adult_mode_enabled = false</code></td><td>Image gen disabled · 同 turn route 一致 · 顯示「Re-enable adult mode in Settings」</td><td>(N/A · gated upstream)</td></tr>
+      </tbody>
+    </table>
+
+    <h4 style="margin-top: 12px;">點解 NSFW follows story · 唔加 per-image toggle</h4>
+    <ul class="bullets">
+      <li><strong>Mental model 一致</strong>: 用戶喺 story creation 已經 declare 咗呢個故事係 adult-rated · 故事入面所有內容 (text turns + visualizations) 都跟同一個 rating 行為</li>
+      <li><strong>避免「inconsistent images in same story」</strong>: 用戶 SFW 故事突然 gen 一張 NSFW 圖 · UX 上 weird · 而且 character consistency 都會崩 (SFW portrait vs NSFW scene)</li>
+      <li><strong>Per-image toggle 會無意間 trigger NSFW 喺 SFW story 用戶</strong>: 用戶手快 click 錯 toggle · 出咗 NSFW 圖喺 SFW 故事 · 然後 share → embarrassment</li>
+      <li><strong>已有 architecture carry</strong>: content_rating + adult_mode_enabled + KYC verified 三 layer gating 已經 ship (Phase 6 money tier · Migration 0009-0028) · image gen 沿用 zero new code</li>
+      <li><strong>用戶想 NSFW 圖嘅做法</strong>: 創 adult-rated story · 喺 adult-mode 入面 · 自然每張 scene image 都係 adult capable</li>
+    </ul>
+
+    <h4 style="margin-top: 12px;">⚠ 不過要 add: 「Visualize this turn」button disable 喺 adult-mode-off + adult story</h4>
+    <p>Edge case: Pro user 創咗 adult-rated story · 之後 cancel Pro (markSubscriptionDeleted forces adult_mode_enabled=false) · 仲返去 visualize · 應該 disable 個 button 顯示「Re-enable adult mode to visualize this story」link to /settings。Same pattern as P-12 (Adult mode lock badge on /my page · already shipped)。</p>
+
+    <h4 style="margin-top: 14px;">Realistic API rejection rate</h4>
+    <p>Founder note: 「一般唔會有啲乜嘢畀 api reject」— correct。In practice OpenRouter / Gemini / GPT Image / Grok 嘅 rejection rate 對我哋 use case 極低:</p>
+    <ul class="bullets">
+      <li><strong>CSAM</strong>: all providers · automatic instant reject · 我哋 hard rule #6 一致</li>
+      <li><strong>Explicit gore / torture</strong>: rare in fiction · default off via prompt phrasing</li>
+      <li><strong>Real public figure (celebrities · politicians)</strong>: provider varies · Gemini stricter · Grok permissive · Kieio fiction context 用戶幾乎唔會撞</li>
+      <li><strong>NSFW</strong>: Gemini + GPT reject · Grok permissive (Q5 已 lock · adult routes to Grok)</li>
+    </ul>
+    <p style="margin-top: 6px;">
+      Expected real-world rejection rate: <strong>&lt; 1%</strong> of gen calls。Mitigation: if provider returns content_filter error · refund user credits · suggest 「try different style preset or rephrase prompt」· no platform penalty。
+    </p>
+
+    <h4 style="margin-top: 14px;">Schema additions (sub-set of original)</h4>
+    <pre class="code-block">alter table public.stories
+  add column if not exists style_key text,                <span class="comment">-- 'hk-manhua' · 'jp-anime' etc. · null if custom</span>
+  add column if not exists style_reference_url text,      <span class="comment">-- Supabase Storage URL · null unless upload mode</span>
+  add column if not exists style_custom_prompt text;      <span class="comment">-- free-form · null unless custom mode</span>
+
+<span class="comment">-- Constraint: exactly one of (style_key · style_reference_url · style_custom_prompt) must be set</span>
+alter table public.stories add constraint stories_style_mode_check
+  check (
+    (style_key is not null)::int +
+    (style_reference_url is not null)::int +
+    (style_custom_prompt is not null)::int = 1
+  );
+
+create table public.style_references (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references profiles(id) on delete cascade,
+  storage_url text not null,
+  expires_at timestamptz not null default (now() + interval '24 hours'),
+  used_in_stories uuid[],          <span class="comment">-- which stories used this reference · for cleanup decision</span>
+  moderation_status text not null default 'pending'
+    check (moderation_status in ('pending', 'approved', 'rejected', 'expired')),
+  created_at timestamptz not null default now()
+);
+
+<span class="comment">-- Cron: delete expired style references daily (cleanup)</span>
+<span class="comment">-- Vercel cron: /api/cron/cleanup-style-references (daily 00:30 UTC)</span></pre>
+  </div>
+
+  <div class="card">
+    <h4>AI auto-suggestion 邏輯 (story creation)</h4>
+    <pre class="code-block"><span class="comment">// LLM extract genre + setting from user's seed prompt · suggest top 3 styles</span>
+seed = <span>"1980s 香港古惑仔故事 · 我做新仔..."</span>
+genre = <span>"古惑仔"</span>, era = <span>"1980s"</span>
+
+suggested = matchStyles(genre, era)
+<span class="comment">// → ["hk-manhua", "analog-film", "cinematic"]</span>
+<span class="comment">// User defaults to hk-manhua · sees 2 alternates · can pick any of 12</span></pre>
+  </div>
+
+  <h3>Pre-generate style preview thumbnails (one-time)</h3>
+  <ul class="bullets">
+    <li>For each of 10 region-based styles · gen ONE sample image (e.g., "a samurai standing in rain") · 1024×1024</li>
+    <li>One-time cost: ~$0.40 (10 × $0.04 Gemini)</li>
+    <li>Store喺 Supabase Storage <code>style-previews/</code> bucket</li>
+    <li>Picker UI 顯示 thumbnail grid (12 cards) · user 一眼睇到每個 style 嘅 vibe</li>
+    <li>Commit thumbnails 入 repo 做 fallback · CDN cache via Vercel</li>
+  </ul>
+
+  <div class="card">
+    <h4>UX flow · single button + modal (founder Q1 + Q4)</h4>
+    <pre class="code-block"><span class="comment">// Per-turn action menu shows ONE button</span>
+&lt;Button onClick={openVisualizeModal}&gt;
+  ✨ Generate scene
+&lt;/Button&gt;
+
+<span class="comment">// Modal opens · 3 choices</span>
+&lt;Modal&gt;
+  &lt;h2&gt;Visualize this turn&lt;/h2&gt;
+  &lt;p&gt;Pick the image type:&lt;/p&gt;
+  &lt;Tabs&gt;
+    &lt;Tab id=<span>"illustration"</span>&gt;🎨 Scene illustration · 50 credits&lt;/Tab&gt;
+    &lt;Tab id=<span>"comic"</span>&gt;📖 Comic panel (with dialogue) · 100 credits&lt;/Tab&gt;
+    &lt;Tab id=<span>"wallpaper"</span>&gt;📱 Wallpaper (mobile lockscreen) · 80 credits&lt;/Tab&gt;
+  &lt;/Tabs&gt;
+
+  &lt;Toggle id=<span>"prompt_source"</span> default=<span>"ai"</span>&gt;
+    ○ Let AI write the prompt from turn context (recommended)
+    ● I'll write my own prompt
+  &lt;/Toggle&gt;
+
+  {promptSource === <span>"user"</span> && (
+    &lt;Textarea
+      placeholder=<span>"林思雅 sitting on the rooftop, smoking, neon lights below..."</span>
+      maxLength={500}
+    /&gt;
+  )}
+
+  &lt;Button onClick={generate}&gt;
+    Generate · {creditCost} credits
+  &lt;/Button&gt;
+&lt;/Modal&gt;</pre>
+  </div>
+
+  <div class="card">
+    <h4>Backend pipeline (per click)</h4>
+    <pre class="code-block"><span class="comment">// Step 1 · Detect characters from turn context (founder Q2)</span>
+<span class="key">characters_in_turn</span> = detectCharactersFromTurn(turn.text, story.characters)
+<span class="comment">// Match NPC names mentioned + dialogue speakers · returns full character_ids</span>
+
+<span class="comment">// Step 2 · Build scene prompt (founder Q4)</span>
+<span class="key">scene_prompt</span> = userPromptOverride
+  ?? await summarizeTurnForScene(turn.text, characters_in_turn)
+<span class="comment">// LLM-extracted: action / location / mood / NPCs in frame</span>
+
+<span class="comment">// Step 3 · Lazy character sheet gen (founder Q1)</span>
+<span class="key">for</span> (char of characters_in_turn) {
+  <span class="key">if</span> (!char.portrait_url) {
+    char.portrait_url = await generateCharacterPortrait(char)
+    <span class="comment">// 1-time per character · stored in Supabase Storage</span>
+    <span class="comment">// Cost: $0.04 charged to user (forewarn in modal)</span>
+  }
+}
+
+<span class="comment">// Step 4 · Route to provider (founder Q3 + Q5)</span>
+<span class="key">provider</span> = pickImageProvider(story, imageType, userTier)
+<span class="comment">// SFW illustration/wallpaper → Gemini Nano Banana</span>
+<span class="comment">// SFW comic panel (needs text rendering) → GPT Image 2</span>
+<span class="comment">// Adult-rated story → Grok Aurora</span>
+
+<span class="comment">// Step 5 · Generate</span>
+<span class="key">image</span> = await provider.generate({
+  prompt: buildFinalPrompt(scene_prompt, characters_in_turn, story.style_profile),
+  reference_images: characters_in_turn.map(c =&gt; c.portrait_url),
+  aspect_ratio: aspectFor(imageType),  <span class="comment">// 16:9 / 4:3 / 9:19.5</span>
+  text_overlay: imageType === <span>'comic'</span> ? extractDialogue(turn) : null,
+})
+
+<span class="comment">// Step 6 · Post-flight moderation (defense-in-depth)</span>
+<span class="key">moderationResult</span> = await moderateImage(image)  <span class="comment">// CSAM check</span>
+<span class="key">if</span> (!moderationResult.allowed) {
+  refundCredits(user, credit_charge)
+  <span class="key">return</span> { ok: false, code: <span>'moderation_blocked'</span> }
+}
+
+<span class="comment">// Step 7 · Store + bill</span>
+<span class="key">storage_url</span> = await uploadToSupabase(image)
+await applyCreditCharge(user.id, credit_charge, <span>'scene_image_gen'</span>)
+await insertSceneImageRow({ playthrough_id, turn_index, storage_url, ... })</pre>
+  </div>
+
+  <!-- ═══════════════════════ PROVIDER ═══════════════════════ -->
+  <h2 id="provider">🛠 Provider stack · OpenRouter aggregator (founder-locked)</h2>
+
+  <div class="verdict green">
+    <h3>🎯 Major simplification · OpenRouter handles all 3</h3>
+    <p>Founder pointed out (and I missed): Story Engine 已經 wire 咗 OpenRouter (per <code>web/src/lib/ai/providers.ts:29</code> · <code>OPENROUTER_API_KEY</code> · <code>createOpenAI({ baseURL: "openrouter.ai/api/v1" })</code>). OpenRouter aggregator API 可以 route 去 Google Gemini · OpenAI GPT Image · xAI Grok · <strong>1 個 API key · 1 個 billing · 1 個 provider abstraction</strong>。</p>
+    <p>Code-side: <code>openrouterProvider</code> 已經 export · 加 image gen 只需要 extend 同一個 client 嘅 <code>images.generate()</code> call (或者 raw fetch 去 <code>/api/v1/images/generations</code>)。Provider registry pattern 沿用 · model_id 換成 OpenRouter 嘅 image model identifier (e.g., <code>google/gemini-2.5-flash-image</code>)。</p>
+  </div>
+
+  <table class="table">
+    <thead><tr><th>Underlying model</th><th>OpenRouter model_id</th><th>Reference support</th><th>Per-image cost (OR markup)</th><th>用喺邊</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>Gemini Nano Banana / Imagen 3</strong></td>
+        <td><code>google/gemini-2.5-flash-image</code></td>
+        <td class="ok">✅ Subject reference · iterative composition</td>
+        <td>~$0.04 + OR ~5% markup</td>
+        <td>⭐ Default · SFW</td>
+      </tr>
+      <tr>
+        <td><strong>OpenAI GPT Image 2</strong></td>
+        <td><code>openai/gpt-image-1</code></td>
+        <td class="ok">✅ Text-in-image · subject ref via edits</td>
+        <td>~$0.04-0.17 + OR markup</td>
+        <td>⭐ Comic panels (CJK text bubble)</td>
+      </tr>
+      <tr>
+        <td><strong>xAI Grok Aurora</strong></td>
+        <td><code>x-ai/grok-2-image</code></td>
+        <td class="warn">⚠ Less mature ref support</td>
+        <td>~$0.07 + OR markup</td>
+        <td>⭐ NSFW · Adult-rated stories</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="verdict amber">
+    <h3>⚠ Verify before ship</h3>
+    <p>OpenRouter <strong>aggregator coverage for image models</strong> evolves quarterly. Phase 8.0 prep step: verify all 3 model_ids are accessible via OpenRouter's images endpoint at time of build (~5 min curl test). If a model is NOT yet on OpenRouter, fall back to direct API for that specific provider · still use existing key pattern (e.g., <code>OPENAI_API_KEY</code> already exists · <code>XAI_API_KEY</code> if needed for direct Grok)。</p>
+    <p>Net win even with partial fallback: 0-2 new keys (vs 3 in original plan) · 1 unified billing dashboard for most models · OpenRouter ~5% markup is negligible vs developer time savings。</p>
+  </div>
+
+  <h3>Provider routing logic (same · just via OpenRouter)</h3>
+  <pre class="code-block"><span class="key">function</span> pickImageModel(story, imageType) {
+  <span class="comment">// All three route through openrouterProvider · just different model_id</span>
+  <span class="key">if</span> (story.content_rating === <span>'adult'</span>) <span class="key">return</span> <span>'x-ai/grok-2-image'</span>;
+  <span class="key">if</span> (imageType === <span>'comic'</span>) <span class="key">return</span> <span>'openai/gpt-image-1'</span>;
+  <span class="key">return</span> <span>'google/gemini-2.5-flash-image'</span>;
+}
+
+<span class="comment">// In server action · single provider client · just swap model_id</span>
+<span class="key">const</span> response = await fetch(<span>`https://openrouter.ai/api/v1/images/generations`</span>, {
+  method: <span>'POST'</span>,
+  headers: {
+    Authorization: <span>`Bearer ${process.env.OPENROUTER_API_KEY}`</span>,
+    <span>'HTTP-Referer'</span>: <span>'https://kieio.com'</span>,
+    <span>'X-Title'</span>: <span>'Kieio'</span>,
+  },
+  body: JSON.stringify({
+    model: pickImageModel(story, imageType),
+    prompt: finalPrompt,
+    reference_image_urls: characterPortraitUrls,  <span class="comment">// per-provider param shape may differ</span>
+    size: aspectFor(imageType),
+    quality: imageType === <span>'comic'</span> && userTier === <span>'pro'</span> ? <span>'high'</span> : <span>'standard'</span>,
+  }),
+});</pre>
+
+  <h3>Why OpenRouter (vs direct API per provider)</h3>
+  <ul class="bullets">
+    <li><strong>Existing infrastructure reuse</strong>: <code>OPENROUTER_API_KEY</code> already in Vercel env · <code>openrouterProvider</code> already wired · cookie + auth + headers (HTTP-Referer / X-Title) pattern proven for Story Engine LLM routing since Phase 3</li>
+    <li><strong>1 billing dashboard</strong>: track image gen spend alongside LLM spend · founder sees unified cost per story / per user / per month</li>
+    <li><strong>Future model swap easier</strong>: when Gemini ships Imagen 4 or OpenAI ships GPT Image 3 · just change <code>model_id</code> string · zero new auth code</li>
+    <li><strong>Failover</strong>: if Google Imagen 3 endpoint down · can switch to <code>black-forest-labs/flux-pro-1.1</code> via same OpenRouter call · 5-line change</li>
+    <li><strong>~5% markup acceptable</strong>: $0.04 → $0.042 image · negligible at our margin (92% margin still 91%)</li>
+  </ul>
+
+  <!-- ═══════════════════════ SCHEMA ═══════════════════════ -->
+  <h2 id="schema">📦 Schema additions</h2>
+
+  <h3>1. <code>story_characters</code> · 加 visual fields</h3>
+  <pre class="code-block">alter table public.story_characters
+  add column if not exists visual_description text,            <span class="comment">-- 150-300 字外表描述 · LLM-generated</span>
+  add column if not exists portrait_url text,                   <span class="comment">-- Supabase Storage URL</span>
+  add column if not exists portrait_generated_at timestamptz,
+  add column if not exists portrait_provider text default 'replicate:flux-1.1-pro';</pre>
+
+  <h3>2. <code>stories</code> · 加 style profile</h3>
+  <pre class="code-block">alter table public.stories
+  add column if not exists style_profile jsonb;
+  <span class="comment">-- shape: { art_style, color_palette, era_aesthetic, medium, reference_artists[] }</span></pre>
+
+  <h3>3. NEW <code>scene_images</code> table</h3>
+  <pre class="code-block">create table public.scene_images (
+  id uuid primary key default gen_random_uuid(),
+  playthrough_id uuid not null references playthroughs(id) on delete cascade,
+  turn_index integer not null,
+  user_id uuid not null references profiles(id) on delete cascade,
+  image_type text not null check (image_type in ('comic', 'illustration', 'wallpaper')),
+  aspect_ratio text not null,
+  provider text not null,
+  storage_url text not null,                  <span class="comment">-- Supabase Storage</span>
+  thumbnail_url text,                          <span class="comment">-- 256×256 preview</span>
+  prompt_text text not null,                   <span class="comment">-- final prompt used</span>
+  character_ids uuid[],                        <span class="comment">-- which characters in image</span>
+  credits_charged integer not null,
+  ledger_id uuid references credit_ledger(id),
+  generated_at timestamptz not null default now(),
+  moderation_status text not null default 'pending'
+    check (moderation_status in ('pending', 'approved', 'rejected')),
+  created_at timestamptz not null default now()
+);
+
+create index scene_images_playthrough_idx on scene_images(playthrough_id, turn_index);
+create index scene_images_user_idx on scene_images(user_id, created_at desc);</pre>
+
+  <h3>4. Supabase Storage buckets</h3>
+  <ul class="bullets">
+    <li><code>character-portraits</code> · public read · 1024×1024 · ~$0.001/month storage per portrait</li>
+    <li><code>scene-images</code> · public read · 1024×576 to 1024×1820 · ~$0.005/month per image</li>
+  </ul>
+
+  <!-- ═══════════════════════ PHASES ═══════════════════════ -->
+  <h2 id="phases">📅 Phase 8 拆做 4 個 ship-wave</h2>
+
+  <div class="card">
+    <div class="phase-row">
+      <div class="phase-num">8.1</div>
+      <div class="phase-text">
+        <strong>Character sheet generation 同 storage</strong>
+        <small>Schema additions · LLM extract visual_description from existing character cards · 1-batch portrait gen (Replicate Flux) for all NPCs in 5 official stories · Supabase Storage setup · admin UI to retry portrait if quality bad。<br><strong>Deliverable</strong>: 5 條官方故事每個 NPC 都有 reference portrait。冇 user-facing UI 變化 — 純準備 infrastructure。<br><strong>Estimate</strong>: ~1 session · ~$5 LLM cost for官方 story portraits</small>
+      </div>
+      <div><span class="pill pill-mvp">MVP · 1</span></div>
+    </div>
+    <div class="phase-row">
+      <div class="phase-num">8.2</div>
+      <div class="phase-text">
+        <strong>Scene generation engine</strong>
+        <small>Server action <code>generateSceneImage(playthroughId, turnIndex, imageType)</code> · turn 文字 → scene prompt summary (Haiku 4.5 · ~$0.001) · merge character refs + style profile · call Replicate Flux · upload to Storage · write scene_images row · charge credits via apply_credit_charge。<br><strong>Deliverable</strong>: Backend works · admin can fire API · output image saved。<br><strong>Estimate</strong>: ~1-2 sessions · Replicate API integration + IP-Adapter param tuning</small>
+      </div>
+      <div><span class="pill pill-mvp">MVP · 2</span></div>
+    </div>
+    <div class="phase-row">
+      <div class="phase-num">8.3</div>
+      <div class="phase-text">
+        <strong>Play UI · 「Visualize this turn」 button</strong>
+        <small>Per-turn action menu: 「📖 漫畫」「🎨 場景圖」「📱 Wallpaper」buttons · click → modal 顯示 estimated credits · confirm → loading spinner ~5-10s · result modal with download + share to clipboard / WeChat. Failed gen retry button. Already-generated turns show cached image inline。<br><strong>Deliverable</strong>: User-facing button live · 5 official stories test。<br><strong>Estimate</strong>: ~1 session</small>
+      </div>
+      <div><span class="pill pill-mvp">MVP · 3</span></div>
+    </div>
+    <div class="phase-row">
+      <div class="phase-num">8.4</div>
+      <div class="phase-text">
+        <strong>Memory Journal · Scene gallery tab</strong>
+        <small>新 tab「📸 場景畫廊」喺 Memory Journal · 顯示所有 user 為呢個 playthrough generate 過嘅 scene images · grid layout · click expand fullscreen · download all。<br><strong>Deliverable</strong>: 用戶可以喺一個地方睇晒佢嘅生成歷史 · turn 圖嘅收藏 mental model 成立。<br><strong>Estimate</strong>: ~0.5 session</small>
+      </div>
+      <div><span class="pill pill-v11">v1.1</span></div>
+    </div>
+    <div class="phase-row">
+      <div class="phase-num">8.5</div>
+      <div class="phase-text">
+        <strong>Share + watermark · marketing flywheel</strong>
+        <small>Scene image 底部 watermark: <code>kieio.com · 〈故事名〉</code> · 自動帶 deep-link share URL (短碼)。Share to WeChat / Threads / Instagram Story / 小紅書 templates · pre-filled caption with story URL。<br><strong>Deliverable</strong>: 用戶 share 圖 = free marketing 入口。<br><strong>Estimate</strong>: ~1 session · 包括 sharp.js post-process watermark · share-template UI</small>
+      </div>
+      <div><span class="pill pill-v11">v1.1</span></div>
+    </div>
+    <div class="phase-row">
+      <div class="phase-num">8.6</div>
+      <div class="phase-text">
+        <strong>User custom character portrait upload</strong>
+        <small>User 可以 upload 自己畫嘅 portrait 取代 AI-generated 嘅。Moderation pre-filter (face only · 唔可以涉真實人) · CSAM check。Power-user feature · v1.5。<br><strong>Estimate</strong>: ~1-2 sessions · adds custom upload validation + content review</small>
+      </div>
+      <div><span class="pill pill-v15">v1.5</span></div>
+    </div>
+    <div class="phase-row">
+      <div class="phase-num">8.7</div>
+      <div class="phase-text">
+        <strong>Premium consistency tier · Pro Max upgrade</strong>
+        <small>Provider stack 改咗（Gemini + GPT Image + Grok · 唔再用 Replicate）· 所以 Replicate LoRA training 路徑唔適用。新嘅 「premium consistency」 upgrade path：(a) GPT Image 2 「high」 quality tier · $0.17 per image · 比 Gemini 嘅 ref-conditioning 更穩定 face 一致性。(b) 多 reference angle per character (front · side · 3/4) · pass 3-shot reference 比 1-shot 提升 consistency 80% → 90%+。(c) Provider 出新嘅 character-lock feature (Gemini 多輪 iterative composition · 已 part of Nano Banana) → 即係 upgrade tier 主要靠 provider 升級 · 唔需要自己 train。<br><strong>Estimate</strong>: ~0.5 session · 主要係 UX surface (Pro Max 用戶見到 「Premium consistency」 chip · routing 過去 GPT high quality)</small>
+      </div>
+      <div><span class="pill pill-v15">v1.5</span></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════ MONEY ═══════════════════════ -->
+  <h2 id="money">💰 Pricing + Margin math</h2>
+
+  <h3>Per-image credit pricing (3-provider routing)</h3>
+  <table class="table">
+    <thead><tr><th>Output</th><th>Provider</th><th>Provider cost</th><th>Credit price</th><th>USD equivalent</th><th>Margin %</th></tr></thead>
+    <tbody>
+      <tr><td>🎨 場景插圖 (16:9 · SFW)</td><td>Gemini Nano Banana</td><td>$0.04</td><td>50 credits</td><td>$0.50</td><td class="ok">92%</td></tr>
+      <tr><td>📖 漫畫面板 (4:3 · with native text)</td><td>GPT Image 2 (low)</td><td>$0.04</td><td>100 credits</td><td>$1.00</td><td class="ok">96%</td></tr>
+      <tr><td>📖 漫畫面板 Pro quality (Pro tier · premium)</td><td>GPT Image 2 (high)</td><td>$0.17</td><td>200 credits</td><td>$2.00</td><td class="ok">92%</td></tr>
+      <tr><td>📱 Wallpaper (mobile · 9:19.5 · SFW)</td><td>Gemini Nano Banana</td><td>$0.04</td><td>80 credits</td><td>$0.80</td><td class="ok">95%</td></tr>
+      <tr><td>🔞 場景插圖 (Adult-rated story)</td><td>Grok Aurora</td><td>$0.07</td><td>100 credits</td><td>$1.00</td><td class="ok">93%</td></tr>
+      <tr><td>🔞 Wallpaper (Adult-rated story)</td><td>Grok Aurora</td><td>$0.07</td><td>120 credits</td><td>$1.20</td><td class="ok">94%</td></tr>
+      <tr><td>Character portrait (lazy gen at first scene · per char)</td><td>Provider-matched</td><td>$0.04-0.07</td><td>40 credits each</td><td>$0.40</td><td class="ok">82-90%</td></tr>
+    </tbody>
+  </table>
+
+  <p style="margin-top: 10px; font-size: 13.5px; color: var(--ink-soft);">
+    <strong>Key insight</strong>: Adult-rated charges 100% premium (100 credits for $0.07 cost vs 50 credits for $0.04 SFW)
+    — covers Grok's slightly higher cost AND captures the「NSFW premium」willingness-to-pay。
+    Pro tier 漫畫 quality bump ($0.17 GPT Image high) sustains 92% margin while delivering Wong Kar-wai-grade output。
+  </p>
+
+  <h3>Tier 行為</h3>
+  <table class="table">
+    <thead><tr><th>Tier</th><th>場景圖</th><th>漫畫面板</th><th>Wallpaper</th><th>Character portrait setup</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Free</strong></td><td class="miss">✗ Locked</td><td class="miss">✗ Locked</td><td class="miss">✗ Locked</td><td>—</td></tr>
+      <tr><td><strong>Standard $9.99</strong></td><td>50 credits each</td><td>100 credits each</td><td>80 credits each</td><td>200 credits / story</td></tr>
+      <tr><td><strong>Pro $19.99</strong></td><td>40 credits (20% off)</td><td>80 credits (20% off)</td><td>64 credits (20% off)</td><td>included free × 1 / story</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Revenue projection</h3>
+  <ul class="bullets">
+    <li>Average Standard subscriber generates 5 images/month · 70 credits avg · 350 credits/month on visualization</li>
+    <li>Standard 2,000 monthly budget · 350 visualization + ~33 turns at avg 50 credits = 1,650 credits → fits within budget · drives Pro upgrade for users hitting cap</li>
+    <li>Power user 30 images/month → top-up purchase trigger ($5 → 1k credits = 12 more images)</li>
+    <li>**Estimated +$3-5 ARPU lift** at Standard tier from visualization adoption (~40% of users try ≥1 image in month 1)</li>
+  </ul>
+
+  <h3>Story creation cost adjustment</h3>
+  <p>Character sheet portraits at story creation: ~$0.20 cost (5 NPCs avg). Charged as 200-credit add-on at creation flow ("Generate character portraits for $2 add-on?"). Optional · skip = no portraits · later visualization gens use text description only (40-60% consistency · still acceptable).</p>
+
+  <!-- ═══════════════════════ RISKS ═══════════════════════ -->
+  <h2 id="risks">⚠ Risk inventory</h2>
+
+  <div class="card">
+    <h4>🔴 Risk · CSAM / illegal imagery via image gen</h4>
+    <p>Hard rule #6 嘅 image extension。Flux / Replicate 都有 built-in safety filter · 但 sexual/minors 都有可能 generate (depending on prompt phrasing). Mitigation:</p>
+    <ul class="bullets">
+      <li>Pre-flight: scene_prompt → OpenAI Moderation API check · 同 turn 用同樣 pipeline</li>
+      <li>Post-flight: 收到 image → 第二 moderation pass via Google SafeSearch / AWS Rekognition · cost $0.001/image</li>
+      <li>Adult mode locked stories · image gen 一律 reject if user adult_mode=off</li>
+      <li>Audit log: scene_images.prompt_text 永遠保留 · admin moderation queue 可以 retro-review</li>
+    </ul>
+    <p style="margin-top: 6px;"><strong>Cost</strong>: +$0.001/image moderation. <strong>Latency</strong>: +1-2s.</p>
+  </div>
+
+  <div class="card">
+    <h4>🟠 Risk · 「我嘅角色係我認識嘅人」 — real-person likeness</h4>
+    <p>用戶 upload custom portrait (v1.5) · 可能 upload 真人 image · 然後 LoRA train 出真人替身 → privacy 災難 + 法律問題。Mitigation:</p>
+    <ul class="bullets">
+      <li>Custom upload only allowed v1.5 + face-detect reject (must be clearly illustrated · not photograph)</li>
+      <li>EULA explicit: characters must be original · no real-person likeness</li>
+      <li>Admin review flag for any reported "this looks like a real person" report</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h4>🟠 Risk · 一致性 drift · 玩家發現「呢個唔似上次嘅林思雅」</h4>
+    <p>IP-Adapter 70-85% consistency 意味 15-30% 嘅圖會有 noticeable drift。Mitigation:</p>
+    <ul class="bullets">
+      <li>每 gen 後玩家有「Re-generate」 button (cost 50% · 即 25-100 credits)</li>
+      <li>Pro Max LoRA tier (v1.5) 用戶可以 unlock 95%+ consistency · upsell hook</li>
+      <li>UI hint:「AI-generated · 細節可能會略有不同 · 唔合心意可以重 gen」</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h4>🟡 Risk · Replicate downtime / rate-limit</h4>
+    <p>Replicate API 偶有 30-second downtime · 5xx 容易。Mitigation:</p>
+    <ul class="bullets">
+      <li>Failed gen 唔扣 credit (charge only on success · same pattern as turn)</li>
+      <li>Fal.ai backup pool · auto-fallback if Replicate 5xx ≥ 3 times in 1 minute</li>
+      <li>Queue + retry · max 3 attempts</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h4>🟡 Risk · Storage cost runaway</h4>
+    <p>Supabase Storage $0.021 / GB / month。1024×576 PNG ~400 KB. 1k users × 10 images/month = 4 GB. 1 year cumulative 50 GB · ~$1/month negligible. 但 long-tail 5 years × 100k users = real cost。Mitigation:</p>
+    <ul class="bullets">
+      <li>Auto-archive after 6 months · move to Cloudflare R2 ($0.015/GB) or Backblaze ($0.006/GB)</li>
+      <li>Thumbnail (256×256 webp) inline · full image lazy-load</li>
+      <li>User-initiated delete kept simple · admin batch delete for abandoned accounts</li>
+    </ul>
+  </div>
+
+  <!-- ═══════════════════════ OPEN QUESTIONS · RESOLVED ═══════════════════════ -->
+  <h2 id="open">✅ Q1-Q5 · All resolved (founder · 2026-05-28)</h2>
+
+  <div class="card">
+    <h4>Q1 · Character sheet timing → <span style="color: var(--green);">LAZY at first scene gen</span></h4>
+    <p>Single「Generate scene」button per turn. Click → modal opens · user picks comic / illustration / wallpaper. Backend lazy-generates character portraits if missing for any NPC in scene · charges per portrait. No upfront cost at story creation · only-when-needed.</p>
+  </div>
+
+  <div class="card">
+    <h4>Q2 · Image content → <span style="color: var(--green);">Based on turn context</span></h4>
+    <p>每一次 gen 圖根據呢個 turn 嘅 context · 出場 NPCs 一齊出現。<code>detectCharactersFromTurn(turn.text, story.characters)</code> 抽 NPC names + dialogue speakers · pass 全部去 image gen。Wallpaper 唔係 default solo 主角 — 跟 turn 講邊個就畫邊個。</p>
+  </div>
+
+  <div class="card">
+    <h4>Q3 · Provider → <span style="color: var(--green);">Gemini + GPT Image 2 + Grok</span></h4>
+    <p>3-way routing:</p>
+    <ul class="bullets">
+      <li>SFW illustration / wallpaper → <strong>Gemini Nano Banana Pro</strong> ($0.04 · strong consistency)</li>
+      <li>SFW comic panel (needs Chinese text) → <strong>GPT Image 2</strong> ($0.04-0.17 · native text rendering)</li>
+      <li>Adult-rated story → <strong>Grok Aurora</strong> ($0.07 · NSFW-permissive)</li>
+    </ul>
+    <p style="margin-top: 6px;">3 個 provider 都有 native API · provider registry 沿用現有 pattern (similar to LLM provider switch)。Replicate Flux 唔用。</p>
+  </div>
+
+  <div class="card">
+    <h4>Q4 · Prompt control → <span style="color: var(--green);">User choice · AI auto OR own prompt</span></h4>
+    <p>Modal 入面 toggle:</p>
+    <ul class="bullets">
+      <li><strong>Default</strong>: AI auto-prompt from turn context (LLM summarize · 90% users will pick this)</li>
+      <li><strong>Power user</strong>: User writes own 500-char prompt · 可以做 stylistic exploration · 唔限於 turn 內容</li>
+    </ul>
+    <p style="margin-top: 6px;">Same credit cost regardless of source · prompt-engineering effort 唔影響 provider cost。</p>
+  </div>
+
+  <div class="card">
+    <h4>Q5 · NSFW image → <span style="color: var(--green);">MVP supported via Grok</span></h4>
+    <p>Adult-rated story → 自動 route 去 Grok Aurora · 唔再 defer 到 v1.5。Adult mode 用戶第一日就可以 visualize 成人故事。</p>
+    <p style="margin-top: 6px;"><strong>Hard rule #6 仍然 enforce</strong>: CSAM / sexual-minors pre-filter (OpenAI Moderation API check prompt · post-flight image moderation via Google SafeSearch) 永遠 on · Grok 自己嘅 safety filter + 我哋嘅 dual-layer check · 法律底線唔動。</p>
+  </div>
+
+  <!-- ═══════════════════════ FINAL ═══════════════════════ -->
+  <h2>🏁 Final recommendation</h2>
+
+  <div class="verdict green">
+    <h3>建議：Phase 8.1 + 8.2 + 8.3 做 post-launch first feature drop · all decisions locked</h3>
+    <p><strong>Sequence</strong>: launch → 2-3 weeks 觀察 baseline metrics → Phase 8 ship。</p>
+    <p><strong>Why post-launch (not pre-launch)</strong>:</p>
+    <ul class="bullets" style="margin-top: 6px;">
+      <li>Launch 前要 stable + simple · 加 image gen 開新攻擊面 (CSAM image · 3-provider downtime · cost runaway)</li>
+      <li>Post-launch 有真實 user behavior 數據 · 知道邊個 turn type 玩家想 visualize · 可以針對性 prompt-engineer scene summary</li>
+      <li>第一個「new feature drop」 = social media moment · marketing flywheel · 用戶見到 product evolving · 助 retention</li>
+      <li>NSFW (Grok) MVP-day-1 supported · 唔需要 v1.5 defer (Q5 resolved)</li>
+    </ul>
+    <p><strong>Scope MVP (8.1-8.3)</strong>:</p>
+    <ul class="bullets" style="margin-top: 4px;">
+      <li>~3-4 sessions implementation</li>
+      <li>~$10-20 LLM cost for 5 官方 stories' lazy portraits during testing</li>
+      <li>1 Supabase Storage bucket (scene-images + character-portraits)</li>
+      <li><strong>0 new env vars</strong>: <code>OPENROUTER_API_KEY</code> reuse (aggregator routes to Gemini · GPT Image · Grok) · only if a model is missing from OpenRouter do we add a fallback direct API key</li>
+      <li>~600 lines code (provider routing + UX modal + character detection + post-gen moderation)</li>
+    </ul>
+  </div>
+
+  <h3>📋 Pre-launch prep · founder action (唔阻 launch timeline · 大幅簡化)</h3>
+  <table class="table">
+    <thead><tr><th>Action</th><th>Time</th><th>Output</th></tr></thead>
+    <tbody>
+      <tr><td><strong>1. Verify OpenRouter image gen coverage</strong></td><td>~10 min</td><td>curl 3 個 model_id 測試: <code>google/gemini-2.5-flash-image</code> · <code>openai/gpt-image-1</code> · <code>x-ai/grok-2-image</code>. 如果有缺 · 對應 fallback (e.g., direct OpenAI for GPT Image 已經有 <code>OPENAI_API_KEY</code>)</td></tr>
+      <tr><td><strong>2. OpenRouter credit top-up</strong></td><td>~5 min</td><td>Estimate $20-50 buffer for 5 stories test gen + initial launch traffic. Existing <code>OPENROUTER_API_KEY</code> reuse · just deposit credits</td></tr>
+      <tr><td><strong>3. Style library curation (already done in plan)</strong></td><td>~5 min review</td><td>10 region-based styles · 8 culturally-anchored (🇭🇰 港式漫畫 · 🇯🇵 日本漫畫 · 🇯🇵 日系動漫 · 🇰🇷 韓式 Webtoon · 🇺🇸 美漫 · 🇨🇳 國風水墨 · 🎬 電影感 · 📷 寫實攝影) + 2 culturally-neutral (🌃 賽博朋克 · 🐉 奇幻插畫). Prompt anchors based on <code>twri/sdxl_prompt_styler</code> MIT-licensed library. v1.1 Pro tier 加 5-8 個「作者風格」add-ons (馬榮成 · 新海誠 · 王家衛 · Frank Miller etc.). AI suggest top 3 from user's seed prompt</td></tr>
+      <tr><td><strong>4. Stripe Price IDs (optional)</strong></td><td>~10 min</td><td>If wanting credit-pack「Visualizer」add-on bundle separate from base subscription · create new Stripe Product (e.g., 「Visualizer Bundle · $4.99 for 1000 image-credits」)</td></tr>
+    </tbody>
+  </table>
+
+  <div class="verdict green" style="margin-top: 16px;">
+    <h3>What we saved by using OpenRouter aggregator</h3>
+    <ul class="bullets" style="margin-top: 4px;">
+      <li>❌ <s>Open Google AI Studio account · grab GOOGLE_GENAI_API_KEY</s></li>
+      <li>❌ <s>Open xAI developer account · grab XAI_API_KEY · separate billing</s></li>
+      <li>❌ <s>3 new env vars in Vercel · 3 separate auth code paths</s></li>
+      <li>✅ Net new env vars: <strong>0</strong> (OpenRouter key already in prod)</li>
+      <li>✅ Code reuse: <code>openrouterProvider</code> client already exported · adding image gen = extending same module</li>
+      <li>✅ Unified cost monitoring · 1 billing dashboard for all image + LLM spend</li>
+    </ul>
+  </div>
+
+  <h3>🎯 Locked architecture summary</h3>
+  <div class="card">
+    <ul class="bullets">
+      <li><strong>UX</strong>: per-turn single「Generate scene」button → modal (3 image types · style picker · prompt source toggle) → result modal with download + share</li>
+      <li><strong>Provider routing</strong>: All via OpenRouter aggregator (existing <code>OPENROUTER_API_KEY</code> reuse · 0 new env vars). Models: SFW illustration/wallpaper → <code>google/gemini-2.5-flash-image</code> · SFW comic → <code>openai/gpt-image-1</code> · Adult → <code>x-ai/grok-2-image</code></li>
+      <li><strong>Style selection · 3-tier flexibility</strong>:
+        <ul style="margin-top: 4px;">
+          <li>(1) <strong>Preset</strong> — 10 region-based styles (8 cultural 🇭🇰🇯🇵🌸🇰🇷🇺🇸🇨🇳🎬📷 + 2 universal 🌃🐉) · prompt anchors from MIT-licensed <code>twri/sdxl_prompt_styler</code></li>
+          <li>(2) <strong>Upload reference image</strong> — drag-drop · provider native style transfer (Gemini · GPT Image) · 5MB max · 2048px max · CSAM + face-detection pre-filter · auto-delete after 24h</li>
+          <li>(3) <strong>Custom prompt</strong> — 500-char free-form for power users</li>
+        </ul>
+        AI suggest top 3 presets from user's seed prompt. v1.1 Pro add-on: 5-8 個 individual artist signatures (馬榮成 · 新海誠 · 王家衛 · Frank Miller · 黑澤明 etc.) gated behind IP review.
+      </li>
+      <li><strong>Consistency</strong>: lazy character portraits (1-time per character on first scene gen · stored in Supabase Storage) · provider-native subject reference per gen · story-wide style key + character visual_description re-injected</li>
+      <li><strong>Characters in scene</strong>: detected from turn context (NPC names + dialogue speakers from turn text · not solo protagonist default)</li>
+      <li><strong>Prompt control</strong>: AI auto-prompt (default) OR user writes own (500-char limit) · style applies regardless</li>
+      <li><strong>Moderation</strong>: pre-flight OpenAI Moderation API on prompt + post-flight Google SafeSearch on image · dual-layer · CSAM hard block irrespective of tier (hard rule #6 enforced)</li>
+      <li><strong>Storage</strong>: Supabase Storage · public bucket · thumbnail (256×256 webp) inline · full image lazy-load · auto-archive to R2 after 6 months</li>
+      <li><strong>Pricing</strong>: 50-200 credits per gen · 90-96% margin · adult premium (100 vs 50 SFW) · Pro tier high-quality bump for comic ($0.17 GPT high)</li>
+    </ul>
+  </div>
+
+</main>
+</body>
+</html>

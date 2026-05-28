@@ -6,9 +6,14 @@
  *
  * For anon users we fall through to a regular /login link (no action call).
  * For users already on this tier we show「Current plan」disabled state.
+ *
+ * Session 16 audit HIGH-06: server returns error CODES; client maps to
+ * localized message. Was leaking raw codes ("stripe_error" / "no_customer")
+ * + raw Stripe English strings into the user-facing toast.
  */
 
 import { useState, useTransition } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
 import { startCheckout, openBillingPortal } from "./actions";
@@ -47,6 +52,7 @@ export function SubscribeButton({
 }: Props) {
   const [pending, startTransition] = useTransition();
   const [err, setErr] = useState<string | null>(null);
+  const tErrors = useTranslations("errors.billing");
 
   // Anon → straight to login (no action call).
   if (!isAuthed) {
@@ -76,7 +82,7 @@ export function SubscribeButton({
                 if (res.ok) {
                   window.location.href = res.url;
                 } else {
-                  setErr(res.message ?? res.error);
+                  setErr(tErrors("portalFailed"));
                 }
               })
             }
@@ -99,7 +105,9 @@ export function SubscribeButton({
               if (res.ok) {
                 window.location.href = res.url;
               } else {
-                setErr(res.message ?? res.error);
+                // Session 16 PM Review #2 (C-04 sweep): Manage link was missed
+                // in original HIGH-06 fix. Sibling to subscribe-button main button.
+                setErr(tErrors("portalFailed"));
               }
             })
           }
@@ -129,7 +137,7 @@ export function SubscribeButton({
               if (res.ok) {
                 window.location.href = res.url;
               } else {
-                setErr(res.message ?? res.error);
+                setErr(tErrors("portalFailed"));
               }
               return;
             }
@@ -137,7 +145,7 @@ export function SubscribeButton({
             if (res.ok) {
               window.location.href = res.url;
             } else {
-              setErr(res.message ?? res.error);
+              setErr(tErrors("checkoutFailed"));
             }
           })
         }

@@ -322,7 +322,31 @@
     "forkModalSubmitting": "Starting…",
     "forkModalCancel": "Cancel",
     "forkErrorAuth": "Couldn't start playthrough: please log in.",
-    "forkErrorFallback": "Couldn't start playthrough: {reason}"
+    "forkErrorFallback": "Couldn't start playthrough: {reason}",
+    "errorUnauthorized": "Please log in first.",
+    "errorStoryNotFound": "Story not found.",
+    "errorStoryNotPublic": "This story is private — only the owner can interact.",
+    "errorNotStoryOwner": "Only the story owner can do that.",
+    "errorPublishFailed": "Couldn't publish. Please try again.",
+    "errorUnpublishFailed": "Couldn't unpublish. Please try again.",
+    "errorInvalidScore": "Rating must be between 1 and 5 stars.",
+    "errorReviewTooLong": "Review is too long (max 2000 chars).",
+    "errorInvalidInput": "Invalid input.",
+    "errorRateFailed": "Couldn't save your rating. Please try again.",
+    "errorCommentFailed": "Couldn't post your comment. Please try again.",
+    "errorDeleteFailed": "Couldn't delete. Please try again.",
+    "errorNotCommentOwner": "Only the comment author can do that.",
+    "errorCommentNotFound": "Comment not found.",
+    "errorDetailsTooLong": "Details too long (max 1000 chars).",
+    "errorReportFailed": "Couldn't submit the report. Please try again.",
+    "errorModelTierRequired": "This model requires a higher subscription tier.",
+    "errorForkFailed": "Couldn't start playthrough. Please try again.",
+    "errorForkReturnedEmpty": "Couldn't start playthrough — unknown error.",
+    "errorModerationCsam": "Content involving minors is not allowed.",
+    "errorModerationSelfHarm": "Content about self-harm is not allowed. If you need help, please reach out to a local crisis line.",
+    "errorModerationHateViolence": "Content contains threats, hate speech, or graphic violence.",
+    "errorModerationSexual": "Sexual content exceeds this story's content rating.",
+    "errorModerationBlocked": "Content blocked by moderation. Please revise and try again."
   },
   "memory": {
     "defaultStoryTitle": "Story",
@@ -381,6 +405,7 @@
       "charactersHint": "People · places · items · events · concepts",
       "innerVoicesLabel": "NPC inner voices",
       "innerVoicesSub": "{count} entries · {npcs} NPCs",
+      "innerVoicesSubEmpty": "Pro exclusive · empty",
       "innerVoicesHint": "Storyteller exclusive · each NPC's POV + inner thoughts",
       "recentLabel": "Recent 20 turns",
       "recentBadge": "Auto",
@@ -421,9 +446,15 @@
     },
     "innerVoices": {
       "emptyTitle": "No NPC inner voices recorded yet",
-      "emptyBody": "Enable NPC inner voices in the play screen (Storyteller tier) to see each NPC's POV here.",
+      "emptyBody": "Enable NPC inner voices in the play screen (Pro tier) to see each NPC's POV here.",
+      "emptyTitleEnable": "Inner voices ready · just enable",
+      "emptyBodyEnable": "You're on Pro tier. Open the NPC panel on the play page and toggle 「NPC Inner Voices」 ON. The next turn will start recording each NPC's POV here.",
+      "emptyTitleReady": "Recording starts on your next turn",
+      "emptyBodyReady": "NPC Inner Voices is enabled. The next turn will run each active NPC's POV in parallel + record their inner thoughts here.",
+      "emptyTitleUpgrade": "NPC Inner Voices · Pro exclusive",
+      "emptyBodyUpgrade": "Every NPC's hidden mind · what they're plotting · what they really feel. Pro tier unlocks this — the narrative honors their secrets, not just the script.",
       "emptyHint": "Each turn's NPC POV is recorded here afterwards.",
-      "storyteller": "Storyteller exclusive",
+      "storyteller": "Pro exclusive",
       "innerThought": "Inner thought",
       "intent": "Intent",
       "internalPov": "Internal POV",
@@ -455,7 +486,9 @@
     },
     "input": {
       "placeholder": "What do you want to do? (describe action, dialogue, decision…)",
-      "submit": "Act"
+      "submit": "Act",
+      "costEstimate": "≈ {credits} credits / turn",
+      "l3Note": "+ NPC Inner Voices"
     },
     "rail": {
       "npcCount": "NPCs · {count}",
@@ -465,6 +498,8 @@
       "insufficientCreditsTitle": "Not enough credits",
       "insufficientCreditsBody": "You have {balance} credits, this turn needs ~{needed}.",
       "insufficientCreditsCta": "Go to Settings to upgrade / top-up",
+      "insufficientCreditsSubscribeCta": "Subscribe Standard $9.99 / mo",
+      "insufficientCreditsTopupCta": "or one-time top-up →",
       "modelTierTitle": "Model requires a higher tier",
       "modelTierBody": "Your tier ({tier}) can't use {model}. Go to Settings to pick another model or upgrade.",
       "modelTierCta": "Go to Settings",
@@ -481,7 +516,73 @@
       "httpError": "Request failed (HTTP {status})"
     },
     "permanentBadge": "PERMANENT · no retry",
-    "permanentTooltip": "Hard rule #5 · can't retry the same turn"
+    "permanentTooltip": "Hard rule #5 · can't retry the same turn",
+    "visualize": {
+      "button": "✨ Visualize this scene",
+      "buttonShort": "✨ Visualize",
+      "modalTitle": "Generate scene image",
+      "modalSubtitle": "Turn this moment into an illustration · comic · or wallpaper",
+      "imageType": {
+        "label": "Image type",
+        "illustration": "Illustration",
+        "illustrationHint": "16:9 widescreen scene · default",
+        "comic": "Comic panel",
+        "comicHint": "4:3 with native text rendering (GPT Image)",
+        "wallpaper": "Phone wallpaper",
+        "wallpaperHint": "9:19.5 portrait · saveable to phone"
+      },
+      "styleMode": {
+        "label": "Visual style",
+        "preset": "Preset styles",
+        "upload": "Upload reference",
+        "custom": "Custom prompt",
+        "presetHint": "Pick from 10 regional styles",
+        "uploadHint": "Upload one image · AI imitates its style (you confirm you own rights · TOS)",
+        "uploadButton": "Choose image (PNG/JPG/WEBP · max 5MB)",
+        "uploadAck": "I confirm I own / am licensed to use this image",
+        "customHint": "Write your own style prompt (Pro tip · paste from civitai etc)",
+        "customPlaceholder": "e.g., oil painting · Studio Ghibli soft pastel · 90s shōnen manga screentone..."
+      },
+      "styleSuggestion": "Recommended for this story",
+      "proQualityLabel": "Pro quality (higher detail · +100 credits)",
+      "cta": "Generate · {credits} credits",
+      "ctaInsufficient": "Need {needed} credits · you have {balance}",
+      "ctaNeedsFile": "Choose a reference image first",
+      "ctaNeedsAck": "Tick the ownership confirmation first",
+      "ctaNeedsCustom": "Write a custom style prompt first",
+      "loading": "Drawing the scene · 5-15 seconds",
+      "loadingComic": "Drawing comic panel · 10-25 seconds",
+      "successTitle": "Scene generated",
+      "download": "Download",
+      "tryAgain": "Generate again",
+      "close": "Close",
+      "tier": {
+        "freeBlocked": "Standard / Pro tier required for scene image generation",
+        "freeBlockedCta": "Upgrade →"
+      },
+      "errors": {
+        "tier_required": "Standard or Pro tier required",
+        "adult_mode_required": "Enable Adult Mode in Settings first · adult-rated stories may require age verification",
+        "insufficient_credits": "Not enough credits · this image needs {needed}, you have {balance}",
+        "content_filter": "Provider rejected this scene · try a different style or rephrase your last turn",
+        "rate_limited": "Image provider is busy · wait a moment and try again",
+        "provider_unavailable": "Image provider temporarily unavailable · try again in a moment",
+        "storage_upload_failed": "Couldn't save the image · please try again",
+        "config_error": "Image generation isn't configured · contact support",
+        "invalid_file": "Please choose a PNG / JPG / WEBP file",
+        "file_too_large": "Image too large · max 5MB",
+        "moderation_blocked": "Reference image filename was rejected · try a different file",
+        "unauthorized": "Session expired · please sign in again",
+        "playthrough_not_found": "This playthrough was deleted or doesn't exist · please refresh",
+        "not_owner": "You don't have permission to do this",
+        "turn_not_found": "This turn no longer exists · please refresh",
+        "unknown": "Something went wrong · try again"
+      },
+      "thumbnailHover": "Click to view full size · {imageType} · {style}",
+      "fullSizeAlt": "Generated scene · {imageType}",
+      "tosShort": "By generating, you confirm uploaded references are yours and you accept our",
+      "tosLink": "Terms of Service"
+    }
   },
   "skillCheck": {
     "rolling": "SKILL CHECK · ROLLING",
@@ -646,7 +747,7 @@
       "verifyPending": "Redirecting to Stripe…",
       "alreadyVerified": "You're already verified · reload the page to see the toggle unlocked",
       "authRequired": "Please log in first",
-      "verifyInitError": "Verification initialization failed: {error}",
+      "verifyInitError": "Verification initialization failed. Please try again later.",
       "csamReminder": "Note: all modes ban CSAM, sexualization of minors, and illegal content · whether adult mode is on or off, the moderation pipeline will block these (hard rule).",
       "consentDialog": {
         "eyebrow": "Confirm enable adult mode",
@@ -700,6 +801,16 @@
   "my": {
     "pageTitle": "My games",
     "subtitleEmpty": "You haven't started any stories — pick a scenario to begin your adventure.",
+    "adultLockBadge": "Adult mode off",
+    "adultLockTooltip": "This story is adult-rated. Re-enable adult mode in Settings to continue, or archive this story.",
+    "lobby": {
+      "welcomeNamed": "Welcome, {name}",
+      "welcomeAnon": "Welcome to Kieio",
+      "subtitle": "Tell me what world you want to step into. I'll spin up the characters, the rules, and the opening scene. Then you take it from there.",
+      "primaryCta": "Start your first story",
+      "examplesHeader": "Or try one of these · click to start",
+      "browseLibraryLink": "Or browse community stories"
+    },
     "subtitleCount": "{total} playthroughs · {active} in progress",
     "tabs": {
       "all": "All",
@@ -733,6 +844,14 @@
     },
     "continueCard": {
       "resume": "Resume"
+    },
+    "lobbyHero": {
+      "title": "What story do you want to live in?",
+      "subtitle": "Tell me a world · I'll spin up the characters, the rules, and the opening scene. Then you take it from there. Or browse what other players have built.",
+      "primaryCta": "Start a new story",
+      "browseTrending": "Trending",
+      "browseCommunity": "Community",
+      "examplesHeader": "Or click a scenario to start"
     },
     "hero": {
       "editorPick": "★ Editor's pick",
@@ -876,6 +995,67 @@
       "callbackFailed": "Login callback failed. Please log in again.",
       "missingCode": "The login link is invalid or has expired.",
       "googleUnavailable": "Google login is not enabled yet. Please use email magic link."
+    },
+    "moderation": {
+      "csam": "Content involving minors is not allowed.",
+      "selfHarm": "Content about self-harm is not allowed. If you need help, please reach out to a local crisis line.",
+      "hateViolence": "Content contains threats, hate speech, or graphic violence.",
+      "sexual": "Sexual content exceeds this story's content rating.",
+      "blocked": "Content blocked by moderation. Please revise and try again."
+    }
+  },
+  "legal": {
+    "footerTerms": "Terms",
+    "footerPrivacy": "Privacy",
+    "footerCookies": "Cookies",
+    "terms": {
+      "eyebrow": "Legal",
+      "title": "Terms of Service",
+      "subtitle": "The rules and expectations for using Kieio.",
+      "placeholderNotice": "⚠️ Placeholder · final terms pending lawyer review for HK + TW jurisdictions.",
+      "section1Title": "1. Service description",
+      "section1Body": "Kieio (operated at kieio.com) provides AI-driven interactive fiction. We generate narratives using third-party language models (Anthropic · OpenAI · Google · Meta via OpenRouter) based on prompts you submit. Output is fictional and not advice.",
+      "section2Title": "2. Account + age requirements",
+      "section2Body": "You must be 13 or older to create an account. Adult mode (NSFW content) requires identity verification confirming you are 18 or older via Stripe Identity. We may suspend accounts for violations of community standards or applicable law.",
+      "section3Title": "3. Acceptable use",
+      "section3Body": "You agree not to: (a) generate or share content involving minors in sexual situations (CSAM · pre-filtered + reported to authorities), (b) generate content depicting real persons without consent, (c) reverse-engineer or scrape our LLM outputs at scale, (d) use the platform for harassment, doxxing, or illegal activity.",
+      "section4Title": "4. Payments + credits",
+      "section4Body": "Subscriptions billed monthly via Stripe. Credits granted upon successful payment (Standard $9.99 / Pro $19.99 USD). Refunds at our discretion within 14 days of purchase. Top-up purchases are non-refundable. See Pricing page for current rates.",
+      "section5Title": "5. Liability + termination",
+      "section5Body": "Service provided as-is. We are not liable for AI-generated content, user-uploaded content, or indirect damages. We may terminate accounts at our discretion. Your data export rights are described in our Privacy Policy.",
+      "lastUpdated": "Last updated: {date} · contact legal@kieio.com for questions"
+    },
+    "privacy": {
+      "eyebrow": "Legal",
+      "title": "Privacy Policy",
+      "subtitle": "What we collect, why we collect it, and your controls.",
+      "placeholderNotice": "⚠️ Placeholder · final privacy policy pending lawyer review for PCPD (HK) + PIPL (TW) compliance.",
+      "section1Title": "1. What we collect",
+      "section1Body": "Account: email, display name (from OAuth provider or you), language preference. Gameplay: stories, playthroughs, characters, memory, credit ledger. Operational: IP, user agent, error reports (Sentry), product analytics (PostHog) — all linked to your user ID.",
+      "section2Title": "2. Third-party processors",
+      "section2Body": "We process data through: Supabase (database + auth · US-East), Vercel (hosting · global edge), Anthropic / OpenAI / Google / OpenRouter (LLM inference), Stripe (payments · global), Sentry (errors), PostHog (analytics). LLM prompts are sent to the model provider only · we do not train models on your content.",
+      "section3Title": "3. Adult mode + identity verification",
+      "section3Body": "Adult mode requires age verification via Stripe Identity (selfie + ID). Verification metadata (verified yes/no · timestamp) is retained; the selfie + ID images are processed by Stripe and not stored by us. Adult mode content is generated using NSFW-friendly providers (OpenRouter) isolated from default LLMs.",
+      "section4Title": "4. Your rights",
+      "section4Body": "You can: export your data (contact privacy@kieio.com), delete your account (settings → delete · cascades to playthroughs + memory), opt out of analytics (PostHog respects DNT header). Data retention: account data kept until deletion; error logs 90 days; analytics 12 months.",
+      "section5Title": "5. Contact + jurisdiction",
+      "section5Body": "Data controller: Kieio (HK-based). Disputes governed by HK law. Contact privacy@kieio.com for data access / deletion / corrections. PCPD (HK) and PIPL (TW) data subject rights apply.",
+      "lastUpdated": "Last updated: {date} · contact privacy@kieio.com for questions"
+    },
+    "cookies": {
+      "eyebrow": "Legal",
+      "title": "Cookie Policy",
+      "subtitle": "Cookies we set and why they're needed.",
+      "placeholderNotice": "⚠️ Placeholder · final cookie disclosure pending lawyer review.",
+      "section1Title": "1. Essential cookies (always on)",
+      "section1Body": "Supabase auth session (httpOnly · scoped to .kieio.com) · next-intl locale preference (NEXT_LOCALE) · Vercel deployment routing (vercel-id). These are required for the site to function · you can't opt out.",
+      "section2Title": "2. Analytics cookies (PostHog)",
+      "section2Body": "PostHog sets a distinct_id cookie to track activation funnel (signup · first turn · subscribe). We do not link this to ad networks · we do not sell data to third parties.",
+      "section3Title": "3. Error reporting (Sentry)",
+      "section3Body": "Sentry session ID for grouping errors to a single browser session. Disabled in development · production-only.",
+      "section4Title": "4. Opt-out + browser controls",
+      "section4Body": "Set Do-Not-Track in your browser · PostHog honors it. Clear cookies via your browser settings to reset analytics distinct_id. Essential cookies cannot be opted out without breaking auth.",
+      "lastUpdated": "Last updated: {date} · contact privacy@kieio.com for questions"
     }
   }
 }

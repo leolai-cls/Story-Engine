@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kieio · Phase 8 場景視覺化 · Audit Cycle 1</title>
+<style>
+  :root { --primary: #4F46E5; --primary-soft: #EEF2FF; --accent: #F59E0B; --accent-soft: #FEF3C7; --bg: #FAFAF7; --card: #FFFFFF; --ink: #18181B; --ink-soft: #3F3F46; --muted: #71717A; --border: #E4E4E7; --green: #10B981; --green-soft: #D1FAE5; --rose: #E11D48; --rose-soft: #FEE2E2; --amber: #D97706; --amber-soft: #FEF3C7; --code-bg: #F4F4F5; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif; background: var(--bg); color: var(--ink); line-height: 1.65; font-size: 15px; -webkit-font-smoothing: antialiased; }
+  main { max-width: 1080px; margin: 0 auto; padding: 48px 32px 120px; }
+  .hero { text-align: center; margin-bottom: 36px; }
+  .eyebrow { display: inline-block; font-size: 11px; font-weight: 700; color: var(--rose); background: var(--rose-soft); padding: 5px 12px; border-radius: 999px; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 16px; }
+  h1 { font-size: 34px; font-weight: 800; letter-spacing: -0.025em; margin-bottom: 10px; }
+  .hero p { color: var(--muted); font-size: 16px; max-width: 720px; margin: 0 auto; }
+  .meta { color: var(--muted); font-size: 13px; margin-top: 14px; }
+  .summary { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin: 32px 0 28px; }
+  .stat { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px; text-align: center; }
+  .stat-num { font-size: 36px; font-weight: 800; line-height: 1; }
+  .stat-label { font-size: 11px; color: var(--muted); margin-top: 8px; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700; }
+  .stat.crit .stat-num { color: var(--rose); }
+  .stat.high .stat-num { color: var(--amber); }
+  .stat.med .stat-num { color: var(--primary); }
+  .stat.low .stat-num { color: var(--muted); }
+  .stat.info .stat-num { color: var(--green); }
+  h2 { font-size: 24px; font-weight: 700; margin: 50px 0 14px; display: flex; align-items: center; gap: 10px; }
+  h2 .icon { font-size: 28px; }
+  .verdict { background: linear-gradient(135deg, #fee2e2, #fef3c7); border: 2px solid var(--rose); padding: 24px 28px; border-radius: 14px; margin: 18px 0 36px; }
+  .verdict h3 { color: var(--rose); font-size: 18px; font-weight: 800; margin-bottom: 10px; }
+  .verdict p { font-size: 14.5px; line-height: 1.75; }
+  .verdict ol { margin: 12px 0 0 22px; }
+  .verdict li { padding: 4px 0; font-size: 14px; }
+  .priority-list { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 24px; margin: 20px 0 36px; }
+  .priority-row { display: grid; grid-template-columns: 60px 1fr auto; gap: 14px; align-items: start; padding: 12px 0; border-bottom: 1px dashed var(--border); }
+  .priority-row:last-child { border-bottom: none; }
+  .priority-rank { font-size: 20px; font-weight: 800; color: var(--primary); }
+  .priority-rank.crit { color: var(--rose); }
+  .priority-content strong { font-weight: 700; font-size: 14.5px; display: block; margin-bottom: 4px; }
+  .priority-content small { font-size: 12.5px; color: var(--muted); }
+  .priority-refs { font-size: 11px; color: var(--primary); font-weight: 700; background: var(--primary-soft); padding: 4px 8px; border-radius: 6px; white-space: nowrap; }
+  details.dim-section { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 0; margin-bottom: 14px; overflow: hidden; }
+  details.dim-section[open] { box-shadow: 0 2px 12px rgba(0,0,0,0.04); }
+  details.dim-section summary { cursor: pointer; padding: 20px 24px; font-weight: 700; font-size: 17px; display: flex; align-items: center; gap: 12px; user-select: none; }
+  details.dim-section summary::-webkit-details-marker { display: none; }
+  details.dim-section summary::after { content: "▼"; margin-left: auto; color: var(--muted); font-size: 12px; transition: transform .2s; }
+  details.dim-section[open] summary::after { transform: rotate(180deg); }
+  .dim-content { padding: 0 24px 24px; }
+  .issue { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin-bottom: 10px; }
+  .issue.crit { border-left: 4px solid var(--rose); background: #fef2f2; }
+  .issue.high { border-left: 4px solid var(--amber); background: #fffbeb; }
+  .issue.med { border-left: 4px solid var(--primary); }
+  .issue.low { border-left: 4px solid var(--muted); }
+  .issue-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+  .issue-id { font-weight: 800; font-size: 12.5px; color: var(--primary); flex-shrink: 0; font-family: "SF Mono", Monaco, monospace; }
+  .issue-title { font-weight: 700; font-size: 14.5px; flex: 1; min-width: 220px; }
+  .sev-tag { font-size: 10px; padding: 2px 8px; border-radius: 999px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
+  .sev-crit { background: var(--rose-soft); color: var(--rose); }
+  .sev-high { background: var(--amber-soft); color: var(--amber); }
+  .sev-med { background: var(--primary-soft); color: var(--primary); }
+  .sev-low { background: var(--code-bg); color: var(--muted); }
+  .issue-loc { font-family: "SF Mono", Monaco, monospace; font-size: 11.5px; color: var(--muted); margin-bottom: 8px; word-break: break-all; }
+  .issue-symptom { font-size: 13.5px; color: var(--ink-soft); margin-bottom: 6px; }
+  .issue-symptom strong { color: var(--ink); }
+  .issue-fix { background: rgba(16, 185, 129, 0.06); border-left: 3px solid var(--green); padding: 8px 14px; border-radius: 6px; font-size: 13px; color: var(--ink-soft); margin-top: 8px; }
+  .issue-fix strong { color: var(--green); font-weight: 700; }
+  code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; font-family: "SF Mono", Monaco, monospace; font-size: 12px; }
+  .crit-verified { background: #fff7ed; border: 1px solid var(--amber); border-radius: 12px; padding: 18px 22px; margin: 18px 0; }
+  .crit-verified strong { color: var(--amber); font-weight: 800; }
+  .agent-coverage { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin: 18px 0 32px; }
+  .agent-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
+  .agent-card .title { font-weight: 700; font-size: 13px; margin-bottom: 8px; }
+  .agent-card .stats { display: flex; gap: 6px; font-size: 11px; font-weight: 700; }
+  .agent-card .stats span { padding: 2px 6px; border-radius: 4px; }
+  .agent-card .stats .c { background: var(--rose-soft); color: var(--rose); }
+  .agent-card .stats .h { background: var(--amber-soft); color: var(--amber); }
+  .agent-card .stats .m { background: var(--primary-soft); color: var(--primary); }
+  .agent-card .stats .l { background: var(--code-bg); color: var(--muted); }
+  @media (max-width: 768px) { .summary, .agent-coverage { grid-template-columns: repeat(2, 1fr); } main { padding: 24px 16px 80px; } }
+</style>
+</head>
+<body>
+<main>
+
+<div class="hero">
+  <span class="eyebrow">🚨 Audit Cycle 1 · 5-agent 平行 dimension audit</span>
+  <h1>Phase 8 場景視覺化 · 深度 Audit</h1>
+  <p>5 個獨立 agent 從 Security · Credits · AI Pipeline · UX/i18n · Data Flow 5 個 dimension 同時 audit。發現 <strong>14 個 CRIT + 36 個 HIGH</strong> · 整個 feature <strong>launch-blocking · 唔可以 ship</strong>。</p>
+  <div class="meta">2026-05-28 · Phase 8 Wave 2 post-implementation · commits <code>3c584ac</code> + <code>52799a7</code></div>
+</div>
+
+<div class="summary">
+  <div class="stat crit"><div class="stat-num">14</div><div class="stat-label">CRIT</div></div>
+  <div class="stat high"><div class="stat-num">36</div><div class="stat-label">HIGH</div></div>
+  <div class="stat med"><div class="stat-num">40</div><div class="stat-label">MED</div></div>
+  <div class="stat low"><div class="stat-num">30</div><div class="stat-label">LOW</div></div>
+  <div class="stat info"><div class="stat-num">120</div><div class="stat-label">Total</div></div>
+</div>
+
+<div class="agent-coverage">
+  <div class="agent-card"><div class="title">🔒 Security</div><div class="stats"><span class="c">3 C</span><span class="h">7 H</span><span class="m">9 M</span><span class="l">5 L</span></div></div>
+  <div class="agent-card"><div class="title">💰 Credits</div><div class="stats"><span class="c">3 C</span><span class="h">6 H</span><span class="m">5 M</span><span class="l">4 L</span></div></div>
+  <div class="agent-card"><div class="title">🤖 AI Pipeline</div><div class="stats"><span class="c">0 C</span><span class="h">7 H</span><span class="m">9 M</span><span class="l">4 L</span></div></div>
+  <div class="agent-card"><div class="title">🎨 UX / i18n</div><div class="stats"><span class="c">3 C</span><span class="h">7 H</span><span class="m">9 M</span><span class="l">8 L</span></div></div>
+  <div class="agent-card"><div class="title">🗄 Data Flow</div><div class="stats"><span class="c">5 C</span><span class="h">9 H</span><span class="m">8 M</span><span class="l">9 L</span></div></div>
+</div>
+
+<div class="verdict">
+  <h3>⛔ 結論：Phase 8 而家 SHIP = 100% broken + 法律 / 金錢風險</h3>
+  <p>5 個 agent cross-reference 之後，發現呢個 wave 有 3 個獨立嘅 "feature 完全冇 work" bug + 4 個 "用戶錢 / 私隱受損" bug。手動驗證咗最關鍵嘅 3 個 CRIT，全部 confirmed。</p>
+  <ol>
+    <li><strong>CRIT-01 · feature 完全唔 work</strong>：page.tsx select 個 column 叫錯名 (<code>credits_balance</code> vs DB 真係叫 <code>credit_balance</code>)，<code>currentBalance</code> 永遠係 0，modal CTA 永遠顯示「credits 不足」。冇 user 用得到。</li>
+    <li><strong>CRIT-02 · Revenue leak</strong>：Pro Quality 200-credit toggle 喺 client 出現但個 flag <strong>從來冇 send 去 server</strong>。Pro user 揀 200 credit 但 server 只收 100。$0.17 GPT Image Pro 成本 vs 100 credit ≈ $0.05 retail = 我哋每張蝕錢。</li>
+    <li><strong>CRIT-03 · 私隱洩漏</strong>：scene-images Storage bucket 係 <strong>PUBLIC</strong> + storage path 用 <code>{user.id}/{playthrough.id}/{turnIndex}-{Date.now()}.png</code>。Adult 故事生成嘅成人圖係可以 enumerate（你 ID + 任何人 playthrough ID 都可以 brute force time）。</li>
+    <li><strong>CRIT-04 · Hard rule #4 violation</strong>：scene_image DB insert 失敗時，credits 已扣 + storage 已上傳，<strong>冇 auto-refund</strong>。用戶蝕錢、見唔到圖、冇任何 signal。</li>
+    <li><strong>CRIT-05 · Hard rule #6 violation</strong>：custom prompt 直接送去 image gen <strong>冇 moderate</strong>。用戶可以寫任何 prompt 試 jailbreak provider。違反 CSAM pre-filter rule。</li>
+    <li><strong>CRIT-06 · i18n drift</strong>：5 個 server error code (<code>storage_failed</code> / <code>playthrough_not_found</code> / <code>not_owner</code> / <code>turn_not_found</code> / <code>unauthorized</code>) 喺 catalog 完全冇 entry → 用戶會見到 raw key 字串。</li>
+    <li><strong>CRIT-07 · stories.style_key 冇 DB CHECK constraint</strong>（hard rule #28 + #36 違反）— invalid style_key → modal 直接 crash。</li>
+    <li><strong>CRIT-08 · TTL cron 完全冇 implement</strong> — style_references / scene_images storage 永久累積，每月成本爆炸。</li>
+  </ol>
+  <p style="margin-top: 14px;"><strong>建議：</strong>立即 Wave 3 fix sweep · 4-6 個 task block，先 close 8 個 CRIT + 約 18 個 launch-blocking HIGH，再做 Audit Cycle 2 驗證 convergence。Hard rule #29「3-cycle pattern」適用 — 預計需要 2-3 個 audit cycle 至 0 CRIT/HIGH。</p>
+</div>
+
+<h2><span class="icon">🚨</span>頭 8 個 launch-blocker (CRIT)</h2>
+<div class="priority-list">
+
+  <div class="priority-row">
+    <div class="priority-rank crit">#1</div>
+    <div class="priority-content">
+      <strong>currents_balance vs credit_balance column 名 drift</strong>
+      <small>page.tsx:102 select 錯 column → currentBalance 永遠 = 0 → 任何 user 嘅 modal CTA 都顯示 insufficient credits。Phase 8 完全唔 work。Hard rule #36（spec vs code drift）。</small>
+    </div>
+    <div class="priority-refs">CRIT-01</div>
+  </div>
+
+  <div class="priority-row">
+    <div class="priority-rank crit">#2</div>
+    <div class="priority-content">
+      <strong>proQuality flag 係 dead client state</strong>
+      <small>VisualizeSceneModal 有 storyteller comic Pro Quality toggle 顯示 200 credits，但 <code>generateScene</code> 嘅 input type 連 proQuality 都冇。Server 永遠 charge 100。$0.17 cost vs $0.05 retail = 我哋每張蝕。</small>
+    </div>
+    <div class="priority-refs">CRIT-02</div>
+  </div>
+
+  <div class="priority-row">
+    <div class="priority-rank crit">#3</div>
+    <div class="priority-content">
+      <strong>scene-images bucket public + 可預測 path</strong>
+      <small>Adult content rating 故事生成嘅 NSFW 圖 enumerable via user.id + playthroughId + turnIndex + Date.now()。任何人有 referrer 都搵到對方嘅成人圖。Wallpaper 落手機後 share 出去都係 public URL。</small>
+    </div>
+    <div class="priority-refs">CRIT-03</div>
+  </div>
+
+  <div class="priority-row">
+    <div class="priority-rank crit">#4</div>
+    <div class="priority-content">
+      <strong>DB insert 失敗 → credits 扣咗冇 refund</strong>
+      <small>visualize-actions.ts:363 — credits 已 charge + storage 已 upload + scene_images insert error → return 'unknown'，credits 唔退、storage 唔 cleanup。Hard rule #4 違反（off-by-one breaks trust）。</small>
+    </div>
+    <div class="priority-refs">CRIT-04</div>
+  </div>
+
+  <div class="priority-row">
+    <div class="priority-rank crit">#5</div>
+    <div class="priority-content">
+      <strong>customPrompt 冇 moderation pre-filter</strong>
+      <small>visualize-actions.ts:170-171 — user 寫嘅 custom prompt 直接落 image gen，冇行 moderateText。Hard rule #6 CSAM pre-filter 強制要求 violated。Provider safety filter 唔可以 100% trust，特別係 adult Grok 路線。</small>
+    </div>
+    <div class="priority-refs">CRIT-05</div>
+  </div>
+
+  <div class="priority-row">
+    <div class="priority-rank crit">#6</div>
+    <div class="priority-content">
+      <strong>i18n key drift × 5 個 server error code</strong>
+      <small><code>storage_failed</code>（uploadStyleReference 用，catalog 只有 <code>storage_upload_failed</code>）+ <code>playthrough_not_found</code> + <code>not_owner</code> + <code>turn_not_found</code> + <code>unauthorized</code> 全部冇 i18n entry。用戶 session expired / tab 開耐咗 → 見到「playthrough_not_found」raw 英文。</small>
+    </div>
+    <div class="priority-refs">CRIT-06</div>
+  </div>
+
+  <div class="priority-row">
+    <div class="priority-rank crit">#7</div>
+    <div class="priority-content">
+      <strong>stories.style_key 冇 enum CHECK</strong>
+      <small>Migration 0040:35 — 純 text column，唔 match 10-key StyleKey TS union。任何 admin SQL edit / 未來 v1.1 artist sub-style → modal render 時 <code>KIEIO_STYLES[invalid]</code> = undefined → JS crash。Hard rule #28 + #36 violation。</small>
+    </div>
+    <div class="priority-refs">CRIT-07</div>
+  </div>
+
+  <div class="priority-row">
+    <div class="priority-rank crit">#8</div>
+    <div class="priority-content">
+      <strong>無 TTL cleanup cron · Storage 永久累積</strong>
+      <small>style_references 有 <code>expires_at</code> column 但冇 cron job 刪除 expired rows + Storage objects。每個 user 每次 upload 都永久佔 5MB。Scene_images cascade delete 唔 cleanup Storage object。</small>
+    </div>
+    <div class="priority-refs">CRIT-08</div>
+  </div>
+
+</div>
+
+<div class="crit-verified">
+  <strong>✅ 已用 grep / read 手動驗證:</strong><br>
+  · CRIT-01: <code>0001_initial.sql:35</code> 列出 column 叫 <code>credit_balance</code>，page.tsx select 'credits_balance' → 一定 undefined<br>
+  · CRIT-02: grep <code>proQuality</code> 喺 codebase — modal state 同 estimateImageCredits 都接受個 flag，但 generateScene input type 完全冇收，server 永遠 default false<br>
+  · CRIT-06: grep <code>storage_failed</code> 確認 visualize-actions.ts emit 個名，catalog 用 <code>storage_upload_failed</code> — 兩個唔同 string<br>
+  · CRIT-07: 讀 0040 line 35 — <code>add column if not exists style_key text;</code> 後面只有 stories_style_mode_check (which is at-most-one set check, NOT enum)
+</div>
+
+<h2><span class="icon">🔒</span>Dimension 1 · Security (3 CRIT / 7 HIGH / 9 MED / 5 LOW)</h2>
+<details class="dim-section" open>
+  <summary>展開 24 個 security finding</summary>
+  <div class="dim-content">
+
+    <div class="issue crit">
+      <div class="issue-head"><span class="issue-id">SEC-CRIT-01</span><span class="issue-title">scene_images / style_references RLS 無 INSERT WITH CHECK policy</span><span class="sev-tag sev-crit">CRIT</span></div>
+      <div class="issue-loc">supabase/migrations/0040_phase8_scene_visualization_schema.sql:85-93, 119-125</div>
+      <div class="issue-symptom">兩個 table RLS 已 enable 但只有 SELECT policy + 冇 INSERT / UPDATE / DELETE policy。今日靠 service-role bypass，但 future authed-client code path 會靜默接受 RLS 拒絕（Supabase return null without error）。Hard rule #15 違反。</div>
+      <div class="issue-fix"><strong>Fix:</strong> add explicit <code>create policy ... for insert with check (false)</code> + admin update policy via <code>is_admin()</code></div>
+    </div>
+
+    <div class="issue crit">
+      <div class="issue-head"><span class="issue-id">SEC-CRIT-02</span><span class="issue-title">scene-images bucket public + path entropy 可 enumerate</span><span class="sev-tag sev-crit">CRIT</span></div>
+      <div class="issue-loc">visualize-actions.ts:283-301</div>
+      <div class="issue-symptom">Path = <code>{user.id}/{playthroughId}/{turnIndex}-{Date.now()}.png</code>。user.id 知 (profile / comments) + playthroughId 喺 URL → 知道對方創作時段就 brute force Date.now()。Adult 圖 enumerable。</div>
+      <div class="issue-fix"><strong>Fix:</strong> Bucket → private + signed URL with TTL OR path 加 <code>crypto.randomBytes(16).toString('hex')</code></div>
+    </div>
+
+    <div class="issue crit">
+      <div class="issue-head"><span class="issue-id">SEC-CRIT-03</span><span class="issue-title">scene_images insert ownership TOCTOU race</span><span class="sev-tag sev-crit">CRIT</span></div>
+      <div class="issue-loc">visualize-actions.ts:117 read → 341 insert</div>
+      <div class="issue-symptom">Read playthrough.user_id 喺 line 117，line 341 service-role insert 用 input.playthroughId 唔再 verify。Race window: 200 行之間用戶 transfer ownership → scene_image attach 去新 owner。</div>
+      <div class="issue-fix"><strong>Fix:</strong> Postgres trigger <code>BEFORE INSERT ON scene_images CHECK (NEW.user_id = (SELECT user_id FROM playthroughs WHERE id = NEW.playthrough_id))</code></div>
+    </div>
+
+    <div class="issue high">
+      <div class="issue-head"><span class="issue-id">SEC-HIGH-01</span><span class="issue-title">style-references path 用 Math.random() 不安全</span><span class="sev-tag sev-high">HIGH</span></div>
+      <div class="issue-loc">visualize-actions.ts:484</div>
+      <div class="issue-symptom">6 char base36 ≈ 31 bit entropy + Date.now() 可預測。adversary 知 user.id 可 brute force 用戶 upload。</div>
+      <div class="issue-fix"><strong>Fix:</strong> <code>crypto.randomUUID()</code> 或 <code>crypto.randomBytes(16).toString('hex')</code></div>
+    </div>
+
+    <div class="issue high">
+      <div class="issue-head"><span class="issue-id">SEC-HIGH-02</span><span class="issue-title">'soft' content rating 繞過 adult gate</span><span class="sev-tag sev-high">HIGH</span></div>
+      <div class="issue-loc">visualize-actions.ts:134-145 + image-gen.ts:67-73</div>
+      <div class="issue-symptom">Adult gate 只 check <code>=== 'adult'</code>。'soft' story（暗示性內容）skip 晒 adult_mode + KYC + tier check，落 Gemini SFW path。'soft' 嘅意義由 founder 定義，但目前 routing collapse 成 2 級。</div>
+      <div class="issue-fix"><strong>Fix:</strong> Founder 決定 'soft' policy: (a) 算 SFW 就 OK 但要 doc，(b) 唔 OK 要加 adult-mode opt-in 同樣 gate</div>
+    </div>
+
+    <div class="issue high">
+      <div class="issue-head"><span class="issue-id">SEC-HIGH-03</span><span class="issue-title">age 驗證 recency 無 check</span><span class="sev-tag sev-high">HIGH</span></div>
+      <div class="issue-loc">visualize-actions.ts:142</div>
+      <div class="issue-symptom"><code>is_age_verified=true</code> 永久 persist。Stripe Identity 後續 revoke / expire 唔反映返 profile row。</div>
+      <div class="issue-fix"><strong>Fix:</strong> 加 <code>age_verified_at</code> recency check (e.g., 12 個月內) OR Stripe webhook 同步</div>
+    </div>
+
+    <div class="issue high">
+      <div class="issue-head"><span class="issue-id">SEC-HIGH-04</span><span class="issue-title">style_references 無 TTL cleanup cron</span><span class="sev-tag sev-high">HIGH</span></div>
+      <div class="issue-loc">migration 0040:105 + 無對應 cron file</div>
+      <div class="issue-symptom">Schema 有 <code>expires_at default now()+24h</code>，但冇 implement /api/cron/cleanup-style-references。每 upload 永久佔 5MB Storage。</div>
+      <div class="issue-fix"><strong>Fix:</strong> pg_cron job <code>DELETE FROM style_references WHERE expires_at < now()</code> + Storage object batch delete</div>
+    </div>
+
+    <div class="issue high">
+      <div class="issue-head"><span class="issue-id">SEC-HIGH-05</span><span class="issue-title">OpenRouter reference URL SSRF-by-proxy 風險</span><span class="sev-tag sev-high">HIGH</span></div>
+      <div class="issue-loc">image-gen.ts:124-138</div>
+      <div class="issue-symptom">styleReferenceUrl 由 server 傳 OpenRouter，OpenRouter fetch URL 提取 image。如果 attacker 能影響 URL（path traversal），可以引導 OpenRouter fetch 內網資源。</div>
+      <div class="issue-fix"><strong>Fix:</strong> hostname allowlist <code>if (!url.startsWith(SUPABASE_STORAGE_PUBLIC_URL)) reject</code></div>
+    </div>
+
+    <div class="issue high">
+      <div class="issue-head"><span class="issue-id">SEC-HIGH-06</span><span class="issue-title">Character name substring 攻擊</span><span class="sev-tag sev-high">HIGH</span></div>
+      <div class="issue-loc">visualize-actions.ts:226-228</div>
+      <div class="issue-symptom"><code>(turnRow.text).includes(c.name)</code> — 創 character named "a" / " " 永遠匹配。Forked story 嘅 adversarial char 名污染 prompt + character_ids。</div>
+      <div class="issue-fix"><strong>Fix:</strong> story_characters.name CHECK length >= 2 OR word-boundary regex match</div>
+    </div>
+
+    <div class="issue high">
+      <div class="issue-head"><span class="issue-id">SEC-HIGH-07</span><span class="issue-title">MIME 完全靠 browser-supplied file.type</span><span class="sev-tag sev-high">HIGH</span></div>
+      <div class="issue-loc">visualize-actions.ts:449-451</div>
+      <div class="issue-symptom">無 server-side magic byte sniff。Attacker upload polyglot file claiming <code>image/png</code>，存到 public bucket 用 <code>contentType: file.type</code> serve。同 supabase.co domain → 可能 inline-render 做 XSS / phishing。</div>
+      <div class="issue-fix"><strong>Fix:</strong> npm <code>file-type</code> sniff magic bytes server-side + <code>contentDisposition: "attachment"</code></div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-head"><span class="issue-id">SEC-MED-01</span><span class="issue-title">filename moderation failClosed: false</span><span class="sev-tag sev-med">MED</span></div>
+      <div class="issue-loc">visualize-actions.ts:465</div>
+      <div class="issue-symptom">OpenAI Moderation 倒咗 → CSAM filename pass through。Founder TOS-shift posture 文件 delegate image-content check 到 provider，但 hard rule #6 字面要求「永遠 on」。</div>
+      <div class="issue-fix"><strong>Fix:</strong> failClosed: true OR explicit DECISIONS.md ADR 接受 trade-off</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-head"><span class="issue-id">SEC-MED-02</span><span class="issue-title">free-tier check happens 太遲</span><span class="sev-tag sev-med">MED</span></div>
+      <div class="issue-loc">visualize-actions.ts:155-157</div>
+      <div class="issue-symptom">Tier check 喺 playthrough + story + profile 查完之後先做。Free user 用 crafted UUID 可 amplify DB cost。</div>
+      <div class="issue-fix"><strong>Fix:</strong> Tier check 立即跟住 getCachedUser() 之後</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-head"><span class="issue-id">SEC-MED-03</span><span class="issue-title">prompt injection 無 raw_custom_prompt audit trail</span><span class="sev-tag sev-med">MED</span></div>
+      <div class="issue-loc">visualize-actions.ts:171 + 352</div>
+      <div class="issue-symptom">user 寫嘅 customPrompt 經 composeStyledPrompt 後存 prompt_text。raw user input 冇 trail。post-hoc moderation review 揾唔到 original。</div>
+      <div class="issue-fix"><strong>Fix:</strong> scene_images add <code>raw_custom_prompt</code> column for style_mode='custom'</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-head"><span class="issue-id">SEC-MED-04</span><span class="issue-title">HTTP-Referer fallback chain 包含 deprecated host</span><span class="sev-tag sev-med">MED</span></div>
+      <div class="issue-loc">image-gen.ts:130-132</div>
+      <div class="issue-symptom"><code>NEXT_PUBLIC_SITE_URL</code> 喺 hard subdomain split 後 deprecated（hard rule #35）。fallback 仲用，OpenRouter billing referrer 可能誤標到 marketing host。</div>
+      <div class="issue-fix"><strong>Fix:</strong> 用 <code>getAppOrigin()</code> 從 <code>lib/urls.ts</code></div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-head"><span class="issue-id">SEC-MED-05</span><span class="issue-title">scene_images.character_ids 無 FK 驗證</span><span class="sev-tag sev-med">MED</span></div>
+      <div class="issue-loc">migration 0040:65</div>
+      <div class="issue-symptom"><code>character_ids uuid[]</code> 冇 FK / CHECK 驗證 ID 真實存在。今日由 server query result 填入安全，但 future feature 可能由 user input 構造。</div>
+      <div class="issue-fix"><strong>Fix:</strong> trigger 驗證 each id ∈ story_characters，或 document server-managed-only</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-head"><span class="issue-id">SEC-MED-06</span><span class="issue-title">Storage rollback fail 無 Sentry log</span><span class="sev-tag sev-med">MED</span></div>
+      <div class="issue-loc">visualize-actions.ts:319-330</div>
+      <div class="issue-symptom">如果 charge 失敗 + storage.remove 又失敗 → orphan image 永久存。冇 Sentry / log 可追蹤 cleanup。</div>
+      <div class="issue-fix"><strong>Fix:</strong> wrap remove failure 落 <code>Sentry.captureException</code> with path/userId tags</div>
+    </div>
+
+    <div class="issue low">
+      <div class="issue-head"><span class="issue-id">SEC-LOW-01</span><span class="issue-title">turnIndex Zod 驗證缺失</span><span class="sev-tag sev-low">LOW</span></div>
+      <div class="issue-loc">visualize-actions.ts:287</div>
+      <div class="issue-symptom">TS type <code>turnIndex: number</code> 但 Server Actions 唔保證 runtime coerce。若有人 hack passes <code>"../../etc/passwd"</code> string... Supabase 通常 block，但 defense-in-depth 建議 Zod parse。</div>
+      <div class="issue-fix"><strong>Fix:</strong> <code>z.number().int().min(0).parse(input.turnIndex)</code> at action top</div>
+    </div>
+
+  </div>
+</details>
+
+<h2><span class="icon">💰</span>Dimension 2 · Credits + Money (3 CRIT / 6 HIGH / 5 MED / 4 LOW)</h2>
+<details class="dim-section" open>
+  <summary>展開 18 個 credits finding</summary>
+  <div class="dim-content">
+
+    <div class="issue crit">
+      <div class="issue-head"><span class="issue-id">CR-CRIT-01</span><span class="issue-title">proQuality 喺 client 用咗但 server 永遠收唔到</span><span class="sev-tag sev-crit">CRIT</span></div>
+      <div class="issue-loc">visualize-actions.ts:250 (estimateImageCredits 缺 proQuality 參數) · modal:153</div>
+      <div class="issue-symptom">Modal 顯示 200 credit Pro Quality toggle for storyteller + comic。User check 個掣，client 計 cost = 200。但 generateScene input type 冇 proQuality field，server <code>estimateImageCredits(rating, type)</code> 用 default <code>false</code>。Charge 100。Pro user 收 100 credit but consume GPT Image Pro $0.17 → 每張蝕。</div>
+      <div class="issue-fix"><strong>Fix:</strong> 加 <code>proQuality?: boolean</code> 落 VisualizeSceneInput · modal handleSubmit pass · server pass into <code>estimateImageCredits</code> AND <code>callProvider</code> (image-gen.ts 都要收 quality flag 選 model variant)</div>
+    </div>
+
+    <div class="issue crit">
+      <div class="issue-head"><span class="issue-id">CR-CRIT-02</span><span class="issue-title">無 pre-flight balance check · 我哋燒 OpenRouter $ 嚟確認用戶冇 credit</span><span class="sev-tag sev-crit">CRIT</span></div>
+      <div class="issue-loc">visualize-actions.ts:248-263</div>
+      <div class="issue-symptom">Cost 喺 line 250 estimate · provider call 喺 line 254 燒 $0.04-0.17 · charge 喺 line 305 先做。User 0 credit → 我哋已 $0.04 落袋。日 1000 次 = $40/day loss · scale 大就爆煲。</div>
+      <div class="issue-fix"><strong>Fix:</strong> Line 251 後加 balance pre-check：<code>const balance = await getCurrentBalance(supabase, user.id); if (balance < creditsToCharge) return { ok:false, error:'insufficient_credits', currentBalance: balance, needed: creditsToCharge }</code></div>
+    </div>
+
+    <div class="issue crit">
+      <div class="issue-head"><span class="issue-id">CR-CRIT-03</span><span class="issue-title">DB insert fail → 用戶 credit 蝕咗，圖 storage 都 orphan</span><span class="sev-tag sev-crit">CRIT</span></div>
+      <div class="issue-loc">visualize-actions.ts:363-366</div>
+      <div class="issue-symptom">storage 上傳成功 + charge 成功 + insert 失敗（極罕但發生過）→ return 'unknown'，credit 唔退、Storage object 唔 cleanup。Hard rule #4 violation。違反「Credits 絕對啱」原則。</div>
+      <div class="issue-fix"><strong>Fix:</strong> insertErr 路徑：(a) refund <code>chargeCredits(+credits, reason='refund', metadata.original_ledger_id)</code> + (b) <code>storage.remove([path])</code> + (c) Sentry alert</div>
+    </div>
+
+    <div class="issue high">
+      <div class="issue-head"><span class="issue-id">CR-HIGH-01</span><span class="issue-title">Standard tier (adventurer) 可以 play adult 故事燒 NSFW credits</span><span class="sev-tag sev-high">HIGH</span></div>
+      <div class="issue-loc">visualize-actions.ts:136-145 · lib/billing/credits.ts:607 TIER_CONFIG</div>
+      <div class="issue-symptom">Adult gate 只 check <code>adult_mode_enabled + is_age_verified</code>。Standard tier (adventurer) 用戶做 KYC 後可以 play adult 故事 + 燒 100/120 NSFW credits。But TIER_CONFIG 嘅 <code>allowsNsfw: false</code> 講 Standard 唔可以。Spec 同 code drift。</div>
+      <div class="issue-fix"><strong>Fix:</strong> Adult gate 加 <code>tier ∈ {storyteller, legend}</code> check，或 reuse <code>userTierAllowsNsfw()</code> helper</div>
+    </div>
+
+    <div class="issue high">
+      <div class="issue-head"><span class="issue-id">CR-HIGH-02</span><span class="issue-title">Cancelled Pro user 仲玩到 scene gen</span><span class="sev-tag sev-high">HIGH</span></div>
+      <div class="issue-loc">visualize-actions.ts:154 + subscriptions.status 無查</div>
+      <div class="issue-symptom">User cancel 後 <code>profile.subscription_tier='storyteller'</code> 可 persist 到 period_end · subscriptions.status='canceled'。visualize-actions 只 check profile.subscription_tier，畀已 cancel user 繼續燒高 tier credits。</div>
+      <div class="issue-fix"><strong>Fix:</strong> import 同 turn 一樣嘅 <code>userTierAllowsModel</code> 2-source check (profile + subscriptions.status='active'|'trialing')</div>
+    </div>
+
+    <div class="issue high">
+      <div class="issue-head"><span class="issue-id">CR-HIGH-03</span><span class="issue-title">Admin moderation refund path 完全冇 implement</span><span class="sev-tag sev-high">HIGH</span></div>
+      <div class="issue-loc">visualize-actions.ts:18-19 comment 講有 · 對應 action file 唔存在</div>
+      <div class="issue-symptom">Comment 講「Admin reviews via /admin/moderation if user reports」— 但 moderation/actions.ts 冇 scene_images handler · soft_deleted enum 冇 actor 寫 · user 報冒犯圖片冇路徑解決。</div>
+      <div class="issue-fix"><strong>Fix:</strong> 加 <code>moderateSceneImage(id, action='reject')</code> server action · on reject set status + auto refund + Storage cleanup</div>
+    </div>
+
+    <div class="issue high">
+      <div class="issue-head"><span class="issue-id">CR-HIGH-04</span><span class="issue-title">credit_ledger metadata 冇 scene_image_id back-link</span><span class="sev-tag sev-high">HIGH</span></div>
+      <div class="issue-loc">visualize-actions.ts:310-317</div>
+      <div class="issue-symptom">Ledger 寫 metadata 時 scene_images.id 仲未存在 (chicken-egg)。Admin refund flow 要從 ledger row 揾返 scene_image 但揾唔到。</div>
+      <div class="issue-fix"><strong>Fix:</strong> scene_images insert 成功後 UPDATE credit_ledger.metadata 補返 scene_image_id；OR 翻轉 flow（先 insert scene_images with credits_charged=0 ledger_id=NULL，再 chargeCredits with refId=sceneRow.id，再 UPDATE scene_images.ledger_id）</div>
+    </div>
+
+    <div class="issue high">
+      <div class="issue-head"><span class="issue-id">CR-HIGH-05</span><span class="issue-title">Pricing v3 margin 計錯 · GPT Image Pro 17% margin not 90%</span><span class="sev-tag sev-high">HIGH</span></div>
+      <div class="issue-loc">image-gen.ts:253-265 + CLAUDE.md plan-phase8</div>
+      <div class="issue-symptom">image-gen.ts 講「SFW comic Pro $0.17 → 200 credits」。200 credits = retail $0.20。Margin = (0.20-0.17)/0.20 = 15%, 唔係 90-96%。即使加 1k credit = $1 比例。要 200 credits to hit 90% margin = price 應該 $1.70+ = ~3400 credits。</div>
+      <div class="issue-fix"><strong>Fix:</strong> Founder review pricing — 提 Pro comic 至 400 credits（=$0.40 retail · 58% margin）or accept lower margin · OR re-verify GPT Image Pro 真實 cost</div>
+    </div>
+
+    <div class="issue high">
+      <div class="issue-head"><span class="issue-id">CR-HIGH-06</span><span class="issue-title">Modal insufficient check 用 stale balance prop</span><span class="sev-tag sev-high">HIGH</span></div>
+      <div class="issue-loc">VisualizeSceneModal.tsx:150-155</div>
+      <div class="issue-symptom">currentBalance 係 page-load snapshot。用戶開 modal 之前 spent credit（另一 tab / 上個 turn）→ modal 顯示 stale balance · 可能 false-allow（其實已不夠）。Server 會 catch，但 UX 顯示矛盾。</div>
+      <div class="issue-fix"><strong>Fix:</strong> 開 modal 之前 fetch fresh balance（或者每次 stage='form' enter 都 fetch）</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-head"><span class="issue-id">CR-MED-01</span><span class="issue-title">credit_ledger.ref_type 無 CHECK constraint</span><span class="sev-tag sev-med">MED</span></div>
+      <div class="issue-loc">credits.ts:369-376 ChargeRefType vs DB ref_type plain text</div>
+      <div class="issue-symptom">TS union 同 DB 對 ref_type 唔對齊。Reason 有 CHECK，ref_type 冇。Future-proofing。</div>
+      <div class="issue-fix"><strong>Fix:</strong> Wave 3 之後嘅 migration 加 <code>CHECK (ref_type in (...))</code> once enum stable</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-head"><span class="issue-id">CR-MED-02</span><span class="issue-title">portrait_charge 係 premature enum</span><span class="sev-tag sev-med">MED</span></div>
+      <div class="issue-loc">credits.ts:367 + migration 0041</div>
+      <div class="issue-symptom">'portrait_charge' 加咗 TS + DB 但冇 code path 用。Acceptable 但 document explicit。</div>
+      <div class="issue-fix"><strong>Fix:</strong> Migration 0041 comment 補：「reserved for Wave 2 portrait flow」</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-head"><span class="issue-id">CR-MED-03</span><span class="issue-title">PostHog capture 冇 wrap after()</span><span class="sev-tag sev-med">MED</span></div>
+      <div class="issue-loc">visualize-actions.ts:380-382</div>
+      <div class="issue-symptom">Hard rule #17 violated — try/catch 包 PostHog capture 但 lambda response 完即 terminate · capture 可能 silently die。</div>
+      <div class="issue-fix"><strong>Fix:</strong> <code>import { after } from 'next/server'; after(() => captureServerEvent(...))</code></div>
+    </div>
+
+    <div class="issue low">
+      <div class="issue-head"><span class="issue-id">CR-LOW-01</span><span class="issue-title">credit_ledger.scene_image_charge 漏咗 deprecated 'sub_canceled'</span><span class="sev-tag sev-low">LOW</span></div>
+      <div class="issue-loc">credits.ts:580 + migration 0041</div>
+      <div class="issue-symptom">'sub_canceled' 喺 TS ChargeReason 但唔喺 0041 CHECK · future code path emit 即 P0001。</div>
+      <div class="issue-fix"><strong>Fix:</strong> remove 'sub_canceled' from TS union OR add back to enum</div>
+    </div>
+
+  </div>
+</details>
+
+<h2><span class="icon">🤖</span>Dimension 3 · AI Pipeline (0 CRIT / 7 HIGH / 9 MED / 4 LOW)</h2>
+<details class="dim-section">
+  <summary>展開 20 個 AI pipeline finding</summary>
+  <div class="dim-content">
+
+    <div class="issue high">
+      <div class="issue-head"><span class="issue-id">AI-HIGH-01</span><span class="issue-title">Adult+comic 路 Grok（冇 CJK text 渲染）</span><span class="sev-tag sev-high">HIGH</span></div>
+      <div class="issue-loc">image-gen.ts:70-72</div>
+      <div class="issue-symptom"><code>if (contentRating==='adult') return Grok</code> 短路 — Adult 漫畫用戶 lose 咗 GPT Image 嘅 native CJK text rendering。Grok 中文文字渲染差。</div>
+      <div class="issue-fix"><strong>Fix:</strong> 重排：<code>if (contentRating==='adult' && imageType==='comic') return 'openai/gpt-image-1'; if (contentRating==='adult') return Grok; if (comic) return gpt; return Gemini;</code> OR doc limitation</div>
+    </div>
+
+    <div class="issue high">
+      <div class="issue-head"><span class="issue-id">AI-HIGH-02</span><span class="issue-title">Adult+wallpaper 9:19.5 ratio · Grok 不支援</span><span class="sev-tag sev-high">HIGH</span></div>
+      <div class="issue-loc">image-gen.ts:99-105 + aspectForImageType:266</div>
+      <div class="issue-symptom">Grok-2-image 只支援固定 aspect ratio (1:1 / 16:9 / 9:16)。9:19.5 hyper-portrait 會 reject 或 silently coerce。Adult wallpaper UX 壞。</div>
+      <div class="issue-fix"><strong>Fix:</strong> Adult wallpaper fallback 用 9:16 (768×1365)；OR doc Grok 限制</div>
+    </div>
+
+    <div class="issue high">
+      <div class="issue-head"><span class="issue-id">AI-HIGH-03</span><span class="issue-title">content_filter 誤映射所有 HTTP 400</span><span class="sev-tag sev-high">HIGH</span></div>
+      <div class="issue-loc">image-gen.ts:162-167</div>
+      <div class="issue-symptom"><code>response.status === 400</code> 一律當 content_filter，但 OpenRouter 400 包括 malformed body / invalid model / oversized prompt 等。誤 surface 做 content_filter → UX 提示「換 style 再試」就誤導。</div>
+      <div class="issue-fix"><strong>Fix:</strong> 移除 blanket 400 → content_filter mapping，只靠 errType / errCode / errMsg 字詞 (policy / nsfw / csam / child / content_policy_violation)</div>
+    </div>
+
+    <div class="issue high">
+      <div class="issue-head"><span class="issue-id">AI-HIGH-04</span><span class="issue-title">無 image dimension 驗證</span><span class="sev-tag sev-high">HIGH</span></div>
+      <div class="issue-loc">image-gen.ts:200-229</div>
+      <div class="issue-symptom">Provider 可能 return 512×512 而非請求嘅 1024×576。scene_images.aspect_ratio 寫 "16:9" 但實際係 1:1 → thumbnail / UX bug。</div>
+      <div class="issue-fix"><strong>Fix:</strong> <code>probe-image-size</code> npm package · assert width/height 對請求 OR 用實際 dim 寫入 DB</div>
+    </div>
+
+    <div class="issue high">
+      <div class="issue-head"><span class="issue-id">AI-HIGH-05</span><span class="issue-title">negative_prompt 對 Gemini / GPT Image 唔 supported</span><span class="sev-tag sev-high">HIGH</span></div>
+      <div class="issue-loc">image-gen.ts:118-120</div>
+      <div class="issue-symptom">DALL-E / GPT-Image-1 唔 accept unknown params · 可能 400。Gemini 都 ignore。Code 假設 supported。</div>
+      <div class="issue-fix"><strong>Fix:</strong> per-model guard：只 SD-class model 才 pass negative_prompt</div>
+    </div>
+
+    <div class="issue high">
+      <div class="issue-head"><span class="issue-id">AI-HIGH-06</span><span class="issue-title">reference_images body field 係猜嘅</span><span class="sev-tag sev-high">HIGH</span></div>
+      <div class="issue-loc">image-gen.ts:111-117</div>
+      <div class="issue-symptom">"reference_images" 係根據 comment 猜，唔知 OpenRouter / Gemini / GPT Image / Grok 真係收唔收。可能 silently dropped → upload + character portrait 功能 non-functional。</div>
+      <div class="issue-fix"><strong>Fix:</strong> Verify against OpenRouter image gen API docs per provider；OR test with curl + sample images；可能需要 multipart-edit endpoint for GPT Image-1</div>
+    </div>
+
+    <div class="issue high">
+      <div class="issue-head"><span class="issue-id">AI-HIGH-07</span><span class="issue-title">Char name CJK substring detection · 同 SEC-HIGH-06 重疊</span><span class="sev-tag sev-high">HIGH</span></div>
+      <div class="issue-loc">visualize-actions.ts:226-228</div>
+      <div class="issue-symptom">「林思雅」唔 match「思雅」「她」「林姐」。Alias / nickname 唔 capture。hard rule #12 path-format drift class。</div>
+      <div class="issue-fix"><strong>Fix:</strong> add story_characters.aliases[] field · match any alias substring + word-boundary</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-head"><span class="issue-id">AI-MED-01</span><span class="issue-title">prompt separator " · " 弱於 ", " for image models</span><span class="sev-tag sev-med">MED</span></div>
+      <div class="issue-loc">image-styles.ts:247-249</div>
+      <div class="issue-symptom">Gemini / GPT-Image / Grok 全部 parse 逗號 / 句號 descriptor 較好。" · " 當成 literal punctuation token，prompt adherence 估 -5-15%。</div>
+      <div class="issue-fix"><strong>Fix:</strong> separator → ", "（cosmetic separator 留 UI display 用，actual prompt 用 comma）</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-head"><span class="issue-id">AI-MED-02</span><span class="issue-title">characterDescriptions 無 cap</span><span class="sev-tag sev-med">MED</span></div>
+      <div class="issue-loc">visualize-actions.ts:234-239</div>
+      <div class="issue-symptom">20 NPC 一齊出場 → 20 個 visual_description 堆 prompt · 超 provider context · silent truncation 切走 scene description。</div>
+      <div class="issue-fix"><strong>Fix:</strong> cap top-5 by role priority (PROTAGONIST &gt; MAJOR &gt; MINOR)</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-head"><span class="issue-id">AI-MED-03</span><span class="issue-title">size 格式 vs Gemini-2.5-flash-image enum aspect_ratio</span><span class="sev-tag sev-med">MED</span></div>
+      <div class="issue-loc">image-gen.ts:99-105</div>
+      <div class="issue-symptom"><code>size: "768x1664"</code> · Gemini via OpenRouter 可能只 accept "16:9" / "9:16" / "1:1" enum，唔係 free WxH。</div>
+      <div class="issue-fix"><strong>Fix:</strong> 用 aspect.ratio enum string，OR fallback per-provider param shape</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-head"><span class="issue-id">AI-MED-04</span><span class="issue-title">summarizeTurnForScene Haiku fallback 中文 prompt 落 image model</span><span class="sev-tag sev-med">MED</span></div>
+      <div class="issue-loc">visualize-actions.ts:553-556</div>
+      <div class="issue-symptom">Haiku 失敗 → return raw CJK turn text。Gemini / GPT Image / Grok prompt adherence drop 30-50% for CJK input。</div>
+      <div class="issue-fix"><strong>Fix:</strong> Second fallback：cheap proper-noun + verb regex extract，prepend "Chinese setting,"</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-head"><span class="issue-id">AI-MED-05</span><span class="issue-title">customPrompt 模式無 character descriptions 注入</span><span class="sev-tag sev-med">MED</span></div>
+      <div class="issue-loc">visualize-actions.ts:244-245</div>
+      <div class="issue-symptom">styleMode==='custom' 時 composeStyledPrompt 完全 bypass character block。User 寫嘅 custom prompt lose 咗 NPC visual anchor for that turn。</div>
+      <div class="issue-fix"><strong>Fix:</strong> Append characterDescriptions 落 customPrompt 後 · OR doc UX</div>
+    </div>
+
+    <div class="issue low">
+      <div class="issue-head"><span class="issue-id">AI-LOW-01</span><span class="issue-title">60s timeout 偏緊 for Grok / GPT Image P99</span><span class="sev-tag sev-low">LOW</span></div>
+      <div class="issue-loc">image-gen.ts:138</div>
+      <div class="issue-symptom">Grok-2-image P99 ~35s, GPT-Image-1 P99 ~45s。60s tight · 偶然 user 見 provider_unavailable 但實際係 slow-but-eventual。</div>
+      <div class="issue-fix"><strong>Fix:</strong> Bump to 90s</div>
+    </div>
+
+  </div>
+</details>
+
+<h2><span class="icon">🎨</span>Dimension 4 · UX / i18n / a11y (3 CRIT / 7 HIGH / 9 MED / 8 LOW)</h2>
+<details class="dim-section">
+  <summary>展開 27 個 UX finding</summary>
+  <div class="dim-content">
+
+    <div class="issue crit">
+      <div class="issue-head"><span class="issue-id">UX-CRIT-01</span><span class="issue-title">storage_failed vs storage_upload_failed i18n drift</span><span class="sev-tag sev-crit">CRIT</span></div>
+      <div class="issue-loc">visualize-actions.ts:494 vs en.json:567</div>
+      <div class="issue-symptom">uploadStyleReference return <code>"storage_failed"</code>，catalog 只有 <code>"storage_upload_failed"</code>。<code>tErr("storage_failed")</code> fall through 顯示 raw key 字串。</div>
+      <div class="issue-fix"><strong>Fix:</strong> 一致 rename：action error → storage_upload_failed (or 加 storage_failed key 落 3 locales)</div>
+    </div>
+
+    <div class="issue crit">
+      <div class="issue-head"><span class="issue-id">UX-CRIT-02</span><span class="issue-title">3 個 server error 完全冇 i18n entry</span><span class="sev-tag sev-crit">CRIT</span></div>
+      <div class="issue-loc">visualize-actions.ts: playthrough_not_found, not_owner, turn_not_found</div>
+      <div class="issue-symptom">User open 個 tab 隔耐 + playthrough deleted → 見「playthrough_not_found」原文。</div>
+      <div class="issue-fix"><strong>Fix:</strong> 加 3 個 keys 落 en/zh-Hant/zh-Hans</div>
+    </div>
+
+    <div class="issue crit">
+      <div class="issue-head"><span class="issue-id">UX-CRIT-03</span><span class="issue-title">unauthorized error 冇 i18n</span><span class="sev-tag sev-crit">CRIT</span></div>
+      <div class="issue-loc">visualize-actions.ts:108</div>
+      <div class="issue-symptom">Session expire 中途 → 見「unauthorized」raw key。</div>
+      <div class="issue-fix"><strong>Fix:</strong> 加 unauthorized key x 3 locales · 連 redirect-to-login 提示</div>
+    </div>
+
+    <div class="issue high">
+      <div class="issue-head"><span class="issue-id">UX-HIGH-01</span><span class="issue-title">subscriptionTier 'legend' 留喺 type · Saga tier 已 deprecated</span><span class="sev-tag sev-high">HIGH</span></div>
+      <div class="issue-loc">VisualizeSceneModal.tsx:65 + play-client.tsx subscriptionTier prop</div>
+      <div class="issue-symptom">Pricing v3 已 deprecated Saga / legend tier · type union 仲有。Cosmetic 但 type leak。</div>
+      <div class="issue-fix"><strong>Fix:</strong> 全 codebase remove "legend" from subscription_tier union</div>
+    </div>
+
+    <div class="issue high">
+      <div class="issue-head"><span class="issue-id">UX-HIGH-02</span><span class="issue-title">Disabled CTA 唔解釋點解 disabled</span><span class="sev-tag sev-high">HIGH</span></div>
+      <div class="issue-loc">VisualizeSceneModal.tsx:512-524</div>
+      <div class="issue-symptom">User 揀咗 file 但唔知要 tick acknowledgment checkbox → CTA grey out 「Generate · 50 credits」· User 唔知點解。</div>
+      <div class="issue-fix"><strong>Fix:</strong> Disabled 時 CTA text → <code>ctaNeedAck</code> / <code>ctaNeedFile</code> / <code>ctaNeedCustom</code> per reason</div>
+    </div>
+
+    <div class="issue high">
+      <div class="issue-head"><span class="issue-id">UX-HIGH-03</span><span class="issue-title">↻ glyph remove upload · 螢幕讀屏冇 label</span><span class="sev-tag sev-high">HIGH</span></div>
+      <div class="issue-loc">VisualizeSceneModal.tsx:441-451</div>
+      <div class="issue-symptom">「↻」glyph button 無 aria-label，sighted user 都唔 sure 點解</div>
+      <div class="issue-fix"><strong>Fix:</strong> X icon from lucide + aria-label="Remove upload"</div>
+    </div>
+
+    <div class="issue high">
+      <div class="issue-head"><span class="issue-id">UX-HIGH-04</span><span class="issue-title">useLocale narrow cast crash risk</span><span class="sev-tag sev-high">HIGH</span></div>
+      <div class="issue-loc">VisualizeSceneModal.tsx:84 + 385 style.name[locale]</div>
+      <div class="issue-symptom">如果 future i18n config 加 locale (e.g., "ja")，<code>style.name['ja']</code> = undefined → render empty button。</div>
+      <div class="issue-fix"><strong>Fix:</strong> fallback <code>style.name[locale] ?? style.name.en</code></div>
+    </div>
+
+    <div class="issue high">
+      <div class="issue-head"><span class="issue-id">UX-HIGH-05</span><span class="issue-title">Modal tabs + preset buttons 冇 aria-pressed / aria-label</span><span class="sev-tag sev-high">HIGH</span></div>
+      <div class="issue-loc">VisualizeSceneModal.tsx:251-329</div>
+      <div class="issue-symptom">螢幕讀屏聽唔到邊個 tab active · WCAG 4.1.2 違反</div>
+      <div class="issue-fix"><strong>Fix:</strong> <code>role="tablist"</code> + <code>aria-pressed={active}</code> on tabs · <code>aria-label</code> on preset cards</div>
+    </div>
+
+    <div class="issue high">
+      <div class="issue-head"><span class="issue-id">UX-HIGH-06</span><span class="issue-title">Inline thumbnail empty alt</span><span class="sev-tag sev-high">HIGH</span></div>
+      <div class="issue-loc">play-client.tsx:757 alt=""</div>
+      <div class="issue-symptom">WCAG 1.1.1 違反 · screen reader 略過晒 generated scene。</div>
+      <div class="issue-fix"><strong>Fix:</strong> <code>alt={tPlay("visualize.fullSizeAlt", { imageType: img.imageType })}</code></div>
+    </div>
+
+    <div class="issue high">
+      <div class="issue-head"><span class="issue-id">UX-HIGH-07</span><span class="issue-title">Modal 冇 focus trap / Escape / role="dialog"</span><span class="sev-tag sev-high">HIGH</span></div>
+      <div class="issue-loc">VisualizeSceneModal.tsx:215-222</div>
+      <div class="issue-symptom">Tab 鍵可以 escape 落背景 · 螢幕讀屏冇 announce modal context · Escape 鍵冇 close。</div>
+      <div class="issue-fix"><strong>Fix:</strong> <code>role="dialog" aria-modal="true" aria-labelledby={titleId}</code> + Escape handler + focus trap (or 用 base-ui Dialog primitive)</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-head"><span class="issue-id">UX-MED-01</span><span class="issue-title">onSuccess 樂觀 insert hardcode imageType='illustration'</span><span class="sev-tag sev-med">MED</span></div>
+      <div class="issue-loc">play-client.tsx:945</div>
+      <div class="issue-symptom">用戶生 comic / wallpaper · UI 即時 show 但用 illustration 嘅 94px 高度 thumbnail · aspect ratio 錯到 page refresh 為止。</div>
+      <div class="issue-fix"><strong>Fix:</strong> onSuccess signature 加 imageType / styleMode / styleValue · modal handleSubmit pass · 樂觀 insert 用正確值</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-head"><span class="issue-id">UX-MED-02</span><span class="issue-title">Backdrop click 中途 abort upload</span><span class="sev-tag sev-med">MED</span></div>
+      <div class="issue-loc">VisualizeSceneModal.tsx:222 onClick onClose</div>
+      <div class="issue-symptom">User 揀緊 file 等緊 upload · 點一下 backdrop → silently abort。</div>
+      <div class="issue-fix"><strong>Fix:</strong> <code>if (uploading || stage==='loading') return; onClose()</code></div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-head"><span class="issue-id">UX-MED-03</span><span class="issue-title">Suggested-styles header 永遠 show（即使 fallback）</span><span class="sev-tag sev-med">MED</span></div>
+      <div class="issue-loc">VisualizeSceneModal.tsx:361-364 + image-styles.ts:218</div>
+      <div class="issue-symptom">matchStylesForSeed 永遠 return 3 個（fallback 都 return cinematic/photographic/jp-anime）· header「✨ Recommended for this story」假裝有真 match。</div>
+      <div class="issue-fix"><strong>Fix:</strong> matchStylesForSeed return <code>{ matches, isFallback }</code> · header 只 show non-fallback</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-head"><span class="issue-id">UX-MED-04</span><span class="issue-title">Wallpaper thumbnail aspect squish ~3%</span><span class="sev-tag sev-med">MED</span></div>
+      <div class="issue-loc">play-client.tsx:744 wallpaper 80×168 (should be 80×173)</div>
+      <div class="issue-symptom">9:19.5 → 80×173.3 · 用咗 80×168 · 小 visible 拉扁。</div>
+      <div class="issue-fix"><strong>Fix:</strong> 用 aspectForImageType helper or <code>height = Math.round(width * (19.5/9))</code></div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-head"><span class="issue-id">UX-MED-05</span><span class="issue-title">Double-click submit race</span><span class="sev-tag sev-med">MED</span></div>
+      <div class="issue-loc">VisualizeSceneModal.tsx:158-195</div>
+      <div class="issue-symptom">handleSubmit click → setStage('loading') 落下 tick。Window 中可再 click → 2 個 startTransition → 2 個 generateScene → 2 charge + 2 storage upload + 2 row。</div>
+      <div class="issue-fix"><strong>Fix:</strong> button disabled 加 <code>isPending</code> from useTransition</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-head"><span class="issue-id">UX-MED-06</span><span class="issue-title">Adult 圖 loading 訊息 用緊 5-15s SFW 標籤</span><span class="sev-tag sev-med">MED</span></div>
+      <div class="issue-loc">VisualizeSceneModal.tsx:533</div>
+      <div class="issue-symptom">Adult Grok call ~15-25s · 用緊 generic「Drawing the scene · 5-15 seconds」訊息 → user 估錯。</div>
+      <div class="issue-fix"><strong>Fix:</strong> Route by (imageType, contentRating) · adult → <code>loadingAdult</code> 訊息</div>
+    </div>
+
+    <div class="issue low">
+      <div class="issue-head"><span class="issue-id">UX-LOW-01</span><span class="issue-title">thumbnailHover i18n key 寫咗但唔用</span><span class="sev-tag sev-low">LOW</span></div>
+      <div class="issue-loc">en/zh-Hant/zh-Hans visualize.thumbnailHover</div>
+      <div class="issue-symptom">Catalog 有 key · code 完全唔 reference。</div>
+      <div class="issue-fix"><strong>Fix:</strong> 接駁落 inline thumb <code>&lt;a title={...}&gt;</code> OR 刪</div>
+    </div>
+
+  </div>
+</details>
+
+<h2><span class="icon">🗄</span>Dimension 5 · Data Flow + DB (5 CRIT / 9 HIGH / 8 MED / 9 LOW)</h2>
+<details class="dim-section">
+  <summary>展開 31 個 data flow finding</summary>
+  <div class="dim-content">
+
+    <div class="issue crit">
+      <div class="issue-head"><span class="issue-id">DF-CRIT-01</span><span class="issue-title">credits_balance vs credit_balance column drift</span><span class="sev-tag sev-crit">CRIT</span></div>
+      <div class="issue-loc">page.tsx:102</div>
+      <div class="issue-symptom">DB column 叫 <code>credit_balance</code>（migration 0001:35）· page.tsx select <code>credits_balance</code> → 永遠 undefined → currentBalance = 0 → 任何 user 嘅 modal CTA 都 insufficient。Phase 8 完全唔 work。</div>
+      <div class="issue-fix"><strong>Fix:</strong> <code>.select("subscription_tier, credit_balance")</code> · <code>profileForTier?.credit_balance ?? 0</code></div>
+    </div>
+
+    <div class="issue crit">
+      <div class="issue-head"><span class="issue-id">DF-CRIT-02</span><span class="issue-title">stories.style_key 冇 enum CHECK</span><span class="sev-tag sev-crit">CRIT</span></div>
+      <div class="issue-loc">migration 0040:35</div>
+      <div class="issue-symptom">純 text column · admin SQL edit / v1.1 sub-style → modal <code>KIEIO_STYLES[invalid]</code> = undefined → render crash. Hard rule #28 + #36 violation。</div>
+      <div class="issue-fix"><strong>Fix:</strong> <code>ALTER TABLE stories ADD CONSTRAINT stories_style_key_check CHECK (style_key IS NULL OR style_key IN ('hk-manhua','jp-manga','jp-anime','kr-webtoon','us-comic','cn-ink','cinematic','photographic','cyberpunk','fantasy-art'))</code></div>
+    </div>
+
+    <div class="issue crit">
+      <div class="issue-head"><span class="issue-id">DF-CRIT-03</span><span class="issue-title">DB insert fail 路徑無 storage cleanup</span><span class="sev-tag sev-crit">CRIT</span></div>
+      <div class="issue-loc">visualize-actions.ts:341-366</div>
+      <div class="issue-symptom">Mirror 同 CR-CRIT-03（credits dimension）— line 321 charge fail 路徑有 storage.remove，line 366 insertErr 路徑冇。Orphan storage object 永久存。</div>
+      <div class="issue-fix"><strong>Fix:</strong> insertErr 路徑加 <code>serviceClient.storage.from("scene-images").remove([uploadData.path])</code> 之後 return</div>
+    </div>
+
+    <div class="issue crit">
+      <div class="issue-head"><span class="issue-id">DF-CRIT-04</span><span class="issue-title">Storage object cascade delete 唔 fire on playthrough delete</span><span class="sev-tag sev-crit">CRIT</span></div>
+      <div class="issue-loc">migration 0040 + playthrough ON DELETE CASCADE</div>
+      <div class="issue-symptom">scene_images row cascade delete OK · 但 Storage objects 喺 <code>scene-images/{user_id}/{playthrough_id}/...</code> orphan。冇 trigger / cron。長期 cost 爆煲。</div>
+      <div class="issue-fix"><strong>Fix:</strong> Add Postgres trigger AFTER DELETE ON playthroughs / scene_images that calls service-role to remove Storage objects (via http extension), OR add cleanup cron</div>
+    </div>
+
+    <div class="issue crit">
+      <div class="issue-head"><span class="issue-id">DF-CRIT-05</span><span class="issue-title">style_references 無 expiry cron</span><span class="sev-tag sev-crit">CRIT</span></div>
+      <div class="issue-loc">migration 0040:105 idx + 無 cron</div>
+      <div class="issue-symptom">Schema 暗示 24h TTL · 冇 actor 删 row 都冇 actor 刪 storage object。Mirror SEC-HIGH-04 (security dimension 都 catch 到呢個)。</div>
+      <div class="issue-fix"><strong>Fix:</strong> Vercel cron route <code>/api/cron/cleanup-style-references</code> · daily DELETE WHERE expires_at &lt; now() + Storage batch remove</div>
+    </div>
+
+    <div class="issue high">
+      <div class="issue-head"><span class="issue-id">DF-HIGH-01</span><span class="issue-title">onSuccess optimistic insert 同 UX-MED-01 重疊</span><span class="sev-tag sev-high">HIGH</span></div>
+      <div class="issue-loc">play-client.tsx:942-955</div>
+      <div class="issue-symptom">imageType / styleMode / styleValue 全 hardcoded · thumbnail aspect ratio 錯到 refresh。</div>
+      <div class="issue-fix"><strong>Fix:</strong> 改 onSuccess signature · 傳 imageType + styleMode + styleValue</div>
+    </div>
+
+    <div class="issue high">
+      <div class="issue-head"><span class="issue-id">DF-HIGH-02</span><span class="issue-title">style resolution invalid styleKey silently fallback</span><span class="sev-tag sev-high">HIGH</span></div>
+      <div class="issue-loc">visualize-actions.ts:182-193</div>
+      <div class="issue-symptom">用戶揀 preset · server 收 invalid styleKey → silently switch to ai_suggested · UI 顯示「用戶揀 preset」但 result row 寫 ai_suggested · analytics drift。</div>
+      <div class="issue-fix"><strong>Fix:</strong> Log warning + return error if styleMode=preset 但 styleKey invalid (force user re-pick)</div>
+    </div>
+
+    <div class="issue high">
+      <div class="issue-head"><span class="issue-id">DF-HIGH-03</span><span class="issue-title">profile 載入兩次（adult + tier）</span><span class="sev-tag sev-high">HIGH</span></div>
+      <div class="issue-loc">visualize-actions.ts:137 + 149</div>
+      <div class="issue-symptom">兩個 Supabase query 落 profiles · 2 redundant DB roundtrip · 又有 TOCTOU window 用戶轉 tier 中途。</div>
+      <div class="issue-fix"><strong>Fix:</strong> Single fetch <code>.select("adult_mode_enabled, is_age_verified, subscription_tier, credit_balance")</code></div>
+    </div>
+
+    <div class="issue high">
+      <div class="issue-head"><span class="issue-id">DF-HIGH-04</span><span class="issue-title">customPrompt 無 moderation pre-filter</span><span class="sev-tag sev-high">HIGH</span></div>
+      <div class="issue-loc">visualize-actions.ts:170-171</div>
+      <div class="issue-symptom">用戶 free text 500 char prompt 直接落 image gen。Hard rule #6 CSAM/illegal pre-filter strict 要求。Provider safety 唔 100% trust。</div>
+      <div class="issue-fix"><strong>Fix:</strong> <code>const verdict = await moderateText(customPrompt, contentRating); if (!verdict.allowed) return { ok:false, error:'content_filter' }</code> · before composeStyledPrompt</div>
+    </div>
+
+    <div class="issue high">
+      <div class="issue-head"><span class="issue-id">DF-HIGH-05</span><span class="issue-title">scene_images 無 column-restricted UPDATE policy</span><span class="sev-tag sev-high">HIGH</span></div>
+      <div class="issue-loc">migration 0040:84-91 SELECT 只係 SELECT</div>
+      <div class="issue-symptom">User 想 soft-delete 自己嘅 image → 冇 path · admin moderation 必須 service-role · hard rule #24 違反。</div>
+      <div class="issue-fix"><strong>Fix:</strong> <code>create policy scene_images_own_soft_delete for update using (auth.uid()=user_id) with check (auth.uid()=user_id AND moderation_status='soft_deleted')</code></div>
+    </div>
+
+    <div class="issue high">
+      <div class="issue-head"><span class="issue-id">DF-HIGH-06</span><span class="issue-title">filename race · Date.now() 1ms collision</span><span class="sev-tag sev-high">HIGH</span></div>
+      <div class="issue-loc">visualize-actions.ts:287</div>
+      <div class="issue-symptom">同瀏覽器 tab concurrent submit 1ms 內 → upsert:false 第二個 reject → 用戶見 storage_upload_failed 但實質 duplicate request。</div>
+      <div class="issue-fix"><strong>Fix:</strong> Path 加 <code>crypto.randomUUID()</code> suffix</div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-head"><span class="issue-id">DF-MED-01</span><span class="issue-title">sceneImagesByTurn reduce on every render</span><span class="sev-tag sev-med">MED</span></div>
+      <div class="issue-loc">play-client.tsx:372-378</div>
+      <div class="issue-symptom">50+ scenes playthrough · 每次 input keystroke re-render · O(N) reduce 每次。</div>
+      <div class="issue-fix"><strong>Fix:</strong> <code>useMemo(() => sceneImages.reduce(...), [sceneImages])</code></div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-head"><span class="issue-id">DF-MED-02</span><span class="issue-title">styleValue 對 custom mode 寫錯 field</span><span class="sev-tag sev-med">MED</span></div>
+      <div class="issue-loc">visualize-actions.ts:336-339</div>
+      <div class="issue-symptom">Custom mode 寫入 styleValue = scenePrompt（LLM-summarized turn text）不是 user 寫嘅 customPrompt。Audit trail 錯。</div>
+      <div class="issue-fix"><strong>Fix:</strong> Custom mode 用 <code>input.customPrompt?.slice(0, 200)</code></div>
+    </div>
+
+    <div class="issue med">
+      <div class="issue-head"><span class="issue-id">DF-MED-03</span><span class="issue-title">scene_images.content_rating cast 不安全</span><span class="sev-tag sev-med">MED</span></div>
+      <div class="issue-loc">visualize-actions.ts:135</div>
+      <div class="issue-symptom"><code>as "sfw" | "soft" | "adult"</code> · 若 DB 寫 'mature' 其他值 silently 經過 → pickImageModel 假設 sfw。Hard rule #16（Zod parse at boundary）違反。</div>
+      <div class="issue-fix"><strong>Fix:</strong> Zod enum parse with safeParse + reject if invalid</div>
+    </div>
+
+    <div class="issue low">
+      <div class="issue-head"><span class="issue-id">DF-LOW-01</span><span class="issue-title">credit_balance vs profile.credits_balance · 已驗證係 column-name typo</span><span class="sev-tag sev-low">LOW</span></div>
+      <div class="issue-loc">N/A (同 DF-CRIT-01 重疊)</div>
+      <div class="issue-symptom">每個 dimension agent 都 catch 到呢個。Cross-dimension convergence 證明 root cause 唯一。</div>
+      <div class="issue-fix"><strong>Fix:</strong> 已 cover by DF-CRIT-01</div>
+    </div>
+
+  </div>
+</details>
+
+<h2><span class="icon">🎯</span>建議 Wave 3 fix sequence</h2>
+<div class="priority-list">
+  <div class="priority-row">
+    <div class="priority-rank">A</div>
+    <div class="priority-content">
+      <strong>Block 1 · function-shipping fixes（必須 close 先繼續）</strong>
+      <small>CRIT-01 column typo (1 行) · CRIT-02 proQuality flow · CRIT-04 refund + cleanup · CRIT-06 i18n drift × 5 keys × 3 locales · CRIT-07 style_key CHECK migration<br>
+      預計 ~1 個 session · 一定要 close 晒呢 5 個先有得用</small>
+    </div>
+    <div class="priority-refs">5 CRIT</div>
+  </div>
+
+  <div class="priority-row">
+    <div class="priority-rank">B</div>
+    <div class="priority-content">
+      <strong>Block 2 · 私隱 / 法律 risk</strong>
+      <small>CRIT-03 + SEC-HIGH-01 + SEC-HIGH-05 (path / bucket / SSRF) · CRIT-05 customPrompt moderation · SEC-HIGH-02 'soft' rating decision · SEC-HIGH-03 KYC recency · SEC-HIGH-07 magic byte sniff<br>
+      預計 ~1 個 session · launch 前必須 close</small>
+    </div>
+    <div class="priority-refs">3 CRIT + 4 HIGH</div>
+  </div>
+
+  <div class="priority-row">
+    <div class="priority-rank">C</div>
+    <div class="priority-content">
+      <strong>Block 3 · 錢計算正確性</strong>
+      <small>CR-CRIT-02 balance pre-check · CR-HIGH-01 Standard NSFW gate · CR-HIGH-02 canceled sub · CR-HIGH-03 admin moderation refund · CR-HIGH-05 GPT Image Pro pricing review · CR-HIGH-06 fresh balance fetch<br>
+      預計 ~1 個 session</small>
+    </div>
+    <div class="priority-refs">1 CRIT + 5 HIGH</div>
+  </div>
+
+  <div class="priority-row">
+    <div class="priority-rank">D</div>
+    <div class="priority-content">
+      <strong>Block 4 · 長期成本 / 累積問題</strong>
+      <small>CRIT-08 (= SEC-HIGH-04 + DF-CRIT-04 + DF-CRIT-05) · 3 個 cron implement：style_references cleanup + scene_images storage cleanup on cascade + cron monitoring<br>
+      預計 ~½ 個 session</small>
+    </div>
+    <div class="priority-refs">2 CRIT + 1 HIGH</div>
+  </div>
+
+  <div class="priority-row">
+    <div class="priority-rank">E</div>
+    <div class="priority-content">
+      <strong>Block 5 · AI Pipeline 校正</strong>
+      <small>AI-HIGH-01 adult+comic routing fix · AI-HIGH-03 content_filter 改用 keyword · AI-HIGH-05 negative_prompt 守 model · AI-HIGH-06 reference_images verify · AI-MED-01 prompt separator , vs ·<br>
+      Curl-test 需要 founder 喺 OpenRouter top up 後做<br>
+      預計 ~1 個 session</small>
+    </div>
+    <div class="priority-refs">5 HIGH</div>
+  </div>
+
+  <div class="priority-row">
+    <div class="priority-rank">F</div>
+    <div class="priority-content">
+      <strong>Block 6 · UX / a11y polish</strong>
+      <small>UX-HIGH-02-07 disabled CTA reason + remove glyph + tabs aria + thumb alt + modal focus trap + dialog role · UX-MED-01-06 整體<br>
+      預計 ~½ 個 session</small>
+    </div>
+    <div class="priority-refs">6 HIGH + 6 MED</div>
+  </div>
+
+  <div class="priority-row">
+    <div class="priority-rank">G</div>
+    <div class="priority-content">
+      <strong>Audit Cycle 2 · 2-agent verification</strong>
+      <small>Security/Correctness + UX/Cost dimension agent · 目標 0 CRIT 0 HIGH。如未 converge 就 cycle 3。</small>
+    </div>
+    <div class="priority-refs">~30min</div>
+  </div>
+</div>
+
+<h2><span class="icon">📊</span>Cross-dimension convergence signal</h2>
+<p style="margin-bottom: 14px;">5 個 dimension agent 獨立發現 <strong>同 root cause</strong> 嘅 bug：</p>
+<ul style="line-height: 2.2; padding-left: 22px;">
+  <li><strong>credit_balance column typo</strong> · Data Flow + Credit + UX 都 hit 到（modal CTA 永遠 insufficient 嘅 root cause）→ <em>strong signal 真係 launch blocker</em></li>
+  <li><strong>customPrompt 無 moderation</strong> · Data Flow + Security 都 catch 到（hard rule #6 violation）→ <em>不可 ship</em></li>
+  <li><strong>style_references TTL 缺失</strong> · Security + Data Flow 都 catch 到（cost 累積）→ <em>真係要做 cron</em></li>
+  <li><strong>onSuccess hardcode imageType</strong> · UX + Data Flow 都 catch 到（thumbnail aspect 錯）→ <em>確認係實際 bug 唔係 false positive</em></li>
+  <li><strong>NPC name substring exploit</strong> · Security + AI Pipeline 都 catch 到（hard rule #12 path-format drift class）</li>
+</ul>
+<p style="margin-top: 16px;">Per CLAUDE.md hard rule #11，呢啲 cross-dimension convergence 就係 root cause indicator · 唔係 noise · 一定要 fix。</p>
+
+<p style="margin-top: 50px; text-align: center; color: var(--muted); font-size: 13px;">
+  Audit cycle 1 of expected 2-3 · per hard rule #29 「3-cycle pattern converges to 0 ship blocker」<br>
+  Generated 2026-05-28 · 5 agents parallel · 120 findings · awaiting founder green-light to start Wave 3 fix sweep
+</p>
+
+</main>
+</body>
+</html>

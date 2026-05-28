@@ -5,45 +5,17 @@ import { redirect } from "@/i18n/navigation";
 import { redirect as nextRedirect } from "next/navigation";
 import { getLocale } from "next-intl/server";
 import { getAppOrigin } from "@/lib/urls";
+import { safeRelativeNextFromForm } from "@/lib/auth/safe-next";
 
 /**
  * Magic link / OAuth redirect base.
  *
- * AUDIT FIX (SEC-M-01): Previously fell back to `headers().get("origin")`
- * which is browser-controlled — a phishing page could trigger a magic link
- * sent to attacker.com/auth/callback. Always server-side env-based.
- *
- * 2026-05-28 fix: must point at the APP subdomain (app.kieio.com), NOT the
- * marketing root (kieio.com). Reason: subdomain split (per CLAUDE.md +
- * middleware.ts hard rule).
- *   - /auth/callback lives on app.kieio.com
- *   - Supabase auth cookies set on the callback host
- *   - If callback lands on kieio.com → cookie set on kieio.com →
- *     subsequent /library redirect to app.kieio.com sees NO cookie →
- *     user appears not logged in despite Supabase confirming Google login
- *
- * Was using `NEXT_PUBLIC_SITE_URL` which on prod = kieio.com (marketing).
- * Now uses `getAppOrigin()` which returns NEXT_PUBLIC_APP_URL = app.kieio.com
- * (or falls back to NEXT_PUBLIC_SITE_URL / localhost for non-split envs).
+ * Always server-side env-based (SEC-M-01 fix). Must point at the APP
+ * subdomain (app.kieio.com) so Supabase auth cookies land on the host
+ * that serves protected routes. See lib/urls.ts for the helper.
  */
 function authRedirectBase(): string {
   return getAppOrigin();
-}
-
-/**
- * AUDIT FIX MG-UX-HIGH-01: Validate the `next` param from FormData using the
- * same safety contract as auth/callback's safeRelativeNext (≤200 chars,
- * starts with single "/", not protocol-relative, no protocol-scheme prefix).
- * Returns "" if invalid so callers can decide the default destination.
- */
-function safeRelativeNextFromForm(formData: FormData): string {
-  const raw = String(formData.get("next") || "");
-  if (!raw) return "";
-  if (raw.length > 200) return "";
-  if (!raw.startsWith("/")) return "";
-  if (raw.startsWith("//") || raw.startsWith("/\\")) return "";
-  if (/^\/?[a-z]+:/i.test(raw)) return "";
-  return raw;
 }
 
 export async function signInWithEmail(formData: FormData) {

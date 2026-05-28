@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { revalidatePath } from "next/cache";
-import { ModerationConfigError, moderateText } from "@/lib/moderation/openai-moderation";
+import { ModerationConfigError, moderateText, verdictToCode } from "@/lib/moderation/openai-moderation";
 import { MODELS } from "@/lib/ai/models";
 
 /**
@@ -165,7 +165,7 @@ export async function rateStory(params: {
         console.warn(
           `[rateStory] moderation blocked review on story ${params.storyId} for user ${user.id}: ${verdict.categories.join(", ")}`,
         );
-        return { ok: false, error: verdict.reason };
+        return { ok: false, error: verdictToCode(verdict.categories) };
       }
     } catch (e) {
       if (e instanceof ModerationConfigError) {
@@ -267,12 +267,16 @@ export async function upsertComment(params: {
       console.warn(
         `[upsertComment] moderation blocked comment on story ${params.storyId} for user ${user.id}: ${verdict.categories.join(", ")}`,
       );
-      return { ok: false, error: verdict.reason };
+      // Session 16 PM Review #2 (C-01) fix: was returning verdict.reason (繁中-only
+      // string from openai-moderation.ts) which leaked Cantonese to EN / zh-Hans
+      // users. rateStory at L188 was correctly using verdictToCode but this sibling
+      // path was missed in the original MED-04 sweep.
+      return { ok: false, error: verdictToCode(verdict.categories) };
     }
   } catch (e) {
     if (e instanceof ModerationConfigError) {
       console.error("[upsertComment] moderation config error:", e.message);
-      return { ok: false, error: "內容審核系統設定問題，請稍後再試。" };
+      return { ok: false, error: "moderation_config_error" };
     }
     throw e;
   }

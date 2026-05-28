@@ -258,7 +258,7 @@ export default async function SettingsPage({
                     control={
                       <span className="se-mono text-xs" style={{ color: "var(--se-fg-muted)" }}>
                         {profile?.created_at
-                          ? new Date(profile.created_at).toLocaleDateString()
+                          ? new Date(profile.created_at).toLocaleDateString(locale)
                           : "—"}
                       </span>
                     }
@@ -347,7 +347,7 @@ export default async function SettingsPage({
                         {subscription.current_period_end && (
                           <span className="ml-2">
                             · {t("credits.nextRenewal")}
-                            {new Date(subscription.current_period_end).toLocaleDateString()}
+                            {new Date(subscription.current_period_end).toLocaleDateString(locale)}
                           </span>
                         )}
                         {subscription.cancel_at_period_end && (

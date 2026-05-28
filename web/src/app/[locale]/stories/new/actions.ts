@@ -17,7 +17,7 @@ import {
   getBalanceAndCheck,
   userTierAllowsModel,
 } from "@/lib/billing/credits";
-import { ModerationConfigError, moderateText } from "@/lib/moderation/openai-moderation";
+import { ModerationConfigError, moderateText, verdictToCode } from "@/lib/moderation/openai-moderation";
 
 const InputSchema = z.object({
   prompt: z.string().min(20).max(2000),
@@ -190,12 +190,15 @@ export async function createStoryFromPrompt(
   }
 
   // Balance check — fail-fast if broke (cheap, do this even if moderation passed).
+  // Session 16 audit HIGH-04: getBalanceAndCheck now returns null on transient
+  // RLS / network failure (fail-open). null only when sufficient=true → safe
+  // to coalesce to 0 here since we only enter this branch on sufficient=false.
   if (!balanceResult.sufficient) {
     return {
       ok: false,
       errorCode: "createStory.insufficientCredits",
       errorParams: {
-        balance: balanceResult.balance,
+        balance: balanceResult.balance ?? 0,
         needed: estimateStoryCreationCredits(),
       },
     };
@@ -216,12 +219,21 @@ export async function createStoryFromPrompt(
     console.warn(
       `[createStory] moderation blocked seed for user ${user.id}: ${seedVerdictResult.verdict.categories.join(", ")}`,
     );
-    // Moderation reason is LLM-generated per input — can't be a static i18n key.
-    // Surface as errorRaw so the client renders it as-is (it's the reason
-    // string from OpenAI Moderation, not Cantonese static copy).
+    // Session 16 PM Review #2 (C-01 follow-up sweep): was returning
+    // errorRaw: verdict.reason (繁中-only · leaks Cantonese to EN/zh-Hans).
+    // Now stable code via verdictToCode → client maps via errors.moderation.*
+    // catalog (5 codes covering csam / self_harm / hate_violence / sexual / blocked).
+    // Map verdictToCode (snake_case) → catalog camelCase: moderation_csam_sexual_minor → moderation.csam, etc.
+    const code = verdictToCode(seedVerdictResult.verdict.categories);
+    const modKey =
+      code === "moderation_csam_sexual_minor" ? "csam" :
+      code === "moderation_self_harm" ? "selfHarm" :
+      code === "moderation_hate_violence" ? "hateViolence" :
+      code === "moderation_sexual" ? "sexual" :
+      "blocked";
     return {
       ok: false,
-      errorRaw: seedVerdictResult.verdict.reason,
+      errorCode: `moderation.${modKey}`,
     };
   }
   const estimatedCost = estimateStoryCreationCredits();

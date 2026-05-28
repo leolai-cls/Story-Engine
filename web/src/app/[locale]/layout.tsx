@@ -5,6 +5,9 @@ import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { setRequestLocale, getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
+import { getCachedUser } from "@/lib/supabase/cached-user";
+import { createClient } from "@/lib/supabase/server";
+import { PostHogProvider } from "@/components/posthog-provider";
 import "../globals.css";
 
 const geistSans = Geist({
@@ -64,10 +67,24 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "siteMetadata" });
+  // Session 16 audit MED-01 fix: hreflang annotations for SEO. Without
+  // these, Google can't route HK/TW users → zh-Hant page vs CN users →
+  // zh-Hans page. Launch markets are HK + TW, so this is real SEO leak.
+  // localePrefix: "as-needed" → zh-Hant (default) has no prefix.
+  const canonical = locale === "zh-Hant" ? "/" : `/${locale}`;
   return {
     title: t("title"),
     description: t("description"),
     metadataBase: new URL("https://kieio.com"),
+    alternates: {
+      canonical,
+      languages: {
+        "en": "/en",
+        "zh-Hant": "/",
+        "zh-Hans": "/zh-Hans",
+        "x-default": "/",
+      },
+    },
     icons: {
       icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
     },
@@ -100,13 +117,36 @@ export default async function LocaleLayout({
 
   setRequestLocale(locale);
 
+  // Session 16 P-02: identify authed user to PostHog so all events link
+  // to their distinct_id. Anonymous visitors get a generated id from
+  // posthog-js. Resets on signout via PostHogProvider effect.
+  const user = await getCachedUser();
+  let userTraits: { email?: string | null; displayName?: string | null; locale?: string } | undefined;
+  if (user) {
+    const supabase = await createClient();
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("id", user.id)
+      .maybeSingle();
+    userTraits = {
+      email: user.email,
+      displayName: (profile?.display_name as string | null) ?? null,
+      locale,
+    };
+  }
+
   return (
     <html
       lang={locale}
       className={`${geistSans.variable} ${geistMono.variable} ${notoSansTc.variable} ${termina.variable} ${gimbalExtended.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground font-sans">
-        <NextIntlClientProvider>{children}</NextIntlClientProvider>
+        <NextIntlClientProvider>
+          <PostHogProvider userId={user?.id ?? null} userTraits={userTraits}>
+            {children}
+          </PostHogProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

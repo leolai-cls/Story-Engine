@@ -90,17 +90,9 @@ export async function POST(request: NextRequest) {
 
   if (idempErr) {
     if (idempErr.code === "23505") {
-      // Already-logged event. Check if it was actually processed.
-      const { data: prior } = await supabase
-        .from("stripe_webhook_events")
-        .select("processed_at")
-        .eq("event_id", event.id)
-        .maybeSingle();
-      if (prior?.processed_at) {
-        return NextResponse.json({ ok: true, duplicate: true });
-      }
-      // Prior delivery failed (insert succeeded but dispatch threw)
-      // → fall through to re-dispatch.
+      // Already-logged event — fall through to the atomic claim below.
+      // (Prior delivery may have succeeded OR failed mid-dispatch · we
+      // can't tell from the duplicate alone.)
     } else {
       console.error("Webhook idempotency insert failed:", idempErr);
       return NextResponse.json(
@@ -110,17 +102,49 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // Session 16 audit HIGH-03 fix: atomic CLAIM of the event before dispatch.
+  // Was racy — duplicate delivery between INSERT and UPDATE processed_at meant
+  // two concurrent dispatchers ran the same event. apply_billing_credit has
+  // its own idempotency dedup, but markSubscriptionDeleted + syncSubscriptionToDb
+  // don't, so two concurrent UPSERTs would race.
+  //
+  // The UPDATE ... WHERE processed_at IS NULL RETURNING serves as the claim:
+  //   - If RETURNING gives a row → we claimed it · dispatch
+  //   - If RETURNING gives nothing → either (a) another worker is dispatching
+  //     OR (b) it's already done · either way, exit as duplicate
+  // On dispatch failure we null out processed_at so Stripe's next retry can
+  // re-claim.
+  const claimedAt = new Date().toISOString();
+  const { data: claimed, error: claimErr } = await supabase
+    .from("stripe_webhook_events")
+    .update({ processed_at: claimedAt })
+    .eq("event_id", event.id)
+    .is("processed_at", null)
+    .select("event_id")
+    .maybeSingle();
+
+  if (claimErr) {
+    console.error("Webhook claim failed:", claimErr);
+    return NextResponse.json({ error: "claim failure" }, { status: 500 });
+  }
+  if (!claimed) {
+    // Another worker already claimed (or finished) this event. Stripe will
+    // not retry if we 200 here, so be safe and 200.
+    return NextResponse.json({ ok: true, duplicate: true });
+  }
+
   // Dispatch — wrap each handler in try so we always return a useful response.
   try {
     await dispatch(event, supabase);
-    await supabase
-      .from("stripe_webhook_events")
-      .update({ processed_at: new Date().toISOString() })
-      .eq("event_id", event.id);
     return NextResponse.json({ ok: true });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error(`Webhook handler failed [${event.type}]:`, msg);
+    // Release the claim so the next Stripe retry can re-dispatch.
+    await supabase
+      .from("stripe_webhook_events")
+      .update({ processed_at: null })
+      .eq("event_id", event.id);
     // 500 makes Stripe retry — usually what we want for transient failures.
     return NextResponse.json({ error: msg }, { status: 500 });
   }
@@ -169,6 +193,29 @@ async function dispatch(
       const subId = subscriptionIdFromInvoice(invoice);
       if (!subId) return; // not a subscription invoice (top-up, etc.)
 
+      // Session 16 PM Review #2 (P-05) fix: skip proration invoices.
+      // Stripe issues a new invoice with a unique id for EVERY billing event:
+      //   - subscription_create  → first invoice when sub starts (GRANT)
+      //   - subscription_cycle   → monthly renewal at period boundary (GRANT)
+      //   - subscription_update  → PRORATION when user upgrades mid-cycle (SKIP)
+      // Without this guard, mid-cycle upgrade Standard → Pro triggers full Pro
+      // monthly grant (~$60 LLM value) while user only paid ~$10 proration.
+      // Same risk on cancel → resubscribe within same billing period.
+      const billingReason = invoice.billing_reason;
+      const grantingReasons = new Set(["subscription_create", "subscription_cycle"]);
+      if (billingReason && !grantingReasons.has(billingReason)) {
+        console.log(
+          `[webhook] invoice.payment_succeeded skipping credit grant for billing_reason=${billingReason} (invoice ${invoice.id}). Sync sub state only.`,
+        );
+        // Still sync subscription state (tier could have changed mid-cycle)
+        const sub = await getStripe().subscriptions.retrieve(subId);
+        const userId = await resolveUserIdForSubscription(supabase, sub);
+        if (userId) {
+          await syncSubscriptionToDb(supabase, sub, userId);
+        }
+        return;
+      }
+
       const sub = await getStripe().subscriptions.retrieve(subId);
       const userId = await resolveUserIdForSubscription(supabase, sub);
       if (!userId) {
@@ -192,6 +239,22 @@ async function dispatch(
       );
       if (!result.ok) {
         throw new Error(`grantMonthlyCredits: ${result.reason}`);
+      }
+      // Session 16 PM Review #2 (P-02): fire subscribe_success on FIRST grant
+      // (subscription_create) only · skip on subscription_cycle (monthly renewal
+      // is retention not acquisition). billingReason was validated above.
+      if (billingReason === "subscription_create") {
+        try {
+          const { captureServerEvent } = await import("@/lib/posthog/server");
+          await captureServerEvent(userId, "subscribe_success", {
+            tier,
+            invoice_id: invoice.id,
+            amount_paid_cents: invoice.amount_paid,
+            currency: invoice.currency,
+          });
+        } catch (e) {
+          console.warn("[webhook] PostHog subscribe_success event failed:", e);
+        }
       }
       return;
     }
@@ -274,6 +337,102 @@ async function dispatch(
       const session = event.data.object as Stripe.Identity.VerificationSession;
       console.log(
         `Identity ${event.type.split(".").pop()}: user=${session.metadata?.user_id ?? "?"} session=${session.id} last_error=${JSON.stringify(session.last_error)}`,
+      );
+      return;
+    }
+
+    case "charge.refunded": {
+      // Session 16 PM Review #2 (C-07): user got Stripe refund · reverse the
+      // corresponding credit grant. Symmetric idempotency via refund.id.
+      // Stripe SDK types · `Charge.invoice` was removed from base type in
+      // recent versions; cast to a structural extension for property access.
+      const charge = event.data.object as Stripe.Charge & {
+        invoice?: string | Stripe.Invoice | null;
+      };
+      if (!charge.refunded || !charge.invoice) {
+        console.log(`[webhook] charge.refunded · no invoice on charge ${charge.id} · skip`);
+        return;
+      }
+
+      // Resolve user via invoice → subscription → user (uses our subscriptions table)
+      const invoiceId = typeof charge.invoice === "string" ? charge.invoice : charge.invoice.id;
+      if (!invoiceId) {
+        console.log(`[webhook] charge.refunded · invoice has no id on charge ${charge.id} · skip`);
+        return;
+      }
+      const invoice = await getStripe().invoices.retrieve(invoiceId);
+      const subId = subscriptionIdFromInvoice(invoice);
+      let userId: string | null = null;
+      if (subId) {
+        const sub = await getStripe().subscriptions.retrieve(subId);
+        userId = await resolveUserIdForSubscription(supabase, sub);
+      } else {
+        // Could be a top-up refund · resolve via customer
+        const customerId = typeof charge.customer === "string"
+          ? charge.customer
+          : charge.customer?.id;
+        if (customerId) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("id")
+            .eq("stripe_customer_id", customerId)
+            .maybeSingle();
+          userId = (profile?.id as string | null) ?? null;
+        }
+      }
+
+      if (!userId) {
+        console.warn(`[webhook] charge.refunded · could not resolve user for charge ${charge.id}`);
+        return;
+      }
+
+      // Look up the original credit grant via invoice.id idempotency key
+      // (subscription grants use invoice.id; top-ups use session.id · we
+      // can only match subscription path here · top-up refund detection
+      // requires charge.metadata mapping · defer).
+      const { data: priorGrant } = await supabase
+        .from("credit_ledger")
+        .select("delta")
+        .eq("user_id", userId)
+        .in("reason", ["sub_renewal", "sub_grant", "topup"])
+        .eq("metadata->>idempotency_key", invoice.id)
+        .maybeSingle();
+
+      if (!priorGrant) {
+        console.warn(
+          `[webhook] charge.refunded · no prior credit grant found for invoice ${invoice.id} · skip reversal`,
+        );
+        return;
+      }
+
+      const refundAmountCents = charge.amount_refunded;
+      // Reverse the full original delta (refund-all assumption · partial refunds
+      // mid-period are unusual on subscriptions). Use refund.id from latest_charge
+      // refunds list as idempotency key.
+      const refundId =
+        charge.refunds?.data?.[0]?.id ?? `${charge.id}.refund_implicit`;
+      const { data: revResult, error: revErr } = await supabase.rpc(
+        "reverse_billing_credit",
+        {
+          p_user_id: userId,
+          p_attempted_delta: priorGrant.delta,
+          p_idempotency_key: refundId,
+          p_metadata: {
+            charge_id: charge.id,
+            invoice_id: invoice.id,
+            refund_amount_cents: refundAmountCents,
+            currency: charge.currency,
+          },
+        },
+      );
+
+      if (revErr) {
+        console.error(`[webhook] charge.refunded · reverse_billing_credit failed:`, revErr);
+        throw new Error(`reverse_billing_credit: ${revErr.message}`);
+      }
+      const row = Array.isArray(revResult) ? revResult[0] : revResult;
+      console.log(
+        `[webhook] charge.refunded · user=${userId} reversed ${row?.actual_delta} credits (attempted ${priorGrant.delta}) · new balance ${row?.new_balance} · duplicate=${row?.was_duplicate}`,
       );
       return;
     }
