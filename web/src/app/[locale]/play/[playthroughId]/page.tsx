@@ -6,6 +6,7 @@ import { PlayClient } from "./play-client";
 import { StateSchemaShape } from "@/schemas/state-schema";
 import { getMyPlaythroughs } from "@/lib/community/queries";
 import type { SidebarPlaythrough } from "@/components/se/PlaythroughSidebar";
+import { getActiveTier } from "@/lib/billing/credits";
 
 export default async function PlayPage({
   params,
@@ -109,11 +110,10 @@ export default async function PlayPage({
       .eq("moderation_status", "approved")
       .order("created_at", { ascending: true }),
   ]);
-  const subscriptionTier = (profileForTier?.subscription_tier ?? "free") as
-    | "free"
-    | "adventurer"
-    | "storyteller"
-    | "legend";
+  // Wave 3 cycle 2 fix: use getActiveTier so canceled-Pro users don't see the
+  // Visualize button on Phase 8 (server rejects them via the same helper).
+  // profile.subscription_tier may be stale during cancel→period_end window.
+  const subscriptionTier = await getActiveTier(supabase, user.id);
   const currentBalance = (profileForTier?.credit_balance ?? 0) as number;
 
   // Merge characters + states into a single array for PlayClient
@@ -180,7 +180,7 @@ export default async function PlayPage({
     <PlayClient
       playthroughId={playthroughId}
       storyTitle={story.title}
-      storyDescription={story.description}
+      storyDescription={story.description ?? ""}
       stateSchema={schemaParse.data}
       initialState={(pt.current_state as Record<string, unknown>) ?? {}}
       initialTurns={(turns ?? []).map((t) => ({

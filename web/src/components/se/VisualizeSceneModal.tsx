@@ -100,9 +100,9 @@ export function VisualizeSceneModal({
   const [imageType, setImageType] = useState<ImageType>("illustration");
   const [styleMode, setStyleMode] = useState<"preset" | "upload" | "custom">("preset");
 
-  // Preset tab state
+  // Preset tab state · null-safe even if parent forgets to coalesce
   const suggestedKeys =
-    matchStylesForSeed(storyDescription).slice(0, 3) as StyleKey[];
+    matchStylesForSeed(storyDescription ?? "").slice(0, 3) as StyleKey[];
   const defaultKey: StyleKey =
     storyDefaultStyleKey ?? suggestedKeys[0] ?? "cinematic";
   const [selectedStyleKey, setSelectedStyleKey] = useState<StyleKey>(defaultKey);
@@ -589,11 +589,11 @@ export function VisualizeSceneModal({
               const label = insufficient
                 ? t("ctaInsufficient", { needed: cost, balance: currentBalance })
                 : needsFile
-                  ? t("styleMode.uploadButton")
+                  ? t("ctaNeedsFile")
                   : needsAck
-                    ? t("styleMode.uploadAck")
+                    ? t("ctaNeedsAck")
                     : needsCustom
-                      ? t("styleMode.customPlaceholder")
+                      ? t("ctaNeedsCustom")
                       : t("cta", { credits: cost });
               return (
                 <button

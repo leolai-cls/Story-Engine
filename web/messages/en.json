@@ -547,6 +547,9 @@
       "proQualityLabel": "Pro quality (higher detail · +100 credits)",
       "cta": "Generate · {credits} credits",
       "ctaInsufficient": "Need {needed} credits · you have {balance}",
+      "ctaNeedsFile": "Choose a reference image first",
+      "ctaNeedsAck": "Tick the ownership confirmation first",
+      "ctaNeedsCustom": "Write a custom style prompt first",
       "loading": "Drawing the scene · 5-15 seconds",
       "loadingComic": "Drawing comic panel · 10-25 seconds",
       "successTitle": "Scene generated",
@@ -559,7 +562,7 @@
       },
       "errors": {
         "tier_required": "Standard or Pro tier required",
-        "adult_mode_required": "This is an adult story · enable Adult Mode in Settings first (KYC required)",
+        "adult_mode_required": "Enable Adult Mode in Settings first · adult-rated stories may require age verification",
         "insufficient_credits": "Not enough credits · this image needs {needed}, you have {balance}",
         "content_filter": "Provider rejected this scene · try a different style or rephrase your last turn",
         "rate_limited": "Image provider is busy · wait a moment and try again",

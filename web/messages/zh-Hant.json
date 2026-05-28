@@ -563,6 +563,9 @@
       "proQualityLabel": "Pro 質素（更高細節 · +100 credits）",
       "cta": "生成 · {credits} credits",
       "ctaInsufficient": "需要 {needed} credits · 你有 {balance}",
+      "ctaNeedsFile": "請先選擇一張參考圖",
+      "ctaNeedsAck": "請先剔選版權確認",
+      "ctaNeedsCustom": "請先寫低你嘅風格描述",
       "loading": "繪製場景中 · 5-15 秒",
       "loadingComic": "繪製漫畫頁中 · 10-25 秒",
       "successTitle": "場景生成完成",
@@ -575,7 +578,7 @@
       },
       "errors": {
         "tier_required": "需要 Standard 或 Pro tier",
-        "adult_mode_required": "呢個係成人故事 · 需要先喺設定開啟成人模式（要 KYC）",
+        "adult_mode_required": "需要先喺設定開啟成人模式 · 成人故事可能需要身分驗證",
         "insufficient_credits": "Credits 不足 · 呢張圖需要 {needed}，你有 {balance}",
         "content_filter": "Provider 拒絕咗呢個場景 · 試下換風格或者改寫上一回合",
         "rate_limited": "圖片 provider 忙緊 · 等一陣再試",

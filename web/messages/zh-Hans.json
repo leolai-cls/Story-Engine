@@ -547,6 +547,9 @@
       "proQualityLabel": "Pro 质量（更高细节 · +100 credits）",
       "cta": "生成 · {credits} credits",
       "ctaInsufficient": "需要 {needed} credits · 你有 {balance}",
+      "ctaNeedsFile": "请先选择一张参考图",
+      "ctaNeedsAck": "请先勾选版权确认",
+      "ctaNeedsCustom": "请先写下你的风格描述",
       "loading": "绘制场景中 · 5-15 秒",
       "loadingComic": "绘制漫画页中 · 10-25 秒",
       "successTitle": "场景生成完成",
@@ -559,7 +562,7 @@
       },
       "errors": {
         "tier_required": "需要 Standard 或 Pro tier",
-        "adult_mode_required": "这是成人故事 · 需要先在设置开启成人模式（需 KYC）",
+        "adult_mode_required": "需要先在设置开启成人模式 · 成人故事可能需要身份验证",
         "insufficient_credits": "Credits 不足 · 这张图需要 {needed}，你有 {balance}",
         "content_filter": "Provider 拒绝了此场景 · 试下换风格或者改写上一回合",
         "rate_limited": "图片 provider 繁忙 · 稍等再试",

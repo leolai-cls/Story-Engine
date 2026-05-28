@@ -4,7 +4,17 @@ import { withSentryConfig } from "@sentry/nextjs";
 
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
-const nextConfig: NextConfig = {};
+const nextConfig: NextConfig = {
+  // Phase 8 Wave 3 audit cycle 2 fix: bump Server Action body limit from
+  // default 1MB to 6MB · uploadStyleReference accepts 5MB images and Vercel
+  // default 1MB would reject with cryptic "Body exceeded 1mb limit" before
+  // the action's own size check runs.
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "6mb",
+    },
+  },
+};
 
 // Wrap with Sentry · auto-instrumentation for server + edge + client.
 // Session 16 PM Review #2 (P-02): without this, prod 5xx errors are invisible.
