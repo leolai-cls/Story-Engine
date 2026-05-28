@@ -39,15 +39,19 @@ const EXAMPLE_KEYS = ["0", "1", "2", "3"] as const;
 
 export function CreationForm({
   adultModeEnabled,
+  initialPrompt = "",
 }: {
   /** Phase 6 non-money function: gate 'adult' content_rating button */
   adultModeEnabled: boolean;
+  /** Session 16 follow-up: pre-fill prompt from /my lobby example card click
+   *  (URL: /stories/new?seed=<example>). Empty = clean form. */
+  initialPrompt?: string;
 }) {
   const tErrors = useTranslations("errors");
   const tForm = useTranslations("createStory.form");
   const tTasks = useTranslations("createStory.tasks");
   const tExamples = useTranslations("createStory.examples");
-  const [prompt, setPrompt] = useState("");
+  const [prompt, setPrompt] = useState(initialPrompt);
   const [protagonist, setProtagonist] = useState("");
   const [rating, setRating] = useState<"sfw" | "soft" | "adult">("sfw");
   const [error, setError] = useState<string | null>(null);

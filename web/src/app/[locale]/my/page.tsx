@@ -7,7 +7,7 @@ import { Cover } from "@/components/se/Cover";
 import { createClient } from "@/lib/supabase/server";
 import { getCachedUser } from "@/lib/supabase/cached-user";
 import { getMyPlaythroughs, type MyPlaythroughRow } from "@/lib/community/queries";
-import { Play, Sparkles, Archive, Trash2, BookOpen, Plus, Lock } from "lucide-react";
+import { Play, Sparkles, Archive, Trash2, BookOpen, Plus, Lock, ArrowRight, Wand2 } from "lucide-react";
 import type { GenreKey } from "@/components/se/genre";
 
 type RelTimeFn = (
@@ -66,12 +66,14 @@ export default async function MyGamesPage({
   // surface lock badge on adult-rated playthroughs when user has adult
   // mode off (e.g., they cancelled Pro · markSubscriptionDeleted forced
   // adult_mode_enabled=false). Playthrough still listed but visibly locked.
+  // Session 16 follow-up: also fetch display_name for lobby welcome.
   const { data: profileForGating } = await supabase
     .from("profiles")
-    .select("adult_mode_enabled")
+    .select("adult_mode_enabled, display_name")
     .eq("id", user.id)
     .maybeSingle();
   const userAdultMode = profileForGating?.adult_mode_enabled === true;
+  const displayName = (profileForGating?.display_name as string | null) ?? null;
 
   const counts = {
     all: all.length,
@@ -150,7 +152,12 @@ export default async function MyGamesPage({
 
           {/* List */}
           {filtered.length === 0 ? (
-            <EmptyState locale={locale} tab={tab} hasAny={counts.all > 0} />
+            <EmptyState
+              locale={locale}
+              tab={tab}
+              hasAny={counts.all > 0}
+              displayName={displayName}
+            />
           ) : (
             <div className="flex flex-col gap-3">
               {filtered.map((p) => (
@@ -330,60 +337,122 @@ async function EmptyState({
   locale,
   tab,
   hasAny,
+  displayName,
 }: {
   locale: string;
   tab: Tab;
   hasAny: boolean;
+  displayName: string | null;
 }) {
   const tMy = await getTranslations("my");
   if (!hasAny) {
+    // Session 16 follow-up · new-user activation lobby (2026-05-28):
+    // Replace bland "you have no stories" empty state with a true onboarding
+    // hub — ChatGPT-style. Big "Start your first story" CTA + 4 example
+    // scenario cards (one-click to /stories/new?seed=...) + browse-public
+    // secondary action.
+    //
+    // Founder feedback: "now after I register there is nothing in library,
+    // don't even know how to start a new game".
+    const tCreate = await getTranslations("createStory.examples");
+    const tLobby = await getTranslations("my.lobby");
+    const exampleKeys = ["0", "1", "2", "3"] as const;
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-center">
+      <div className="flex flex-col items-center py-12 text-center max-w-2xl mx-auto">
+        {/* Hero · brand mark + welcome */}
         <div
-          className="flex items-center justify-center rounded-full"
+          className="flex items-center justify-center rounded-2xl"
           style={{
-            width: 72,
-            height: 72,
-            background: "var(--se-surface-2)",
-            border: "1px solid var(--se-border)",
+            width: 56,
+            height: 56,
+            background: "var(--se-accent-bg, color-mix(in srgb, var(--se-accent) 12%, transparent))",
+            border: "1px solid color-mix(in srgb, var(--se-accent) 30%, transparent)",
           }}
         >
-          <BookOpen size={32} style={{ color: "var(--se-fg-dim)" }} />
+          <Wand2 size={26} style={{ color: "var(--se-accent)" }} />
         </div>
         <h2
-          className="mt-5 text-xl font-semibold se-cjk"
-          style={{ color: "var(--se-fg)" }}
+          className="mt-5 text-2xl font-bold se-cjk"
+          style={{ color: "var(--se-fg)", letterSpacing: "-0.015em" }}
         >
-          {tMy("empty.title")}
+          {displayName
+            ? tLobby("welcomeNamed", { name: displayName })
+            : tLobby("welcomeAnon")}
         </h2>
         <p
-          className="mt-2 max-w-md text-sm se-cjk"
-          style={{ color: "var(--se-fg-muted)", lineHeight: 1.6 }}
+          className="mt-2.5 max-w-lg text-sm se-cjk"
+          style={{ color: "var(--se-fg-muted)", lineHeight: 1.65 }}
         >
-          {tMy("empty.body")}
+          {tLobby("subtitle")}
         </p>
-        <div className="mt-6 flex gap-3">
-          <Link
-            href={`/${locale}/library` as never}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-md font-medium text-sm se-cjk"
-            style={{ background: "var(--se-fg)", color: "var(--se-bg)" }}
+
+        {/* Primary CTA · big · centered */}
+        <Link
+          href={`/${locale}/stories/new` as never}
+          className="mt-7 inline-flex items-center gap-2 px-6 py-3 rounded-md font-semibold text-sm se-cjk"
+          style={{
+            background: "var(--se-fg)",
+            color: "var(--se-bg)",
+            boxShadow: "var(--se-shadow-cta, 0 4px 16px rgba(0,0,0,0.12))",
+          }}
+        >
+          <Sparkles size={16} />
+          {tLobby("primaryCta")}
+          <ArrowRight size={14} />
+        </Link>
+
+        {/* Quick-start example cards · ChatGPT-style suggested prompts */}
+        <div className="mt-9 w-full">
+          <div
+            className="se-mono uppercase mb-3"
+            style={{ fontSize: 10.5, color: "var(--se-fg-dim)", letterSpacing: "0.08em" }}
           >
-            <BookOpen size={14} />
-            {tMy("empty.browseLibrary")}
-          </Link>
-          <Link
-            href={`/${locale}/stories/new` as never}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-md font-medium text-sm se-cjk"
-            style={{
-              background: "var(--se-surface)",
-              color: "var(--se-fg)",
-              border: "1px solid var(--se-border)",
-            }}
-          >
-            <Plus size={14} />
-            {tMy("empty.createNew")}
-          </Link>
+            {tLobby("examplesHeader")}
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {exampleKeys.map((k) => {
+              const example = tCreate(k);
+              const seed = encodeURIComponent(example);
+              return (
+                <Link
+                  key={k}
+                  href={`/${locale}/stories/new?seed=${seed}` as never}
+                  className="group text-left p-3.5 rounded-lg transition-all hover:scale-[1.01]"
+                  style={{
+                    background: "var(--se-surface)",
+                    border: "1px solid var(--se-border)",
+                    boxShadow: "var(--se-shadow-card)",
+                  }}
+                >
+                  <div className="flex items-start gap-2.5">
+                    <Sparkles
+                      size={13}
+                      className="flex-none mt-1"
+                      style={{ color: "var(--se-accent)" }}
+                    />
+                    <div
+                      className="text-[12.5px] se-cjk line-clamp-3"
+                      style={{ color: "var(--se-fg-2)", lineHeight: 1.55 }}
+                    >
+                      {example.length > 140 ? example.slice(0, 140) + "…" : example}
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
         </div>
+
+        {/* Secondary action · subtle */}
+        <Link
+          href={`/${locale}/library` as never}
+          className="mt-8 inline-flex items-center gap-1.5 text-xs se-cjk transition-colors hover:text-foreground"
+          style={{ color: "var(--se-fg-muted)" }}
+        >
+          <BookOpen size={12} />
+          {tLobby("browseLibraryLink")}
+          <ArrowRight size={11} />
+        </Link>
       </div>
     );
   }

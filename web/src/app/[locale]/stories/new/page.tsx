@@ -9,8 +9,10 @@ import { CreationForm } from "./creation-form";
 
 export default async function NewStoryPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<{ seed?: string }>;
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
@@ -33,6 +35,13 @@ export default async function NewStoryPage({
     .single();
   const adultModeEnabled = profile?.adult_mode_enabled ?? false;
 
+  // Session 16 follow-up (new-user activation lobby · 2026-05-28):
+  // Accept ?seed=<encoded prompt> so /my lobby cards can deep-link with
+  // a pre-filled example scenario. Sanitize: clamp to 2000 chars (same
+  // as form maxLength · prevents URL-stuffing attacks).
+  const sp = await searchParams;
+  const initialPrompt = (sp.seed ?? "").slice(0, 2000);
+
   return (
     <>
       <SiteHeader />
@@ -44,7 +53,10 @@ export default async function NewStoryPage({
           <p className="text-muted-foreground text-sm">{t("pageBody")}</p>
         </div>
 
-        <CreationForm adultModeEnabled={adultModeEnabled} />
+        <CreationForm
+          adultModeEnabled={adultModeEnabled}
+          initialPrompt={initialPrompt}
+        />
       </main>
       <SiteFooter />
     </>

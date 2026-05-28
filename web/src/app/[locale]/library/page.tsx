@@ -25,6 +25,8 @@ import {
   Bookmark,
   Lock,
   Info,
+  Wand2,
+  ArrowRight,
 } from "lucide-react";
 import { StoryCard, type StoryCardData } from "@/components/se/StoryCard";
 import { ContinueCard, type ActivePlaythroughData } from "@/components/se/ContinueCard";
@@ -217,6 +219,15 @@ export default async function LibraryPage({
         {/* A2 audit fix · Visitor landing for anon users (3-pillar pitch + collage) */}
         {!user && !searchMode && <VisitorLanding locale={locale} />}
 
+        {/* Session 16 follow-up (game lobby · 2026-05-28) · prominent
+            "Start a new game" hero for ALL authed users. Founder feedback:
+            "after I register there is nothing in library, don't even know
+            how to start a new game". Lobby works for new + returning users
+            (4 example cards · one-click to /stories/new?seed=). Renders
+            ABOVE LibraryHero (story-of-the-day) so start-new is always the
+            first visible action. */}
+        {!searchMode && user && <LobbyHero locale={locale} />}
+
         {/* HERO — cinematic Netflix takeover (skipped for anon · landing replaces) */}
         {!searchMode && heroStory && user && (
           <LibraryHero locale={locale} story={heroStory} adultModeEnabled={adultModeEnabled} />
@@ -293,29 +304,34 @@ export default async function LibraryPage({
 
         {/* Browse mode: launch fallback OR multi-board */}
         {!searchMode && useLaunchFallback && (
-          <Carousel
-            title={tLib("carousels.publicLibrary")}
-            sub={tLib("carousels.publicLibrarySub")}
-            icon={<Sparkles size={13} />}
-            empty={trending.length === 0}
-          >
-            {trending.map((s) => (
-              <StoryCard key={s.id} s={toCardData(s)} locale={locale} />
-            ))}
-          </Carousel>
-        )}
-
-        {!searchMode && !useLaunchFallback && (
-          <>
+          <div id="trending">
             <Carousel
-              title={tLib("carousels.trending")}
-              sub={tLib("carousels.trendingSub")}
-              icon={<Flame size={13} />}
+              title={tLib("carousels.publicLibrary")}
+              sub={tLib("carousels.publicLibrarySub")}
+              icon={<Sparkles size={13} />}
+              empty={trending.length === 0}
             >
               {trending.map((s) => (
                 <StoryCard key={s.id} s={toCardData(s)} locale={locale} />
               ))}
             </Carousel>
+          </div>
+        )}
+
+        {!searchMode && !useLaunchFallback && (
+          <>
+            <div id="trending">
+              <Carousel
+                title={tLib("carousels.trending")}
+                sub={tLib("carousels.trendingSub")}
+                icon={<Flame size={13} />}
+              >
+                {trending.map((s) => (
+                  <StoryCard key={s.id} s={toCardData(s)} locale={locale} />
+                ))}
+              </Carousel>
+            </div>
+            <div id="community" />
             <Carousel
               title={tLib("carousels.latest")}
               sub={tLib("carousels.latestSub")}
@@ -351,6 +367,153 @@ export default async function LibraryPage({
       </main>
       <SiteFooter />
     </>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Lobby Hero — Session 16 follow-up (founder UX feedback 2026-05-28)
+//  Always-visible "Start a new game" hero for authed users.
+//  Founder feedback: "after I register there is nothing in library, don't
+//  even know how to start a new game". This is the game-lobby entry point ·
+//  4 example scenarios let users one-click launch into the creation flow.
+// ─────────────────────────────────────────────────────────────
+async function LobbyHero({ locale }: { locale: string }) {
+  const tLobby = await getTranslations("library.lobbyHero");
+  const tCreate = await getTranslations("createStory.examples");
+  const exampleKeys = ["0", "1", "2", "3"] as const;
+
+  return (
+    <section
+      className="px-6 sm:px-14 py-10 sm:py-14"
+      style={{
+        background:
+          "linear-gradient(180deg, color-mix(in srgb, var(--se-accent) 6%, var(--se-bg)) 0%, var(--se-bg) 100%)",
+        borderBottom: "1px solid var(--se-border)",
+      }}
+    >
+      <div className="max-w-5xl mx-auto">
+        {/* Headline · brand action */}
+        <div className="flex items-start gap-3 mb-2">
+          <div
+            className="flex items-center justify-center rounded-lg flex-none"
+            style={{
+              width: 36,
+              height: 36,
+              background: "color-mix(in srgb, var(--se-accent) 14%, transparent)",
+              border: "1px solid color-mix(in srgb, var(--se-accent) 30%, transparent)",
+            }}
+          >
+            <Wand2 size={18} style={{ color: "var(--se-accent)" }} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h1
+              className="text-2xl sm:text-3xl font-bold se-cjk"
+              style={{ color: "var(--se-fg)", letterSpacing: "-0.02em" }}
+            >
+              {tLobby("title")}
+            </h1>
+            <p
+              className="mt-1.5 text-sm se-cjk"
+              style={{ color: "var(--se-fg-muted)", lineHeight: 1.6 }}
+            >
+              {tLobby("subtitle")}
+            </p>
+          </div>
+        </div>
+
+        {/* Action row · primary CTA + secondary nav */}
+        <div className="flex items-center gap-3 mt-5 flex-wrap">
+          <Link
+            href={`/${locale}/stories/new` as never}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-md font-semibold text-sm se-cjk"
+            style={{
+              background: "var(--se-fg)",
+              color: "var(--se-bg)",
+              boxShadow: "var(--se-shadow-cta, 0 4px 16px rgba(0,0,0,0.12))",
+            }}
+          >
+            <Sparkles size={15} />
+            {tLobby("primaryCta")}
+            <ArrowRight size={13} />
+          </Link>
+          <a
+            href="#trending"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-xs se-cjk transition-colors"
+            style={{
+              color: "var(--se-fg-muted)",
+              border: "1px solid var(--se-border)",
+              background: "var(--se-surface)",
+            }}
+          >
+            <Flame size={12} />
+            {tLobby("browseTrending")}
+          </a>
+          <a
+            href="#community"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-xs se-cjk transition-colors"
+            style={{
+              color: "var(--se-fg-muted)",
+              border: "1px solid var(--se-border)",
+              background: "var(--se-surface)",
+            }}
+          >
+            <Bookmark size={12} />
+            {tLobby("browseCommunity")}
+          </a>
+        </div>
+
+        {/* Quick-start example cards · one-click into creation flow */}
+        <div className="mt-7">
+          <div
+            className="se-mono uppercase mb-3"
+            style={{ fontSize: 10.5, color: "var(--se-fg-dim)", letterSpacing: "0.08em" }}
+          >
+            {tLobby("examplesHeader")}
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+            {exampleKeys.map((k) => {
+              const example = tCreate(k);
+              const seed = encodeURIComponent(example);
+              const titleSnippet = example.split("—")[0]?.trim() || example.slice(0, 30);
+              return (
+                <Link
+                  key={k}
+                  href={`/${locale}/stories/new?seed=${seed}` as never}
+                  className="group text-left p-3.5 rounded-lg transition-all hover:-translate-y-0.5"
+                  style={{
+                    background: "var(--se-surface)",
+                    border: "1px solid var(--se-border)",
+                    boxShadow: "var(--se-shadow-card)",
+                  }}
+                >
+                  <div className="flex items-start gap-2.5">
+                    <Sparkles
+                      size={12}
+                      className="flex-none mt-1 transition-transform group-hover:scale-110"
+                      style={{ color: "var(--se-accent)" }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div
+                        className="text-[12px] font-semibold mb-1 se-cjk truncate"
+                        style={{ color: "var(--se-fg)" }}
+                      >
+                        {titleSnippet}
+                      </div>
+                      <div
+                        className="text-[11.5px] se-cjk line-clamp-3"
+                        style={{ color: "var(--se-fg-muted)", lineHeight: 1.5 }}
+                      >
+                        {example.length > 100 ? example.slice(0, 100) + "…" : example}
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 

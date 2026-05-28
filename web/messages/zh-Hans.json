@@ -771,6 +771,14 @@
     "continueCard": {
       "resume": "继续"
     },
+    "lobbyHero": {
+      "title": "你想活在哪个故事里？",
+      "subtitle": "告诉我你想要的世界 · AI 帮你建好角色、规则、开场。然后故事就你说了算。或者看看其他玩家做了什么。",
+      "primaryCta": "开新故事",
+      "browseTrending": "热门",
+      "browseCommunity": "社群",
+      "examplesHeader": "或者选一个 scenario 一 click 开始"
+    },
     "hero": {
       "editorPick": "★ 编辑精选",
       "featured": "FEATURED",

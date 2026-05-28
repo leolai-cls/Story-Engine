@@ -737,6 +737,14 @@
     "subtitleEmpty": "You haven't started any stories — pick a scenario to begin your adventure.",
     "adultLockBadge": "Adult mode off",
     "adultLockTooltip": "This story is adult-rated. Re-enable adult mode in Settings to continue, or archive this story.",
+    "lobby": {
+      "welcomeNamed": "Welcome, {name}",
+      "welcomeAnon": "Welcome to Kieio",
+      "subtitle": "Tell me what world you want to step into. I'll spin up the characters, the rules, and the opening scene. Then you take it from there.",
+      "primaryCta": "Start your first story",
+      "examplesHeader": "Or try one of these · click to start",
+      "browseLibraryLink": "Or browse community stories"
+    },
     "subtitleCount": "{total} playthroughs · {active} in progress",
     "tabs": {
       "all": "All",
@@ -770,6 +778,14 @@
     },
     "continueCard": {
       "resume": "Resume"
+    },
+    "lobbyHero": {
+      "title": "What story do you want to live in?",
+      "subtitle": "Tell me a world · I'll spin up the characters, the rules, and the opening scene. Then you take it from there. Or browse what other players have built.",
+      "primaryCta": "Start a new story",
+      "browseTrending": "Trending",
+      "browseCommunity": "Community",
+      "examplesHeader": "Or click a scenario to start"
     },
     "hero": {
       "editorPick": "★ Editor's pick",

@@ -753,6 +753,14 @@
     "subtitleEmpty": "你仲未開始任何故事 — 揀一個 scenario 開始你嘅冒險。",
     "adultLockBadge": "成人模式關咗",
     "adultLockTooltip": "呢個係成人故事。去 Settings 重開成人模式繼續玩 · 或者 archive 呢個故事。",
+    "lobby": {
+      "welcomeNamed": "你好，{name}",
+      "welcomeAnon": "歡迎嚟到 Kieio",
+      "subtitle": "話畀我聽你想入邊個世界 — 我幫你建好角色、規則、開場。然後個故事就你話事。",
+      "primaryCta": "開始第一個故事",
+      "examplesHeader": "或者試吓呢啲 · 一 click 開始",
+      "browseLibraryLink": "或者去 Library 睇社群故事"
+    },
     "subtitleCount": "共 {total} 個 playthrough · {active} 個進行中",
     "tabs": {
       "all": "全部",
@@ -786,6 +794,14 @@
     },
     "continueCard": {
       "resume": "繼續"
+    },
+    "lobbyHero": {
+      "title": "你想活喺邊個故事入面？",
+      "subtitle": "話畀我聽你想要嘅世界 · AI 幫你建好角色、規則、開場。然後個故事就你話事。或者望吓其他玩家整咗咩。",
+      "primaryCta": "開新故事",
+      "browseTrending": "熱門",
+      "browseCommunity": "社群",
+      "examplesHeader": "或者揀一個 scenario 一 click 開始"
     },
     "hero": {
       "editorPick": "★ 編輯精選",
