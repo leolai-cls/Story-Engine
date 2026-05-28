@@ -65,6 +65,8 @@ export function MemoryJournalClient({
   lorebook,
   npcInnerVoices = {},
   showCsam = false,
+  subscriptionTier = "free",
+  npcL3Enabled = false,
 }: {
   playthroughId: string;
   turnCount: number;
@@ -77,6 +79,10 @@ export function MemoryJournalClient({
   npcInnerVoices?: Record<string, NpcInnerThought[]>;
   /** D5 audit · show CSAM strip when in adult content context */
   showCsam?: boolean;
+  /** Session 16 P-09: tier gating for empty-state copy on Inner Voices tab. */
+  subscriptionTier?: "free" | "adventurer" | "storyteller" | "legend";
+  /** Session 16 P-09: whether L3 toggle is ON for this playthrough. */
+  npcL3Enabled?: boolean;
 }) {
   // Wave 2 i18n migration (2026-05-27): full UI localized via memory.* catalog.
   const t = useTranslations("memory");
@@ -172,10 +178,10 @@ export function MemoryJournalClient({
             { id: "active", label: t("tabs.active"), icon: Sparkles },
             { id: "summaries", label: t("tabs.memoir", { count: summaries.length }), icon: BookOpen },
             { id: "lorebook", label: t("tabs.characters", { count: lorebookCount }), icon: NotebookPen },
-            // Session 14 · NPC L3 Inner Voices (Storyteller tier · hidden when empty)
-            ...(innerVoicesCount > 0
-              ? [{ id: "inner-voices", label: t("tabs.innerVoices", { count: innerVoicesCount }), icon: Drama }]
-              : []),
+            // Session 14 · NPC L3 Inner Voices (Storyteller-tier marquee feature)
+            // Session 16 P-09: ALWAYS render tab so Pro upgrade-day user sees what
+            // they bought + Free/Standard user sees what to upgrade for.
+            { id: "inner-voices", label: t("tabs.innerVoices", { count: innerVoicesCount }), icon: Drama },
           ] as const
         ).map((entry) => {
           const Ico = entry.icon;
@@ -241,17 +247,20 @@ export function MemoryJournalClient({
               hint={t("nav.charactersHint")}
               onClick={() => setTab("lorebook")}
             />
-            {/* Session 14 · NPC L3 Inner Voices (Storyteller tier · only show when data exists) */}
-            {innerVoicesCount > 0 && (
-              <NavItem
-                active={tab === "inner-voices"}
-                icon={<Drama size={14} />}
-                label={t("nav.innerVoicesLabel")}
-                sub={t("nav.innerVoicesSub", { count: innerVoicesCount, npcs: npcNames.length })}
-                hint={t("nav.innerVoicesHint")}
-                onClick={() => setTab("inner-voices")}
-              />
-            )}
+            {/* Session 14 · NPC L3 Inner Voices (Storyteller-tier marquee feature)
+                Session 16 P-09: ALWAYS render · empty state explainer in TabInnerVoices. */}
+            <NavItem
+              active={tab === "inner-voices"}
+              icon={<Drama size={14} />}
+              label={t("nav.innerVoicesLabel")}
+              sub={
+                innerVoicesCount > 0
+                  ? t("nav.innerVoicesSub", { count: innerVoicesCount, npcs: npcNames.length })
+                  : t("nav.innerVoicesSubEmpty")
+              }
+              hint={t("nav.innerVoicesHint")}
+              onClick={() => setTab("inner-voices")}
+            />
           </div>
           {/* Recent turns layer · listed but read-only · CLAUDE.md hard rule #7 4 layer */}
           <div
@@ -304,7 +313,12 @@ export function MemoryJournalClient({
           {tab === "summaries" && <TabSummaries summaries={summaries} turnCount={turnCount} locale={locale} />}
           {tab === "lorebook" && <TabLorebook grouped={grouped} types={types} locale={locale} />}
           {tab === "inner-voices" && (
-            <TabInnerVoices npcInnerVoices={npcInnerVoices} npcNames={npcNames} />
+            <TabInnerVoices
+              npcInnerVoices={npcInnerVoices}
+              npcNames={npcNames}
+              subscriptionTier={subscriptionTier}
+              npcL3Enabled={npcL3Enabled}
+            />
           )}
         </main>
       </div>
@@ -735,15 +749,34 @@ function LoreCard({ entry, type, locale }: { entry: LoreRow; type: string; local
 function TabInnerVoices({
   npcInnerVoices,
   npcNames,
+  subscriptionTier,
+  npcL3Enabled,
 }: {
   npcInnerVoices: Record<string, NpcInnerThought[]>;
   npcNames: string[];
+  subscriptionTier: "free" | "adventurer" | "storyteller" | "legend";
+  npcL3Enabled: boolean;
 }) {
   const tIV = useTranslations("memory.innerVoices");
   const [selectedNpc, setSelectedNpc] = useState<string>(npcNames[0] ?? "");
   const selectedThoughts = selectedNpc ? npcInnerVoices[selectedNpc] ?? [] : [];
 
   if (npcNames.length === 0) {
+    // Session 16 P-09: differentiate empty-state copy by tier + L3 toggle state.
+    //   Pro + L3 ON  → "First L3 turn upcoming · this tab will populate"
+    //   Pro + L3 OFF → "Enable NPC Inner Voices on the play page"
+    //   Free/Standard → "Upgrade to Pro to unlock NPC Inner Voices"
+    const tierEligible = subscriptionTier === "storyteller" || subscriptionTier === "legend";
+    const emptyTitleKey = !tierEligible
+      ? "emptyTitleUpgrade"
+      : npcL3Enabled
+        ? "emptyTitleReady"
+        : "emptyTitleEnable";
+    const emptyBodyKey = !tierEligible
+      ? "emptyBodyUpgrade"
+      : npcL3Enabled
+        ? "emptyBodyReady"
+        : "emptyBodyEnable";
     return (
       <div className="px-6 sm:px-8 py-8">
         <div
@@ -754,12 +787,12 @@ function TabInnerVoices({
           }}
         >
           <Drama size={36} style={{ color: "var(--se-fg-dim)", margin: "0 auto" }} />
-          <div className="mt-3 text-sm font-semibold se-cjk">{tIV("emptyTitle")}</div>
+          <div className="mt-3 text-sm font-semibold se-cjk">{tIV(emptyTitleKey)}</div>
           <div
             className="mt-2 text-xs leading-relaxed se-cjk"
             style={{ color: "var(--se-fg-dim)" }}
           >
-            {tIV("emptyBody")}
+            {tIV(emptyBodyKey)}
             <br />
             {tIV("emptyHint")}
           </div>

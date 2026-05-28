@@ -405,6 +405,7 @@
       "charactersHint": "人物 · 地点 · 物品 · 事件 · 概念",
       "innerVoicesLabel": "NPC 内心戏",
       "innerVoicesSub": "{count} 段 · {npcs} 个 NPC",
+      "innerVoicesSubEmpty": "Pro 独享 · 未录",
       "innerVoicesHint": "Storyteller 独享 · 每个 NPC 的 POV + 心理活动",
       "recentLabel": "近 20 turn 全文",
       "recentBadge": "自动",
@@ -445,9 +446,15 @@
     },
     "innerVoices": {
       "emptyTitle": "暂无 NPC 内心戏记录",
-      "emptyBody": "在 Play 页启动「NPC 内心戏」(Storyteller 独享)。",
+      "emptyBody": "在 Play 页启动「NPC 内心戏」(Pro 独享)。",
+      "emptyTitleEnable": "内心戏已就绪 · 开了就有",
+      "emptyBodyEnable": "你是 Pro tier。在 Play 页 NPC panel 点「NPC 内心戏」toggle ON。下一个 turn 开始记录每个 NPC 的 POV。",
+      "emptyTitleReady": "下个 turn 开始录",
+      "emptyBodyReady": "NPC 内心戏已开。下个 turn 会 parallel 跑每个出场 NPC 的 POV，将他们的心底话记录在这里。",
+      "emptyTitleUpgrade": "NPC 内心戏 · Pro 独享",
+      "emptyBodyUpgrade": "每个 NPC 都有自己的隐藏内心 — 在隐藏什么、在筹划什么、真正怎么想。Pro tier 解锁此功能 · 叙事跟着他们的秘密走，不是跟剧本。",
       "emptyHint": "之后每个 turn 的 NPC POV 会 record 在这里。",
-      "storyteller": "Storyteller 独享",
+      "storyteller": "Pro 独享",
       "innerThought": "心底",
       "intent": "意图",
       "internalPov": "内部 POV",
@@ -479,7 +486,9 @@
     },
     "input": {
       "placeholder": "你想做什么？（描述行动、对白、决定…）",
-      "submit": "行动"
+      "submit": "行动",
+      "costEstimate": "≈ {credits} credits / turn",
+      "l3Note": "+ NPC 内心戏"
     },
     "rail": {
       "npcCount": "NPC · {count}",

@@ -193,6 +193,29 @@ async function dispatch(
       const subId = subscriptionIdFromInvoice(invoice);
       if (!subId) return; // not a subscription invoice (top-up, etc.)
 
+      // Session 16 PM Review #2 (P-05) fix: skip proration invoices.
+      // Stripe issues a new invoice with a unique id for EVERY billing event:
+      //   - subscription_create  → first invoice when sub starts (GRANT)
+      //   - subscription_cycle   → monthly renewal at period boundary (GRANT)
+      //   - subscription_update  → PRORATION when user upgrades mid-cycle (SKIP)
+      // Without this guard, mid-cycle upgrade Standard → Pro triggers full Pro
+      // monthly grant (~$60 LLM value) while user only paid ~$10 proration.
+      // Same risk on cancel → resubscribe within same billing period.
+      const billingReason = invoice.billing_reason;
+      const grantingReasons = new Set(["subscription_create", "subscription_cycle"]);
+      if (billingReason && !grantingReasons.has(billingReason)) {
+        console.log(
+          `[webhook] invoice.payment_succeeded skipping credit grant for billing_reason=${billingReason} (invoice ${invoice.id}). Sync sub state only.`,
+        );
+        // Still sync subscription state (tier could have changed mid-cycle)
+        const sub = await getStripe().subscriptions.retrieve(subId);
+        const userId = await resolveUserIdForSubscription(supabase, sub);
+        if (userId) {
+          await syncSubscriptionToDb(supabase, sub, userId);
+        }
+        return;
+      }
+
       const sub = await getStripe().subscriptions.retrieve(subId);
       const userId = await resolveUserIdForSubscription(supabase, sub);
       if (!userId) {

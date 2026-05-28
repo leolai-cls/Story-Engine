@@ -121,7 +121,18 @@ export default async function LibraryPage({
   }
 
   const searchMode = !!sp.q?.trim();
-  const language = sp.language?.trim() || undefined;
+  // Session 16 PM Review #2 (P-10) fix: default language filter to the user's
+  // UI locale. zh-Hans / EN users were seeing a catalog of mostly 繁中 stories
+  // (the default user-creation language) — first-impression bounce. User can
+  // still override via ?language=all or pick another from the dropdown.
+  // Sentinel "all" disables the filter entirely.
+  const rawLanguage = sp.language?.trim();
+  const language =
+    rawLanguage === "all"
+      ? undefined
+      : rawLanguage && rawLanguage.length > 0
+        ? rawLanguage
+        : locale; // default to user's UI locale
   const contentRating = sp.rating?.trim() || undefined;
 
   async function fetchBoard(aliases: string[]) {

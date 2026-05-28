@@ -46,9 +46,13 @@ const SECTIONS = ["hero", "portal", "how", "memory", "agents", "adaptive", "bili
 export function MarketingLanding({
   lang,
   locale,
+  authedUser,
 }: {
   lang: MarketingLang;
   locale: string;
+  /** Session 16 P-06: if user is already logged in on .kieio.com cookie scope,
+   *  render「Open app」CTA instead of「Sign up」. */
+  authedUser?: { displayName: string | null } | null;
 }) {
   const nav = MARKETING_COPY.nav[lang];
   const hero = MARKETING_COPY.hero[lang];
@@ -348,9 +352,19 @@ export function MarketingLanding({
               </span>
             ))}
           </span>
-          <a href={APP_LOGIN} className="nav-cta">
-            {nav.begin}
-          </a>
+          {authedUser ? (
+            <a href={APP_LIBRARY} className="nav-cta" title={authedUser.displayName ?? undefined}>
+              {lang === "en"
+                ? `Open app${authedUser.displayName ? ` · ${authedUser.displayName}` : ""} →`
+                : lang === "zhHans"
+                  ? `打开应用${authedUser.displayName ? ` · ${authedUser.displayName}` : ""} →`
+                  : `打開應用${authedUser.displayName ? ` · ${authedUser.displayName}` : ""} →`}
+            </a>
+          ) : (
+            <a href={APP_LOGIN} className="nav-cta">
+              {nav.begin}
+            </a>
+          )}
         </div>
       </nav>
 

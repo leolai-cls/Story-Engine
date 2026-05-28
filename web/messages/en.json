@@ -405,6 +405,7 @@
       "charactersHint": "People · places · items · events · concepts",
       "innerVoicesLabel": "NPC inner voices",
       "innerVoicesSub": "{count} entries · {npcs} NPCs",
+      "innerVoicesSubEmpty": "Pro exclusive · empty",
       "innerVoicesHint": "Storyteller exclusive · each NPC's POV + inner thoughts",
       "recentLabel": "Recent 20 turns",
       "recentBadge": "Auto",
@@ -445,9 +446,15 @@
     },
     "innerVoices": {
       "emptyTitle": "No NPC inner voices recorded yet",
-      "emptyBody": "Enable NPC inner voices in the play screen (Storyteller tier) to see each NPC's POV here.",
+      "emptyBody": "Enable NPC inner voices in the play screen (Pro tier) to see each NPC's POV here.",
+      "emptyTitleEnable": "Inner voices ready · just enable",
+      "emptyBodyEnable": "You're on Pro tier. Open the NPC panel on the play page and toggle 「NPC Inner Voices」 ON. The next turn will start recording each NPC's POV here.",
+      "emptyTitleReady": "Recording starts on your next turn",
+      "emptyBodyReady": "NPC Inner Voices is enabled. The next turn will run each active NPC's POV in parallel + record their inner thoughts here.",
+      "emptyTitleUpgrade": "NPC Inner Voices · Pro exclusive",
+      "emptyBodyUpgrade": "Every NPC's hidden mind · what they're plotting · what they really feel. Pro tier unlocks this — the narrative honors their secrets, not just the script.",
       "emptyHint": "Each turn's NPC POV is recorded here afterwards.",
-      "storyteller": "Storyteller exclusive",
+      "storyteller": "Pro exclusive",
       "innerThought": "Inner thought",
       "intent": "Intent",
       "internalPov": "Internal POV",
@@ -479,7 +486,9 @@
     },
     "input": {
       "placeholder": "What do you want to do? (describe action, dialogue, decision…)",
-      "submit": "Act"
+      "submit": "Act",
+      "costEstimate": "≈ {credits} credits / turn",
+      "l3Note": "+ NPC Inner Voices"
     },
     "rail": {
       "npcCount": "NPCs · {count}",

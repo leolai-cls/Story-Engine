@@ -9,6 +9,7 @@ import { DynamicStatePanel } from "@/components/state-panel";
 import type { StateSchema } from "@/schemas/state-schema";
 import { NpcCard } from "@/components/se/DispositionAxis";
 import { NpcL3Toggle } from "@/components/se/NpcL3Toggle";
+import { estimateTurnCredits } from "@/lib/billing/credits";
 import {
   PlaythroughSidebar,
   type SidebarPlaythrough,
@@ -291,6 +292,7 @@ export function PlayClient({
   sidebarTotalCount = 0,
   npcL3Enabled = false,
   subscriptionTier = "free",
+  playthroughModel = null,
 }: {
   playthroughId: string;
   storyTitle: string;
@@ -308,6 +310,8 @@ export function PlayClient({
   npcL3Enabled?: boolean;
   /** Session 14: user's subscription tier · controls toggle visibility. */
   subscriptionTier?: "free" | "adventurer" | "storyteller" | "legend";
+  /** Session 16 P-07: playthrough's locked LLM model · drives per-turn cost preview. */
+  playthroughModel?: string | null;
 }) {
   const locale = useLocale();
   // Wave 2 i18n migration (2026-05-27): full client localized via play.* namespace.
@@ -763,6 +767,25 @@ export function PlayClient({
               )}
             </Button>
           </form>
+          {/* Session 16 PM Review #2 (P-07) fix: per-turn cost preview below
+              input. Reactive to NPC L3 enabled state · L3 adds ~6 credits per
+              active NPC (max 3 → +18 credits). Free user with 60 credits left
+              can now tell whether they have 1 turn or 3 turns remaining. */}
+          {playthroughModel && (
+            <div
+              className="mt-2 se-mono"
+              style={{ fontSize: 11, color: "var(--se-fg-dim)", letterSpacing: "0.04em" }}
+            >
+              {tPlay("input.costEstimate", {
+                credits: estimateTurnCredits(playthroughModel, npcL3Enabled ? 3 : 0),
+              })}
+              {npcL3Enabled ? (
+                <span style={{ marginLeft: 8, color: "var(--se-accent)" }}>
+                  {tPlay("input.l3Note")}
+                </span>
+              ) : null}
+            </div>
+          )}
         </div>
 
         {/* Right rail · NPC dispositions + State panel · mobile uses tabs */}
