@@ -180,17 +180,75 @@
   </div>
 
   <div class="card">
-    <h4>Style profile · per-story one-time</h4>
-    <p>創 story 時 LLM 同時生成 style_profile (e.g.):</p>
-    <pre class="code-block">{
-  <span class="key">"art_style"</span>: <span>"Wong Kar-wai noir cinematography"</span>,
-  <span class="key">"color_palette"</span>: <span>"neon-lit, deep shadows, warm amber highlights"</span>,
-  <span class="key">"era_aesthetic"</span>: <span>"1980s Hong Kong street fashion"</span>,
-  <span class="key">"medium"</span>: <span>"oil painting · gritty texture · soft focus"</span>,
-  <span class="key">"reference_artists"</span>: [<span>"Christopher Doyle"</span>, <span>"Wong Kar-wai"</span>]
-}</pre>
-    <p>每 scene gen 都 append 入 prompt suffix。Visual cohesion 跨整個 story 維持。</p>
+    <h4>Style picker · user choice (founder UX update · 2026-05-28)</h4>
+    <p>Founder feedback: 「應該係提供唔同風格畀用家選擇」— style 唔由系統 lock 一個 default · 而係 picker UI 畀用戶喺 story creation OR per-image-gen 揀。</p>
+    <p><strong>Source</strong>: 用 <a href="https://github.com/twri/sdxl_prompt_styler" target="_blank"><code>twri/sdxl_prompt_styler</code></a> (Stability AI 出 · MIT-licensed · 850+ tested style prompts) 做 base · 我哋 curate 12 個最配 Kieio launch genres (戀愛 / 古惑仔 / 玄幻 / D&D / NBA / 校園 / 武俠 等) 嘅 style。Built-in style preset · 加 ~3 個自製 Kieio-specific style。</p>
   </div>
+
+  <h3>Kieio Style Library · launch 12 個 preset</h3>
+  <table class="table">
+    <thead><tr><th>Style key</th><th>Display name</th><th>Source</th><th>適合 genre</th><th>Prompt template (簡)</th></tr></thead>
+    <tbody>
+      <tr><td><code>cinematic</code></td><td>🎬 電影感</td><td>sai-cinematic</td><td>古惑仔 · 武俠 · 都市</td><td>cinematic film still · shallow DOF · vignette</td></tr>
+      <tr><td><code>anime</code></td><td>🌸 動漫</td><td>sai-anime</td><td>戀愛校園 · 異世界</td><td>anime artwork · vibrant · studio anime</td></tr>
+      <tr><td><code>fantasy-art</code></td><td>🐉 奇幻插畫</td><td>sai-fantasy art</td><td>D&D · 玄幻 · 異世界</td><td>ethereal fantasy concept art · magnificent · celestial</td></tr>
+      <tr><td><code>neonpunk</code></td><td>🌃 賽博朋克</td><td>sai-neonpunk</td><td>未來都市 · 反烏托邦</td><td>neonpunk · cyberpunk · vaporwave · vibrant</td></tr>
+      <tr><td><code>analog-film</code></td><td>📽 復古菲林</td><td>sai-analog film</td><td>1980s HK · 民國 · 紀錄</td><td>analog film photo · faded · vintage · grainy</td></tr>
+      <tr><td><code>photographic</code></td><td>📷 寫實攝影</td><td>sai-photographic</td><td>NBA · 都市現代</td><td>cinematic photo · 35mm · professional</td></tr>
+      <tr><td><code>digital-painting</code></td><td>🎨 數碼繪畫</td><td>sai-digital art</td><td>通用 · 高細節</td><td>concept art · digital artwork · painterly</td></tr>
+      <tr><td><code>comic-book</code></td><td>📖 漫畫風</td><td>sai-comic book</td><td>港漫 · 美漫 · 動作</td><td>comic · graphic illustration · vibrant</td></tr>
+      <tr><td><code>line-art</code></td><td>✏️ 線稿</td><td>sai-line art</td><td>素描風 · 漫畫面板</td><td>line art drawing · sleek · minimalist</td></tr>
+      <tr><td><code>pixel-art</code></td><td>👾 像素風</td><td>sai-pixel art</td><td>復古 RPG · 8-bit feel</td><td>pixel-art · 8-bit graphics · blocky</td></tr>
+      <tr><td><code>hk-manhua</code> 🆕</td><td>🥋 港式漫畫</td><td>Kieio-curated</td><td>武俠 · 古惑仔 · 王家禧馬榮成風</td><td>Hong Kong manhua style · dynamic action lines · 90s comic style · dramatic ink shadows</td></tr>
+      <tr><td><code>ink-wash</code> 🆕</td><td>🌿 水墨國風</td><td>Kieio-curated</td><td>古風 · 武俠 · 仙俠</td><td>Chinese ink wash painting · 水墨 · misty mountains · calligraphy · Song dynasty aesthetic</td></tr>
+    </tbody>
+  </table>
+
+  <div class="card">
+    <h4>JSON shape (commit 入 repo · 唔需要 DB)</h4>
+    <pre class="code-block"><span class="comment">// web/src/lib/ai/image-styles.ts</span>
+<span class="key">export const</span> KIEIO_STYLES: Record&lt;StyleKey, StyleDef&gt; = {
+  cinematic: {
+    name: { en: <span>"Cinematic"</span>, zhHant: <span>"電影感"</span>, zhHans: <span>"电影感"</span> },
+    emoji: <span>"🎬"</span>,
+    promptPrefix: <span>"cinematic film still"</span>,
+    promptSuffix: <span>"shallow depth of field, vignette, moody atmospheric lighting, highly detailed"</span>,
+    negativePrompt: <span>"anime, cartoon, illustration, painting, drawing"</span>,
+    bestForGenres: [<span>"古惑仔"</span>, <span>"武俠"</span>, <span>"都市"</span>, <span>"驚悚"</span>],
+  },
+  anime: { ... },
+  <span class="comment">// ... 10 more</span>
+}</pre>
+  </div>
+
+  <h3>UX flow · style picker</h3>
+  <div class="card">
+    <h4>2 個 entry point</h4>
+    <ol style="margin-left: 22px; line-height: 1.85; font-size: 14px;">
+      <li><strong>Story creation</strong>: AI 出 default suggestion (e.g., 「戀愛校園 → suggest anime」) · user 可 override · 揀完寫入 <code>stories.default_style_key</code> · 之後所有 scene gen 用呢個</li>
+      <li><strong>Per-image-gen modal</strong>: 點「Generate scene」彈嘅 modal 入面 · 預設用 story default style · 用戶可以 dropdown 即時換另一個 style (e.g., 同一個故事 · 想呢張 scene 試吓 anime style)</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <h4>AI auto-suggestion 邏輯 (story creation)</h4>
+    <pre class="code-block"><span class="comment">// LLM extract genre + setting from user's seed prompt · suggest top 3 styles</span>
+seed = <span>"1980s 香港古惑仔故事 · 我做新仔..."</span>
+genre = <span>"古惑仔"</span>, era = <span>"1980s"</span>
+
+suggested = matchStyles(genre, era)
+<span class="comment">// → ["hk-manhua", "analog-film", "cinematic"]</span>
+<span class="comment">// User defaults to hk-manhua · sees 2 alternates · can pick any of 12</span></pre>
+  </div>
+
+  <h3>Pre-generate style preview thumbnails (one-time)</h3>
+  <ul class="bullets">
+    <li>For each of 12 styles · gen ONE sample image (e.g., "a samurai standing in rain") · 1024×1024</li>
+    <li>One-time cost: ~$0.50 (12 × $0.04 Gemini)</li>
+    <li>Store喺 Supabase Storage <code>style-previews/</code> bucket</li>
+    <li>Picker UI 顯示 thumbnail grid (12 cards) · user 一眼睇到每個 style 嘅 vibe</li>
+    <li>Commit thumbnails 入 repo 做 fallback · CDN cache via Vercel</li>
+  </ul>
 
   <div class="card">
     <h4>UX flow · single button + modal (founder Q1 + Q4)</h4>
@@ -625,7 +683,7 @@ create index scene_images_user_idx on scene_images(user_id, created_at desc);</p
     <tbody>
       <tr><td><strong>1. Verify OpenRouter image gen coverage</strong></td><td>~10 min</td><td>curl 3 個 model_id 測試: <code>google/gemini-2.5-flash-image</code> · <code>openai/gpt-image-1</code> · <code>x-ai/grok-2-image</code>. 如果有缺 · 對應 fallback (e.g., direct OpenAI for GPT Image 已經有 <code>OPENAI_API_KEY</code>)</td></tr>
       <tr><td><strong>2. OpenRouter credit top-up</strong></td><td>~5 min</td><td>Estimate $20-50 buffer for 5 stories test gen + initial launch traffic. Existing <code>OPENROUTER_API_KEY</code> reuse · just deposit credits</td></tr>
-      <tr><td><strong>3. Decide default character art style</strong></td><td>~15 min review</td><td>Pick: <em>realism · anime · cinematic painterly · 國風 watercolor · noir illustration</em>. (建議: <strong>cinematic painterly</strong> · matches 「dark cinematic」 brand identity)</td></tr>
+      <tr><td><strong>3. Style library curation (already done in plan)</strong></td><td>~5 min review</td><td>12 styles curated from <code>twri/sdxl_prompt_styler</code> (Stability AI MIT-licensed) + 2 Kieio-specific (港式漫畫 · 水墨國風). Founder review names + emoji + best-for-genre mapping. 用戶喺 story creation OR per-image-gen 揀。冇 single hardcoded default — AI suggest top 3 from user's seed prompt</td></tr>
       <tr><td><strong>4. Stripe Price IDs (optional)</strong></td><td>~10 min</td><td>If wanting credit-pack「Visualizer」add-on bundle separate from base subscription · create new Stripe Product (e.g., 「Visualizer Bundle · $4.99 for 1000 image-credits」)</td></tr>
     </tbody>
   </table>
@@ -645,13 +703,15 @@ create index scene_images_user_idx on scene_images(user_id, created_at desc);</p
   <h3>🎯 Locked architecture summary</h3>
   <div class="card">
     <ul class="bullets">
-      <li><strong>UX</strong>: per-turn single「Generate scene」button → modal (3 image types · prompt source toggle) → result modal with download + share</li>
-      <li><strong>Provider routing</strong>: SFW illustration/wallpaper → Gemini · SFW comic → GPT Image 2 · Adult → Grok Aurora</li>
-      <li><strong>Consistency</strong>: lazy character portraits (1-time per character on first scene gen) · provider-native subject reference per gen · story-wide style profile</li>
-      <li><strong>Characters in scene</strong>: detected from turn context (not solo protagonist default)</li>
-      <li><strong>Moderation</strong>: pre-flight OpenAI Moderation (prompt) + post-flight Google SafeSearch (image) · dual-layer · CSAM hard block irrespective of tier</li>
-      <li><strong>Storage</strong>: Supabase Storage · auto-archive to R2 after 6 months</li>
-      <li><strong>Pricing</strong>: 50-200 credits per gen · 90-96% margin · adult premium · Pro tier high-quality bump</li>
+      <li><strong>UX</strong>: per-turn single「Generate scene」button → modal (3 image types · style picker · prompt source toggle) → result modal with download + share</li>
+      <li><strong>Provider routing</strong>: All via OpenRouter aggregator (existing <code>OPENROUTER_API_KEY</code> reuse · 0 new env vars). Models: SFW illustration/wallpaper → <code>google/gemini-2.5-flash-image</code> · SFW comic → <code>openai/gpt-image-1</code> · Adult → <code>x-ai/grok-2-image</code></li>
+      <li><strong>Style library</strong>: 12 curated presets (10 from <code>twri/sdxl_prompt_styler</code> MIT-licensed Stability AI repo + 2 Kieio-curated: 港式漫畫 · 水墨國風). User picks at story creation · can override per-image-gen. AI suggest top 3 based on seed prompt</li>
+      <li><strong>Consistency</strong>: lazy character portraits (1-time per character on first scene gen · stored in Supabase Storage) · provider-native subject reference per gen · story-wide style key + character visual_description re-injected</li>
+      <li><strong>Characters in scene</strong>: detected from turn context (NPC names + dialogue speakers from turn text · not solo protagonist default)</li>
+      <li><strong>Prompt control</strong>: AI auto-prompt (default) OR user writes own (500-char limit) · style applies regardless</li>
+      <li><strong>Moderation</strong>: pre-flight OpenAI Moderation API on prompt + post-flight Google SafeSearch on image · dual-layer · CSAM hard block irrespective of tier (hard rule #6 enforced)</li>
+      <li><strong>Storage</strong>: Supabase Storage · public bucket · thumbnail (256×256 webp) inline · full image lazy-load · auto-archive to R2 after 6 months</li>
+      <li><strong>Pricing</strong>: 50-200 credits per gen · 90-96% margin · adult premium (100 vs 50 SFW) · Pro tier high-quality bump for comic ($0.17 GPT high)</li>
     </ul>
   </div>
 
