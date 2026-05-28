@@ -86,21 +86,20 @@ export const MODELS: Record<string, ModelEntry> = {
   },
 
   // ─── OpenRouter · Standard pool · free tier value ───────────────────
-  // W4 fix 2026-05-28: model_id 由 google/gemini-3.5-flash 改 google/gemini-2.5-flash.
-  // 3.5-flash 雖然喺 OpenRouter 上市 · 但 retest 揾到 streamText silent fail
-  // (POST /turn 返 200 OK 但 narrator output 從未 stream out). 2.5-flash 喺 OpenRouter
-  // battle-tested 同 tool calling 完整支援. Cost 都更平 ($0.30/$2.50 per 1M vs $1.50/$9).
-  // 內部 Story Engine id 暫時保留 "gemini-3-5-flash" 避免 break existing playthroughs.
+  // Founder explicit (2026-05-28): use Gemini 3.5 Flash · 唔好換做 2.5 Flash.
+  // Real root cause of silent fail 唔關 model version 事 · 係 @ai-sdk/openai
+  // default 用 Responses API endpoint · OpenRouter 只支援 Chat Completions.
+  // 修正 喺 providers.ts dispatcher (`.chat()` factory) · 唔需要換 model.
   "gemini-3-5-flash": {
     id: "gemini-3-5-flash",
     provider: "openrouter",
-    model_id: "google/gemini-2.5-flash",
-    display_name: "Gemini Flash",
+    model_id: "google/gemini-3.5-flash",
+    display_name: "Gemini 3.5 Flash",
     role: "narrator",
-    credit_multiplier: 1.0,
+    credit_multiplier: 1.5,
     allows_nsfw: false,
     min_tier: "free",
-    description: "Standard tier · 快 · 平 · 長 context · Free tier 可用。",
+    description: "Standard tier · 快 · 長 context · Free tier 可用。",
     tier_pool: "standard",
   },
 
