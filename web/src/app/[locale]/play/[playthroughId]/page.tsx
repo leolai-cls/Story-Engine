@@ -43,7 +43,7 @@ export default async function PlayPage({
 
   const { data: story } = await supabase
     .from("stories")
-    .select("title, description, state_schema")
+    .select("title, description, state_schema, content_rating, style_key")
     .eq("id", pt.story_id)
     .single();
 
@@ -81,6 +81,8 @@ export default async function PlayPage({
     { count: totalPlaythroughCount },
     // Session 14: profile.subscription_tier for NPC L3 toggle visibility
     { data: profileForTier },
+    // Phase 8: cached scene_images for inline display
+    { data: sceneImagesRaw },
   ] = await Promise.all([
     supabase
       .from("story_characters")
@@ -97,15 +99,22 @@ export default async function PlayPage({
       .eq("user_id", user.id),
     supabase
       .from("profiles")
-      .select("subscription_tier")
+      .select("subscription_tier, credits_balance")
       .eq("id", user.id)
       .single(),
+    supabase
+      .from("scene_images")
+      .select("id, turn_index, storage_url, image_type, style_mode, style_value")
+      .eq("playthrough_id", playthroughId)
+      .eq("moderation_status", "approved")
+      .order("created_at", { ascending: true }),
   ]);
   const subscriptionTier = (profileForTier?.subscription_tier ?? "free") as
     | "free"
     | "adventurer"
     | "storyteller"
     | "legend";
+  const currentBalance = (profileForTier?.credits_balance ?? 0) as number;
 
   // Merge characters + states into a single array for PlayClient
   type DispJson = { trust?: number; romance?: number; respect?: number; fear?: number } | null;
@@ -147,6 +156,26 @@ export default async function PlayPage({
         ? "主角"
         : "主角";
 
+  // Phase 8 · normalize scene_images row for client consumption
+  type SceneImageRow = {
+    id: string;
+    turn_index: number;
+    storage_url: string;
+    image_type: string;
+    style_mode: string;
+    style_value: string | null;
+  };
+  const initialSceneImages = ((sceneImagesRaw ?? []) as SceneImageRow[]).map(
+    (s) => ({
+      id: s.id,
+      turnIndex: s.turn_index,
+      storageUrl: s.storage_url,
+      imageType: s.image_type as "illustration" | "comic" | "wallpaper",
+      styleMode: s.style_mode,
+      styleValue: s.style_value ?? "",
+    }),
+  );
+
   return (
     <PlayClient
       playthroughId={playthroughId}
@@ -168,6 +197,12 @@ export default async function PlayPage({
       npcL3Enabled={pt.npc_l3_enabled ?? false}
       subscriptionTier={subscriptionTier}
       playthroughModel={(pt.llm_model as string) ?? null}
+      storyContentRating={
+        (story.content_rating as "sfw" | "soft" | "adult" | null) ?? "sfw"
+      }
+      storyDefaultStyleKey={(story.style_key as string | null) ?? null}
+      currentBalance={currentBalance}
+      initialSceneImages={initialSceneImages}
     />
   );
 }

@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "@/i18n/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Send, Loader2, ArrowLeft, Coins, Lock, Shield, NotebookPen, Menu } from "lucide-react";
+import { Sparkles, Send, Loader2, ArrowLeft, Coins, Lock, Shield, NotebookPen, Menu, Image as ImageIcon } from "lucide-react";
 import { DynamicStatePanel } from "@/components/state-panel";
 import type { StateSchema } from "@/schemas/state-schema";
 import { NpcCard } from "@/components/se/DispositionAxis";
@@ -14,6 +14,8 @@ import {
   PlaythroughSidebar,
   type SidebarPlaythrough,
 } from "@/components/se/PlaythroughSidebar";
+import { VisualizeSceneModal } from "@/components/se/VisualizeSceneModal";
+import type { StyleKey } from "@/lib/ai/image-styles";
 
 /**
  * NPC card data passed in from server.
@@ -289,6 +291,16 @@ export type Turn = {
   directorVerdict?: DirectorVerdictSnapshot | null;
 };
 
+/** Phase 8 · cached scene image displayed inline under its turn. */
+export type SceneImageEntry = {
+  id: string;
+  turnIndex: number;
+  storageUrl: string;
+  imageType: "illustration" | "comic" | "wallpaper";
+  styleMode: string;
+  styleValue: string;
+};
+
 export function PlayClient({
   playthroughId,
   storyTitle,
@@ -303,6 +315,10 @@ export function PlayClient({
   npcL3Enabled = false,
   subscriptionTier = "free",
   playthroughModel = null,
+  storyContentRating = "sfw",
+  storyDefaultStyleKey = null,
+  currentBalance = 0,
+  initialSceneImages = [],
 }: {
   playthroughId: string;
   storyTitle: string;
@@ -322,6 +338,14 @@ export function PlayClient({
   subscriptionTier?: "free" | "adventurer" | "storyteller" | "legend";
   /** Session 16 P-07: playthrough's locked LLM model · drives per-turn cost preview. */
   playthroughModel?: string | null;
+  /** Phase 8: drives image-provider routing + adult mode gate. */
+  storyContentRating?: "sfw" | "soft" | "adult";
+  /** Phase 8: pre-selected style preset (from story creation). */
+  storyDefaultStyleKey?: string | null;
+  /** Phase 8: credit balance for visualize-scene CTA. */
+  currentBalance?: number;
+  /** Phase 8: scene_images already generated for this playthrough. */
+  initialSceneImages?: SceneImageEntry[];
 }) {
   const locale = useLocale();
   // Wave 2 i18n migration (2026-05-27): full client localized via play.* namespace.
@@ -339,6 +363,19 @@ export function PlayClient({
   // Sidebar mobile drawer state (desktop rail always visible)
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Phase 8 · Visualize Scene modal state · which turn is being visualized
+  const [visualizeTurnIndex, setVisualizeTurnIndex] = useState<number | null>(null);
+  const [sceneImages, setSceneImages] =
+    useState<SceneImageEntry[]>(initialSceneImages);
+  // Phase 8 · grouped by turnIndex for fast lookup during render
+  const sceneImagesByTurn = sceneImages.reduce<Record<number, SceneImageEntry[]>>(
+    (acc, img) => {
+      (acc[img.turnIndex] ??= []).push(img);
+      return acc;
+    },
+    {},
+  );
 
   // W2-UX-M-07: show "正在審核 + 思考..." indicator during the moderation +
   // pre-stream window. The turn route does ~500-2000ms of moderation + DB
@@ -692,6 +729,52 @@ export function PlayClient({
                       PERMANENT · no retry · 4 outcomes (crit success / success
                       / failure / crit failure). */}
                   {turn.skillCheck && <SkillCheckInline check={turn.skillCheck} />}
+
+                  {/* Phase 8 · cached scene images for this turn (inline thumbs) */}
+                  {turn.role === "ai" && sceneImagesByTurn[turn.index]?.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {sceneImagesByTurn[turn.index].map((img) => (
+                        <a
+                          key={img.id}
+                          href={img.storageUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block overflow-hidden rounded-md border border-border/60 hover:border-primary/60 transition-colors"
+                          style={{
+                            width:
+                              img.imageType === "wallpaper" ? 80 : 168,
+                            height:
+                              img.imageType === "wallpaper"
+                                ? 168
+                                : img.imageType === "comic"
+                                  ? 126
+                                  : 94,
+                          }}
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={img.storageUrl}
+                            alt=""
+                            className="h-full w-full object-cover"
+                            loading="lazy"
+                          />
+                        </a>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Phase 8 · per-AI-turn Visualize button (skips for streaming, free, system errors) */}
+                  {turn.role === "ai" && subscriptionTier !== "free" && (
+                    <button
+                      type="button"
+                      onClick={() => setVisualizeTurnIndex(turn.index)}
+                      className="mt-3 inline-flex items-center gap-1.5 rounded-md border border-border/60 px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground hover:border-foreground/40 transition-colors"
+                      title={tPlay("visualize.button")}
+                    >
+                      <ImageIcon className="h-3 w-3" />
+                      <span className="se-cjk">{tPlay("visualize.buttonShort")}</span>
+                    </button>
+                  )}
                 </div>
               );
             })}
@@ -843,6 +926,36 @@ export function PlayClient({
         </div>
         {/* /outer flex (sidebar + main) */}
       </div>
+
+      {/* Phase 8 · Visualize Scene modal · per-turn image gen entry point */}
+      {visualizeTurnIndex !== null && (
+        <VisualizeSceneModal
+          open={visualizeTurnIndex !== null}
+          onClose={() => setVisualizeTurnIndex(null)}
+          playthroughId={playthroughId}
+          turnIndex={visualizeTurnIndex}
+          storyContentRating={storyContentRating}
+          storyDescription={storyDescription}
+          storyDefaultStyleKey={(storyDefaultStyleKey ?? null) as StyleKey | null}
+          subscriptionTier={subscriptionTier}
+          currentBalance={currentBalance}
+          onSuccess={(sceneImageId, storageUrl) => {
+            // Optimistic insert · backend already revalidated path but client
+            // state needs immediate update for inline thumbnail
+            setSceneImages((prev) => [
+              ...prev,
+              {
+                id: sceneImageId,
+                turnIndex: visualizeTurnIndex,
+                storageUrl,
+                imageType: "illustration",
+                styleMode: "preset",
+                styleValue: "",
+              },
+            ]);
+          }}
+        />
+      )}
     </div>
   );
 }

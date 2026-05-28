@@ -516,7 +516,66 @@
       "httpError": "请求失败（HTTP {status}）"
     },
     "permanentBadge": "PERMANENT · 不可重试",
-    "permanentTooltip": "Hard rule #5 · 不可同一 turn 再试"
+    "permanentTooltip": "Hard rule #5 · 不可同一 turn 再试",
+    "visualize": {
+      "button": "✨ 生成此场景",
+      "buttonShort": "✨ 生成场景",
+      "modalTitle": "生成场景图片",
+      "modalSubtitle": "把这一刻变成插画 · 漫画 · 或者手机壁纸",
+      "imageType": {
+        "label": "图片类型",
+        "illustration": "场景插画",
+        "illustrationHint": "16:9 宽屏 · 默认",
+        "comic": "漫画页",
+        "comicHint": "4:3 配合原生文字渲染（GPT Image）",
+        "wallpaper": "手机壁纸",
+        "wallpaperHint": "9:19.5 竖屏 · 可保存到手机"
+      },
+      "styleMode": {
+        "label": "视觉风格",
+        "preset": "预设风格",
+        "upload": "上传参考图",
+        "custom": "自定义 prompt",
+        "presetHint": "从 10 种地区风格选择",
+        "uploadHint": "上传一张图 · AI 会模仿它的风格（你确认拥有版权 · TOS）",
+        "uploadButton": "选择图片（PNG / JPG / WEBP · 最大 5MB）",
+        "uploadAck": "我确认拥有 / 已获授权使用此图",
+        "customHint": "自己写风格 prompt（Pro tip · 可以从 civitai 等地方 paste）",
+        "customPlaceholder": "例如：油画 · 吉卜力柔和粉彩 · 90 年代少年漫画网点..."
+      },
+      "styleSuggestion": "推荐用于此故事",
+      "proQualityLabel": "Pro 质量（更高细节 · +100 credits）",
+      "cta": "生成 · {credits} credits",
+      "ctaInsufficient": "需要 {needed} credits · 你有 {balance}",
+      "loading": "绘制场景中 · 5-15 秒",
+      "loadingComic": "绘制漫画页中 · 10-25 秒",
+      "successTitle": "场景生成完成",
+      "download": "下载",
+      "tryAgain": "再生成一次",
+      "close": "关闭",
+      "tier": {
+        "freeBlocked": "场景图片生成需要 Standard / Pro tier",
+        "freeBlockedCta": "升级 →"
+      },
+      "errors": {
+        "tier_required": "需要 Standard 或 Pro tier",
+        "adult_mode_required": "这是成人故事 · 需要先在设置开启成人模式（需 KYC）",
+        "insufficient_credits": "Credits 不足 · 这张图需要 {needed}，你有 {balance}",
+        "content_filter": "Provider 拒绝了此场景 · 试下换风格或者改写上一回合",
+        "rate_limited": "图片 provider 繁忙 · 稍等再试",
+        "provider_unavailable": "图片 provider 暂时不可用 · 稍等再试",
+        "storage_upload_failed": "保存图片失败 · 请再试",
+        "config_error": "图片生成未配置 · 请联系客服",
+        "invalid_file": "请选择 PNG / JPG / WEBP 文件",
+        "file_too_large": "图片太大 · 最大 5MB",
+        "moderation_blocked": "参考图文件名被拒 · 试下用另一个文件",
+        "unknown": "出了点问题 · 请再试"
+      },
+      "thumbnailHover": "点击查看大图 · {imageType} · {style}",
+      "fullSizeAlt": "生成场景 · {imageType}",
+      "tosShort": "点击生成即表示你确认上传的参考图属于你，并同意我们的",
+      "tosLink": "服务条款"
+    }
   },
   "skillCheck": {
     "rolling": "SKILL CHECK · 掷骰中",

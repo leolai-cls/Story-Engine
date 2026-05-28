@@ -516,7 +516,66 @@
       "httpError": "Request failed (HTTP {status})"
     },
     "permanentBadge": "PERMANENT · no retry",
-    "permanentTooltip": "Hard rule #5 · can't retry the same turn"
+    "permanentTooltip": "Hard rule #5 · can't retry the same turn",
+    "visualize": {
+      "button": "✨ Visualize this scene",
+      "buttonShort": "✨ Visualize",
+      "modalTitle": "Generate scene image",
+      "modalSubtitle": "Turn this moment into an illustration · comic · or wallpaper",
+      "imageType": {
+        "label": "Image type",
+        "illustration": "Illustration",
+        "illustrationHint": "16:9 widescreen scene · default",
+        "comic": "Comic panel",
+        "comicHint": "4:3 with native text rendering (GPT Image)",
+        "wallpaper": "Phone wallpaper",
+        "wallpaperHint": "9:19.5 portrait · saveable to phone"
+      },
+      "styleMode": {
+        "label": "Visual style",
+        "preset": "Preset styles",
+        "upload": "Upload reference",
+        "custom": "Custom prompt",
+        "presetHint": "Pick from 10 regional styles",
+        "uploadHint": "Upload one image · AI imitates its style (you confirm you own rights · TOS)",
+        "uploadButton": "Choose image (PNG/JPG/WEBP · max 5MB)",
+        "uploadAck": "I confirm I own / am licensed to use this image",
+        "customHint": "Write your own style prompt (Pro tip · paste from civitai etc)",
+        "customPlaceholder": "e.g., oil painting · Studio Ghibli soft pastel · 90s shōnen manga screentone..."
+      },
+      "styleSuggestion": "Recommended for this story",
+      "proQualityLabel": "Pro quality (higher detail · +100 credits)",
+      "cta": "Generate · {credits} credits",
+      "ctaInsufficient": "Need {needed} credits · you have {balance}",
+      "loading": "Drawing the scene · 5-15 seconds",
+      "loadingComic": "Drawing comic panel · 10-25 seconds",
+      "successTitle": "Scene generated",
+      "download": "Download",
+      "tryAgain": "Generate again",
+      "close": "Close",
+      "tier": {
+        "freeBlocked": "Standard / Pro tier required for scene image generation",
+        "freeBlockedCta": "Upgrade →"
+      },
+      "errors": {
+        "tier_required": "Standard or Pro tier required",
+        "adult_mode_required": "This is an adult story · enable Adult Mode in Settings first (KYC required)",
+        "insufficient_credits": "Not enough credits · this image needs {needed}, you have {balance}",
+        "content_filter": "Provider rejected this scene · try a different style or rephrase your last turn",
+        "rate_limited": "Image provider is busy · wait a moment and try again",
+        "provider_unavailable": "Image provider temporarily unavailable · try again in a moment",
+        "storage_upload_failed": "Couldn't save the image · please try again",
+        "config_error": "Image generation isn't configured · contact support",
+        "invalid_file": "Please choose a PNG / JPG / WEBP file",
+        "file_too_large": "Image too large · max 5MB",
+        "moderation_blocked": "Reference image filename was rejected · try a different file",
+        "unknown": "Something went wrong · try again"
+      },
+      "thumbnailHover": "Click to view full size · {imageType} · {style}",
+      "fullSizeAlt": "Generated scene · {imageType}",
+      "tosShort": "By generating, you confirm uploaded references are yours and you accept our",
+      "tosLink": "Terms of Service"
+    }
   },
   "skillCheck": {
     "rolling": "SKILL CHECK · ROLLING",

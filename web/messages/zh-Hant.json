@@ -532,7 +532,66 @@
       "httpError": "請求失敗（HTTP {status}）"
     },
     "permanentBadge": "PERMANENT · 不可重試",
-    "permanentTooltip": "Hard rule #5 · 唔可以同一 turn 再試"
+    "permanentTooltip": "Hard rule #5 · 唔可以同一 turn 再試",
+    "visualize": {
+      "button": "✨ 生成此場景",
+      "buttonShort": "✨ 生成場景",
+      "modalTitle": "生成場景圖片",
+      "modalSubtitle": "將呢一刻變成插畫 · 漫畫 · 或者手機桌布",
+      "imageType": {
+        "label": "圖片類型",
+        "illustration": "場景插畫",
+        "illustrationHint": "16:9 寬螢幕 · 預設",
+        "comic": "漫畫頁",
+        "comicHint": "4:3 配合原生文字渲染（GPT Image）",
+        "wallpaper": "手機桌布",
+        "wallpaperHint": "9:19.5 直幅 · 可儲存到手機"
+      },
+      "styleMode": {
+        "label": "視覺風格",
+        "preset": "預設風格",
+        "upload": "上傳參考圖",
+        "custom": "自訂 prompt",
+        "presetHint": "從 10 種地區風格選擇",
+        "uploadHint": "上傳一張圖 · AI 會模仿佢嘅風格（你確認擁有版權 · TOS）",
+        "uploadButton": "選擇圖片（PNG / JPG / WEBP · 最大 5MB）",
+        "uploadAck": "我確認擁有 / 已獲授權使用呢張圖",
+        "customHint": "自己寫風格 prompt（Pro tip · 可以從 civitai 等地方 paste）",
+        "customPlaceholder": "例如：油畫 · 吉卜力柔和粉彩 · 90 年代少年漫畫網點..."
+      },
+      "styleSuggestion": "推薦呢個故事用",
+      "proQualityLabel": "Pro 質素（更高細節 · +100 credits）",
+      "cta": "生成 · {credits} credits",
+      "ctaInsufficient": "需要 {needed} credits · 你有 {balance}",
+      "loading": "繪製場景中 · 5-15 秒",
+      "loadingComic": "繪製漫畫頁中 · 10-25 秒",
+      "successTitle": "場景生成完成",
+      "download": "下載",
+      "tryAgain": "再生成一次",
+      "close": "關閉",
+      "tier": {
+        "freeBlocked": "場景圖片生成需要 Standard / Pro tier",
+        "freeBlockedCta": "升級 →"
+      },
+      "errors": {
+        "tier_required": "需要 Standard 或 Pro tier",
+        "adult_mode_required": "呢個係成人故事 · 需要先喺設定開啟成人模式（要 KYC）",
+        "insufficient_credits": "Credits 不足 · 呢張圖需要 {needed}，你有 {balance}",
+        "content_filter": "Provider 拒絕咗呢個場景 · 試下換風格或者改寫上一回合",
+        "rate_limited": "圖片 provider 忙緊 · 等一陣再試",
+        "provider_unavailable": "圖片 provider 暫時不可用 · 等一陣再試",
+        "storage_upload_failed": "儲存圖片失敗 · 請再試",
+        "config_error": "圖片生成未設定 · 請聯絡客服",
+        "invalid_file": "請選擇 PNG / JPG / WEBP 檔案",
+        "file_too_large": "圖片太大 · 最大 5MB",
+        "moderation_blocked": "參考圖檔名被拒 · 試下用另一個檔案",
+        "unknown": "出咗啲問題 · 請再試"
+      },
+      "thumbnailHover": "點擊查看大圖 · {imageType} · {style}",
+      "fullSizeAlt": "生成場景 · {imageType}",
+      "tosShort": "點擊生成即表示你確認上傳嘅參考圖屬於你，並同意我哋嘅",
+      "tosLink": "服務條款"
+    }
   },
   "skillCheck": {
     "rolling": "SKILL CHECK · 擲骰中",

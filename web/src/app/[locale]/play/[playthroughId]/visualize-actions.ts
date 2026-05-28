@@ -1,5 +1,7 @@
 "use server";
 
+import { ModerationConfigError, moderateText } from "@/lib/moderation/openai-moderation";
+
 /**
  * Phase 8 · Scene visualization server actions.
  *
@@ -388,6 +390,141 @@ export async function generateScene(
     storageUrl,
     creditsCharged: creditsToCharge,
     provider: genResult.provider,
+  };
+}
+
+/**
+ * Phase 8 · upload a user-provided style reference image.
+ *
+ * Founder TOS-shift posture (2026-05-28): platform keeps CSAM hard floor
+ * only · user warrants ownership/fair-use via TOS. Drops face detection
+ * modal + per-upload copyright checkbox (was in earlier draft).
+ *
+ * Flow:
+ *   1. Auth + tier check
+ *   2. Validate MIME + size (5MB · jpeg/png/webp)
+ *   3. Filename hint moderation (text-level CSAM check on prompt-like name)
+ *   4. Upload to Supabase Storage style-references bucket
+ *   5. Insert style_references row · expires_at = now + 24h
+ *   6. Return id + URL for client to use in subsequent generateScene call
+ */
+export type UploadStyleReferenceResult =
+  | { ok: true; id: string; storageUrl: string; expiresAt: string }
+  | {
+      ok: false;
+      error:
+        | "unauthorized"
+        | "tier_required"
+        | "invalid_file"
+        | "file_too_large"
+        | "moderation_blocked"
+        | "storage_failed"
+        | "config_error";
+      message?: string;
+    };
+
+export async function uploadStyleReference(
+  formData: FormData,
+): Promise<UploadStyleReferenceResult> {
+  const user = await getCachedUser();
+  if (!user) return { ok: false, error: "unauthorized" };
+
+  const supabase = await createClient();
+
+  // Tier gate · same as scene gen
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("subscription_tier")
+    .eq("id", user.id)
+    .maybeSingle();
+  const tier = (profile?.subscription_tier ?? "free") as string;
+  if (tier === "free") return { ok: false, error: "tier_required" };
+
+  const file = formData.get("file");
+  if (!(file instanceof File)) {
+    return { ok: false, error: "invalid_file", message: "no file in form data" };
+  }
+
+  // MIME + size validation
+  const allowedMimes = ["image/jpeg", "image/png", "image/webp"];
+  if (!allowedMimes.includes(file.type)) {
+    return { ok: false, error: "invalid_file", message: `unsupported mime: ${file.type}` };
+  }
+  const MAX_SIZE = 5 * 1024 * 1024;
+  if (file.size > MAX_SIZE) {
+    return { ok: false, error: "file_too_large", message: `${file.size} > 5MB` };
+  }
+
+  // Light text-level moderation on filename (e.g., reject filenames like
+  // "child_nude.jpg" before they touch storage · cheap text-only check).
+  // Full image-content moderation is delegated to provider safety filters
+  // when this reference is used in a subsequent scene gen call (Phase 8 plan
+  // TOS-shift · CSAM hard floor only).
+  const filename = file.name || "upload";
+  try {
+    const verdict = await moderateText(filename, "sfw", { failClosed: false });
+    if (!verdict.allowed) {
+      return {
+        ok: false,
+        error: "moderation_blocked",
+        message: "filename blocked by moderation",
+      };
+    }
+  } catch (e) {
+    if (e instanceof ModerationConfigError) {
+      return { ok: false, error: "config_error", message: e.message };
+    }
+    // Non-config error → continue (filename text moderation is best-effort)
+  }
+
+  // Upload via service-role (RLS prevents direct client write to bucket)
+  const serviceClient = createServiceRoleClient();
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const ext = file.type === "image/jpeg" ? "jpg" : file.type === "image/webp" ? "webp" : "png";
+  const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+
+  const { data: uploadData, error: uploadErr } = await serviceClient.storage
+    .from("style-references")
+    .upload(path, buffer, {
+      contentType: file.type,
+      upsert: false,
+    });
+  if (uploadErr || !uploadData) {
+    console.error("[upload-style-ref] storage upload failed:", uploadErr);
+    return { ok: false, error: "storage_failed", message: uploadErr?.message };
+  }
+
+  const { data: publicUrlData } = serviceClient.storage
+    .from("style-references")
+    .getPublicUrl(uploadData.path);
+  const storageUrl = publicUrlData.publicUrl;
+
+  // Insert style_references row · expires_at default 24h via column default
+  const { data: rowData, error: insertErr } = await serviceClient
+    .from("style_references")
+    .insert({
+      user_id: user.id,
+      storage_url: storageUrl,
+      original_filename: filename.slice(0, 200),
+      file_size_bytes: file.size,
+      mime_type: file.type,
+      moderation_status: "approved", // filename-only check passed; provider gates image
+    })
+    .select("id, expires_at")
+    .single();
+
+  if (insertErr || !rowData) {
+    // Rollback storage
+    await serviceClient.storage.from("style-references").remove([uploadData.path]);
+    console.error("[upload-style-ref] DB insert failed:", insertErr);
+    return { ok: false, error: "storage_failed", message: insertErr?.message };
+  }
+
+  return {
+    ok: true,
+    id: rowData.id as string,
+    storageUrl,
+    expiresAt: rowData.expires_at as string,
   };
 }
 
