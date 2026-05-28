@@ -252,13 +252,95 @@
 }</pre>
   </div>
 
-  <h3>UX flow · style picker</h3>
+  <h3>Style selection · 3-tier flexibility (founder UX update · 2026-05-28)</h3>
+  <p style="font-size: 14px; color: var(--ink-soft); margin-bottom: 12px;">
+    Founder 加 input: 「俾用戶上傳一張佢想要嘅風格然後 AI 就做類似嘅風格」— preset 唔夠 specific 嗰陣 power user 可以 upload reference image。Preset (新手友好) + custom upload (power user) 並存 · cover 所有用例。
+  </p>
+
+  <table class="table">
+    <thead><tr><th>Tier</th><th>Mode</th><th>Effort for user</th><th>Best for</th><th>Cost overhead</th></tr></thead>
+    <tbody>
+      <tr><td><strong>1</strong></td><td>🎨 <strong>Preset (10 region styles)</strong></td><td>1 click</td><td>新手 · genre 標準 · 唔識 prompt 嘅用戶</td><td>$0 — text prompt 直接用</td></tr>
+      <tr><td><strong>2</strong></td><td>📤 <strong>Upload reference image</strong> 🆕</td><td>Drag-drop / paste URL</td><td>Power user · 想精準 match 某種 vibe · 自己有 reference</td><td>~$0.01 (image embedding + storage)</td></tr>
+      <tr><td><strong>3</strong></td><td>✍️ <strong>Write custom prompt</strong></td><td>500-char free-form</td><td>Prompt engineering 熟手 · 想細緻控制</td><td>$0 — text prompt 直接用</td></tr>
+    </tbody>
+  </table>
+
+  <h4>2 個 entry point (preset / upload / custom 任意配)</h4>
+  <ol style="margin-left: 22px; line-height: 1.85; font-size: 14px;">
+    <li><strong>Story creation</strong>: 揀 preset (default) OR upload reference OR mix · 寫入 <code>stories.default_style_key</code> + <code>stories.style_reference_url</code> (optional · nullable) · 之後所有 scene gen 用呢套</li>
+    <li><strong>Per-image-gen modal</strong>: 預設用 story default · 用戶可即時 override (e.g., 揀另一個 preset · upload 不同 reference · 或者寫 custom prompt)</li>
+  </ol>
+
   <div class="card">
-    <h4>2 個 entry point</h4>
-    <ol style="margin-left: 22px; line-height: 1.85; font-size: 14px;">
-      <li><strong>Story creation</strong>: AI 出 default suggestion (e.g., 「戀愛校園 → suggest anime」) · user 可 override · 揀完寫入 <code>stories.default_style_key</code> · 之後所有 scene gen 用呢個</li>
-      <li><strong>Per-image-gen modal</strong>: 點「Generate scene」彈嘅 modal 入面 · 預設用 story default style · 用戶可以 dropdown 即時換另一個 style (e.g., 同一個故事 · 想呢張 scene 試吓 anime style)</li>
-    </ol>
+    <h4>📤 Upload reference image · technical details</h4>
+    <p>Provider native support:</p>
+    <ul class="bullets" style="margin-top: 6px;">
+      <li><strong>Gemini 2.5 Flash Image</strong>: <code>image</code> input parameter · 「style transfer」mode · 自動 extract style features from reference · apply to new gen。Strong.</li>
+      <li><strong>GPT Image 2</strong>: <code>/v1/images/edits</code> API · pass reference as<code>image</code> · prompt 描述新場景。Strong.</li>
+      <li><strong>Grok Aurora</strong>: less mature · v1.1 fallback (跌返去 SFW provider for style transfer · 但 scene content 用 Grok)。</li>
+    </ul>
+
+    <h4 style="margin-top: 14px;">Upload UX</h4>
+    <pre class="code-block"><span class="comment">// In creation modal</span>
+&lt;Tabs&gt;
+  &lt;Tab id=<span>"preset"</span>&gt;🎨 揀風格&lt;/Tab&gt;
+  &lt;Tab id=<span>"upload"</span>&gt;📤 上傳參考圖&lt;/Tab&gt;
+  &lt;Tab id=<span>"custom"</span>&gt;✍️ 自己寫 prompt&lt;/Tab&gt;
+&lt;/Tabs&gt;
+
+{tab === <span>"upload"</span> && (
+  &lt;ImageDropzone
+    accept=<span>"image/jpeg, image/png, image/webp"</span>
+    maxSize={5 * 1024 * 1024}      <span class="comment">// 5MB</span>
+    maxDimension={2048}              <span class="comment">// auto-resize if larger</span>
+    onUpload={async (file) =&gt; {
+      <span class="comment">// 1. Pre-flight moderation (CSAM check on user upload)</span>
+      <span class="key">await</span> moderateUploadedImage(file)
+      <span class="comment">// 2. Upload to Supabase Storage temp bucket (auto-delete after 24h)</span>
+      url = <span class="key">await</span> uploadStyleReference(file, user.id)
+      <span class="comment">// 3. Save URL to creation form state</span>
+      setStyleReferenceUrl(url)
+    }}
+  /&gt;
+)}</pre>
+
+    <h4 style="margin-top: 14px;">⚠ IP / safety guardrails</h4>
+    <ul class="bullets">
+      <li><strong>CSAM pre-filter on upload</strong>: OpenAI Moderation API + Google SafeSearch <strong>before</strong> file lands in Storage · 唔合格 instant reject + log</li>
+      <li><strong>Privacy: real-person face detection</strong>: AWS Rekognition / Google Vision face detection · 如果 detect 真人 face 且唔係用戶自己 (我哋唔知 · 直接 warn) → 顯示 disclaimer 「Reference image 唔可以涉及真實人物身份 · 否則違反 TOS」 · user 確認先繼續</li>
+      <li><strong>Auto-delete after 24h</strong>: 用戶 upload 嘅 style reference 唔長期 store · scene gen 用完 · cron 自動 cleanup。Saves storage cost + privacy</li>
+      <li><strong>Copyright disclaimer</strong>: Upload UI 加細字「我擁有此圖嘅版權 或者 此圖係 fair-use reference · 唔會用於商業 reproduction」· checkbox 確認</li>
+      <li><strong>Style ≠ exact copy</strong>: Reference image 用嚟 extract STYLE (色彩 · 線條 · 構圖) · 唔係 reproduce subject。Output 永遠係 different scene with reference's *aesthetic* · 唔會出現 reference 本身嘅內容</li>
+    </ul>
+
+    <h4 style="margin-top: 14px;">Schema additions (sub-set of original)</h4>
+    <pre class="code-block">alter table public.stories
+  add column if not exists style_key text,                <span class="comment">-- 'hk-manhua' · 'jp-anime' etc. · null if custom</span>
+  add column if not exists style_reference_url text,      <span class="comment">-- Supabase Storage URL · null unless upload mode</span>
+  add column if not exists style_custom_prompt text;      <span class="comment">-- free-form · null unless custom mode</span>
+
+<span class="comment">-- Constraint: exactly one of (style_key · style_reference_url · style_custom_prompt) must be set</span>
+alter table public.stories add constraint stories_style_mode_check
+  check (
+    (style_key is not null)::int +
+    (style_reference_url is not null)::int +
+    (style_custom_prompt is not null)::int = 1
+  );
+
+create table public.style_references (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references profiles(id) on delete cascade,
+  storage_url text not null,
+  expires_at timestamptz not null default (now() + interval '24 hours'),
+  used_in_stories uuid[],          <span class="comment">-- which stories used this reference · for cleanup decision</span>
+  moderation_status text not null default 'pending'
+    check (moderation_status in ('pending', 'approved', 'rejected', 'expired')),
+  created_at timestamptz not null default now()
+);
+
+<span class="comment">-- Cron: delete expired style references daily (cleanup)</span>
+<span class="comment">-- Vercel cron: /api/cron/cleanup-style-references (daily 00:30 UTC)</span></pre>
   </div>
 
   <div class="card">
@@ -736,7 +818,14 @@ create index scene_images_user_idx on scene_images(user_id, created_at desc);</p
     <ul class="bullets">
       <li><strong>UX</strong>: per-turn single「Generate scene」button → modal (3 image types · style picker · prompt source toggle) → result modal with download + share</li>
       <li><strong>Provider routing</strong>: All via OpenRouter aggregator (existing <code>OPENROUTER_API_KEY</code> reuse · 0 new env vars). Models: SFW illustration/wallpaper → <code>google/gemini-2.5-flash-image</code> · SFW comic → <code>openai/gpt-image-1</code> · Adult → <code>x-ai/grok-2-image</code></li>
-      <li><strong>Style library</strong>: 10 region-based styles (8 cultural + 2 universal) · prompt anchors from MIT-licensed <code>twri/sdxl_prompt_styler</code>. User picks at story creation · can override per-image-gen. AI suggest top 3 based on seed prompt. v1.1 Pro add-on: 5-8 個 individual artist signatures (馬榮成 · 新海誠 · 王家衛 · Frank Miller · 黑澤明 etc.) gated behind IP review</li>
+      <li><strong>Style selection · 3-tier flexibility</strong>:
+        <ul style="margin-top: 4px;">
+          <li>(1) <strong>Preset</strong> — 10 region-based styles (8 cultural 🇭🇰🇯🇵🌸🇰🇷🇺🇸🇨🇳🎬📷 + 2 universal 🌃🐉) · prompt anchors from MIT-licensed <code>twri/sdxl_prompt_styler</code></li>
+          <li>(2) <strong>Upload reference image</strong> — drag-drop · provider native style transfer (Gemini · GPT Image) · 5MB max · 2048px max · CSAM + face-detection pre-filter · auto-delete after 24h</li>
+          <li>(3) <strong>Custom prompt</strong> — 500-char free-form for power users</li>
+        </ul>
+        AI suggest top 3 presets from user's seed prompt. v1.1 Pro add-on: 5-8 個 individual artist signatures (馬榮成 · 新海誠 · 王家衛 · Frank Miller · 黑澤明 etc.) gated behind IP review.
+      </li>
       <li><strong>Consistency</strong>: lazy character portraits (1-time per character on first scene gen · stored in Supabase Storage) · provider-native subject reference per gen · story-wide style key + character visual_description re-injected</li>
       <li><strong>Characters in scene</strong>: detected from turn context (NPC names + dialogue speakers from turn text · not solo protagonist default)</li>
       <li><strong>Prompt control</strong>: AI auto-prompt (default) OR user writes own (500-char limit) · style applies regardless</li>
