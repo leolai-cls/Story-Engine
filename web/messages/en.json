@@ -669,9 +669,9 @@
       "ledgerEmpty": "No credit activity yet.",
       "ledgerBalance": "bal {balance}",
       "tierDescriptions": {
-        "free": "50 credits per day · entry-level models only",
-        "adventurer": "2,000 credits per month · no turn cap · Pro + Pro Max models unlocked · 80 NPC L3 turns / month",
-        "storyteller": "4,000 credits per month · all models · Adult mode (KYC required) · unlimited NPC L3",
+        "free": "50 credits per day · Standard models only",
+        "adventurer": "2,000 credits per month · no turn cap · Standard + Pro AI models · Adult mode (after age verification)",
+        "storyteller": "4,000 credits per month · all features · Unlimited NPC Inner Voices · Adult mode",
         "legend": "Deprecated · same as Pro"
       }
     },
@@ -713,21 +713,17 @@
       "andKyc": " + verification",
       "tiers": {
         "standard": "Standard",
-        "pro": "Pro",
-        "pro-max": "Pro Max",
-        "adult": "Adult NSFW"
+        "pro": "Pro"
       },
       "blurbs": {
-        "standard": "Fast · cheap · fluent Chinese · NovelAI-equivalent",
-        "pro": "Deeper narration · emotional detail · strong in Chinese + English",
-        "pro-max": "Deepest narration · multi-character interactions · complex plots",
-        "adult": "Adult mode only · identity verification required"
+        "standard": "Fast · cheap · fluent Chinese · Gemini Flash / GLM-5 routed",
+        "pro": "Deepest narration · emotional detail · Claude Sonnet routed"
       },
       "subTierLabels": {
         "free": "Free",
-        "adventurer": "Adventurer",
-        "storyteller": "Storyteller",
-        "legend": "Legend"
+        "adventurer": "Standard",
+        "storyteller": "Pro",
+        "legend": "Pro"
       }
     },
     "adultModeToggle": {

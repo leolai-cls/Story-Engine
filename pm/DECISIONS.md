@@ -7,6 +7,99 @@
 
 ---
 
+## ADR-022 — Model 簡化做 2 tier + 唯一 NSFW model 用 GLM 5
+**Date**: 2026-05-28 · **Status**: ✅ Accepted
+
+**Decision**: Model 結構由 4 個 tier_pool 簡化做 2 個。
+- Standard model = Gemini 3.5 Flash (via OpenRouter) + GLM 5.1 (Roleplay alt)
+- Pro model = Claude Sonnet 4.6/4.7 (via Anthropic direct) + GPT-5.4 Pro (OpenRouter alt)
+- **Pro Max tier (Opus 4.7) 移除**
+- **Adult tier_pool (Llama 405B) 移除** · 用 GLM 5.1 + `allows_nsfw=true` flag 代替
+
+Subscription tier 維持 3 個 (Free + Standard $9.99 + Pro $19.99) · model access:
+- Free: 淨係 Standard model
+- Standard $9.99: Standard + Pro model 都用得 · 可開成人模式 (KYC 後)
+- Pro $19.99: 同 Standard 一樣 model · NPC L3 unlimited · adult mode
+
+**Context**: 2026-05-28 founder explicit:「only 2 tiers of model like we said in md/html, stand use gemini 3.5flash, pro use sonnet 4.7」+「Standard 都可以用成人模式」+「we use GLM 5 fo nsfw story」。之前 code 用 4 個 tier_pool (standard/pro/pro-max/adult) + Llama 405B for NSFW · 過度複雜 + Opus 太貴 + Llama 405B 喺 OpenRouter 真實 cost 唔劃算。
+
+**Consequences**:
+- `lib/ai/models.ts`: 移除 `claude-opus-4-7` + `llama-3-1-405b-uncensored` · `TIER_POOLS` 簡化做 2 key · `TIER_GATE` 同步
+- `pickModelForTier` / `tier-router.ts`: adult mode 路由直接 return GLM 5.1（唔再有獨立 adult pool）
+- TierPicker UI: 只 show 2 個 model card · 唔再 show Pro Max card
+- Stripe products.ts: bullets 修正 "Standard unlocks Pro Max" 假 claim
+- 未來新 model 由 founder 拍板加 · 依 2-tier 原則歸類
+
+---
+
+## ADR-021 — HK founder = 只用 OpenRouter + Anthropic API key
+**Date**: 2026-05-28 · **Status**: ✅ Accepted
+
+**Decision**: Product 只可以依賴 2 個 LLM provider API key:
+- `OPENROUTER_API_KEY` — 用嚟所有 model（Gemini · GLM · Sonnet · Haiku · Grok 等都經 OpenRouter）
+- `ANTHROPIC_API_KEY` — Anthropic direct（OpenRouter baseURL bug fallback · Haiku 4.5 Director 直駁 較穩）
+
+Forbidden: OpenAI direct (`api.openai.com/*`) · Google direct (Vertex / AI Studio) · xAI direct。
+
+**Context**: Founder 喺香港 · 攞唔到 OpenAI API key（地理限制）。Code 入面 `lib/moderation/openai-moderation.ts` + `lib/ai/embed.ts` 直駁 OpenAI = 喺 prod 永遠 fail (`OPENAI_API_KEY` 唔可能 set)。Founder 2026-05-28 爆怒：「我已經講咗好多次我喺香港我拎唔到 openai 嘅 key」。
+
+**Consequences**:
+- Moderation 改用 Haiku 4.5（Anthropic direct）+ structured output classifier
+- Embeddings：如果 OpenRouter 唔 expose embedding endpoint · defer to backlog（memory journal degrade gracefully）· 或者用 Cohere 等 HK-accessible 替代
+- `providers.ts` dispatcher 移除 `openai / google / xai` 廢嘅 switch case
+- `.env.example` 移除 `OPENAI_API_KEY` line
+- 任何將來新 dependency 要 founder approve provider source（必須 OpenRouter or Anthropic only）
+
+---
+
+## ADR-020 — Customer-facing copy 同 internal strategy text 分得清楚
+**Date**: 2026-05-28 · **Status**: ✅ Accepted
+
+**Decision**: 任何 customer-facing UI copy (marketing pages · product UI text · email templates · error messages) 永遠唔可以直接 lift 自 internal strategy / competitive moat / 技術 advantage 文件 (CLAUDE.md / DECISIONS.md / pm/STATUS.md)。Customer-facing 寫法 = user-benefit framing。Internal 寫法 = candid 競爭 / 戰略 talk。每段 marketing copy 出之前必須過 filter「呢句 if 同行 / 競爭對手睇到 · 會唔會 embarrassing or self-defeating?」。
+
+**Context**: Session 15 Claude 直接 lift CLAUDE.md 入面嘅「對手要 6-12 個月先抄到」(internal moat assessment 表達 product differentiator timeline) 入 marketing pill · 變成 customer-facing。Founder catch (繁中 vulgarities) — competitor trash-talk in own marketing 係 unprofessional + signal weakness (insecurity vibe)。問題唔係 false claim · 問題係場合錯。
+
+**Consequences**:
+- 新 CLAUDE.md hard rule #34: Customer-facing copy 永遠 user-benefit framing · NEVER competitive / strategy / technical advantage talk
+- 換咗：「對手要 6-12 個月先抄到」/ "Months for competitors to copy" → 「為每個世界度身訂造」/ "Crafted for every world" × 3 locales
+- 未來每次寫 marketing / product UI text 之前自問：呢句係寫俾用戶睇 · 定係寫俾自己 / 投資者 / 同事睇？只有後者啱寫 competitor / strategy talk
+- Internal docs (CLAUDE.md · DECISIONS.md · pm/) 仍然繼續 candid 寫 strategic context — 但係只活喺呢度 · 唔輸出
+
+---
+
+## ADR-019 — Subdomain split cookie scope + `getAppOrigin()` 做 single source of truth
+**Date**: 2026-05-28 · **Status**: ✅ Accepted
+
+**Decision**: Cross-subdomain auth flow (OAuth callback / magic link redirect) 永遠用 `getAppOrigin()` helper from `lib/urls.ts` 揀 redirect URL — 唔可以 fall back 去 `headers().get("origin")` (browser-controlled · phishing vector) · 都唔可以直接用 `NEXT_PUBLIC_SITE_URL` (post-split 已經 = marketing host = kieio.com)。Auth cookies scope 到 `.kieio.com` (parent domain) 等 marketing + product subdomain 都讀到 session。
+
+**Context**: Session 15 founder 試 Google login · OAuth 表面成功但 user 表面 not-logged-in。Root cause：`authRedirectBase()` 用咗 `NEXT_PUBLIC_SITE_URL` (post-split = kieio.com) → OAuth callback 落 kieio.com (marketing host) → Supabase 喺 kieio.com 域 set 個 cookie → middleware redirect 入 app.kieio.com → 個 host 睇唔到 cookie → user 表面 unauth。Silent failure mode · Supabase logs 顯示 session created · 但 client 完全 invisible。
+
+**Consequences**:
+- `web/src/app/[locale]/login/actions.ts` `authRedirectBase()` 永遠 return `getAppOrigin()` (NOT `NEXT_PUBLIC_SITE_URL`)
+- Applied 喺 Google OAuth `redirectTo` + magic link `emailRedirectTo` (兩處都係 auth flow 入口)
+- `/auth/callback` route 一定要喺 product subdomain (app.kieio.com)
+- Supabase Dashboard → Auth → URL Configuration redirect URLs 全部更新成 `https://app.kieio.com/auth/callback` (was kieio.com)
+- Pattern reusable for any cross-subdomain auth flow · helper file 係 single source of truth
+- Defense in depth: middleware 同時 enforce auth-route subdomain (`/auth/*` 一定喺 app.kieio.com)
+
+---
+
+## ADR-018 — Signup grant 1000 credits 對齊 Pricing v3 spec
+**Date**: 2026-05-28 · **Status**: ✅ Accepted (founder explicit auth · Migration 0033 applied)
+
+**Decision**: Free tier signup grant = 1000 credits one-time + 50 credits daily refresh (cron)。對齊 pm/STATUS.md Pricing v3 spec line 74「Free signup 1k + 50/day」。Migration 0033 三步走：(1) `profiles.credit_balance` column default 50 → 1000 · (2) `handle_new_user()` trigger grant 1000 + write `sub_grant` ledger entry marked `source: signup_initial_grant` · (3) backfill DO block scan + UPDATE existing under-granted users +950 with ledger entry marked `source: signup_grant_backfill_0033`。
+
+**Context**: Session 15 founder 問「register 之後到底拎幾多 token?」· 發覺 spec (pm/STATUS.md) 同 code (Migration 0001 default + Migration 0008 trigger) drift — spec 講 1000 + 50/day · code 淨係 grant 50。Drift from launch · undetected。Founder 用 Cantonese vulgarities 表達 frustration「read the fucking cost/status md」。Production 影響 minimal (0 users actually existed) 但係 spec-vs-code drift 係 documentation hygiene 紅旗。
+
+**Consequences**:
+- Migration 0033 applied prod (founder authorized option A: full fix + backfill)
+- Pattern: 每次 ship new feature 應該 scan spec docs for related claims · validate code 真係 match · 唔好 trust the doc just because 你 wrote it
+- pm/STATUS.md Pricing v3 spec line 仍然 authoritative · code 而家對齊
+- Header comment in Migration 0033 documents that Migrations 0029-0032 were applied via Supabase MCP during money tier ship but not yet committed to repo · 0033 是 first migration to land in source after that batch
+- Future TODO: backfill Migrations 0029-0032 into repo file form (currently exist in prod via MCP but not in source) — tracked in BACKLOG
+
+---
+
 ## ADR-017 — Product 同 Marketing 分 subdomain（xxx.com + app.xxx.com）
 **Date**: 2026-05-25 · **Status**: ✅ Accepted (architectural prep · 實際 split 之後 ship)
 

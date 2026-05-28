@@ -4,22 +4,29 @@ import { createOpenAI } from "@ai-sdk/openai";
 /**
  * Embedding wrapper — Phase 2 memory layer foundation.
  *
- * Model: OpenAI text-embedding-3-small (1536 dim, 中文-friendly, $0.02/1M tokens).
- * Per ADR-005 + CLAUDE.md. Chosen for:
- *   - Multi-lingual quality on 繁中 / 簡中 / EN
- *   - Cheap enough to embed every turn (~$0.00002 per turn at 500 tokens)
- *   - Unit-normalized output → cosine similarity ≈ dot product (fast)
+ * ADR-021 (2026-05-28): HK founder 攞唔到 OpenAI API key · embedding 改用
+ * OpenRouter (OpenAI-compatible base URL · 同 image gen + chat completion
+ * sharing 嘅同一個 `OPENROUTER_API_KEY`).
  *
- * NOT using Vercel AI Gateway here — direct OpenAI for embeddings keeps
- * latency low and avoids extra hop. The base provider `anthropic` stays
- * for the Narrator / Director / schema-gen path.
+ * Model: OpenAI text-embedding-3-small via OpenRouter
+ * (1536 dim · 中文-friendly · OpenRouter usage charged but cheap).
+ *
+ * 注: 如果 OpenRouter 唔 expose /v1/embeddings · embed() 會 throw · 上層
+ * embedTextSafe() catch return null · memory journal 自動 degrade (lorebook
+ * 仍然 work via keyword scan · RAG semantic search 暫時失效). 呢個係 launch
+ * 後 backlog item · 換 Cohere multilingual embed 補返 RAG layer.
  */
 
 const openaiEmbedClient = createOpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENROUTER_API_KEY,
+  baseURL: "https://openrouter.ai/api/v1",
+  headers: {
+    "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL ?? "https://app.kieio.com",
+    "X-Title": "Kieio",
+  },
 });
 
-const EMBED_MODEL = "text-embedding-3-small";
+const EMBED_MODEL = "openai/text-embedding-3-small";
 const EMBED_DIMS = 1536;
 
 /**

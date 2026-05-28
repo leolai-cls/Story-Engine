@@ -73,12 +73,11 @@ export async function setAdultMode(
   const needsModelReset =
     !enabled && currentModelEntry?.allows_nsfw === true;
 
-  // AUDIT FIX P0A-MED + P0B-HIGH-03 (2026-05-25): also reset default_tier
-  // if it equals 'adult' when disabling adult mode. Without this, TierPicker
-  // would show the Adult card as selected · but the card is hidden when
-  // adult mode off → ghost UI state where no card is highlighted.
-  const currentTier = profile?.default_tier as ModelTier | null | undefined;
-  const needsTierReset = !enabled && currentTier === "adult";
+  // ADR-022: tier 已簡化 standard / pro · adult 唔再係獨立 tier ·
+  // disable adult mode 唔需要 reset tier (legacy "adult" / "pro-max" 值
+  // 喺 lib/ai/tier-router 入面會 narrow 落 standard fallback).
+  const currentTier = profile?.default_tier as string | null | undefined;
+  const needsTierReset = !enabled && (currentTier === "adult" || currentTier === "pro-max");
 
   const update: {
     adult_mode_enabled: boolean;
@@ -232,8 +231,8 @@ export async function setDefaultTier(
     return { ok: false, error: "unauthorized" };
   }
 
-  // Validate tier enum.
-  const validTiers: ModelTier[] = ["standard", "pro", "pro-max", "adult"];
+  // Validate tier enum (ADR-022: simplified to 2 tier).
+  const validTiers: ModelTier[] = ["standard", "pro"];
   if (!validTiers.includes(tier)) {
     return { ok: false, error: "unknown_tier" };
   }
@@ -259,17 +258,10 @@ export async function setDefaultTier(
     } as SetDefaultTierResult;
   }
 
-  // Adult tier extra gate.
-  if (tier === "adult") {
-    if (!profile?.adult_mode_enabled || !profile?.is_age_verified) {
-      return {
-        ok: false,
-        // Wave 1 audit fix: i18n error code (was hardcoded 繁中).
-        error: "adult_tier_requires_mode",
-        errorCode: "settings.adultTierRequiresMode",
-      };
-    }
-  }
+  // ADR-022: adult mode 唔再係獨立 tier · 係 cross-tier toggle (adult_mode_enabled
+  // + is_age_verified). Story-level + turn-level 路由喺 tier-router 處理 ·
+  // setDefaultTier 唔再需要 special-case "adult".
+  void profile;
 
   const { error } = await supabase
     .from("profiles")

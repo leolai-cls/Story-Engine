@@ -1,38 +1,32 @@
 /**
  * Model catalog — single source of truth for LLM choices.
  *
- * Session 10 (2026-05-25) curation 10 → 7 + tier-pool abstraction per founder
- * rule "我哋冇必要畀咁多公司 LLM 用家去選擇, 不如 just change it to something
- * like standard, pro to let user to choose":
+ * ADR-022 (2026-05-28) Simplification 4 → 2 tier + GLM 5 NSFW
+ *   - Founder rule: 2 model tiers only (Standard = Gemini 3.5 Flash · Pro = Sonnet 4.6/4.7)
+ *   - Adult mode = cross-tier toggle · routes to GLM 5.1 with allows_nsfw=true
+ *   - DROPPED: Pro Max (Opus 4.7) · Llama 3.1 405B
+ *   - 訂閱 tier 仍維持 3 個 (Free + Standard $9.99 + Pro $19.99) · Standard 都可以開 adult
  *
- *   - Users pick a TIER (Standard / Pro / Pro Max / Adult), NOT a specific model
- *   - Each tier has a POOL of underlying models (vendor diversification)
+ * ADR-021 (2026-05-28) HK founder constraint:
+ *   - 只可以用 OpenRouter + Anthropic direct (founder 攞唔到 OpenAI API key)
+ *   - 任何直駁 OpenAI / Google / xAI / Vertex 嘅 code = bug
+ *
+ * Architecture:
+ *   - Users pick a TIER (Standard / Pro), NOT a specific model
+ *   - Adult mode = toggle inside Settings · 開 + KYC 後路由去 GLM 5.1
  *   - `lib/ai/tier-router.ts` picks the actual model based on context
- *     (language detection, vendor availability, cost optimization)
  *   - Credit charge per turn = actual usage (computeCredits in credits.ts)
- *     so internal model swap is transparent in billing
- *
- * Catalog rationale (research backing in pm/memory-architecture-v2.html):
- *   - DROPPED: GPT-4o, GPT-4o mini, Grok 2, Grok 2 Mini, Gemini 3.1 Pro
- *     (outdated · not roleplay leaders per 2026 benchmarks)
- *   - ADDED: GLM-5.1 ("Best for roleplay & creative writing" per BenchLM ·
- *     中文 leaderboard #3), GPT-5.4 Pro (current flagship · replaces GPT-4o)
- *   - KEPT: Claude Sonnet 4.6 (中文 #1 narrative), Opus 4.7 (#1 EQ),
- *     Haiku 4.5 (Director · cheap), Gemini 3.5 Flash (free value),
- *     Llama 3.1 405B (only NSFW per Hard rule #5)
- *
- * Phase 3 will move this to DB (`llm_models` table) for runtime config.
- * For Phase 1 we hardcode to keep things simple.
  */
 
 export type ModelRole = "director" | "narrator" | "general";
-export type ModelProvider = "anthropic" | "openai" | "google" | "xai" | "openrouter";
+/** Per ADR-021: 只可以係 anthropic (direct) 或者 openrouter (aggregator). */
+export type ModelProvider = "anthropic" | "openrouter";
 
 /**
- * User-facing tier names (what they pick in the UI).
- * Pool model selection is internal — see lib/ai/tier-router.ts.
+ * User-facing tier names (what they pick in the UI). Per ADR-022: 2 tier only.
+ * Adult mode 唔係獨立 tier · 係 model-level allows_nsfw flag + adult_mode_enabled toggle.
  */
-export type ModelTier = "standard" | "pro" | "pro-max" | "adult";
+export type ModelTier = "standard" | "pro";
 
 export type ModelEntry = {
   id: string; // internal Story Engine id
@@ -51,7 +45,7 @@ export type ModelEntry = {
 };
 
 export const MODELS: Record<string, ModelEntry> = {
-  // ─── Anthropic · Director + Pro pool + Pro Max ──────────────────────
+  // ─── Anthropic direct · Director + Pro pool narrator ────────────────
   "claude-haiku-4-5": {
     id: "claude-haiku-4-5",
     provider: "anthropic",
@@ -61,8 +55,8 @@ export const MODELS: Record<string, ModelEntry> = {
     credit_multiplier: 1.0,
     allows_nsfw: false,
     min_tier: "free",
-    description: "Director 仲裁專用 · 用戶見唔到。",
-    tier_pool: null, // internal · Director only
+    description: "Director 仲裁 + 內容審核專用 · 用戶見唔到。",
+    tier_pool: null, // internal · Director / moderation only
   },
   "claude-sonnet-4-6": {
     id: "claude-sonnet-4-6",
@@ -76,20 +70,8 @@ export const MODELS: Record<string, ModelEntry> = {
     description: "Pro tier · 中文敘事旗艦 · 情感細膩。",
     tier_pool: "pro",
   },
-  "claude-opus-4-7": {
-    id: "claude-opus-4-7",
-    provider: "anthropic",
-    model_id: "claude-opus-4-7",
-    display_name: "Claude Opus 4.7",
-    role: "narrator",
-    credit_multiplier: 4.0,
-    allows_nsfw: false,
-    min_tier: "storyteller",
-    description: "Pro Max · 最深層敘事 · 複雜情節 + 多角色互動。",
-    tier_pool: "pro-max",
-  },
 
-  // ─── OpenAI · Pro pool (English narrative · structured) ──────────────
+  // ─── OpenRouter · Pro pool English alternative ──────────────────────
   "gpt-5-4-pro": {
     id: "gpt-5-4-pro",
     provider: "openrouter",
@@ -99,11 +81,11 @@ export const MODELS: Record<string, ModelEntry> = {
     credit_multiplier: 2.5,
     allows_nsfw: false,
     min_tier: "adventurer",
-    description: "Pro tier · OpenAI 旗艦 · 英文敘事強。",
+    description: "Pro tier · 英文敘事強 · 經 OpenRouter 路由。",
     tier_pool: "pro",
   },
 
-  // ─── Google · Standard pool (free tier value) ────────────────────────
+  // ─── OpenRouter · Standard pool · free tier value ───────────────────
   "gemini-3-5-flash": {
     id: "gemini-3-5-flash",
     provider: "openrouter",
@@ -117,61 +99,53 @@ export const MODELS: Record<string, ModelEntry> = {
     tier_pool: "standard",
   },
 
-  // ─── Z.ai · Standard pool · "Best for roleplay" per BenchLM ──────────
+  // ─── OpenRouter · Standard pool 中文 roleplay + NSFW model ──────────
+  // ADR-022: GLM 5.1 同時係 (a) Standard pool 中文/roleplay 模型 (b) Adult mode
+  // 統一 model · adult_mode_enabled + KYC user 路由去呢個 model with allows_nsfw=true
   "glm-5-1": {
     id: "glm-5-1",
     provider: "openrouter",
     model_id: "z-ai/glm-5.1",
     display_name: "GLM-5.1",
     role: "narrator",
-    credit_multiplier: 1.0, // $0.024/turn ≈ same as Haiku base
-    allows_nsfw: false,
+    credit_multiplier: 1.0,
+    allows_nsfw: true, // ADR-022: GLM 5 做 cross-tier NSFW model
     min_tier: "free",
-    description: "Standard tier · 「Roleplay & 創意寫作最強」 · 中文 OK · Free tier 可用。",
+    description: "Standard tier · 「Roleplay & 創意寫作最強」 · 中文 OK · 成人模式統一 model。",
     tier_pool: "standard",
-  },
-
-  // ─── Meta via OpenRouter · Adult pool ────────────────────────────────
-  "llama-3-1-405b-uncensored": {
-    id: "llama-3-1-405b-uncensored",
-    provider: "openrouter",
-    model_id: "meta-llama/llama-3.1-405b-instruct",
-    display_name: "Llama 3.1 405B",
-    role: "narrator",
-    credit_multiplier: 1.5,
-    allows_nsfw: true,
-    min_tier: "storyteller",
-    description: "Adult tier · 成人模式專用 (NSFW · 唔被 ban 嘅 vendor)。",
-    tier_pool: "adult",
   },
 };
 
 /**
- * Pool of models that serve each user-facing tier.
- * tier-router picks one based on language detection + vendor availability.
+ * Pool of models that serve each user-facing tier. ADR-022: 2 tier only.
+ * Adult mode (cross-tier) 路由唔經呢度 · 直接 return GLM 5 via pickModelForTier
+ * 嗰個 adult-aware path.
  */
 export const TIER_POOLS: Record<ModelTier, string[]> = {
   standard: ["gemini-3-5-flash", "glm-5-1"],
   pro: ["claude-sonnet-4-6", "gpt-5-4-pro"],
-  "pro-max": ["claude-opus-4-7"],
-  adult: ["llama-3-1-405b-uncensored"],
 };
 
 /**
- * Director model always used internally (never user-visible).
- * Cheapest acceptable Claude for verdict + npc_updates extraction.
+ * Director model · 內容審核 + Director verdict 都用呢個 (Anthropic direct · cheap).
  */
 export const DIRECTOR_MODEL = "claude-haiku-4-5";
 
 /**
- * Default tier for new accounts (also fallback when user has no preference).
- * "pro" picked as default because Sonnet 4.6 is our 中文 narrative leader and
- * matches the founder's pre-Session-10 default (DEFAULT_NARRATOR = sonnet).
+ * Adult mode NSFW narrator model (ADR-022).
+ * 任何 adult_mode_enabled=true + is_age_verified=true user 喺任何 tier 都用呢個.
  */
-export const DEFAULT_TIER: ModelTier = "pro";
+export const ADULT_NSFW_MODEL = "glm-5-1";
 
-/** Back-compat exports for code that hasn't migrated to tier abstraction. */
-export const DEFAULT_NARRATOR = "claude-sonnet-4-6";
+/**
+ * Default tier for new accounts. "standard" 確保 free user 唔會撞到 Pro tier-gate 失敗 ·
+ * 跟住 createStory action 用 tier-router pick model · turn route 直接接受.
+ * (ADR-022 fix: 之前 default="pro" 令 free user 第一個 turn 即時 403.)
+ */
+export const DEFAULT_TIER: ModelTier = "standard";
+
+/** Back-compat exports · 漸進 migration 期間用. */
+export const DEFAULT_NARRATOR = "gemini-3-5-flash";
 export const DEFAULT_DIRECTOR = DIRECTOR_MODEL;
 
 export function getModel(id: string): ModelEntry {
@@ -195,14 +169,17 @@ export function modelsAllowingNsfw(): ModelEntry[] {
 }
 
 /**
- * What subscription tier unlocks each user-facing model tier?
- * Used by ModelPicker UI to grey out tiers above user's plan.
+ * What subscription tier unlocks each user-facing model tier? (ADR-022 simplified)
+ *   Standard model = Free signup user OK (gate `free`)
+ *   Pro model = $9.99 Standard subscription unlocks (gate `adventurer`)
+ *
+ * Adult mode = orthogonal flag (adult_mode_enabled + is_age_verified) ·
+ * 任何訂閱 tier user 都可以開（Standard $9.99 + KYC 都得 · Pro 一樣）·
+ * 開咗就路由去 ADULT_NSFW_MODEL (GLM 5.1).
  */
 export const TIER_GATE: Record<ModelTier, "free" | "adventurer" | "storyteller" | "legend"> = {
   standard: "free",
   pro: "adventurer",
-  "pro-max": "storyteller",
-  adult: "storyteller", // PLUS adult_mode_enabled + is_age_verified
 };
 
 /**
@@ -217,33 +194,20 @@ export function tierForModel(modelId: string | null | undefined): ModelTier {
 }
 
 /**
- * Phase 1 — recent turns window size per tier.
+ * Phase 1 — recent turns window size per tier (ADR-022 simplified).
  *
  * Cheaper tiers get fewer recent turns in the context (saves tokens) ·
  * higher tiers get fuller recent context. Phase 2 long-term memory (RAG +
  * summaries) compensates for the smaller window via vector recall.
  *
- * AUDIT FIX P1-UX-H-02 (Wave 2): bumped standard from 8 → 12. Pre-Phase 1
- * default was 20 · cutting to 8 would silently regress existing Standard
- * players' mid-scene continuity (Narrator drops turns 9-20 ago). 12 matches
- * Pro · still saves ~8 turns of input tokens vs the prior 20-turn baseline ·
- * preserves emotional callbacks across the typical confession/conflict arc.
- *
- * Tuning rationale (post-Wave 2):
- *   - standard (12) — Gemini Flash / GLM cheap enough to afford same as Pro
- *   - pro (12) — middle ground for Sonnet/GPT
- *   - pro-max (20) — Opus deserves the full context window
- *   - adult (12) — Llama 405B context isn't free either
+ * AUDIT FIX P1-UX-H-02 (Wave 2): bumped standard from 8 → 12. 仍然 align Pro ·
+ * 喺 12 平衡 cost + 連續性. Adult mode user 用 GLM 5 跟 Standard 一樣 12 turn.
  */
 export function recentTurnsLimitForTier(tier: ModelTier): number {
   switch (tier) {
     case "standard":
       return 12;
     case "pro":
-      return 12;
-    case "pro-max":
-      return 20;
-    case "adult":
       return 12;
   }
 }

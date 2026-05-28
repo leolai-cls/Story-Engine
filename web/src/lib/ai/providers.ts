@@ -30,8 +30,10 @@ export const openrouterProvider = createOpenAI({
   apiKey: process.env.OPENROUTER_API_KEY,
   baseURL: "https://openrouter.ai/api/v1",
   // OpenRouter requires the OpenAI-compatible "name" header for usage routing.
+  // Hard rule #35 (post-subdomain split): app origin preferred · marketing host
+  // deprecated as referrer source.
   headers: {
-    "HTTP-Referer": process.env.NEXT_PUBLIC_SITE_URL ?? "https://kieio.com",
+    "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL ?? "https://app.kieio.com",
     "X-Title": "Kieio",
   },
 });
@@ -57,17 +59,11 @@ export function getProviderModel(internalModelId: string): LanguageModel {
     entry = getModel("claude-sonnet-4-6");
   }
 
+  // ADR-021: 只支援 anthropic direct + openrouter aggregator · 唔加任何其他 vendor.
   switch (entry.provider) {
     case "anthropic":
       return anthropicProvider(entry.model_id);
     case "openrouter":
       return openrouterProvider(entry.model_id);
-    case "openai":
-    case "google":
-    case "xai":
-      // Future provider stubs — explicit failure rather than silent wrong-provider call.
-      throw new Error(
-        `Provider "${entry.provider}" not wired up yet (model: ${entry.id}). Phase 3 will add it.`,
-      );
   }
 }

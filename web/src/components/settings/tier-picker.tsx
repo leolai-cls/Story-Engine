@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Cpu, Lock, Sparkles, Zap, Crown, Flame } from "lucide-react";
+import { Cpu, Lock, Sparkles, Zap } from "lucide-react";
 import { type ModelTier, TIER_GATE, TIER_POOLS } from "@/lib/ai/models";
 import { type Tier, estimateTurnCredits } from "@/lib/billing/credits";
 import { setDefaultTier } from "@/app/[locale]/settings/actions";
@@ -40,16 +40,6 @@ const TIER_ICONS: Record<
     icon: Sparkles,
     color: "text-indigo-700 dark:text-indigo-300",
     bgColor: "bg-indigo-50 dark:bg-indigo-950/30",
-  },
-  "pro-max": {
-    icon: Crown,
-    color: "text-amber-700 dark:text-amber-300",
-    bgColor: "bg-amber-50 dark:bg-amber-950/30",
-  },
-  adult: {
-    icon: Flame,
-    color: "text-rose-700 dark:text-rose-300",
-    bgColor: "bg-rose-50 dark:bg-rose-950/30",
   },
 };
 
@@ -91,7 +81,7 @@ export function TierPicker({
   const tierOrder = ["free", "adventurer", "storyteller", "legend"] as const;
   const userSubIdx = tierOrder.indexOf(subscriptionTier as (typeof tierOrder)[number]);
 
-  const allTiers: ModelTier[] = ["standard", "pro", "pro-max", "adult"];
+  const allTiers: ModelTier[] = ["standard", "pro"];
 
   // Compute credit estimates ONCE per render via useMemo (pure function · no
   // DB · safe in client component). AUDIT FIX P0B-HIGH-02.
@@ -99,8 +89,6 @@ export function TierPicker({
     const out: Record<ModelTier, number> = {
       standard: 0,
       pro: 0,
-      "pro-max": 0,
-      adult: 0,
     };
     for (const t of allTiers) out[t] = tierAvgCredits(t);
     return out;
@@ -143,9 +131,12 @@ export function TierPicker({
     const requiredSub = TIER_GATE[tier];
     const requiredIdx = tierOrder.indexOf(requiredSub);
     if (userSubIdx < requiredIdx) return false;
-    if (tier === "adult" && (!adultModeEnabled || !ageVerified)) return false;
     return true;
   }
+  // ADR-022: adult mode = orthogonal toggle (separate Settings UI) · 唔再喺 TierPicker
+  // 顯示. tier-router 喺 turn-time 根據 adult_mode_enabled 路由去 GLM 5.
+  void adultModeEnabled;
+  void ageVerified;
 
   return (
     <Card>
@@ -172,12 +163,6 @@ export function TierPicker({
           const isSelected = selected === tier;
           const Ico = meta.icon;
           const requiredSub = TIER_GATE[tier];
-
-          // Hide Adult tier entirely when adult mode off (cleaner UX · matches
-          // CLAUDE.md hard rule #5 — don't expose NSFW path to non-adult-mode
-          // users · they shouldn't even see it as "locked").
-          if (tier === "adult" && !adultModeEnabled) return null;
-
           return (
             <button
               key={tier}
@@ -201,19 +186,10 @@ export function TierPicker({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm font-semibold">{t(`tiers.${tier}`)}</span>
-                    {tier === "adult" && (
-                      <Badge
-                        variant="outline"
-                        className="text-[10px] border-rose-300 text-rose-600 dark:text-rose-300"
-                      >
-                        18+
-                      </Badge>
-                    )}
                     {!allowed && (
                       <Badge variant="outline" className="text-[10px]">
                         <Lock className="h-3 w-3" />
                         {t("requiresSubTier", { tier: t(`subTierLabels.${requiredSub}`) })}
-                        {tier === "adult" && !ageVerified ? t("andKyc") : ""}
                       </Badge>
                     )}
                   </div>

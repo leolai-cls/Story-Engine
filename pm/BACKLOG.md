@@ -24,6 +24,29 @@
 
 ---
 
+## Session 15 deferred items（money tier + i18n Wave 2 + marketing 留低 polish）
+
+呢批係 Session 15 ship 之後 tracked 嘅 polish item · 全部 non-blocking · final-stage 或 post-launch handle。
+
+### 技術 debt / spec hygiene
+- ⬜ **MIG-0029-0032 backfill into repo** — Migrations 0029-0032 applied via Supabase MCP during money tier ship · 仲未 commit 入 repo source · 0033 header comment 已 document · 應該重新 generate file form 入 `supabase/migrations/` keep source-of-truth 同 prod 同步 · 半 session 工作
+- ⬜ **state-schema.ts "分" 後綴** — schema-generator 出 numeric field 嘅 unit 仲偶然見「分」(score) 用做 generic suffix · 唔貼故事氛圍 (e.g., 戀愛故事「100 分」覺得 game-y) · post-launch UX feedback 之後 tune
+
+### Dead code / linter cleanups
+- ⬜ **model-picker.tsx dead** — Settings tier-picker 取代咗 model-picker · 但 file 仲喺度 · delete + import scan
+- ⬜ **ENTITY_LABEL dead** — character-relationship-panel.tsx 入面 ENTITY_LABEL constant 已 unused after 4-axis refactor · delete
+- ⬜ **TIER_CONFIG.description dead** — billing config 入面 description 字串 unused (UI 用 i18n catalog 取代) · drop column
+- ⬜ **GENRE.label / RATING / AXIS constants** — components/se/genre.ts 入面 3 個 export 已 unused · UI 用 i18n catalog · delete
+
+### Moderation 繁中 messages
+- ⬜ **openai-moderation.ts 繁中 reason templates** — moderation API 返英文 verdict reason · 而家 hardcoded 繁中 template 翻譯 · 應該 (a) extract 入 i18n catalog OR (b) per-locale template object · 唔係 hardcoded 字串 · post-i18n consistency cleanup
+
+### Marketing post-launch
+- ⬜ **Marketing copy A/B test** — landing hero copy + 3 selling points 而家係 founder + Claude 一輪 iterate · post-launch 收集 conversion data 後可以 A/B test variant copy (e.g., "AI 真係記得" vs "永遠唔忘記" · "走入自己嘅故事" vs "做主角")
+- ⬜ **Per-locale landing variants** — 而家 strict per-locale copy 已 ship · 但 visual asset (cover images / demo cards) 仲係跨 locale 一致 · 將來可以 per-market 配 cultural-specific imagery (TW 校園 hero vs HK 古惑仔 hero vs 海外華人 玄幻 hero)
+
+---
+
 ## Phase 6 + 1.5/2 polish deferred（1st audit cycle · 10 LOW items · all non-blocking · 對應 audit-report-phase6-and-1.5polish.html）
 
 呢批係 Phase 6 non-money + Phase 1.5/2 polish 1st audit cycle 揾到嘅 10 個 LOW · 全部 non-blocker · UI tier 或者 future polish wave 處理。

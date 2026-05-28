@@ -640,14 +640,14 @@ export const TIER_CONFIG: Record<
     label: "Standard",
     priceUsd: 9.99,
     monthlyCredits: 2000,
-    description: "2,000 credits 每月 · 無 turn 上限 · Pro + Pro Max model 解鎖 · 80 NPC L3 turn/月",
-    allowsNsfw: false,
+    description: "2,000 credits 每月 · 無 turn 上限 · Standard + Pro AI model · 成人模式 (KYC 後)",
+    allowsNsfw: true,
   },
   storyteller: {
     label: "Pro",
     priceUsd: 19.99,
     monthlyCredits: 4000,
-    description: "4,000 credits 每月 · 全部 model · 成人模式 (要 KYC) · NPC L3 無限",
+    description: "4,000 credits 每月 · 全部功能 · NPC 內心戲無限 · 成人模式",
     allowsNsfw: true,
   },
   legend: {

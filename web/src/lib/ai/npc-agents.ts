@@ -407,7 +407,7 @@ async function callSingleNpcAgent(params: {
   ]
     .filter(Boolean)
     .join("\n");
-  const modelId = pickModelForTier("standard", routingSample);
+  const modelId = pickModelForTier("standard", { context: routingSample });
 
   const systemPrompt = buildNpcAgentSystemPrompt(character.card, storyLanguage);
   const userMessage = buildAgentUserMessage({
