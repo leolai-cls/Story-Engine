@@ -669,9 +669,9 @@
       "ledgerEmpty": "暂无 credit 变动。",
       "ledgerBalance": "余 {balance}",
       "tierDescriptions": {
-        "free": "50 credits 每日 · 仅限基础 model",
-        "adventurer": "2,000 credits 每月 · 无 turn 上限 · Pro + Pro Max model 解锁 · 80 NPC L3 turn/月",
-        "storyteller": "4,000 credits 每月 · 全部 model · 成人模式 (需 KYC) · NPC L3 无限",
+        "free": "50 credits 每日 · 仅限 Standard model",
+        "adventurer": "2,000 credits 每月 · 无 turn 上限 · Standard + Pro AI model · 成人模式 (KYC 后)",
+        "storyteller": "4,000 credits 每月 · 全部功能 · NPC 内心戏无限 · 成人模式",
         "legend": "已下架 · 与 Pro 相同"
       }
     },
@@ -713,21 +713,17 @@
       "andKyc": " + 身份验证",
       "tiers": {
         "standard": "Standard",
-        "pro": "Pro",
-        "pro-max": "Pro Max",
-        "adult": "Adult NSFW"
+        "pro": "Pro"
       },
       "blurbs": {
-        "standard": "快 · 便宜 · 中文流畅 · 对标 NovelAI",
-        "pro": "深层叙事 · 情感细腻 · 中英都强",
-        "pro-max": "最深层 · 多角色互动 · 复杂情节",
-        "adult": "成人模式专用 · 需身份验证"
+        "standard": "快 · 便宜 · 中文流畅 · Gemini Flash / GLM-5 路由",
+        "pro": "最深层叙事 · 情感细腻 · Claude Sonnet 路由"
       },
       "subTierLabels": {
         "free": "Free",
-        "adventurer": "Adventurer",
-        "storyteller": "Storyteller",
-        "legend": "Legend"
+        "adventurer": "Standard",
+        "storyteller": "Pro",
+        "legend": "Pro"
       }
     },
     "adultModeToggle": {

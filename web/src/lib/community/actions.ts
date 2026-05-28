@@ -459,34 +459,21 @@ export async function forkStoryToPlaythrough(params: {
   // default_tier from profile · route to a pool model via pickModelForTier.
   // Legacy users (no default_tier yet) fall back to default_model · then to
   // Sonnet hard default.
-  let resolvedModel: string = params.llmModel ?? "claude-sonnet-4-6";
+  // ADR-022 fallback · gemini-3-5-flash (Standard pool · free-tier 允許) ·
+  // 之前 hardcoded Sonnet · free user fork story 即時被 tier-gate reject.
+  let resolvedModel: string = params.llmModel ?? "gemini-3-5-flash";
   if (!params.llmModel) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("default_tier, default_model")
       .eq("id", user.id)
       .maybeSingle();
-    const tierPref = profile?.default_tier as
-      | "standard"
-      | "pro"
-      | "pro-max"
-      | "adult"
-      | null
-      | undefined;
+    // ADR-022: legacy default_tier 可能仍係 "pro-max" / "adult" · narrow 落 valid 2-tier.
+    const rawTierPref = profile?.default_tier as string | null | undefined;
+    const tierPref: "standard" | "pro" | null =
+      rawTierPref === "standard" || rawTierPref === "pro" ? rawTierPref : null;
     if (tierPref) {
-      // AUDIT FIX P0BW2-HIGH-01 (Wave 2 · 2026-05-25): previously passed
-      // params.storyId (UUID · pure ASCII) as language-detection context
-      // to pickModelForTier · isChineseContent(uuid) returned false →
-      // Standard tier forks routed to Gemini Flash ($0.038/turn) instead
-      // of GLM-5.1 ($0.024/turn). 58% extra COGS on the canonical 中文
-      // launch market path (HK/TW users forking community stories).
-      //
-      // Fix: omit context arg · pickModelForTier defaults to CJK routing
-      // (per Story Engine 繁中-first market lock in CLAUDE.md). GLM-5.1
-      // for Standard · Sonnet 4.6 for Pro. Matches our default audience.
-      // (English-prompt creation flow correctly passes seedText already
-      // via createStoryFromPrompt · this branch is fork-specific where
-      // we don't have a meaningful text proxy.)
+      // Fork-specific: 用 CJK default routing (繁中 launch market) · 唔 pass storyId UUID 做 context.
       const { pickModelForTier } = await import("@/lib/ai/tier-router");
       resolvedModel = pickModelForTier(tierPref);
     } else if (profile?.default_model) {

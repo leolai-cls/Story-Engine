@@ -91,14 +91,12 @@ export const TIER_DISPLAY: Record<
     priceUsd: 9.99,
     monthlyCredits: 2000,
     bullets: [
-      // Audit Wave 2 (2026-05-27): drop "80 NPC L3 turns / month" claim ·
-      // current DB trigger (Migration 0028) gates L3 to Storyteller/Legend
-      // only. Conservative fix: match code reality. If founder later wants
-      // Standard to have capped L3, requires (a) widen trigger + (b) add
-      // count_l3_turns_30d function + (c) runtime check.
+      // ADR-022: 2-tier model · Standard 用戶可以用 Standard + Pro 兩個 model pool ·
+      // 都可以開成人模式 (KYC 後 · 路由 GLM 5 NSFW). Drop legacy「Pro Max」+「80 L3」claim.
       { en: "2,000 credits / month", zh: "每月 2,000 credits" },
       { en: "No turn cap · play as long as you want", zh: "無回合上限 · 玩到夠" },
-      { en: "Pro + Pro Max AI tiers unlocked", zh: "解鎖 Pro + Pro Max 模型" },
+      { en: "Standard + Pro AI models (Gemini Flash + Claude Sonnet)", zh: "Standard + Pro AI 模型 (Gemini Flash + Claude Sonnet)" },
+      { en: "Adult mode (after age verification)", zh: "成人模式 (KYC 後解鎖)" },
       { en: "Memory Palace + full Skill Check system", zh: "記憶宮殿 + 完整擲骰系統" },
     ],
   },
@@ -109,8 +107,8 @@ export const TIER_DISPLAY: Record<
     monthlyCredits: 4000,
     bullets: [
       { en: "4,000 credits / month", zh: "每月 4,000 credits" },
+      { en: "Same AI models as Standard · twice the credits", zh: "同 Standard 一樣 AI 模型 · credits 多一倍" },
       { en: "Unlimited NPC Inner Voices", zh: "NPC 內心戲無限" },
-      { en: "Full Pro + Pro Max AI access", zh: "Pro + Pro Max 模型無限" },
       { en: "Adult mode (after age verification)", zh: "成人模式 (KYC 後解鎖)" },
     ],
   },

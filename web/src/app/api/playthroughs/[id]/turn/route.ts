@@ -69,12 +69,9 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 /**
- * Recent turns window — Phase 1 made this tier-aware (P1.7).
- * Pre-Phase 1 was hardcoded 20. Now derived from pt.llm_model → tier:
- *   standard=8 · pro=12 · pro-max=20 · adult=12 (see recentTurnsLimitForTier).
- *
- * Kept as MAX_RECENT_TURN_LIMIT for the initial query · we then trim in
- * memory after fetching (avoids needing to know tier at query time).
+ * Recent turns window — ADR-022 simplified: standard=12 · pro=12.
+ * MAX initial query limit kept at 20 for query-time simplicity · trimmed
+ * to actual per-tier limit after fetching.
  */
 const MAX_RECENT_TURN_LIMIT = 20;
 

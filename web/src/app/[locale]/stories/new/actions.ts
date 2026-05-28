@@ -172,16 +172,28 @@ export async function createStoryFromPrompt(
   // userTierAllowsModel check is mostly a no-op when tier-routed · but kept
   // as defense-in-depth (covers data corruption / future-tier conflicts).
   const prefData = prefProfileResult.data;
-  const tierPref = prefData?.default_tier as ModelTier | null | undefined;
+  // ADR-022: legacy `default_tier` 可能仍然係 "pro-max" / "adult" · narrow 落 valid 2-tier.
+  const rawTierPref = prefData?.default_tier as string | null | undefined;
+  const tierPref: ModelTier | null =
+    rawTierPref === "standard" || rawTierPref === "pro" ? rawTierPref : null;
+  // ADR-022: adult-rated story 一律路由去 GLM 5 NSFW (cross-tier)
+  const isAdult = parsed.data.content_rating === "adult";
   let requestedModel: string;
-  if (tierPref) {
-    requestedModel = pickModelForTier(tierPref, seedText);
-  } else if (prefData?.default_model) {
+  if (isAdult) {
+    requestedModel = pickModelForTier(tierPref ?? "standard", {
+      context: seedText,
+      adultMode: true,
+    });
+  } else if (tierPref) {
+    requestedModel = pickModelForTier(tierPref, { context: seedText });
+  } else if (prefData?.default_model && MODELS[prefData.default_model]) {
     requestedModel = prefData.default_model;
   } else {
     requestedModel = DEFAULT_NARRATOR;
   }
   const tierCheck = await userTierAllowsModel(supabase, user.id, requestedModel);
+  // ADR-022 fallback fix · 跌返 DEFAULT_NARRATOR (gemini-3-5-flash · free-tier 允許)
+  // 唔再 fall 去 sonnet · 之前 fallback 都係 sonnet · free user 撞死循環.
   const userNarratorModel = tierCheck.allowed ? requestedModel : DEFAULT_NARRATOR;
   if (!tierCheck.allowed) {
     console.log(

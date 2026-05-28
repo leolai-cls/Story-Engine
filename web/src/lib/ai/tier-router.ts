@@ -1,98 +1,99 @@
 /**
  * Tier router — picks the actual underlying LLM for a user-facing tier.
  *
- * Founder rule (2026-05-25): users pick TIER (Standard / Pro / Pro Max /
- * Adult), not a specific vendor model. We internally route based on:
- *   1. Content language (中文 → favor 中文-strong models · English → English-strong)
- *   2. Vendor availability (fallback chain if primary down)
- *   3. Cost optimization (within tier · pick cheapest acceptable)
+ * ADR-022 (2026-05-28) Simplification:
+ *   - 2 user-facing tier (Standard / Pro) · 唔再有 Pro Max / Adult separate tier
+ *   - Adult mode = adult_mode_enabled boolean toggle · cross-tier · 路由去 GLM 5
  *
- * This gives us:
- *   - Vendor diversification (one outage doesn't take us down)
- *   - Future-proof (swap GPT-5.4 → GPT-6 inside Pro pool · zero user churn)
- *   - Cleaner UX (3 tier choices vs 7 vendor model names)
+ * Routing inputs:
+ *   1. tier ("standard" | "pro")
+ *   2. adultMode boolean (`adult_mode_enabled && is_age_verified` · 任何訂閱都可以開)
+ *   3. context text (用嚟做 language detection)
+ *
+ * Decision:
+ *   - adultMode=true → 一律 return ADULT_NSFW_MODEL ("glm-5-1")
+ *   - tier="standard" + 中文 dominant → "glm-5-1"
+ *   - tier="standard" + 英文 → "gemini-3-5-flash"
+ *   - tier="pro" + 中文 dominant → "claude-sonnet-4-6"
+ *   - tier="pro" + 英文 → "gpt-5-4-pro"
  *
  * Pool definitions live in lib/ai/models.ts TIER_POOLS const.
  */
 
-import { TIER_POOLS, DIRECTOR_MODEL, type ModelTier } from "./models";
+import { TIER_POOLS, DIRECTOR_MODEL, ADULT_NSFW_MODEL, type ModelTier } from "./models";
 
 /**
  * Detect whether content is primarily Chinese.
  *
  * Counts CJK Unified Ideographs (U+4E00–U+9FFF · covers 繁中 + 简中 + 日本漢字
  * subset relevant to us) vs total non-whitespace chars. ≥30% = Chinese-dominant.
- *
- * 30% threshold (not 50%) because Story Engine narrative often interleaves
- * Chinese with English brand names, English dialogue snippets, code-switching.
- * 30% catches "中文 dominant" cases without false-negatives on bilingual text.
  */
 export function isChineseContent(text: string): boolean {
   if (!text) return false;
   const nonWhitespace = text.replace(/\s/g, "");
   if (nonWhitespace.length === 0) return false;
-  // CJK Unified Ideographs (most common) + CJK Extension A
   const cjkCount = (nonWhitespace.match(/[一-鿿㐀-䶿]/g) ?? []).length;
   return cjkCount / nonWhitespace.length >= 0.3;
 }
 
 /**
- * Pick the actual model id to call for a given tier.
+ * Pick the actual model id to call for a given tier + adult mode state.
  *
- * @param tier User-facing tier (standard / pro / pro-max / adult)
- * @param context Optional · text sample (last few turns + new action) for
- *                language detection. Pass at least the new user input for
- *                accurate Chinese-vs-English routing.
- * @returns Internal model id (e.g. "claude-sonnet-4-6"). Caller passes this
- *          to providers.ts getProviderModel() to get the actual SDK instance.
+ * @param tier User-facing tier (standard / pro)
+ * @param options Optional · text context for language detection + adult mode flag
+ * @returns Internal model id (e.g. "claude-sonnet-4-6")
  */
-export function pickModelForTier(tier: ModelTier, context?: string): string {
-  const pool = TIER_POOLS[tier];
-  if (!pool || pool.length === 0) {
-    // Shouldn't happen if tier is validated · throw loudly so misconfig surfaces.
-    throw new Error(`tier-router: empty pool for tier "${tier}"`);
+export function pickModelForTier(
+  tier: ModelTier,
+  options?: { context?: string; adultMode?: boolean },
+): string {
+  // ADR-022: Adult mode 任何 tier 都用 GLM 5.1 (NSFW model)
+  if (options?.adultMode) {
+    return ADULT_NSFW_MODEL;
   }
 
-  // Single-model tiers (pro-max · adult): no routing decision.
+  const pool = TIER_POOLS[tier];
+  if (!pool || pool.length === 0) {
+    throw new Error(`tier-router: empty pool for tier "${tier}"`);
+  }
   if (pool.length === 1) return pool[0];
 
-  const isCjk = context ? isChineseContent(context) : true; // 繁中 default market
+  const isCjk = options?.context ? isChineseContent(options.context) : true; // 繁中 default market
 
-  // Standard pool: Gemini Flash + GLM-5.1
-  // 中文 → GLM-5.1 ("Best for roleplay & creative writing" per BenchLM ·
-  //         中文 #3 leaderboard · also cheaper)
-  // English → Gemini Flash (long context · vendor diversity)
   if (tier === "standard") {
+    // 中文 → GLM-5.1 (roleplay leader 中文 #3)
+    // English → Gemini Flash (long context · vendor diversity)
     return isCjk ? "glm-5-1" : "gemini-3-5-flash";
   }
 
-  // Pro pool: Claude Sonnet 4.6 + GPT-5.4 Pro
-  // 中文 → Sonnet 4.6 (中文 #1 narrative per EQ-Bench)
-  // English → GPT-5.4 Pro (English #1 narrative · structured output strong)
   if (tier === "pro") {
+    // 中文 → Sonnet 4.6 (中文 #1 narrative)
+    // English → GPT-5.4 Pro (English #1 narrative · OpenRouter routed)
     return isCjk ? "claude-sonnet-4-6" : "gpt-5-4-pro";
   }
 
-  // Fallback — shouldn't reach here if tier validated.
   return pool[0];
 }
 
 /**
  * Get a fallback chain for a tier · used when primary vendor is down.
- * First element = primary (from pickModelForTier) · rest = ordered fallbacks.
- *
- * Example: Pro pool with Claude down → ["claude-sonnet-4-6", "gpt-5-4-pro"]
- * Caller retries with next on 5xx / timeout / rate-limit.
+ * Adult mode bypass: 只 return ADULT_NSFW_MODEL · 冇 fallback (founder 唔接受
+ * NSFW 路由去其他可能 ban 嘅 vendor).
  */
-export function fallbackChainForTier(tier: ModelTier, context?: string): string[] {
-  const primary = pickModelForTier(tier, context);
+export function fallbackChainForTier(
+  tier: ModelTier,
+  options?: { context?: string; adultMode?: boolean },
+): string[] {
+  if (options?.adultMode) {
+    return [ADULT_NSFW_MODEL];
+  }
+  const primary = pickModelForTier(tier, options);
   const pool = TIER_POOLS[tier];
   return [primary, ...pool.filter((id) => id !== primary)];
 }
 
 /**
  * Director always uses the dedicated DIRECTOR_MODEL · not affected by tier.
- * Exported for symmetry · callers can also import DIRECTOR_MODEL directly.
  */
 export function getDirectorModel(): string {
   return DIRECTOR_MODEL;

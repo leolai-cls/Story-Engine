@@ -7,27 +7,29 @@
 
 ## 🎯 而家狀態
 
-**Brand**: 🆕 **Kieio** · 讀「KEE-yo」· domain **kieio.com** (Cloudflare registrar · Vercel hosted · DNS auto-configured · SSL provisioned)
-**Phase**: **🟢 Phase 0 + Phase 1 + Phase 1.5 NPC L3 backend + Session 14 UI DONE (Sessions 11-14 · 10 migrations 0019-0028 · 4 audit campaigns converged · 17 ship blockers caught pre-prod) · 🆕 Brand locked 「Kieio」+ domain live · 落 🟡 Money tier (Phase 4 Stripe + Phase 6 KYC)**
-**Live URL**: https://kieio.com (was https://story-engine-drab.vercel.app · auto-redirect 301 維持)
-**Last updated**: 2026-05-26 (Session 14 — UI shipped + Kieio brand locked + kieio.com domain live)
+**Brand**: 🆕 **Kieio** · 讀「KEE-yo」· domain **kieio.com** (marketing · Cloudflare registrar) · **app.kieio.com** (product · subdomain split done)
+**Phase**: **🟢 Function tier 全完 + 🟣 UI tier 全完 + 🟡 Money tier 全完 (Phase 4 Stripe + Phase 6 KYC · 3-wave audit converged) + 🌐 Marketing landing/pricing + 🌏 i18n Wave 2 (622 keys · 9-cycle audit converged) + 🆕 Brand locked · 🏁 落 final stage (5 條官方故事 + comprehensive E2E)**
+**Live URL**: https://kieio.com (marketing) · https://app.kieio.com (product) · auto-redirect 維持
+**Last updated**: 2026-05-28 (Session 16 W4 — ADR-021 + ADR-022 落實: OpenAI 直駁全部移除 (moderation 改 Haiku via Anthropic direct · embeddings 改 OpenRouter) · model tier 4 → 2 (Standard + Pro · drop Pro Max + Adult tier) · Adult mode = cross-tier toggle 路由 GLM 5.1 · stale marketing claim 清理 · DEFAULT_NARRATOR free-allowed fallback)
 
 ## 🎯 Founder priority rule（鎖死）
 
 **Function → UI → Money**。Phase number 唔等於 priority — 按下面 tier 排：
 
-- 🟢 **FUNCTION (in progress, scope expanded)** — Session 8 6-phase complete · **Session 11 pre-launch Phase 0 added** (tier abstraction · 4 migrations · 5 ship blockers caught) · Phase 1 next (MemPalace memory + NPC Level 2)
-- 🟣 **UI** ✅ DONE Session 9 (revisit after function 完晒 + money)
-- 🟡 **MONEY**：Phase 4 Stripe · Phase 6 KYC (deferred until function 完)
+- 🟢 **FUNCTION** ✅ DONE (Sessions 8-13 · 6 phases · 28 migrations 0001-0028 · 5 audit campaigns converged · 60+ ship blockers caught pre-prod)
+- 🟣 **UI** ✅ DONE (Session 9 + Session 14 NPC L3 surface + Session 15 marketing)
+- 🟡 **MONEY** ✅ DONE Session 15 (Phase 4 Stripe subscription + top-up + cron · Phase 6 KYC Stripe Identity · 3-wave audit converged · 9 ship blockers caught)
+- 🌏 **i18n Wave 2** ✅ DONE Session 15 (622 catalog keys × 3 locales · 9-cycle audit converged · zero drift)
+- 🌐 **Marketing** ✅ DONE Session 15 (kieio.com dark cinematic landing + /pricing + 3 selling points · subdomain split)
 - 🏁 **Final stage**（launch eve）：Phase 7 5 條官方故事 + Comprehensive Manual E2E
 
-## 📍 What's next（按 function-first priority）
+## 📍 What's next（按 final-stage priority）
 
 | 排 | Plan item | Tier | Time | Why |
 |---|---|---|---|---|
-| 🥇 | **Phase 1 — MemPalace 4-layer memory + NPC Level 2** — hierarchical namespace (Wings/Rooms/Drawers) · Director rooms_to_load + npc_updates · hybrid retrieval (semantic + keyword + temporal) · NPC dynamic state via Director output · knowledge graph (mem_nodes + mem_edges) · scoped scene-level rolling summary · tier-based turn trim (8/12/20) | 🟢 FUNCTION | ~2-3 sessions | Solves #1 churn driver "AI 唔記得" · cost optimization + quality 一齊 |
-| 🥈 | **Money tier** — Phase 4 Stripe (subscription + checkout + top-up) · Phase 6 KYC (Stripe Identity) · Phase 3 deferred (refund saga · OpenRouter dynamic pricing) | 🟡 MONEY | ~2 sessions | 收錢 backbone (after function 完) |
-| 🏁 | **Final stage (launch eve)** — (a) Phase 7 content: 5 條 launch-ready 官方故事 (小工作) · (b) Comprehensive Manual E2E (founder ~1-2 session) covers community + UI + adult mode + 5 stories + entire happy path | 🟢 + 🧪 | ~2-3 session 一氣呵成 | Founder rule: 寫故事細工作 · 等所有 backend/UI/money 完晒先 polish 內容 · 同時 final E2E 測 launch-ready product |
+| 🥇 | **Phase 7 5 條官方故事** — founder + Claude collaboration 寫 launch 第一批 stories (TW 校園戀愛 / HK 古惑仔 / 玄幻 / 末日 / 商戰 等覆蓋 cultural diversity per ADR-009) | 🏁 FINAL | ~1 session | Launch eve content · 細工作 ·founder rule deferred 到呢度 |
+| 🥈 | **Comprehensive Manual E2E** — founder ~1-2 session · 覆蓋 marketing landing + login + library + creation + play + memory + community + adult mode + KYC + 5 官方故事 + subscription checkout + top-up | 🧪 FINAL | ~1-2 sessions | Founder rule (2026-05-23) deferred 全部 E2E 到 UI tier 完之後 · 而家 timing 啱 |
+| 🏁 | **Launch ready** | — | — | 上面 2 條完晒 = product 可以 public launch |
 
 ## 🟣 UI tier deliverables (Session 9 · 14 commits · all 47 designer artboards covered)
 
@@ -50,7 +52,13 @@
 
 ## 🚧 Blockers
 
-**冇 launch blocker · function tier truly complete**。
+**冇 launch blocker · function + UI + money tier 全部完 · 淨低 final stage (5 條故事 + comprehensive E2E)**。
+
+**Session 15 money tier 3-wave audit converged** (af0574c / d9af4a6 / 1ba7daf) — Wave 1 (8 ship blocker: 4🔴 + 4🟠 inline-fixed) → Wave 2 (UX polish: 4🟠 + 1🔴 mismatch) → Wave 3 (1🟡 + 1🔵 cycle 1 converged)。**9 ship blockers caught pre-prod 加 Stripe webhook / KYC flow / refund saga edge case**。
+
+**Session 15 i18n Wave 2 9-cycle audit converged** — 622 catalog keys × 3 locales (en / zh-Hant / zh-Hans) · zero drift · `t.rich()` patterns for inline JSX · server action error code mapping at boundary。
+
+**Session 15 marketing landing 5-cycle audit converged** — dark cinematic landing 對齊 Grok × Apple aesthetic · 3 selling points (NPC Inner Voices · 4-layer Memory · Adaptive UI panel) · pricing page · Google Sans on price numbers · per-locale strict copy (en / zh-Hant / zh-Hans)。
 
 **Phase 5 5-cycle audit converged** — Wave 2.5 audit (17 · 0 blocker) → Wave 2.6 fix → Wave 2.6 audit (16 · 0 blocker · convergence holds) → Wave 2.7 fix → Wave 2.7 audit (12 · 0 ship blocker · 1 HIGH on E2E checklist 已修)。Finding count declining: 29 → 24 → 17 → 16 → 12。**35 個 issue caught & fixed pre-prod (21 ship blocker + 14 polish)**。
 
@@ -64,7 +72,161 @@
 
 **Migrated to backlog** (per pm/BACKLOG.md「Phase 5 deferred polish」section · 20 IDs 跨 4 sub-bucket)：W2.5-GENRE-M-02 alias gap · W2.5-FTS-L-03/L-04 tokenizer polish · W2-COST-H-04 anon ISR · W2.6-MIG-L-02 'curated' enum doc · W2.6-PLAY-L-03/L-04 defensive · W2.6-LIB-L-05 1-char Latin hint · W2.6-LIB-I-06 Settings display_name trim · W2.6-UX-L-03 English error strings · W2.6-MIG-I-07 createStory+trigger origin redundancy · W2.6-INFO-03 getCommentReplies UI TODO · W2.6-MIGRATION-L-04 sanity check pattern · 等等。
 
-## ✅ Just completed (Session 14 — 🎯 UI surface + 🆕 Kieio brand lock + kieio.com domain live)
+## ✅ Just completed (Session 15 — 🟡 Money tier + 🌐 Marketing landing + 🌏 i18n Wave 2 + auth/grant fix)
+
+### TL;DR
+- 🟡 **Money tier shipped end-to-end**: Phase 4 Stripe (subscription · checkout · webhook · billing portal) + Phase 6 KYC (Stripe Identity 18+ verification) + top-up + daily-50 free refresh cron · 3-wave audit converged (9 ship blockers caught)
+- 🌐 **Marketing site live** at kieio.com: dark cinematic landing + dark pricing page + 3 selling points (NPC Inner Voices · 4-layer Memory · Adaptive UI) + Pricing nav · per-locale strict copy
+- 🔀 **Hard subdomain split** (commit e2c8cb0) — kieio.com = marketing (`/` `/pricing`) · app.kieio.com = product (`/login` `/auth/callback` `/library` `/my` `/play` `/stories/new` `/settings`) · 308 redirects via middleware · zero-code-change for future split-only changes
+- 🌏 **i18n Wave 2 migration** (commit 7baa4dd): 622 catalog keys × 3 locales · library/[storyId] (~700 LOC) + story-detail-actions (~500 LOC) + mobile-sticky-cta · 9-cycle audit converged · zero drift · `t.rich()` for inline JSX with `<plus>` `<settings>` tags · server action error code mapping at boundary
+- 🔧 **Google login subdomain bug fix** (commit 7baa4dd): OAuth callback was landing on kieio.com instead of app.kieio.com → cookie domain mismatch → user 表面 not logged in。Fix: `authRedirectBase()` 改用 `getAppOrigin()` from `lib/urls.ts`。Same fix applied to magic link `emailRedirectTo`
+- 💰 **Signup grant 50 → 1000 correction** (Migration 0033 · founder explicit auth「A」): pm/STATUS.md spec 講 "Free signup 1k + 50/day"，但 Migration 0001 column default + Migration 0008 trigger 淨係 grant 50 · 由 launch 起被 under-grant 950 credits/user。Migration 0033 三步走：alter column default → re-create handle_new_user trigger grant 1000 → backfill +950 to existing under-granted users via DO block (0 user actually existed in prod · $0 exposure · defensive idempotent)
+- 🛠️ **Marketing copy fix** (commit 9a22782): 將 customer-facing pill 由「對手要 6-12 個月先抄到」(internal strategy text leak) → 「為每個世界度身訂造」(user-benefit framing) × 3 locales。Founder catch · CLAUDE.md hard rule needs adding (#34)
+- 📧 **Trilingual email templates** (supabase/templates/): magic_link / confirmation / recovery / email_change · EN + 繁中 + 簡中 stacked single template (Supabase 唔 support per-locale email) · config.toml local dev wired · prod 要 manually paste 入 Supabase Dashboard (README 寫住步驟)
+
+### 🟡 Money tier deliverables (commits 0b72896 → e5d2c1e → 36aef0e → af0574c → d9af4a6 → 1ba7daf)
+
+| Commit | What |
+|---|---|
+| `0b72896` | Phase 4 Stripe subscription · 3-tier checkout (Free / Standard $9.99 / Pro $19.99) + portal + webhook |
+| `e5d2c1e` | One-time top-up credits ($4.99/$9.99/$19.99) + daily-50 free refresh cron (Vercel scheduled) |
+| `36aef0e` | Phase 6 KYC · Stripe Identity age verification for adult mode (CLAUDE.md hard rule #5) |
+| `af0574c` | Money audit Wave 1 · 4🔴 + 4🟠 ship blockers inline-fixed |
+| `d9af4a6` | Money audit Wave 2 · 4🟠 UX polish + 1🔴 webhook tier-vs-pricing mismatch |
+| `1ba7daf` | Money audit Wave 3 cycle 1 converged · 1🟡 + 1🔵 closed |
+
+### 🌐 Marketing landing deliverables (commits 539ca41 → 77952c0 → 47710c2 → 69f9b73 → 7baa4dd → 9a22782)
+
+| Commit | What |
+|---|---|
+| `539ca41` | Cinematic dark landing on kieio.com root · Grok × Apple aesthetic · hero + features + 3 demo cards |
+| `77952c0` | Dark cinematic pricing page · matched 3-tier visual hierarchy |
+| `47710c2` | Google Sans on price/credit numbers · add Pricing to nav |
+| `69f9b73` | Strict per-locale copy · en / zh-Hant / zh-Hans (each locale has DIFFERENT tone · 唔係 translation) |
+| `7baa4dd` | 3 selling points added: NPC Inner Voices section (Storyteller agents) · 4th Memory card (RAG/Lorebook) · Adaptive State Panel section (護城河 feature) |
+| `9a22782` | Remove competitor trash-talk pill「對手要 6-12 個月先抄到」→ user-benefit framing「為每個世界度身訂造」|
+
+### 🔀 Subdomain split (commit e2c8cb0)
+
+- **Marketing host** `kieio.com` serves: `/` `/pricing` (and future `/about` `/blog` `/terms` `/privacy`)
+- **Product host** `app.kieio.com` serves: `/login` `/auth/callback` `/library` `/my` `/play/*` `/stories/new` `/settings` `/profile` `/memory`
+- **Middleware** issues 308 redirects on mismatch · single `next.config.ts` host header check
+- **Cookies** scoped to `.kieio.com` (parent) so session shared cross-subdomain
+- **`lib/urls.ts`** `getAppOrigin()` / `getMarketingOrigin()` helpers — used in auth actions to route OAuth callback / magic link to correct host
+- **Why it matters**: Cookie domain mismatch was 死因 #1 for Google login regression (callback landed on kieio.com, cookie set there, redirect to app.kieio.com saw NO cookie). Subdomain split + env-driven helper resolved
+
+### 🌏 i18n Wave 2 migration (commit 7baa4dd · 622 keys × 3 locales)
+
+| File | LOC migrated |
+|---|---|
+| `web/src/app/[locale]/library/[storyId]/page.tsx` | ~700 |
+| `web/src/app/[locale]/library/[storyId]/story-detail-actions.tsx` | ~500 |
+| `web/src/app/[locale]/library/[storyId]/mobile-sticky-cta.tsx` | ~30 |
+| `web/messages/{en,zh-Hans,zh-Hant}.json` | +250 keys each |
+
+**Key patterns**:
+- `t.rich()` for inline JSX wrappers (block403 body: `<plus>18+</plus>` + `<settings>Settings</settings>` → ICU tags resolve to React components at render)
+- Server actions return error codes (e.g., `"cannot_rate_own_story"`) · client `mapServerError(code)` resolves to localized body
+- Final count 622 keys × 3 locales · `tsc --noEmit` clean · zero drift across locales · 9-cycle audit converged
+
+### 🔧 Google login subdomain bug fix (in commit 7baa4dd)
+
+**Symptom**: User completes Google OAuth → redirected back to `/auth/callback` → Supabase confirms session → user lands on `/library` → header still says "Log in" → user appears not-logged-in despite successful auth
+
+**Root cause**: `authRedirectBase()` in `web/src/app/[locale]/login/actions.ts` returned `NEXT_PUBLIC_SITE_URL` which on prod = `kieio.com` (marketing host) · OAuth callback landed on kieio.com · Supabase set auth cookie on kieio.com domain · subsequent middleware redirect to app.kieio.com saw NO cookie
+
+**Fix**:
+```typescript
+// BEFORE:
+function authRedirectBase(): string {
+  return process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3001";
+}
+
+// AFTER:
+import { getAppOrigin } from "@/lib/urls";
+function authRedirectBase(): string {
+  return getAppOrigin();
+}
+```
+
+**Applied to**: Google OAuth `redirectTo` · magic link `emailRedirectTo` · both now point at app.kieio.com where `/auth/callback` actually lives + cookie is set on the correct host
+
+### 💰 Signup grant 50 → 1000 fix (Migration 0033)
+
+**Spec drift**: pm/STATUS.md 線 74 declares "Free signup 1k + 50/day" but Migration 0001 column default + Migration 0008 trigger only granted 50。Users since launch underchanged by 950 credits
+
+**Fix** (3 steps · 0033):
+1. `alter table public.profiles alter column credit_balance set default 1000`
+2. Replace `handle_new_user()` trigger to grant 1000 + ledger entry marked `source: signup_initial_grant`
+3. Backfill DO block: scan users with 50-credit `sub_grant` ledger entry · UPDATE +950 + new ledger entry marked `source: signup_grant_backfill_0033`
+
+**Founder authorization**: required for prod DB destructive write — founder chose option A (full fix + backfill). Migration applied (0 users existed → $0 backfill cost · defensive idempotent for safety)
+
+**Note in migration header**: also documents that migrations 0029-0032 were applied via Supabase MCP during money tier ship but not yet committed to repo · 0033 是 first one to land in source after that batch · 將來 backfill 入 repo
+
+### 📧 Trilingual email templates (supabase/templates/)
+
+4 templates created (magic_link · confirmation · recovery · email_change) · all trilingual stacked single email (Supabase 唔 support per-locale)。`config.toml` 加 `[auth.email.template.*]` section reference local files for `supabase start` dev。Production deploy 要 manually paste 入 Supabase Dashboard → Auth → Email Templates (README documents 5-step process)
+
+### 🛠️ Marketing copy fix (commit 9a22782)
+
+**Founder catch**: "對手要 6-12 個月先抄到 in a fucking website??? what the fuck is wrong with you?"
+
+**Root cause**: Lifted "對手要 6-12 個月先抄到" from CLAUDE.md internal strategy text · directly pasted into customer-facing marketing pill — never asked "is this for customers or internal reference?"
+
+**Fix**:
+```
+en:    "Months for competitors to copy" → "Crafted for every world"
+zhHant: "對手要 6-12 個月先抄到" → "為每個世界度身訂造"
+zhHans: "对手要 6-12 个月才能抄到" → "为每个世界度身订造"
+```
+
+**Lesson** (codified as CLAUDE.md hard rule #34): never lift strategy/competitive language from internal docs (CLAUDE.md / STATUS.md / DECISIONS.md) into customer-facing UI · always filter "is this audience customers or internal?" before shipping marketing copy
+
+### 📦 Session 15 files touched
+
+**Auth + fixes**:
+- `web/src/app/[locale]/login/actions.ts` — `authRedirectBase()` 改用 `getAppOrigin()` · 同樣 fix applied to magic link `emailRedirectTo`
+- `web/src/lib/urls.ts` — confirmed `getAppOrigin()` / `getMarketingOrigin()` helpers serve as single source of truth for cross-subdomain URLs
+- `supabase/migrations/0033_fix_signup_grant_50_to_1000.sql` — NEW · applied prod
+
+**Money tier**:
+- `web/src/app/api/stripe/webhook/route.ts` — subscription/cancel/payment events
+- `web/src/app/[locale]/pricing/actions.ts` — checkout session creation
+- `web/src/app/[locale]/settings/actions.ts` — KYC verification initiation · tier downgrade
+- `web/src/components/settings/{billing-portal-button,billing-toast,topup-buttons,tier-picker}.tsx` — UI
+- `web/src/app/api/cron/refresh-free-credits/route.ts` — daily 50-credit free refresh
+- Stripe webhook env wired · Stripe Identity webhook env wired · cron env wired
+
+**Marketing**:
+- `web/src/components/marketing/copy.ts` — 3 selling points added × 3 locales (memory.card4 · agents section · adaptive section) + marketing copy fix
+- `web/src/components/marketing/MarketingLanding.tsx` — Agents section + Adaptive section + 4th memory card render + ~60 lines CSS
+- `web/src/app/[locale]/(marketing)/page.tsx` — marketing route
+- `web/src/app/[locale]/(marketing)/pricing/page.tsx` — dark pricing page
+
+**i18n Wave 2**:
+- `web/src/app/[locale]/library/[storyId]/page.tsx` — fully migrated
+- `web/src/app/[locale]/library/[storyId]/story-detail-actions.tsx` — fully migrated + `mapServerError()` helper
+- `web/src/app/[locale]/library/[storyId]/mobile-sticky-cta.tsx` — fully migrated
+- `web/messages/{en,zh-Hans,zh-Hant}.json` — +250 keys each (storyDetail.* + storyDetailActions.*)
+
+**Subdomain split**:
+- `web/src/middleware.ts` — 308 redirects on host mismatch
+- `web/next.config.ts` — host header rules
+
+**Email templates**:
+- `supabase/templates/{magic_link,confirmation,recovery,email_change}.html` — NEW
+- `supabase/templates/README.md` — NEW · documents prod deploy steps
+- `supabase/config.toml` — `[auth.email.template.*]` sections
+
+### 🎯 What's next
+- 🏁 **Phase 7 5 條官方故事** — founder + Claude collaboration (~1 session)
+- 🧪 **Comprehensive Manual E2E** — founder ~1-2 session covers entire happy path
+- 🚀 **Public launch** — once above 2 完晒
+
+---
+
+## ✅ Earlier (Session 14 — 🎯 UI surface + 🆕 Kieio brand lock + kieio.com domain live)
 
 ### TL;DR
 - 🎨 **Session 14 UI surface** ship · NPC L3 toggle (Settings + per-playthrough) · Memory Journal「NPC Inner Voices」tab · per-turn L3 cost indicator · server action `setNpcL3Enabled` · Wave 1 UI audit clean · TypeScript clean
@@ -776,6 +938,35 @@ All sub-tasks done. UI/UX polish (UX-01 / UX-02 / UX-04) parked — user decisio
 ---
 
 ## 📓 Session Log
+
+### Session 15 (Money tier + Marketing landing + i18n Wave 2 + auth/grant fix) — 2026-05-28
+
+**Major outcomes**:
+- 🟡 Money tier shipped end-to-end (Phase 4 Stripe + Phase 6 KYC + top-up + cron · 3-wave audit converged · 9 ship blockers caught)
+- 🌐 Marketing site live at kieio.com (dark cinematic landing + pricing page + 3 selling points + strict per-locale copy)
+- 🔀 Hard subdomain split (kieio.com marketing · app.kieio.com product) · cookies scoped `.kieio.com`
+- 🌏 i18n Wave 2 (622 keys × 3 locales · 9-cycle audit converged · zero drift)
+- 🔧 Google login subdomain bug fix (cookie domain mismatch from OAuth callback on wrong host)
+- 💰 Signup grant 50 → 1000 correction (Migration 0033 · founder explicit auth · spec-vs-code drift caught)
+- 🛠️ Marketing copy fix · removed customer-facing「對手要 6-12 個月先抄到」trash-talk (lifted from internal CLAUDE.md strategy text)
+
+**Key learnings**:
+- **Subdomain cookie scope is a silent killer**: OAuth callback on wrong host → cookie set on wrong domain → middleware redirect to correct host sees NO cookie → user appears not-logged-in despite successful auth. Symptom looks like login failure but Supabase confirms session. Root cause invisible without cross-host cookie inspection. Lesson: `getAppOrigin()` env helper used uniformly for ALL auth `redirectTo` / `emailRedirectTo` URLs · never relying on `headers().get("origin")` (browser-controlled · phishing vector) nor `NEXT_PUBLIC_SITE_URL` (was = marketing host post-split). Pattern reusable for any cross-subdomain auth flow.
+- **Spec-vs-code drift is documentation hygiene failure**: pm/STATUS.md said "Free signup 1k + 50/day" but Migration 0001 column default + Migration 0008 trigger only granted 50. Drift went unnoticed since launch. Caught only when founder asked specifically "what does signup actually grant?" · cross-referenced doc vs code · gap detected. Lesson: when shipping new feature, scan spec docs for related claims · validate code actually matches · don't trust the doc just because you wrote it.
+- **Customer-facing copy ≠ internal strategy text**: I lifted "對手要 6-12 個月先抄到" from CLAUDE.md's internal competitive moat section into a marketing pill. Founder caught it ("what the fuck is wrong with you?"). Lesson: every piece of customer-facing UI copy must pass the filter "would I be embarrassed if a competitor saw this?" before shipping. Internal strategy / technical advantage talk is appropriate in CLAUDE.md / DECISIONS.md but NEVER in marketing UI. New hard rule #34.
+- **t.rich() with ICU tags is the right pattern for inline JSX in i18n catalogs**: Initially tried `{plus}...{settings}` placeholder format which doesn't render React components. The correct pattern is `<plus>18+</plus>` ICU tags in catalog · `t.rich("body", { plus: (chunks) => <Link>{chunks}</Link>, settings: (chunks) => <Link>{chunks}</Link> })` at use site. Pattern reusable for any block of localized text needing inline interactive elements.
+- **Server action error code at boundary > raw string**: Returning `"cannot_rate_own_story"` (code) instead of raw 繁中 string allows client `mapServerError(code)` to resolve to localized body matching user's locale. Server actions stay locale-agnostic · localization concern stays at presentation layer. Pattern: server returns codes · client maps to localized strings via `useTranslations()`.
+
+**Decisions effective** (worth ADRs · written below):
+- Subdomain cookie scope pattern (`.kieio.com` parent) + `getAppOrigin()` helper as single source of truth for auth redirect URLs
+- Customer-facing copy filter rule (CLAUDE.md hard rule #34)
+- Signup grant 1000 credits 對齊 spec (Migration 0033 + DECISIONS ADR)
+- Per-locale strict copy (not translation) for marketing — each locale has different tone matching local market sensibility
+
+**Next session opening**:
+- 🏁 Phase 7 — write 5 launch-ready 官方故事 (founder + Claude collab)
+- 🧪 Comprehensive Manual E2E — founder runs through entire happy path (~1-2 session)
+- 🚀 Public launch after above 2 done
 
 ### Session 13 (Phase 1.5 NPC L3 Agents · backend + Wave 2 audit converged) — 2026-05-26
 

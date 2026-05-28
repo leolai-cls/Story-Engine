@@ -1,54 +1,111 @@
 /**
- * OpenAI Moderation API wrapper — Phase 5 Wave 1 (P5-SEC-C-01 fix).
+ * Content moderation — Claude Haiku 4.5 classifier (Anthropic direct).
  *
- * Closes CLAUDE.md hard rule #6 ("CSAM / 違法內容 pre-filter is law-line, never
- * bypass") gap surfaced in Phase 5 audit: moderation_flags enum added 'csam'
- * and 'sexual_minor' values to acknowledge the attack vectors exist, but no
- * pre-filter was wired at the create-content sites. Reactive moderation
- * (community reports → admin review) alone is insufficient — illegal content
- * must be blocked at submission time before it ever persists.
+ * ADR-021 (2026-05-28) · Founder 喺香港攞唔到 OpenAI API key · 整個產品只用
+ * `OPENROUTER_API_KEY` + `ANTHROPIC_API_KEY`. 之前直駁 `api.openai.com/v1/moderations`
+ * 嘅實作令 prod 永遠 fail（`OPENAI_API_KEY` 唔可能 set）· 而家用 Haiku 4.5
+ * 經 Anthropic direct provider 做 JSON-schema-constrained classifier.
  *
- * Provider: OpenAI Moderation API (free, no separate API key — uses the
- * existing OPENAI_API_KEY used by embeddings). Per ADR / CLAUDE.md, this is
- * the launch choice; Phase 5+ may re-evaluate.
+ * Why Haiku 4.5:
+ *   - Founder 已有 `ANTHROPIC_API_KEY`
+ *   - 已經係 Director model · provider integration tested
+ *   - 中文 + 英文 + jailbreak 識別都好
+ *   - ~$0.001 / call · 預期每月 < $5 total
  *
- * Endpoint: POST https://api.openai.com/v1/moderations
- *   - Model: omni-moderation-latest (multi-lingual, 中文 supported)
- *   - Returns 13 categories with boolean flag + numeric score 0-1
- *   - Free tier; no per-request cost
+ * Why structured output (generateObject):
+ *   - 強 schema 防止 LLM hallucinate categories
+ *   - 保留 evaluateResult() 純函數對 categories + scores 行 hard-block 邏輯
+ *   - Anthropic structured output stable since Claude 3.5
  *
- * Categorization for Story Engine:
- *   HARD BLOCK (any user input flagged → reject submission)
- *     - sexual/minors      → illegal everywhere, no SFW/NSFW context exempts
- *     - hate/threatening   → targets of identity-based violence
- *     - violence/graphic   → torture / gore at threshold
- *     - illicit/violent    → weapons / harm instructions
- *     - self-harm/intent   → active intent (vs ideation)
- *
- *   CONTEXT-AWARE (block in SFW content, allow in adult-tier content)
- *     - sexual             → sexual content with adults
- *     - violence           → general violence below graphic threshold
- *     - self-harm          → ideation / non-active references
- *     - harassment         → personal attacks
- *
- *   ALLOW (logged, not blocked — community report path handles edge cases)
- *     - hate               → general (non-threatening) hate (slurs etc — community
- *                            moderation > algorithmic, false positive risk too high
- *                            for legitimate fiction exploring racism)
- *
- * For Phase 5 launch we use HARD BLOCK + content-rating-aware CONTEXT block.
- * The `sexual/minors` category is INSTANT BLOCK regardless of content rating —
- * this is the hard rule line.
+ * Filename 故意保留 `openai-moderation.ts` · 避免 sweeping rename 引發
+ * import-path 風暴; export 名 + 內部實作完全唔關 OpenAI 事.
  */
+
+import { generateObject } from "ai";
+import { z } from "zod";
+import { anthropicProvider } from "@/lib/ai/providers";
+import { DIRECTOR_MODEL } from "@/lib/ai/models";
+
+export type ModerationCategory =
+  | "sexual"
+  | "sexual/minors"
+  | "hate"
+  | "hate/threatening"
+  | "harassment"
+  | "harassment/threatening"
+  | "self-harm"
+  | "self-harm/intent"
+  | "self-harm/instructions"
+  | "violence"
+  | "violence/graphic"
+  | "illicit"
+  | "illicit/violent";
+
+type ModerationResultShape = {
+  flagged: boolean;
+  categories: Record<ModerationCategory, boolean>;
+  category_scores: Record<ModerationCategory, number>;
+};
+
+/**
+ * HARD_BLOCK_CATEGORIES — 跨 content_rating 都係 hard floor.
+ * Reason: hard rule #6 (CSAM / illegal / 極端暴力 / 自殘指引).
+ *
+ * Wave 1.5 calibration (W1-FP-M-09) 仍然適用: villain dialogue
+ * (古惑仔 / 武俠反派 / fantasy antagonist) 唔好誤殺 → 移咗
+ * `harassment/threatening` + `hate/threatening` 落 SCORE_FLOOR 用 0.7 floor.
+ */
+const HARD_BLOCK_CATEGORIES: ModerationCategory[] = [
+  "sexual/minors",
+  "violence/graphic",
+  "illicit/violent",
+  "self-harm/intent",
+  "self-harm/instructions",
+];
+
+// Session 16 audit HIGH-10 · module-load assertion · CSAM hard-block
+// 唔可以被誤刪 (CLAUDE.md hard rule #6 law line).
+if (!HARD_BLOCK_CATEGORIES.includes("sexual/minors")) {
+  throw new Error(
+    "[moderation] HARD_BLOCK_CATEGORIES must include 'sexual/minors' — CLAUDE.md hard rule #6 violation",
+  );
+}
+
+/**
+ * SFW + soft content rating 額外 block 嘅 categories.
+ * Adult content rating + adult_mode_enabled + KYC user 唔受呢一層約束（GLM 5
+ * NSFW model 自己 handle adult content; moderation 只係防 hard floor + 平台
+ * 仇恨內容）.
+ */
+const SFW_ADDITIONAL_BLOCK: ModerationCategory[] = [
+  "sexual",
+  "self-harm",
+];
+
+export type ModerationVerdict =
+  | { allowed: true }
+  | { allowed: false; reason: string; categories: ModerationCategory[] };
+
+export type ContentRating = "sfw" | "soft" | "adult";
+
+/**
+ * SCORE_FLOOR · 喺 boolean flag 未中但 score 過高都 block.
+ * Tuned 自 Wave 1.5: 學校設定文學唔誤殺 + threatening villain dialogue 過得到.
+ */
+const SCORE_FLOOR: Partial<Record<ModerationCategory, number>> = {
+  "sexual/minors": 0.5,
+  "violence/graphic": 0.6,
+  "illicit/violent": 0.5,
+  "harassment/threatening": 0.7,
+  "hate/threatening": 0.7,
+};
 
 /**
  * Map moderation verdict categories → stable error code that client
  * localizes via the `errors.moderation.*` catalog namespace.
  *
- * Session 16 PM Review #2 (C-01 follow-up): was duplicated locally in
- * community/actions.ts; moved here so turn route + stories/new + community
- * all share the same mapping. Was leaking verdict.reason (繁中-only) to
- * EN / zh-Hans users at 4 sites.
+ * Session 16 PM Review #2 (C-01 follow-up): unified mapping for
+ * turn route + stories/new + community/rateStory/upsertComment paths.
  */
 export function verdictToCode(categories: ModerationCategory[]): string {
   const has = (c: ModerationCategory) => categories.includes(c);
@@ -70,117 +127,9 @@ export function verdictToCode(categories: ModerationCategory[]): string {
   return "moderation_blocked";
 }
 
-export type ModerationCategory =
-  | "sexual"
-  | "sexual/minors"
-  | "hate"
-  | "hate/threatening"
-  | "harassment"
-  | "harassment/threatening"
-  | "self-harm"
-  | "self-harm/intent"
-  | "self-harm/instructions"
-  | "violence"
-  | "violence/graphic"
-  | "illicit"
-  | "illicit/violent";
-
-type ModerationResponse = {
-  id: string;
-  model: string;
-  results: Array<{
-    flagged: boolean;
-    categories: Record<ModerationCategory, boolean>;
-    category_scores: Record<ModerationCategory, number>;
-  }>;
-};
-
 /**
- * The categories that hard-block submission regardless of the story's
- * content_rating. These represent illegal content or content that creates
- * unacceptable platform risk (CSAM, terrorism, etc).
- *
- * Wave 1.5 calibration (W1-FP-M-09): `harassment/threatening` and
- * `hate/threatening` MOVED OUT of HARD_BLOCK and into SCORE_FLOOR at 0.7.
- * Reason: villain dialogue in legitimate fiction reliably trips these
- * (古惑仔 boss intimidation, 武俠 反派 threats, fantasy antagonist menace).
- * Director Model + Story Bible discipline (CLAUDE.md) DEMANDS NPCs that
- * threaten the player — yes-man AI is the design anti-pattern we're built
- * to avoid. Boolean-flag-only block at threshold + 0.7 score floor keeps
- * actual abuse out while not killing villain dialogue at the door.
- */
-const HARD_BLOCK_CATEGORIES: ModerationCategory[] = [
-  "sexual/minors",
-  "violence/graphic",
-  "illicit/violent",
-  "self-harm/intent",
-  "self-harm/instructions",
-];
-
-// Session 16 audit HIGH-10: module-load assertion that the CSAM hard-block
-// is never inadvertently removed (CLAUDE.md hard rule #6 — law line). If a
-// future refactor pulls "sexual/minors" out of HARD_BLOCK, throw at startup
-// so the misconfig is impossible to deploy.
-if (!HARD_BLOCK_CATEGORIES.includes("sexual/minors")) {
-  throw new Error(
-    "[moderation] HARD_BLOCK_CATEGORIES must include 'sexual/minors' — CLAUDE.md hard rule #6 violation",
-  );
-}
-
-/**
- * Categories that block in SFW content (default content_rating). Adult tier
- * is more permissive but `sexual/minors` is always blocked (it's in HARD).
- *
- * Wave 1.5 calibration (W1-FP-H-04): `violence` (general, non-graphic)
- * REMOVED. The product's own EXAMPLE_PROMPTS lead with 1980 年代香港古惑仔
- * scenarios that are SFW-compatible cultural fiction. General-violence
- * blocking at the front door kills launch-day demo. `violence/graphic`
- * remains in HARD_BLOCK with 0.6 floor — that's the gore / torture line.
- */
-const SFW_ADDITIONAL_BLOCK: ModerationCategory[] = [
-  "sexual",
-  "self-harm",
-];
-
-export type ModerationVerdict =
-  | { allowed: true }
-  | { allowed: false; reason: string; categories: ModerationCategory[] };
-
-export type ContentRating = "sfw" | "soft" | "adult";
-
-/**
- * Score threshold above which a category-flagged result still triggers
- * a block even if the boolean flag wasn't set. The OpenAI flag is
- * tuned for high precision; raising the recall via score floor adds
- * defense at small false-positive cost. Tuned per category.
- */
-const SCORE_FLOOR: Partial<Record<ModerationCategory, number>> = {
-  // CSAM detection — error toward block but not so aggressively that the
-  // launch market (HK + TW) 校園 / 青春 / family-with-kids fiction trips
-  // false-positives. OpenAI documents production threshold ≥0.7; we use
-  // 0.5 as a paranoid middle ground (still well below the boolean flag).
-  // Wave 1.5 calibration (W1-FP-H-03): was 0.15 — caught "TW 大學校園戀愛故事"
-  // (our own EXAMPLE_PROMPT). 0.5 lets school-setting fiction through while
-  // still flagging genuine concerns.
-  "sexual/minors": 0.5,
-  // Graphic violence — block at 0.6 even without boolean flag. Distinct
-  // from general violence (古惑仔 fight scenes); this is gore / torture.
-  "violence/graphic": 0.6,
-  // illicit/violent (weapons instructions, harm howtos) — block at 0.5.
-  "illicit/violent": 0.5,
-  // Wave 1.5 calibration (W1-FP-M-09): threatening categories moved here
-  // from HARD_BLOCK. Boolean flag still triggers (so blatant abuse blocks),
-  // plus 0.7 floor for high-confidence cases. Villain dialogue typically
-  // scores 0.3-0.6 — passes this floor, gets through, Director Model
-  // governs in-fiction propriety.
-  "harassment/threatening": 0.7,
-  "hate/threatening": 0.7,
-};
-
-/**
- * Sentinel thrown when OPENAI_API_KEY is missing. Distinguishes deployment
- * misconfiguration (always hard-fail) from transient API errors (callers
- * may choose fail-open). Wave 1.5 audit fix W1-MOD-C-02.
+ * Sentinel · 喺 `ANTHROPIC_API_KEY` 唔見時 throw · distinguish deployment bug
+ * 自 transient API failure. Wave 1.5 audit fix W1-MOD-C-02 (post-ADR-021 update).
  */
 export class ModerationConfigError extends Error {
   constructor(message: string) {
@@ -190,23 +139,9 @@ export class ModerationConfigError extends Error {
 }
 
 /**
- * Wave 2 audit fix W1-MOD-M-02: input normalization before sending to API.
- *
- * - NFKC normalize: collapses confusables / compatibility forms (e.g., fullwidth
- *   `ＡＢＣ` → `ABC`, ligatures `ﬁ` → `fi`). Closes Unicode-confusable bypass
- *   where attacker mixes scripts to evade the classifier.
- * - Strip zero-width / formatting chars (U+200B, U+200C, U+200D, U+FEFF,
- *   U+2060): these are invisible separators inserted between letters to
- *   defeat substring detection.
- * - Strip combining marks (U+0300-U+036F): zalgo-style stacking is a classic
- *   moderation bypass — looks normal to user, scrambles to classifier.
+ * Input normalization · 防 Unicode confusable + zero-width + zalgo bypass.
  */
-// Compile once at module load — safer than embedding non-ASCII regex literals.
-//   U+200B-U+200D: zero-width space / non-joiner / joiner
-//   U+2060: word joiner
-//   U+FEFF: BOM / zero-width no-break space
 const ZERO_WIDTH_RE = new RegExp("[\\u200B-\\u200D\\u2060\\uFEFF]", "g");
-//   U+0300-U+036F: combining diacritical marks (Zalgo / stacking defense)
 const COMBINING_MARK_RE = new RegExp("[\\u0300-\\u036F]", "g");
 
 function normalizeInput(input: string): string {
@@ -217,107 +152,119 @@ function normalizeInput(input: string): string {
 }
 
 /**
- * Call OpenAI Moderation API.
- *
- * - Throws `ModerationConfigError` when OPENAI_API_KEY is missing. This is
- *   a deployment bug, never transient — callers must hard-fail (no allowed
- *   "allow on env misconfig" path; that's the bypass we close in W1-MOD-C-02).
- * - Returns null on transient errors after retry (non-2xx response other
- *   than 429, timeout, parse fail). Callers decide fail-open vs fail-closed.
- * - Wave 2 W1-INFO-14: retry with exponential backoff on 429 / 5xx.
- *
- * Implementation note: direct fetch instead of OpenAI SDK to avoid pulling
- * an extra dependency. Endpoint + response shape stable per OpenAI docs (v1).
+ * Zod schema for LLM structured output. 13 categories · boolean flag + score 0-1.
  */
-async function callModerationAPI(
+const ModerationLlmSchema = z.object({
+  flagged: z.boolean().describe("Overall · true 如果任何 category 應該 block"),
+  categories: z.object({
+    sexual: z.boolean(),
+    "sexual/minors": z.boolean(),
+    hate: z.boolean(),
+    "hate/threatening": z.boolean(),
+    harassment: z.boolean(),
+    "harassment/threatening": z.boolean(),
+    "self-harm": z.boolean(),
+    "self-harm/intent": z.boolean(),
+    "self-harm/instructions": z.boolean(),
+    violence: z.boolean(),
+    "violence/graphic": z.boolean(),
+    illicit: z.boolean(),
+    "illicit/violent": z.boolean(),
+  }),
+  category_scores: z.object({
+    sexual: z.number().min(0).max(1),
+    "sexual/minors": z.number().min(0).max(1),
+    hate: z.number().min(0).max(1),
+    "hate/threatening": z.number().min(0).max(1),
+    harassment: z.number().min(0).max(1),
+    "harassment/threatening": z.number().min(0).max(1),
+    "self-harm": z.number().min(0).max(1),
+    "self-harm/intent": z.number().min(0).max(1),
+    "self-harm/instructions": z.number().min(0).max(1),
+    violence: z.number().min(0).max(1),
+    "violence/graphic": z.number().min(0).max(1),
+    illicit: z.number().min(0).max(1),
+    "illicit/violent": z.number().min(0).max(1),
+  }),
+});
+
+const CLASSIFIER_SYSTEM_PROMPT = `You are a content safety classifier for an interactive fiction platform.
+
+The platform serves Chinese-language storytelling (繁中 / 简中 / English mix).
+Most stories are fiction with villain characters, conflict, dramatic scenes.
+Standard literary tropes (sword fights, school rivalry, romance, cultivation,
+revenge plots, gangster drama, fantasy battles) MUST be classified as safe.
+
+Your job: classify the input text on 13 standard moderation categories.
+For each category, output a boolean (true = the content matches that
+category) and a numeric score 0.0-1.0 (confidence).
+
+IMPORTANT calibration for fiction context:
+- General fighting / sword combat / 武打 / 格鬥 → NOT violence/graphic
+  unless explicit gore / torture / mutilation. Score < 0.4 for normal action.
+- Villain threats / 黑幫 intimidation / antagonist menace → harassment/threatening
+  boolean=false unless explicit IRL targeting. Score 0.3-0.6 acceptable.
+- School-setting romance with adults (university+) → NOT sexual/minors.
+  Only flag sexual/minors if explicit reference to under-18 sexual content.
+- Cultivation / revenge / 重生 / 變強 tropes → NOT illicit/violent.
+- Bad words / mild profanity → NOT hate unless targeting protected groups.
+
+HARD LINES (always flag with score > 0.7 if matched):
+- Explicit CSAM / under-18 sexual content (sexual/minors)
+- Real-world bioweapon / weapons-of-mass-destruction instructions (illicit/violent)
+- Self-harm method instructions with explicit how-to (self-harm/instructions)
+- Active self-harm intent (not ideation in narrative) (self-harm/intent)
+- Gore / torture / mutilation graphic description (violence/graphic)
+
+Output the JSON object per schema. Be calibrated · NOT trigger-happy.
+The fiction context allows normal narrative tension · only flag genuine
+hard-line violations.`;
+
+/**
+ * Call Anthropic Haiku 4.5 to classify input. Returns shaped response 或 null
+ * (transient error · caller 決定 failClosed / fail-open).
+ */
+async function callClassifier(
   input: string,
-): Promise<ModerationResponse | null> {
-  const apiKey = process.env.OPENAI_API_KEY;
+): Promise<ModerationResultShape | null> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    // Wave 1.5 W1-MOD-C-02: hard-fail on missing key. Previously returned null,
-    // which combined with fail-open default meant env-var typo = silent CSAM
-    // bypass. Throwing forces caller to handle as deployment error.
     throw new ModerationConfigError(
-      "OPENAI_API_KEY missing — moderation cannot run (deployment misconfiguration)",
+      "ANTHROPIC_API_KEY missing — moderation cannot run (deployment misconfiguration)",
     );
   }
 
-  // W1-MOD-M-02: normalize before sending — NFKC + strip zero-width + combining.
   const normalized = normalizeInput(input);
-  const trimmed = normalized.length > 32_000 ? normalized.slice(0, 32_000) : normalized;
+  const trimmed = normalized.length > 8_000 ? normalized.slice(0, 8_000) : normalized;
 
-  // Wave 2 W1-INFO-14: exponential backoff retry on 429 / 5xx. Same pattern
-  // as embed.ts withRateLimitRetry.
-  //
-  // Wave 2.5 W2-MOD-M-07 doc fix: worst case is ~11.5s under retry
-  // (3 attempts × 3s timeout each + 500ms + 2s backoffs), or up to ~19s if
-  // Retry-After header is honored at the 5s upper bound. Vercel maxDuration
-  // (60s on turn / createStory) is comfortable. failClosed:true means a
-  // user-blocking error after the full retry budget rather than a silent
-  // bypass — acceptable.
+  // Backoff retry · 同 OpenAI 版同 cadence.
   const BACKOFFS_MS = [500, 2000];
   for (let attempt = 0; attempt <= BACKOFFS_MS.length; attempt++) {
     try {
-      const res = await fetch("https://api.openai.com/v1/moderations", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "omni-moderation-latest",
-          input: trimmed,
-        }),
-        // Wave 1.5 W1-COST-H-02: 10s → 3s per attempt.
-        signal: AbortSignal.timeout(3_000),
+      const { object } = await generateObject({
+        model: anthropicProvider(DIRECTOR_MODEL),
+        schema: ModerationLlmSchema,
+        system: CLASSIFIER_SYSTEM_PROMPT,
+        prompt: `Classify the following text:\n\n<text>\n${trimmed}\n</text>`,
+        temperature: 0,
+        abortSignal: AbortSignal.timeout(8_000),
       });
-
-      // Retryable errors: 429 + 5xx. Other 4xx are caller bugs; bail.
-      if (res.status === 429 || res.status >= 500) {
-        const errBody = await res.text().catch(() => "");
-        if (attempt < BACKOFFS_MS.length) {
-          // Parse Retry-After header if present
-          const retryAfter = res.headers.get("retry-after");
-          const retryAfterMs = retryAfter
-            ? Math.min(parseFloat(retryAfter) * 1000, 5000)
-            : BACKOFFS_MS[attempt];
-          console.warn(
-            `[moderation] API ${res.status} attempt ${attempt + 1}, backing off ${retryAfterMs}ms`,
-          );
-          await new Promise((r) => setTimeout(r, retryAfterMs));
-          continue;
-        }
-        console.error(
-          `[moderation] API ${res.status} after ${BACKOFFS_MS.length + 1} attempts: ${errBody.slice(0, 500)}`,
-        );
-        return null;
-      }
-
-      if (!res.ok) {
-        // 4xx other than 429 — bail without retry
-        const errBody = await res.text().catch(() => "");
-        console.error(
-          `[moderation] API ${res.status}: ${errBody.slice(0, 500)}`,
-        );
-        return null;
-      }
-      return (await res.json()) as ModerationResponse;
+      return object as ModerationResultShape;
     } catch (e) {
-      // Re-throw config errors so they reach the caller (action layer turns
-      // them into 500-class deployment errors, surfaced loudly).
       if (e instanceof ModerationConfigError) throw e;
       const msg = e instanceof Error ? e.message : String(e);
-      // AbortSignal timeout → retry (transient).
-      if (/abort/i.test(msg) || /timeout/i.test(msg)) {
-        if (attempt < BACKOFFS_MS.length) {
-          console.warn(
-            `[moderation] timeout attempt ${attempt + 1}, backing off ${BACKOFFS_MS[attempt]}ms`,
-          );
-          await new Promise((r) => setTimeout(r, BACKOFFS_MS[attempt]));
-          continue;
-        }
+      const isRetryable =
+        /abort|timeout/i.test(msg) ||
+        /429|5\d{2}/i.test(msg) ||
+        /rate.?limit/i.test(msg);
+      if (isRetryable && attempt < BACKOFFS_MS.length) {
+        console.warn(
+          `[moderation] Haiku call attempt ${attempt + 1} failed, backing off ${BACKOFFS_MS[attempt]}ms: ${msg}`,
+        );
+        await new Promise((r) => setTimeout(r, BACKOFFS_MS[attempt]));
+        continue;
       }
-      console.error(`[moderation] fetch failed: ${msg}`);
+      console.error(`[moderation] Haiku classifier failed: ${msg}`);
       return null;
     }
   }
@@ -325,16 +272,14 @@ async function callModerationAPI(
 }
 
 /**
- * Inspect a moderation API response and decide whether to block.
- * Pure function — no side effects, easy to unit test.
+ * Pure function · 從 classifier 結果決定 verdict. 唔變(同舊版完全一樣 contract).
  */
 function evaluateResult(
-  result: ModerationResponse["results"][0],
+  result: ModerationResultShape,
   contentRating: ContentRating,
 ): ModerationVerdict {
   const triggered: ModerationCategory[] = [];
 
-  // Pass 1 — HARD_BLOCK_CATEGORIES: rated content doesn't matter.
   for (const cat of HARD_BLOCK_CATEGORIES) {
     if (result.categories[cat]) {
       triggered.push(cat);
@@ -346,9 +291,6 @@ function evaluateResult(
     }
   }
 
-  // Pass 2 — content-rating-aware blocks for SFW/soft tier.
-  // Adult tier ("adult") allows sexual + general violence + self-harm
-  // references; HARD_BLOCK still applies regardless.
   if (contentRating === "sfw" || contentRating === "soft") {
     for (const cat of SFW_ADDITIONAL_BLOCK) {
       if (result.categories[cat] && !triggered.includes(cat)) {
@@ -361,8 +303,6 @@ function evaluateResult(
     return { allowed: true };
   }
 
-  // Return user-facing 繁中 reason — short, actionable, no leak of
-  // exactly which classifier fired (would teach circumvention).
   let reason: string;
   if (
     triggered.includes("sexual/minors") ||
@@ -389,38 +329,19 @@ function evaluateResult(
 }
 
 /**
- * Moderate text input. Returns verdict — { allowed: true } or
- * { allowed: false, reason: 繁中 message, categories: [...] }.
- *
- * Throws `ModerationConfigError` when OPENAI_API_KEY is missing (always —
- * deployment misconfiguration must surface loudly, not silently bypass).
- * Caller must catch and return a clean error to the user.
- *
- * For transient API errors (non-2xx response, network timeout, parse fail):
- * - failClosed: false (default) — returns { allowed: true } with console.warn.
- *   Acceptable for low-risk paths where reactive moderation catches escapes.
- * - failClosed: true — returns { allowed: false } with 繁中 retry message.
- *   Use this for CSAM-sensitive paths (Wave 1.5: all 3 user-input sites).
- *
- * @param input  - text to moderate (story prompt / comment body / review)
- * @param contentRating - story's intended content rating (changes which
- *                        categories block)
- * @param options - { failClosed?: boolean } — when true, transient API
- *                  errors block instead of pass through
+ * Moderate text · returns verdict. Drop-in replacement for old OpenAI version.
  */
 export async function moderateText(
   input: string,
   contentRating: ContentRating = "sfw",
   options: { failClosed?: boolean } = {},
 ): Promise<ModerationVerdict> {
-  // Empty / whitespace input — pass through, content-length validation
-  // is the caller's job.
   if (!input || !input.trim()) {
     return { allowed: true };
   }
 
-  const response = await callModerationAPI(input);
-  if (response === null) {
+  const result = await callClassifier(input);
+  if (result === null) {
     if (options.failClosed) {
       return {
         allowed: false,
@@ -428,28 +349,15 @@ export async function moderateText(
         categories: [],
       };
     }
-    // Fail-open: log + allow. Reactive moderation handles edge cases.
     console.warn(
-      "[moderation] API unavailable — allowing submission (fail-open)",
+      "[moderation] classifier unavailable — allowing submission (fail-open)",
     );
-    return { allowed: true };
-  }
-
-  const result = response.results[0];
-  if (!result) {
-    console.error("[moderation] empty results array");
     return { allowed: true };
   }
 
   return evaluateResult(result, contentRating);
 }
 
-/**
- * Convenience: moderate but throw if blocked. Useful where caller wants
- * to abort with a specific error. Most action callers want the verdict
- * object so they can return ActionResult with a friendly error — use
- * moderateText() directly in that case.
- */
 export async function assertContentAllowed(
   input: string,
   contentRating: ContentRating = "sfw",

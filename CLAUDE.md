@@ -45,13 +45,13 @@
 |---|---|---|
 | **MVP scope** | 一個 engine handle 三個 mode（自己創作 / 社群 / 官方） | 三者本質係同一件事 — 邊個寫個 prompt 而已 |
 | **市場** | 中文圈 first（HK + TW + 海外華人，繁中為主） | 大平台冇人服務，藍海 |
-| **遊玩模式** | 故事自適應介面（AI 每個故事生成專屬 state schema + 對應 UI） | 核心 differentiator — 架構 lock-in，唔係 surface feature |
+| **遊玩模式** | 故事自適應介面（AI 每個故事生成專屬 state schema + 對應 UI） | 護城河 feature，其他平台抄起碼要 6-12 個月 |
 | **多 Model** | 用戶可揀 Claude / GPT / Gemini / Grok / Open Source | 唔同用戶有唔同偏好，credits 一視同仁 |
 | **付費模式** | Subscription + 月度 credits + 一次性 top-up | 對齊 NovelAI / AI Dungeon，平台用戶熟 |
 | **成人模式** | Opt-in + KYC 年齡驗證；開啟後只可用唔會 ban 嘅 Model | 防止大 Model 公司 ban 我哋個 account |
 | **長期記憶** | 4 層架構：近 20 turns 全文 + 滾動摘要 + RAG 向量 + 自動 lorebook | 解決行業 #1 churn 原因（"AI 唔記得"） |
 | **Narrative Integrity** | Story Bible + Character Cards + Skill Checks + Director Model | 解決行業 #2 churn 原因（"取悅型 AI / Yes-Man Problem"） |
-| **訂價** | USD primary · **Pricing v3** 2 paid tier: **Standard $9.99 · Pro $19.99**（internal tier ids `adventurer` / `storyteller`）+ one-time top-up · Free 1k signup + 50/day refresh | HK / TW 用戶熟 · 對齊 NovelAI / AID · 舊版「$49.99 Saga」tier deprecated（DB CHECK 仲 tolerate `legend` 做 backward-compat · 0 users） |
+| **訂價** | USD 為 primary（$9.99 / $19.99 / $49.99） | HK / TW 用戶熟，唔需要 multi-currency 複雜 |
 | **Launch market** | HK + TW 同步 launch | 用戶 explicit 決定。TW 市場大過 HK 4x，同步加速 PMF。**官方故事要 cultural diversity** — 唔可以全 HK setting |
 | **官方故事創作** | Founder + Claude 自己寫（at launch） | Solo lean，align founder vision，author program 推遲到 v1.5+ |
 | **違規過濾 provider** | OpenAI Moderation API (free) at launch | Free + cover 大部分 case；Phase 5 review |
@@ -132,7 +132,7 @@ DB：`story_characters` (模板) + `playthrough_character_states` (per-playthrou
 | Analytics / Errors | PostHog + Sentry |
 | Hosting | Vercel + Supabase |
 | i18n | next-intl，繁中 default，簡中 + EN day-1 ready |
-| **Domain split** (ACTIVE since Session 15 · commit `e2c8cb0`) | **kieio.com** = marketing (`/` `/pricing` · future `/about` `/blog` `/terms` `/privacy`) · **app.kieio.com** = product (`/login` `/auth/callback` `/library` `/my` `/play/*` `/stories/new` `/settings` `/profile` `/memory`) · production hard split · preview / dev = single origin · cookies scoped `.kieio.com` parent so session shared cross-subdomain · `lib/urls.ts` `appUrl()` / `marketingUrl()` / `getAppOrigin()` helpers — never hardcode origin, never fall back to `NEXT_PUBLIC_SITE_URL` post-split |
+| **Domain split** ✅ DONE 2026-05-28 | **kieio.com** = marketing (`/` `/pricing` · future `/about` `/blog` `/terms` `/privacy`) · **app.kieio.com** = product (`/login` `/auth/callback` `/library` `/my` `/play/*` `/stories/new` `/settings` `/profile` `/memory`) · middleware.ts 308 redirects on host mismatch · cookies scoped `.kieio.com` (parent) for cross-subdomain session · `lib/urls.ts` `getAppOrigin()` / `getMarketingOrigin()` helpers are single source of truth for cross-subdomain URLs (ALL auth `redirectTo` / `emailRedirectTo` MUST use `getAppOrigin()` — see hard rule #35) |
 | **Post-login landing** | Has playthrough → `/my` · zero → `/library` · **NEVER** `/profile` · `lib/auth/landing.ts:getLandingPath` is single source of truth · `/auth/callback` + root `/` both branch on it |
 
 ---
@@ -140,27 +140,23 @@ DB：`story_characters` (模板) + `playthrough_character_states` (per-playthrou
 ## 開發路線圖（high-level）
 
 ```
-階段 0 — 地基（auth, layout, design system）                      ✅ Session 6-7
-階段 1 — 故事引擎 MVP（創作 + 遊玩 + 自適應介面） ← 核心            ✅ Session 11 (Phase 0 + Phase 1)
-階段 1.5 — Narrative Integrity (Director + Skill Check + NPC L3) ✅ Session 4 + 13
-階段 2 — 長期記憶系統（4 層架構 · MemPalace + Knowledge Graph）    ✅ Session 6 + 11
-階段 3 — 多 Model + Credits                                       ✅
-階段 4 — 訂閱付費（Stripe subscription + checkout + top-up）       ✅ Session 15
-階段 5 — 社群（Library + 評分 + 評論 + CJK FTS + Trending）        ✅ (5-cycle audit converged)
-階段 6 — 成人模式（KYC + OpenRouter + Stripe Identity）            ✅ Session 15 (function + money)
-階段 7 — 上線打磨（5 條官方故事 + 新手引導 + 優化）                 ⬜ Final stage (last)
+階段 0 — 地基（auth, layout, design system）
+階段 1 — 故事引擎 MVP（創作 + 遊玩 + 自適應介面） ← 核心
+階段 2 — 長期記憶系統（4 層架構）
+階段 3 — 多 Model + Credits
+階段 4 — 訂閱付費（Stripe）
+階段 5 — 社群（Library + 評分 + 評論）
+階段 6 — 成人模式（KYC + OpenRouter）
+階段 7 — 上線打磨（5 條官方故事 + 新手引導 + 優化）
 ```
 
 每階段完成 → 行完整 verify flow → 至 move on。
-
-**Function · UI · Money tier 全 ship** through Session 15。Next = Phase 7 final stage (5 stories + comprehensive Manual E2E)。
 
 ---
 
 ## 文檔指引
 
 **進嚟新 conversation 必讀順序**：
-0. **Memory auto-loaded** (at conversation start) — `[project_story_engine_rpg]` + `[feedback-*]` + `[pattern-*]` + `[reference-*]` 紀錄住 session-to-session ground truth · 當 CLAUDE.md 同 memory 唔一致時以 memory 為準（per hard rule #36）
 1. 呢份 `CLAUDE.md`（auto-loaded） — 知道 user / project / hard rules
 2. `pm/STATUS.md` — 知道而家喺邊度、focus 咩、有冇 blocker
 3. `pm/OPEN_QUESTIONS.md` — 知道仲有咩待 decide
@@ -174,14 +170,21 @@ DB：`story_characters` (模板) + `playthrough_character_states` (per-playthrou
 | — | `CLAUDE.md`（呢份） | Project soul，每次自動 load |
 
 **Update 紀律**：
-- Source of truth = MD（version-controlled，AI 易讀）+ Memory（auto-loaded per conversation）
+- Source of truth = MD（version-controlled，AI 易讀）
 - HTML = generated view，當 MD 重大改動時 regenerate
 - 任何 product decision lock → 寫 ADR 入 `pm/DECISIONS.md` + 更新 `CLAUDE.md` 對應 section + 同步刷新 `pm-dashboard.html`
-- 任何「以後做」嘅 idea → 寫入 `pm/BACKLOG.md`，唔好淨係口頭講
+- 任何「以後做」嘅 idea → 寫入 `pm/BACKLOG.md`
 - 任何 ambiguous「應該 X 定 Y」→ 寫入 `pm/OPEN_QUESTIONS.md`
 - Session 結束 → 更新 `pm/STATUS.md` session log + 刷新 `pm-dashboard.html#status`
 - 用戶要 review → 永遠 render HTML，唔好俾佢睇 raw MD
-- 加新 hard rule 入 CLAUDE.md 時 → 同步寫 memory file（codified as #N reference）以免兩邊 drift
+
+**Update 紀律**：
+- 任何 product decision lock → 寫 ADR 入 `DECISIONS.md` + 更新 `CLAUDE.md` 對應 section
+- 任何「以後做」嘅 idea → 寫入 `BACKLOG.md`，唔好淨係口頭講
+- 任何 ambiguous「應該 X 定 Y」→ 寫入 `OPEN_QUESTIONS.md`
+- Session 結束 → 更新 `STATUS.md` session log
+
+**Phase 0 開始 code 之後 migration plan**: 起 GitHub repo，將 `pm/ROADMAP.md` 嘅 checkbox migrate 成 GitHub Issues + Projects board。STATUS / DECISIONS 仍然留喺 repo markdown。
 
 ---
 
@@ -206,8 +209,8 @@ DB：`story_characters` (模板) + `playthrough_character_states` (per-playthrou
 17. **`void (async () => ...)` 喺 Vercel serverless 係 silent killer** — Lambda terminate response stream 一 close 即斬纜 in-flight promise。Background work (embed / summarizer / lorebook / log write / webhook) 必須用 <code>after()</code> from `next/server` 或 Vercel 嘅 <code>waitUntil</code> from `@vercel/functions` wrap，先 keep lambda alive past response。Session 6 Phase 2 SHOWSTOPPER 就係呢個 — Phase 2 tier 2/3/4 喺 prod 默默死晒，audit 至 catch 到。
 18. **Top-K retrieval 冇 similarity floor 等於 noise by design** — `ORDER BY similarity LIMIT K` 一定返 K row 唔理多 irrelevant。Player 經驗 "AI 老係 reference 過場 NPC" 唔係 bug，係 by-design 行為。Vector search 永遠加 `WHERE similarity > threshold` floor — 回 EMPTY 好過回 noise。每個 source tune 唔同 floor (Story Engine: summaries 0.55 / RAG 0.5 / lorebook 0.45)。
 19. **Memory / 後台 feature differentiator 一定要 UI surface** — 即使 backend 100% work，user 見唔到就 unfalsifiable。NovelAI lorebook UI 係佢哋 #1 retention driver。"AI 真係記得" claim 冇 Memory Journal 等於 marketing 喺空氣度。Plan UI 同 backend 一齊 ship，唔係留到「之後」。
-20. **Audit cost projections 永遠 underestimate** — Phase 2 原本估 ~2% memory overhead，實際係 ~35% on Narrator baseline。每次 add LLM call 都要 re-baseline 真實 per-turn cost vs subscription tier pricing。Pricing v3 final math (Standard $9.99 / Pro $19.99): Standard 71-77% margin · Pro worst-case 55% (per `pm/pricing-v3-final.html`)。Naming reminder: internal id `adventurer` = public name **Standard**, internal `storyteller` = public **Pro**。
-21. **Founder priority rule — Function → UI → Money** — Phase number 唔等於 execution order。Founder explicit 講：先完成所有 product **function**（story engine / memory / community / adult mode logic / official content），再 **UI** design（library / Memory Journal / locale switcher / Settings polish / Library UI），最後先做 **money**（credits UX / Stripe / KYC / refund saga）。Session 7 嗰陣 Phase 3 credits 順序排錯 — 屬於 money tier 但做咗喺 function 完成之前。**Pattern validated**: Sessions 8-13 function tier · Session 9 UI tier · Session 15 money tier (Phase 4 Stripe + top-up + Phase 6 KYC · 9 ship blockers caught in 3-wave audit) — 三 tier 全 ship · platform 唔係 beautifully-monetized empty product · 跟住呢個 rule 行得通。**任何時候建議 next move 之前 check：佢屬邊個 tier？高 tier 嘅 deferred work 唔該先做晒**。
+20. **Audit cost projections 永遠 underestimate** — Phase 2 原本估 ~2% memory overhead，實際係 ~35% on Narrator baseline。每次 add LLM call 都要 re-baseline 真實 per-turn cost vs subscription tier pricing。Adventurer $9.99/mo 200-turn = $4.60 = 46% COGS。
+21. **Founder priority rule — Function → UI → Money** — Phase number 唔等於 execution order。Founder explicit 講：先完成所有 product **function**（story engine / memory / community / adult mode logic / official content），再 **UI** design（library / Memory Journal / locale switcher / Settings polish / Library UI），最後先做 **money**（credits UX / Stripe / KYC / refund saga）。Session 7 嗰陣 Phase 3 credits 順序排錯 — 屬於 money tier 但做咗喺 function 完成之前。**任何時候建議 next move 之前 check：佢屬邊個 tier？高 tier 嘅 deferred work 唔該先做晒**。
 22. **加 enum 但唔 implement filter = documented missing safeguard** — Phase 5 嘅 `moderation_flags` 加咗 `'csam'` 同 `'sexual_minor'` enum 表示呢類 vector 存在，但 createStoryFromPrompt / upsertComment / rateStory 全部冇 pre-filter。CLAUDE.md hard rule #6 violation。**每次加 enum 認 acknowledge attack vector 嘅同時必須 implement 對應 defense**。否則就係 schema-level admission without code-level enforcement。
 23. **`bump_X_count` triggers need symmetric INSERT + DELETE handlers** — counter-without-decrement 係常見 race vector。Phase 5 嘅 play_count 只有 INSERT trigger，加 user 可以 fork→delete loop 將 count inflate。每次寫 trigger 增 counter 都諗：「邊個情況會減？」如果有 DELETE 路徑能 affect count，就需要 mirror trigger。
 24. **`auth.uid() = user_id` UPDATE policy 唔夠 — 要 column restriction** — Phase 5 嘅 story_comments_own_update 用 bare `using/with check auth.uid()=user_id` — 但冇限制邊個 column 可以改。用戶可以 un-delete · edit body · re-parent 跨 story · 改 story_id。**任何 UPDATE policy 都要諗：用戶可以改邊個 column？哪個 column 變化會 break invariant？** 解法：trigger BEFORE UPDATE 比 RLS column-list 更穩。
@@ -220,20 +223,20 @@ DB：`story_characters` (模板) + `playthrough_character_states` (per-playthrou
 31. **Fetch response single-consume gotcha in error handlers** — Phase 5 Wave 2.5 audit 揾到 play-client 嘅 400/403/503 inner handlers 各自 `await res.json()` · fall-through 到底嘅 `await res.text()` 會 throw "body stream already read"。**Fetch Response 嘅 body 只能 consume 一次**。Pattern: 讀 body 一次 at top of `if (!res.ok)` · 之後 key off body?.error per status。Drop 底嘅 fallback `res.text()`。
 32. **Manual E2E DEFERRED to post-UI tier · 唔逐 phase 測** — Founder rule (2026-05-23): 「實質測試個產品我係希望等完成咗UI之後先一次過測試,唔好再叫我測試喇依家」。Function tier ship + audit converged (3 consecutive zero-ship-blocker cycles per #29) = sufficient quality signal · don't gate next-phase progression on founder E2E。Per-phase E2E checklist (manual-e2e-phase*.html) 仍然 write 留住做 final comprehensive E2E suite 嘅 base — UI tier 完之後 expand 覆蓋 polished flows · 一次過測整個 final product。Never propose「Manual E2E next」之間 phase。
 33. **Phase 7 (5 官方故事) = last-stage SMALL task · NOT function-tier priority** — Founder rule (2026-05-23): 「呢啲官方故事嗰啲嘢係好細嘅嘢可以去到最後個 stage 先做㗎喎」+「整撚晒啲 backend 啊 function 嘢先」。Phase 7 是 creative content writing · 唔係 technical backend work。**Within function tier, ALWAYS prioritize technical/code work over creative content writing**。Order: Phase 6 non-money (technical) → Phase 1.5/2 audit polish (technical) → other backend → UI tier → Money tier → **FINAL STAGE: (a) Phase 7 5 stories (small · ~1 session) + (b) Comprehensive E2E**（同一個 burst · founder 寫故事時平台 launch-ready · stories 即時 showcase polished UX）。Never propose Phase 7 as「next after Phase X」during technical phases。
-34. **Customer-facing copy ≠ internal strategy text** — Session 15 founder caught「對手要 6-12 個月先抄到」(lifted from CLAUDE.md internal competitive-moat row) leaked into marketing pill on kieio.com landing。Internal docs are fine candid spaces — they STAY internal。Customer-facing copy（marketing · UI text · email templates · error messages）uses **user-benefit framing only** — never competitor trash-talk · never moat-timeline talk · never technical-advantage boasting。Filter every public string before shipping: 「If a competitor / investor / new user reads this, what does it signal?」Same fix pattern × 3 locales。Founder reaction: 「對手要 6-12 個月先抄到 in a fucking website??? what the fuck is wrong with you?」
-35. **Cross-subdomain auth `redirectTo` MUST use `getAppOrigin()`** — Session 15 founder tried Google login → OAuth flow completed → Supabase confirmed session → user landed on /library → header still said「Log in」→ user appeared not-logged-in。Root cause: `authRedirectBase()` returned `NEXT_PUBLIC_SITE_URL` which post-split = `kieio.com` (marketing host)。OAuth callback landed on kieio.com → Supabase set auth cookie on `kieio.com` domain → middleware redirect to `app.kieio.com` saw NO cookie → user invisible-failure。**Cross-host cookie scope mismatch is a silent killer — no error surfaces to client**。Pattern: `lib/urls.ts` exports `getAppOrigin()` + `getMarketingOrigin()` driven by `NEXT_PUBLIC_APP_URL` + `NEXT_PUBLIC_MARKETING_URL` env vars。ALL auth flows (`signInWithOAuth.options.redirectTo` · `signInWithOtp.options.emailRedirectTo`) use `getAppOrigin()`。Cookie scope set to parent domain (`.kieio.com`)。Never `headers().get("origin")` (browser-controlled — phishing vector)。Never raw `NEXT_PUBLIC_SITE_URL` post-split。
-36. **Spec-vs-code drift = documentation hygiene failure** — When pm/STATUS.md, CLAUDE.md, or DECISIONS.md state a specific number / behavior, that doesn't make it true。Doc can be wrong · code can be wrong · they can drift apart。Session 15 founder asked「register 之後到底拎幾多 token?」Spec (pm/STATUS.md Pricing v3 line 74) declared「Free signup 1k + 50/day」。Code (Migration 0001 column default + Migration 0008 trigger) only granted 50。Drift was undetected since launch · 0 prod users so cost was $0 but the principle: **doc-vs-code drift = documentation hygiene failure**。Founder reaction: 「1. no wtf? should be first time register have 1k/1.5k token + daily fill 50 (read the fucking cost/status md) what the fuck?」 Fix shipped as Migration 0033。**When founder asks specific「what does X actually do?」question — treat it as drift-detection request, not doc-recall request**。Verify the code path actually matches the spec doc claim。When shipping NEW feature, scan pm/STATUS.md / CLAUDE.md / DECISIONS.md for related claims and validate they still hold。Don't trust the doc just because you wrote it。Same rule applies to memory ↔ CLAUDE.md drift — when conflict, cross-check + reconcile, don't pick one blindly。
+34. **Customer-facing copy ≠ internal strategy text** — Session 15 lift 咗 CLAUDE.md「對手要 6-12 個月先抄到」(internal competitive moat assessment) 入 marketing pill · founder catch (繁中 vulgarities)。Competitor trash-talk in own marketing 係 unprofessional + signals insecurity。**任何 customer-facing copy (marketing · product UI · email · error messages) 永遠 user-benefit framing · NEVER lift 自 CLAUDE.md / DECISIONS.md / pm/STATUS.md 嘅 strategy / competitive / technical advantage talk**。寫之前自問：呢句寫俾用戶睇 · 定寫俾自己 / 投資者睇？只有後者啱 candid。Internal docs 仍然繼續 candid · 但只活喺呢度 · 唔輸出。
+35. **Cross-subdomain auth redirect 永遠用 `getAppOrigin()`** — Session 15 Google login regression：`authRedirectBase()` 用咗 `NEXT_PUBLIC_SITE_URL` (post-split = marketing host kieio.com) → OAuth callback 落 marketing host → Supabase 喺 marketing 域 set cookie → middleware redirect 入 product host (app.kieio.com) → cookie 唔見 → user 表面 unauth (但 Supabase 顯示 session 已成功)。Silent failure mode。**所有 auth `redirectTo` / `emailRedirectTo` MUST 用 `getAppOrigin()` from `lib/urls.ts`**。唔可以 fall back `headers().get("origin")` (browser-controlled · phishing vector) · 唔可以直接用 `NEXT_PUBLIC_SITE_URL` (post-split 已 = marketing host)。Cookie scope 永遠係 parent domain (`.kieio.com`) · 等 marketing + product 都讀到 session。
+36. **Spec-vs-code drift = documentation hygiene failure** — Session 15 揾到 pm/STATUS.md Pricing v3 line 74 講「Free signup 1k + 50/day」但 Migration 0001 column default + Migration 0008 trigger 淨係 grant 50。Drift undetected since launch · only caught when founder explicit 問「register 之後到底拎幾多?」。Migration 0033 fix (1000 + backfill +950)。**每次 ship new feature 應該 scan spec docs for related claims · validate code 真係 match · 唔好 trust the doc just because 你 wrote it**。Spec docs 可以同 code 同樣 wrong · 兩邊都要 cross-verify。Founder 一旦 explicit 問細節 = high signal 你應該即刻 check 兩邊 sync。
 
 ---
 
 ## Open Items（待解決）
 
-_Session 16 cleanup: 5 of 6 prior items decided · moved to ADRs / BACKLOG._
-
-- **Phase 1.5.3 M-02 NPC name fuzzy match strategy** (exact + Levenshtein fallback?) — Phase 1.5 NPC L3 backend shipped Session 13；M-02 polish status unverified。Confirm in pm/BACKLOG.md before launch or close as「accept naive exact match per ADR-012」。
-
-_Decided + closed_：moderation provider (ADR-013 OpenAI Moderation API · 已 implement · Session 16 module-load assertion 防 regression) · USD vs HKD (ADR-009 USD primary) · Lorebook same-name dedup (ADR-012 naive exact match) · v1.5 cover image provider (moved to pm/BACKLOG.md post-launch section).
+- 內容 moderation 嘅具體實作（哪個 provider、CSAM filter source）
+- 預設訂價係 USD 定 HKD？最終 launch 時 confirm
+- v1.5 嘅 cover image 生成用邊個 provider（Fal.ai vs Replicate vs Together）
+- Lorebook entity 同名 dedup 策略（「阿明」vs「陳家明」）— 用 naive exact match 先
+- Phase 1.5.3 M-02 NPC name fuzzy match strategy（exact + Levenshtein fallback?）
 
 ---
 
-_Last updated: 2026-05-28 (Session 16 — 🎉 Function + UI + Money tier ALL SHIPPED · Brand Kieio · kieio.com + app.kieio.com hard subdomain split active · Marketing site live · Wave 2 i18n 622 keys × 3 locales converged · Session 16 audit 28 findings closed (6 CRIT + 10 HIGH + 7 MED + 5 LOW · commit `1a2842e`) · 6 new migrations (0029-0035 · ghost migrations recovered + display_name restore + race-safe cron) · 3 new hard rules #34/#35/#36 codified · Next = Phase 7 final stage (5 官方故事 + comprehensive Manual E2E) → public launch on kieio.com)_
+_Last updated: 2026-05-28 (Session 15 — 🟡 MONEY TIER SHIPPED · Phase 4 Stripe (subscription + checkout + portal + top-up + cron) + Phase 6 KYC (Stripe Identity) · 3-wave audit converged (9 ship blockers) · 🌐 Marketing site live at kieio.com (dark cinematic landing + pricing + 3 selling points) · 🔀 Hard subdomain split (kieio.com marketing + app.kieio.com product · cookies `.kieio.com`) · 🌏 i18n Wave 2 (622 keys × 3 locales · 9-cycle audit converged) · 🔧 Google login subdomain bug fix · 💰 Migration 0033 signup grant 1000 correction · added hard rules #34-36 · function + UI + money tier 全完 · 🏁 next = Phase 7 5 條官方故事 + comprehensive E2E)_
