@@ -79,7 +79,7 @@
       <tbody>
         <tr><td><strong>Q1 · UX trigger</strong></td><td>Single「Generate scene」button per turn → modal opens · user picks comic / wallpaper / illustration</td><td>Character sheet lazy gen (option B) · 唔喺 creation 預先 gen</td></tr>
         <tr><td><strong>Q2 · Wallpaper content</strong></td><td>Based on turn context — 出場嘅 NPCs 一齊出現 · 唔係 default 主角 solo</td><td>Detect characters from turn text (NPC mentions + dialogue speakers) · pass all to image gen</td></tr>
-        <tr><td><strong>Q3 · Provider</strong></td><td>Gemini Nano Banana Pro · GPT Image 2 · Grok (NSFW)</td><td>Multi-provider routing · 唔用 Replicate Flux</td></tr>
+        <tr><td><strong>Q3 · Provider</strong></td><td>Gemini Nano Banana Pro · GPT Image 2 · Grok (NSFW) · <strong>all via OpenRouter aggregator (existing OPENROUTER_API_KEY reuse)</strong></td><td>1 API key · 1 billing · provider abstraction沿用 LLM pattern · 唔需要 3 個新 account</td></tr>
         <tr><td><strong>Q4 · Prompt control</strong></td><td>User can write own prompt · 或者 let AI auto-prompt from turn context</td><td>Modal 加 "AI auto-prompt / I'll write it" toggle</td></tr>
         <tr><td><strong>Q5 · NSFW</strong></td><td>Grok 可以做 NSFW image · MVP 就支援</td><td>Adult-rated story → 自動 route to Grok · 唔再 defer 到 v1.5</td></tr>
       </tbody>
@@ -275,62 +275,79 @@ await insertSceneImageRow({ playthrough_id, turn_index, storage_url, ... })</pre
   </div>
 
   <!-- ═══════════════════════ PROVIDER ═══════════════════════ -->
-  <h2 id="provider">🛠 Provider stack · 3-way routing (founder-locked)</h2>
+  <h2 id="provider">🛠 Provider stack · OpenRouter aggregator (founder-locked)</h2>
+
+  <div class="verdict green">
+    <h3>🎯 Major simplification · OpenRouter handles all 3</h3>
+    <p>Founder pointed out (and I missed): Story Engine 已經 wire 咗 OpenRouter (per <code>web/src/lib/ai/providers.ts:29</code> · <code>OPENROUTER_API_KEY</code> · <code>createOpenAI({ baseURL: "openrouter.ai/api/v1" })</code>). OpenRouter aggregator API 可以 route 去 Google Gemini · OpenAI GPT Image · xAI Grok · <strong>1 個 API key · 1 個 billing · 1 個 provider abstraction</strong>。</p>
+    <p>Code-side: <code>openrouterProvider</code> 已經 export · 加 image gen 只需要 extend 同一個 client 嘅 <code>images.generate()</code> call (或者 raw fetch 去 <code>/api/v1/images/generations</code>)。Provider registry pattern 沿用 · model_id 換成 OpenRouter 嘅 image model identifier (e.g., <code>google/gemini-2.5-flash-image</code>)。</p>
+  </div>
 
   <table class="table">
-    <thead><tr><th>Provider</th><th>Model</th><th>Reference support</th><th>Per-image cost</th><th>Speed</th><th>用喺邊</th></tr></thead>
+    <thead><tr><th>Underlying model</th><th>OpenRouter model_id</th><th>Reference support</th><th>Per-image cost (OR markup)</th><th>用喺邊</th></tr></thead>
     <tbody>
       <tr>
-        <td><strong>Google · Gemini</strong></td>
-        <td>gemini-2.5-flash-image (Nano Banana) · Imagen 3</td>
-        <td class="ok">✅ Strong subject reference · iterative composition</td>
-        <td>$0.04 (Nano) / $0.04 (Imagen 3)</td>
-        <td>4-8s</td>
-        <td>⭐ <strong>Default · SFW</strong> · 強 character consistency · cheap</td>
+        <td><strong>Gemini Nano Banana / Imagen 3</strong></td>
+        <td><code>google/gemini-2.5-flash-image</code></td>
+        <td class="ok">✅ Subject reference · iterative composition</td>
+        <td>~$0.04 + OR ~5% markup</td>
+        <td>⭐ Default · SFW</td>
       </tr>
       <tr>
-        <td><strong>OpenAI · GPT Image 2</strong></td>
-        <td>gpt-image-1 (latest · GPT-4o image successor)</td>
-        <td class="ok">✅ Strong text-in-image · subject ref via edits API</td>
-        <td>$0.04 (low) / $0.17 (high quality)</td>
-        <td>10-25s</td>
-        <td>⭐ <strong>Premium SFW</strong> · 唯一可以原生 render 中文字 入圖 · 漫畫面板 text bubble 一步解決</td>
+        <td><strong>OpenAI GPT Image 2</strong></td>
+        <td><code>openai/gpt-image-1</code></td>
+        <td class="ok">✅ Text-in-image · subject ref via edits</td>
+        <td>~$0.04-0.17 + OR markup</td>
+        <td>⭐ Comic panels (CJK text bubble)</td>
       </tr>
       <tr>
-        <td><strong>xAI · Grok</strong></td>
-        <td>grok-2-image (Aurora model)</td>
-        <td class="warn">⚠ Subject ref support · less mature</td>
-        <td>$0.07 / image</td>
-        <td>6-12s</td>
-        <td>⭐ <strong>NSFW · Adult-rated stories</strong> · 唯一支援成人內容嘅 mainstream provider</td>
+        <td><strong>xAI Grok Aurora</strong></td>
+        <td><code>x-ai/grok-2-image</code></td>
+        <td class="warn">⚠ Less mature ref support</td>
+        <td>~$0.07 + OR markup</td>
+        <td>⭐ NSFW · Adult-rated stories</td>
       </tr>
     </tbody>
   </table>
 
   <div class="verdict amber">
-    <h3>Provider routing logic</h3>
-    <pre class="code-block"><span class="key">function</span> pickImageProvider(story, imageType, userTier) {
-  <span class="comment">// Adult-rated story → Grok exclusively (only NSFW-permissive option)</span>
-  <span class="key">if</span> (story.content_rating === <span>'adult'</span>) <span class="key">return</span> <span>'xai-grok'</span>;
-
-  <span class="comment">// Comic panel needs text bubble · GPT Image 2 renders Chinese natively</span>
-  <span class="key">if</span> (imageType === <span>'comic'</span>) {
-    <span class="comment">// Pro tier: premium GPT Image (high quality · $0.17) for better text fidelity</span>
-    <span class="comment">// Standard tier: GPT Image low ($0.04) acceptable</span>
-    <span class="key">return</span> <span>'openai-gpt-image'</span>;
-  }
-
-  <span class="comment">// Default SFW illustration / wallpaper → Gemini Nano Banana (cheap · consistent)</span>
-  <span class="key">return</span> <span>'google-gemini'</span>;
-}</pre>
+    <h3>⚠ Verify before ship</h3>
+    <p>OpenRouter <strong>aggregator coverage for image models</strong> evolves quarterly. Phase 8.0 prep step: verify all 3 model_ids are accessible via OpenRouter's images endpoint at time of build (~5 min curl test). If a model is NOT yet on OpenRouter, fall back to direct API for that specific provider · still use existing key pattern (e.g., <code>OPENAI_API_KEY</code> already exists · <code>XAI_API_KEY</code> if needed for direct Grok)。</p>
+    <p>Net win even with partial fallback: 0-2 new keys (vs 3 in original plan) · 1 unified billing dashboard for most models · OpenRouter ~5% markup is negligible vs developer time savings。</p>
   </div>
 
-  <h3>為咩呢 3 個 (vs 我之前嘅 Replicate Flux)</h3>
+  <h3>Provider routing logic (same · just via OpenRouter)</h3>
+  <pre class="code-block"><span class="key">function</span> pickImageModel(story, imageType) {
+  <span class="comment">// All three route through openrouterProvider · just different model_id</span>
+  <span class="key">if</span> (story.content_rating === <span>'adult'</span>) <span class="key">return</span> <span>'x-ai/grok-2-image'</span>;
+  <span class="key">if</span> (imageType === <span>'comic'</span>) <span class="key">return</span> <span>'openai/gpt-image-1'</span>;
+  <span class="key">return</span> <span>'google/gemini-2.5-flash-image'</span>;
+}
+
+<span class="comment">// In server action · single provider client · just swap model_id</span>
+<span class="key">const</span> response = await fetch(<span>`https://openrouter.ai/api/v1/images/generations`</span>, {
+  method: <span>'POST'</span>,
+  headers: {
+    Authorization: <span>`Bearer ${process.env.OPENROUTER_API_KEY}`</span>,
+    <span>'HTTP-Referer'</span>: <span>'https://kieio.com'</span>,
+    <span>'X-Title'</span>: <span>'Kieio'</span>,
+  },
+  body: JSON.stringify({
+    model: pickImageModel(story, imageType),
+    prompt: finalPrompt,
+    reference_image_urls: characterPortraitUrls,  <span class="comment">// per-provider param shape may differ</span>
+    size: aspectFor(imageType),
+    quality: imageType === <span>'comic'</span> && userTier === <span>'pro'</span> ? <span>'high'</span> : <span>'standard'</span>,
+  }),
+});</pre>
+
+  <h3>Why OpenRouter (vs direct API per provider)</h3>
   <ul class="bullets">
-    <li><strong>Gemini Nano Banana Pro</strong>: founder-picked · 業界傳聞最強 character consistency 機制 (iterative reference · 多輪 refinement keep face stable) · 配 Imagen 3 underlying · Google AI Studio API 簡單</li>
-    <li><strong>GPT Image 2</strong>: <strong>原生 render Chinese / Japanese 嵌入圖</strong> — 解決我之前嘅 post-process text overlay 問題。漫畫面板 NPC 對白可以直接 prompt「對白氣泡寫『林思雅推開你: 唔好過嚟』」· GPT Image 真係寫到中文字落圖 · 唔需要後處理。Premium quality $0.17 多但 comic 場景值。</li>
-    <li><strong>Grok (Aurora)</strong>: 唯一 mainstream NSFW-permissive provider · 用 xAI API · adult mode 用戶終於可以 visualize 成人故事 · 唔需要 defer v1.5</li>
-    <li>Replicate Flux <strong>drop</strong> · founder 揀咗 native API 更好 (Google + OpenAI + xAI 都係 Story Engine 已經有嘅 LLM provider · API key 重用 · provider registry pattern 已成熟)</li>
+    <li><strong>Existing infrastructure reuse</strong>: <code>OPENROUTER_API_KEY</code> already in Vercel env · <code>openrouterProvider</code> already wired · cookie + auth + headers (HTTP-Referer / X-Title) pattern proven for Story Engine LLM routing since Phase 3</li>
+    <li><strong>1 billing dashboard</strong>: track image gen spend alongside LLM spend · founder sees unified cost per story / per user / per month</li>
+    <li><strong>Future model swap easier</strong>: when Gemini ships Imagen 4 or OpenAI ships GPT Image 3 · just change <code>model_id</code> string · zero new auth code</li>
+    <li><strong>Failover</strong>: if Google Imagen 3 endpoint down · can switch to <code>black-forest-labs/flux-pro-1.1</code> via same OpenRouter call · 5-line change</li>
+    <li><strong>~5% markup acceptable</strong>: $0.04 → $0.042 image · negligible at our margin (92% margin still 91%)</li>
   </ul>
 
   <!-- ═══════════════════════ SCHEMA ═══════════════════════ -->
@@ -597,22 +614,33 @@ create index scene_images_user_idx on scene_images(user_id, created_at desc);</p
       <li>~3-4 sessions implementation</li>
       <li>~$10-20 LLM cost for 5 官方 stories' lazy portraits during testing</li>
       <li>1 Supabase Storage bucket (scene-images + character-portraits)</li>
-      <li>3 new env vars: <code>GOOGLE_GENAI_API_KEY</code> + <code>XAI_API_KEY</code> (OPENAI_API_KEY already exists)</li>
+      <li><strong>0 new env vars</strong>: <code>OPENROUTER_API_KEY</code> reuse (aggregator routes to Gemini · GPT Image · Grok) · only if a model is missing from OpenRouter do we add a fallback direct API key</li>
       <li>~600 lines code (provider routing + UX modal + character detection + post-gen moderation)</li>
     </ul>
   </div>
 
-  <h3>📋 Pre-launch prep · founder action (唔阻 launch timeline)</h3>
+  <h3>📋 Pre-launch prep · founder action (唔阻 launch timeline · 大幅簡化)</h3>
   <table class="table">
     <thead><tr><th>Action</th><th>Time</th><th>Output</th></tr></thead>
     <tbody>
-      <tr><td><strong>1. Open Google AI Studio account</strong></td><td>~5 min</td><td><code>GOOGLE_GENAI_API_KEY</code> for Gemini Nano Banana / Imagen 3</td></tr>
-      <tr><td><strong>2. Confirm OpenAI Image gen quota</strong></td><td>~3 min</td><td>Existing <code>OPENAI_API_KEY</code> already valid · just need to confirm gpt-image-1 access in OpenAI dashboard (Tier 1 required)</td></tr>
-      <tr><td><strong>3. Open xAI developer account</strong></td><td>~10 min</td><td><code>XAI_API_KEY</code> for Grok Aurora (NSFW path) · separate billing setup from OpenAI</td></tr>
-      <tr><td><strong>4. Decide default character art style</strong></td><td>~15 min review</td><td>Pick: <em>realism · anime · cinematic painterly · 國風 watercolor · noir illustration</em>. Default applies to stories where AI generates the style_profile but founder wants house style baseline. (建議: cinematic painterly · matches 「dark cinematic」 brand)</td></tr>
-      <tr><td><strong>5. Stripe Price IDs (optional)</strong></td><td>~10 min</td><td>If wanting credit-pack「Visualizer」add-on bundle separate from base subscription · create new Stripe Product (e.g., 「Visualizer Bundle · $4.99 for 1000 image-credits」)</td></tr>
+      <tr><td><strong>1. Verify OpenRouter image gen coverage</strong></td><td>~10 min</td><td>curl 3 個 model_id 測試: <code>google/gemini-2.5-flash-image</code> · <code>openai/gpt-image-1</code> · <code>x-ai/grok-2-image</code>. 如果有缺 · 對應 fallback (e.g., direct OpenAI for GPT Image 已經有 <code>OPENAI_API_KEY</code>)</td></tr>
+      <tr><td><strong>2. OpenRouter credit top-up</strong></td><td>~5 min</td><td>Estimate $20-50 buffer for 5 stories test gen + initial launch traffic. Existing <code>OPENROUTER_API_KEY</code> reuse · just deposit credits</td></tr>
+      <tr><td><strong>3. Decide default character art style</strong></td><td>~15 min review</td><td>Pick: <em>realism · anime · cinematic painterly · 國風 watercolor · noir illustration</em>. (建議: <strong>cinematic painterly</strong> · matches 「dark cinematic」 brand identity)</td></tr>
+      <tr><td><strong>4. Stripe Price IDs (optional)</strong></td><td>~10 min</td><td>If wanting credit-pack「Visualizer」add-on bundle separate from base subscription · create new Stripe Product (e.g., 「Visualizer Bundle · $4.99 for 1000 image-credits」)</td></tr>
     </tbody>
   </table>
+
+  <div class="verdict green" style="margin-top: 16px;">
+    <h3>What we saved by using OpenRouter aggregator</h3>
+    <ul class="bullets" style="margin-top: 4px;">
+      <li>❌ <s>Open Google AI Studio account · grab GOOGLE_GENAI_API_KEY</s></li>
+      <li>❌ <s>Open xAI developer account · grab XAI_API_KEY · separate billing</s></li>
+      <li>❌ <s>3 new env vars in Vercel · 3 separate auth code paths</s></li>
+      <li>✅ Net new env vars: <strong>0</strong> (OpenRouter key already in prod)</li>
+      <li>✅ Code reuse: <code>openrouterProvider</code> client already exported · adding image gen = extending same module</li>
+      <li>✅ Unified cost monitoring · 1 billing dashboard for all image + LLM spend</li>
+    </ul>
+  </div>
 
   <h3>🎯 Locked architecture summary</h3>
   <div class="card">
