@@ -771,8 +771,12 @@ export function PlayClient({
                     </div>
                   )}
 
-                  {/* Phase 8 · per-AI-turn Visualize button (skips for streaming, free, system errors) */}
-                  {turn.role === "ai" && subscriptionTier !== "free" && (
+                  {/* Phase 8 · per-AI-turn Visualize button · shown to ALL tiers.
+                      Free tier sees button → clicks → modal shows tier_required
+                      paywall with 「升級 →」CTA (upsell moment). Hiding the button
+                      entirely from free users (prior implementation) prevented
+                      free→paid conversion + made the feature invisible. */}
+                  {turn.role === "ai" && (
                     <button
                       type="button"
                       onClick={() => setVisualizeTurnIndex(turn.index)}
