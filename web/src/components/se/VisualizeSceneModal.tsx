@@ -295,26 +295,12 @@ export function VisualizeSceneModal({
           <X className="h-4 w-4" />
         </button>
 
-        {/* ───────── Free tier paywall ───────── */}
-        {isFree && (
-          <div className="p-8 text-center">
-            <div className="mx-auto inline-flex items-center justify-center rounded-full bg-amber-500/10 p-3 mb-4">
-              <Lock className="h-6 w-6 text-amber-500" />
-            </div>
-            <h2 className="text-lg font-semibold mb-2 se-cjk">
-              {t("tier.freeBlocked")}
-            </h2>
-            <Link
-              href="/settings"
-              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-            >
-              {t("tier.freeBlockedCta")}
-            </Link>
-          </div>
-        )}
+        {/* W4 fix · 2026-05-28: free user 都顯示完整 form · 揀完先喺 CTA 度 paywall
+           (founder feedback: 唔好 button 一按即 wall, 應該見到 modal · 揀風格 · 然後升級).
+           tier check 喺 CTA 邏輯 + handleSubmit 雙重把守. */}
 
         {/* ───────── FORM stage ───────── */}
-        {!isFree && stage === "form" && (
+        {stage === "form" && (
           <div className="p-6 space-y-5">
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -576,7 +562,18 @@ export function VisualizeSceneModal({
 
             {/* ─── CTA ─── */}
             {(() => {
-              // Wave 3 fix UX-HIGH-02: explain WHY CTA is disabled
+              // W4 fix: free user 撳到 modal 揀風格 · 但 CTA 變升級 link 而唔係生成.
+              // 之前係 button 一按即 wall (form 都見唔到) · founder feedback 太突兀.
+              if (isFree) {
+                return (
+                  <Link
+                    href="/settings"
+                    className="block w-full text-center rounded-md bg-primary px-4 py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                  >
+                    🔒 {t("tier.freeBlocked")} · {t("tier.freeBlockedCta")}
+                  </Link>
+                );
+              }
               const needsAck = styleMode === "upload" && uploadedRef && !uploadAck;
               const needsFile = styleMode === "upload" && !uploadedRef;
               const needsCustom = styleMode === "custom" && !customPrompt.trim();
