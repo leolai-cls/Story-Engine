@@ -873,6 +873,31 @@ export async function POST(
     },
     temperature: 0.85,
     maxOutputTokens: 1500,
+    // W4 fix · agent 4-persona retest 2026-05-28 揾到 streamText silent fail:
+    // POST /turn 返 200 OK 但 narrator output 從未出 · AI turn row 從未 insert ·
+    // credit charge 從未 trigger. Root cause 推斷係 OpenRouter Gemini chat
+    // completion 出錯 (model_id 唔啱 · tools schema 不兼容 · or rate limit).
+    // 加 onError 等錯誤 surface 入 Vercel runtime log + Sentry · 同時記錄
+    // provider / model / message-count 等 diagnostic.
+    onError: async (event) => {
+      const err = event.error;
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(
+        `[turn] streamText FAILED for pt ${playthroughId} model=${pt.llm_model}: ${msg}`,
+      );
+      // Sentry capture if available · non-fatal best effort
+      try {
+        const Sentry = await import("@sentry/nextjs").catch(() => null);
+        if (Sentry) {
+          Sentry.captureException(err, {
+            tags: { route: "turn", model: pt.llm_model ?? "default" },
+            extra: { playthroughId, userId: user.id },
+          });
+        }
+      } catch {
+        // ignore
+      }
+    },
     onFinish: async ({ text, toolCalls, usage }) => {
       try {
         // L-08 fix: detect LLM refusal + substitute in-fiction fallback.
