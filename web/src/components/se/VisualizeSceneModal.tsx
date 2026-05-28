@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useTransition } from "react";
+import { useEffect, useId, useState, useRef, useTransition } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import {
   Sparkles,
@@ -16,6 +16,7 @@ import {
   Lock,
   CheckCircle2,
   AlertTriangle,
+  Trash2,
 } from "lucide-react";
 import {
   generateScene,
@@ -65,8 +66,18 @@ export type VisualizeSceneModalProps = {
   subscriptionTier: "free" | "adventurer" | "storyteller" | "legend";
   /** Current credit balance for CTA pricing display. */
   currentBalance: number;
-  /** Called on success so parent can refresh scene_images thumbnail list. */
-  onSuccess?: (sceneImageId: string, storageUrl: string) => void;
+  /**
+   * Called on success so parent can refresh scene_images thumbnail list.
+   * Wave 3 fix UX-MED-01 / DF-HIGH-01: callback now receives full metadata
+   * so optimistic insert uses correct aspect-ratio thumbnail dimensions.
+   */
+  onSuccess?: (
+    sceneImageId: string,
+    storageUrl: string,
+    imageType: ImageType,
+    styleMode: "preset" | "upload" | "custom" | "ai_suggested",
+    styleValue: string,
+  ) => void;
 };
 
 export function VisualizeSceneModal({
@@ -119,7 +130,21 @@ export function VisualizeSceneModal({
     balance?: number;
   }>({});
 
-  const [, startTransition] = useTransition();
+  const [isPending, startTransition] = useTransition();
+  const titleId = useId();
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  // Wave 3 fix UX-HIGH-07: Escape key + focus trap basics
+  useEffect(() => {
+    if (!open) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !uploading && !isPending) {
+        onClose();
+      }
+    };
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [open, onClose, uploading, isPending]);
 
   // ─── Reset state when modal closes ──────────────────────────────────────
   useEffect(() => {
@@ -175,12 +200,31 @@ export function VisualizeSceneModal({
           styleMode === "upload" ? uploadedRef?.id : undefined,
         customPrompt:
           styleMode === "custom" ? customPrompt.trim() : undefined,
+        // Wave 3 fix CR-CRIT-01: thread proQuality flag end-to-end
+        proQuality:
+          proQuality &&
+          imageType === "comic" &&
+          subscriptionTier === "storyteller",
       });
 
       if (res.ok) {
         setResultUrl(res.storageUrl);
         setStage("success");
-        onSuccess?.(res.sceneImageId, res.storageUrl);
+        const styleValueForCallback =
+          styleMode === "preset"
+            ? selectedStyleKey
+            : styleMode === "custom"
+              ? customPrompt.trim().slice(0, 200)
+              : styleMode === "upload" && uploadedRef
+                ? uploadedRef.storageUrl
+                : "";
+        onSuccess?.(
+          res.sceneImageId,
+          res.storageUrl,
+          imageType,
+          styleMode,
+          styleValueForCallback,
+        );
       } else {
         setErrorCode(res.error);
         if (res.error === "insufficient_credits") {
@@ -211,6 +255,12 @@ export function VisualizeSceneModal({
 
   if (!open) return null;
 
+  // Wave 3 fix UX-MED-02: don't close mid-upload or mid-generation
+  const safeClose = () => {
+    if (uploading || isPending) return;
+    onClose();
+  };
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -218,9 +268,14 @@ export function VisualizeSceneModal({
         background: "var(--se-overlay, rgba(0,0,0,0.55))",
         backdropFilter: "blur(8px)",
       }}
-      onClick={onClose}
+      onClick={safeClose}
+      role="presentation"
     >
       <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
         className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl"
         style={{
           background: "var(--se-surface)",
@@ -232,9 +287,10 @@ export function VisualizeSceneModal({
         {/* Close button */}
         <button
           type="button"
-          onClick={onClose}
+          onClick={safeClose}
           aria-label={t("close")}
-          className="absolute right-3 top-3 inline-flex items-center justify-center rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors z-10"
+          disabled={uploading || isPending}
+          className="absolute right-3 top-3 inline-flex items-center justify-center rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed transition-colors z-10"
         >
           <X className="h-4 w-4" />
         </button>
@@ -263,7 +319,7 @@ export function VisualizeSceneModal({
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <Sparkles className="h-4 w-4 text-primary" />
-                <h2 className="text-base font-semibold se-cjk">
+                <h2 id={titleId} className="text-base font-semibold se-cjk">
                   {t("modalTitle")}
                 </h2>
               </div>
@@ -277,7 +333,7 @@ export function VisualizeSceneModal({
               <label className="block text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">
                 {t("imageType.label")}
               </label>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label={t("imageType.label")}>
                 {(
                   [
                     { key: "illustration", icon: ImageIcon },
@@ -290,6 +346,9 @@ export function VisualizeSceneModal({
                     <button
                       key={key}
                       type="button"
+                      role="radio"
+                      aria-checked={active}
+                      aria-label={t(`imageType.${key}`)}
                       onClick={() => setImageType(key as ImageType)}
                       className={`flex flex-col items-center gap-1 rounded-lg border p-3 transition-colors ${
                         active
@@ -326,7 +385,7 @@ export function VisualizeSceneModal({
               <label className="block text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">
                 {t("styleMode.label")}
               </label>
-              <div className="flex gap-1 border-b border-border mb-3">
+              <div className="flex gap-1 border-b border-border mb-3" role="tablist" aria-label={t("styleMode.label")}>
                 {(
                   [
                     { key: "preset", icon: Palette },
@@ -339,6 +398,9 @@ export function VisualizeSceneModal({
                     <button
                       key={key}
                       type="button"
+                      role="tab"
+                      aria-selected={active}
+                      aria-controls={`style-panel-${key}`}
                       onClick={() => setStyleMode(key)}
                       className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium border-b-2 -mb-px transition-colors ${
                         active
@@ -382,7 +444,7 @@ export function VisualizeSceneModal({
                           }`}
                         >
                           <div className="text-sm font-medium se-cjk leading-tight">
-                            {style.name[locale]}
+                            {style.name[locale] ?? style.name.en}
                           </div>
                           <div className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1 se-cjk">
                             {style.bestForGenres.slice(0, 3).join(" · ")}
@@ -433,9 +495,10 @@ export function VisualizeSceneModal({
                     </>
                   ) : (
                     <div className="flex items-center gap-3 rounded-md border border-border p-2">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={uploadedRef.storageUrl}
-                        alt="reference"
+                        alt={t("styleMode.upload")}
                         className="h-16 w-16 rounded object-cover"
                       />
                       <button
@@ -443,10 +506,14 @@ export function VisualizeSceneModal({
                         onClick={() => {
                           setUploadedRef(null);
                           setUploadAck(false);
+                          if (fileInputRef.current) {
+                            fileInputRef.current.value = "";
+                          }
                         }}
-                        className="text-xs text-muted-foreground underline se-cjk"
+                        aria-label={t("close")}
+                        className="inline-flex items-center justify-center rounded-md p-1.5 text-muted-foreground hover:text-destructive hover:bg-muted transition-colors"
                       >
-                        ↻
+                        <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
                   )}
@@ -508,20 +575,37 @@ export function VisualizeSceneModal({
             )}
 
             {/* ─── CTA ─── */}
-            <button
-              type="button"
-              onClick={handleSubmit}
-              disabled={
+            {(() => {
+              // Wave 3 fix UX-HIGH-02: explain WHY CTA is disabled
+              const needsAck = styleMode === "upload" && uploadedRef && !uploadAck;
+              const needsFile = styleMode === "upload" && !uploadedRef;
+              const needsCustom = styleMode === "custom" && !customPrompt.trim();
+              const isDisabled =
+                isPending ||
                 insufficient ||
-                (styleMode === "upload" && (!uploadedRef || !uploadAck)) ||
-                (styleMode === "custom" && !customPrompt.trim())
-              }
-              className="w-full rounded-md bg-primary px-4 py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground transition-colors"
-            >
-              {insufficient
+                needsAck ||
+                needsFile ||
+                needsCustom;
+              const label = insufficient
                 ? t("ctaInsufficient", { needed: cost, balance: currentBalance })
-                : t("cta", { credits: cost })}
-            </button>
+                : needsFile
+                  ? t("styleMode.uploadButton")
+                  : needsAck
+                    ? t("styleMode.uploadAck")
+                    : needsCustom
+                      ? t("styleMode.customPlaceholder")
+                      : t("cta", { credits: cost });
+              return (
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  disabled={isDisabled}
+                  className="w-full rounded-md bg-primary px-4 py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground transition-colors"
+                >
+                  {label}
+                </button>
+              );
+            })()}
           </div>
         )}
 

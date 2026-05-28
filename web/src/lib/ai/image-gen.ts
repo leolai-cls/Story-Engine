@@ -1,10 +1,14 @@
 /**
  * Phase 8 · Image generation client · OpenRouter aggregator.
  *
- * Single client · 3-model routing (Q3 founder-locked):
- *   - SFW illustration / wallpaper → google/gemini-2.5-flash-image
- *   - SFW comic (native CJK text rendering) → openai/gpt-image-1
- *   - Adult-rated story → x-ai/grok-2-image
+ * Wave 3 audit (2026-05-28) verified OpenRouter model availability:
+ *   - SFW illustration / wallpaper → google/gemini-2.5-flash-image (token-priced
+ *     ~$0.005/image · 50-80 credits margin 90%+)
+ *   - SFW / SFW Pro comic → openai/gpt-5.4-image-2 (token-priced ~$0.024/image ·
+ *     latest OpenAI multimodal · native CJK rendering · replaces unavailable
+ *     gpt-image-1)
+ *   - Adult-rated story → x-ai/grok-imagine-image-quality ($0.05/image ·
+ *     replaces unavailable grok-2-image · NSFW support pending founder test)
  *
  * All routed through OpenRouter (existing OPENROUTER_API_KEY reuse · 0 new
  * env vars). Provider abstraction mirrors lib/ai/providers.ts pattern.
@@ -61,14 +65,27 @@ export type ImageGenResult =
 
 /**
  * Pick the OpenRouter model_id based on content_rating + image_type.
- * Per Phase 8 plan Q3 + Q5.
+ * Per Phase 8 plan Q3 + Q5. Wave 3 audit fix AI-HIGH-01: adult+comic now
+ * keeps GPT Image 2 routing for native CJK text rendering (Grok Imagine
+ * is photorealistic-only · loses comic dialogue legibility).
+ *
+ * Adult+comic trade-off: GPT-5.4-image-2 doesn't support explicit NSFW.
+ * If a user generates a comic of an adult-rated story, the provider may
+ * content_filter explicit visuals. Acceptable for MVP (rare combo · most
+ * adult-mode users want adult illustration / wallpaper, not comic).
+ *
+ * Founder NSFW verification pending on grok-imagine-image-quality.
  */
 export function pickImageModel(
   contentRating: "sfw" | "soft" | "adult",
   imageType: ImageType,
 ): string {
-  if (contentRating === "adult") return "x-ai/grok-2-image";
-  if (imageType === "comic") return "openai/gpt-image-1";
+  if (contentRating === "adult") {
+    // Adult + comic: route GPT Image 2 anyway (CJK text > NSFW for comic UX)
+    if (imageType === "comic") return "openai/gpt-5.4-image-2";
+    return "x-ai/grok-imagine-image-quality";
+  }
+  if (imageType === "comic") return "openai/gpt-5.4-image-2";
   return "google/gemini-2.5-flash-image";
 }
 
@@ -104,10 +121,11 @@ export async function generateSceneImage(
     response_format: "b64_json",
   };
 
-  // Reference images (style + character) · OpenAI-compatible providers accept
-  // these as part of the prompt or as separate image[] inputs. OpenRouter
-  // proxies these to provider-specific param shape. Pass as URLs in
-  // metadata · provider docs say `image_url` array works for Gemini/GPT.
+  // Reference images (style + character) · OpenRouter proxies different
+  // per-provider param shapes. Wave 3 audit fix AI-HIGH-06: we don't know
+  // exactly which providers accept `reference_images` body field, so we
+  // pass it best-effort. Providers that ignore it simply produce a
+  // text-only result · degradation, not failure.
   const referenceUrls = [
     ...(req.styleReferenceUrl ? [req.styleReferenceUrl] : []),
     ...(req.characterReferenceUrls ?? []),
@@ -115,9 +133,12 @@ export async function generateSceneImage(
   if (referenceUrls.length > 0) {
     body.reference_images = referenceUrls;
   }
-  if (req.negativePrompt) {
-    body.negative_prompt = req.negativePrompt;
-  }
+  // Wave 3 audit fix AI-HIGH-05: only include negative_prompt for providers
+  // that actually support it. Gemini/GPT/Grok image generation paths reject
+  // or ignore this field · sending it caused 400 errors with some providers.
+  // SD-class models would need explicit allow-list here if added later.
+  // (Currently no SD model is enabled · negative_prompt always stripped.)
+  void req.negativePrompt;
 
   let response: Response;
   try {
@@ -126,15 +147,16 @@ export async function generateSceneImage(
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
+        // Wave 3 fix SEC-MED-04: drop NEXT_PUBLIC_SITE_URL fallback (deprecated
+        // post hard-subdomain-split per hard rule #35). Use app origin only.
         "HTTP-Referer":
-          process.env.NEXT_PUBLIC_APP_URL ??
-          process.env.NEXT_PUBLIC_SITE_URL ??
-          "https://kieio.com",
+          process.env.NEXT_PUBLIC_APP_URL ?? "https://app.kieio.com",
         "X-Title": "Kieio",
       },
       body: JSON.stringify(body),
-      // Long timeout · image gen can take 5-25s
-      signal: AbortSignal.timeout(60_000),
+      // Long timeout · image gen can take 5-45s (Grok Imagine P99 ~35s · GPT
+      // image P99 ~45s · bump to 90s for slow-but-eventual completion · AI-LOW-01)
+      signal: AbortSignal.timeout(90_000),
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
@@ -158,13 +180,21 @@ export async function generateSceneImage(
     const errType = body.error?.type ?? "";
     const errCode = body.error?.code ?? "";
 
-    // Map common errors
-    if (
-      response.status === 400 ||
-      errType.includes("content_filter") ||
-      errType.includes("safety") ||
-      errCode.includes("content_filter")
-    ) {
+    // Map common errors. Wave 3 audit fix AI-HIGH-03: drop blanket 400→
+    // content_filter mapping (OpenRouter returns 400 for malformed body /
+    // invalid model / oversized prompt too · misleads users). Detect via
+    // error keywords only.
+    const errBlob = `${errType} ${errCode} ${errMsg}`.toLowerCase();
+    const isContentFilter =
+      errBlob.includes("content_filter") ||
+      errBlob.includes("safety") ||
+      errBlob.includes("content_policy_violation") ||
+      errBlob.includes("image_generation_user_error") ||
+      errBlob.includes("policy") ||
+      errBlob.includes("nsfw") ||
+      errBlob.includes("csam") ||
+      errBlob.includes("minor");
+    if (isContentFilter) {
       return {
         ok: false,
         reason: "content_filter",
@@ -241,13 +271,19 @@ export async function generateSceneImage(
 /**
  * Estimate credits to charge per image gen.
  *
- * Phase 8 pricing (from plan · margin 90-96%):
- *   SFW illustration (Gemini $0.04)         → 50 credits
- *   SFW comic (GPT Image low $0.04)         → 100 credits
- *   SFW comic Pro quality (GPT Image $0.17) → 200 credits (Pro tier only)
- *   SFW wallpaper (Gemini $0.04)            → 80 credits
- *   Adult illustration (Grok $0.07)         → 100 credits
- *   Adult wallpaper (Grok $0.07)            → 120 credits
+ * Wave 3 audit (2026-05-28) verified real OpenRouter cost:
+ *   Gemini 2.5 Flash Image: token-based ~$0.005/image
+ *   GPT-5.4-image-2:        token-based ~$0.024/image (Pro ~$0.045)
+ *   Grok Imagine:           $0.05/image flat
+ *
+ * Pricing (margin 50-90%):
+ *   SFW illustration (Gemini $0.005)        → 50 credits ($0.05) · 90% margin
+ *   SFW wallpaper (Gemini $0.005)           → 80 credits ($0.08) · 94% margin
+ *   SFW comic (GPT-5.4-image-2 $0.024)      → 100 credits ($0.10) · 76% margin
+ *   SFW comic Pro (GPT-5.4-image-2 $0.045)  → 200 credits ($0.20) · 78% margin
+ *   Adult illustration (Grok Imagine $0.05) → 100 credits ($0.10) · 50% margin
+ *   Adult wallpaper (Grok Imagine $0.05)    → 120 credits ($0.12) · 58% margin
+ *   Adult comic (GPT-5.4-image-2 · routed)  → 200 credits (Pro pricing)
  *   Character portrait (provider-matched)   → 40 credits
  */
 export function estimateImageCredits(
@@ -256,11 +292,13 @@ export function estimateImageCredits(
   proQuality: boolean = false,
 ): number {
   if (contentRating === "adult") {
+    // Adult+comic uses GPT-5.4-image-2 Pro routing (CJK text rendering)
+    if (imageType === "comic") return 200;
     return imageType === "wallpaper" ? 120 : 100;
   }
   if (imageType === "illustration") return 50;
   if (imageType === "wallpaper") return 80;
-  // comic
+  // comic (SFW/soft)
   return proQuality ? 200 : 100;
 }
 

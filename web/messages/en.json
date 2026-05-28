@@ -569,6 +569,10 @@
         "invalid_file": "Please choose a PNG / JPG / WEBP file",
         "file_too_large": "Image too large · max 5MB",
         "moderation_blocked": "Reference image filename was rejected · try a different file",
+        "unauthorized": "Session expired · please sign in again",
+        "playthrough_not_found": "This playthrough was deleted or doesn't exist · please refresh",
+        "not_owner": "You don't have permission to do this",
+        "turn_not_found": "This turn no longer exists · please refresh",
         "unknown": "Something went wrong · try again"
       },
       "thumbnailHover": "Click to view full size · {imageType} · {style}",

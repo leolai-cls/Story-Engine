@@ -573,6 +573,47 @@ export async function userTierAllowsModel(
   return { allowed: true, tier };
 }
 
+/**
+ * Resolve the user's CURRENTLY-ACTIVE tier · respecting subscription status.
+ *
+ * Returns 'free' when subscription is canceled / past_due / unpaid even if
+ * profile.subscription_tier still says paid (sync lag possible). Used by
+ * Phase 8 scene-image gen which is tier-gated independent of any specific
+ * LLM model (so userTierAllowsModel isn't the right helper).
+ *
+ * Hard rule #4 (credits absolutely right) · CR-HIGH-02 fix.
+ */
+export async function getActiveTier(
+  supabase: SupabaseClient,
+  userId: string,
+): Promise<"free" | "adventurer" | "storyteller" | "legend"> {
+  const [profileRes, subRes] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("subscription_tier")
+      .eq("id", userId)
+      .single(),
+    supabase
+      .from("subscriptions")
+      .select("tier, status")
+      .eq("user_id", userId)
+      .maybeSingle(),
+  ]);
+  if (
+    subRes.data &&
+    (subRes.data.status === "active" || subRes.data.status === "trialing")
+  ) {
+    return subRes.data.tier as "adventurer" | "storyteller" | "legend";
+  }
+  const fallback = profileRes.data?.subscription_tier as
+    | "free"
+    | "adventurer"
+    | "storyteller"
+    | "legend"
+    | undefined;
+  return fallback === "free" || !fallback ? "free" : "free";
+}
+
 // ─── Tier definitions (Phase 4 will move these to DB) ───────────────────
 
 export type Tier = "free" | "adventurer" | "storyteller" | "legend";

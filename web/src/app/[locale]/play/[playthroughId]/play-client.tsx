@@ -733,33 +733,41 @@ export function PlayClient({
                   {/* Phase 8 · cached scene images for this turn (inline thumbs) */}
                   {turn.role === "ai" && sceneImagesByTurn[turn.index]?.length > 0 && (
                     <div className="mt-3 flex flex-wrap gap-2">
-                      {sceneImagesByTurn[turn.index].map((img) => (
-                        <a
-                          key={img.id}
-                          href={img.storageUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="block overflow-hidden rounded-md border border-border/60 hover:border-primary/60 transition-colors"
-                          style={{
-                            width:
-                              img.imageType === "wallpaper" ? 80 : 168,
-                            height:
-                              img.imageType === "wallpaper"
-                                ? 168
-                                : img.imageType === "comic"
-                                  ? 126
-                                  : 94,
-                          }}
-                        >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={img.storageUrl}
-                            alt=""
-                            className="h-full w-full object-cover"
-                            loading="lazy"
-                          />
-                        </a>
-                      ))}
+                      {sceneImagesByTurn[turn.index].map((img) => {
+                        // Wave 3 fix UX-MED-04: exact aspect ratios
+                        // illustration 16:9 = 168×94.5 → 95 · comic 4:3 = 168×126
+                        // wallpaper 9:19.5 = 80×173 (was 168 · squish 3%)
+                        const dims =
+                          img.imageType === "wallpaper"
+                            ? { width: 80, height: 173 }
+                            : img.imageType === "comic"
+                              ? { width: 168, height: 126 }
+                              : { width: 168, height: 95 };
+                        return (
+                          <a
+                            key={img.id}
+                            href={img.storageUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block overflow-hidden rounded-md border border-border/60 hover:border-primary/60 transition-colors"
+                            style={dims}
+                            title={tPlay("visualize.thumbnailHover", {
+                              imageType: tPlay(`visualize.imageType.${img.imageType}`),
+                              style: img.styleValue || img.styleMode,
+                            })}
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={img.storageUrl}
+                              alt={tPlay("visualize.fullSizeAlt", {
+                                imageType: tPlay(`visualize.imageType.${img.imageType}`),
+                              })}
+                              className="h-full w-full object-cover"
+                              loading="lazy"
+                            />
+                          </a>
+                        );
+                      })}
                     </div>
                   )}
 
@@ -939,18 +947,18 @@ export function PlayClient({
           storyDefaultStyleKey={(storyDefaultStyleKey ?? null) as StyleKey | null}
           subscriptionTier={subscriptionTier}
           currentBalance={currentBalance}
-          onSuccess={(sceneImageId, storageUrl) => {
-            // Optimistic insert · backend already revalidated path but client
-            // state needs immediate update for inline thumbnail
+          onSuccess={(sceneImageId, storageUrl, imageType, styleMode, styleValue) => {
+            // Wave 3 fix UX-MED-01 / DF-HIGH-01: thread full metadata so
+            // thumbnail uses correct aspect-ratio dimensions immediately.
             setSceneImages((prev) => [
               ...prev,
               {
                 id: sceneImageId,
                 turnIndex: visualizeTurnIndex,
                 storageUrl,
-                imageType: "illustration",
-                styleMode: "preset",
-                styleValue: "",
+                imageType,
+                styleMode,
+                styleValue,
               },
             ]);
           }}

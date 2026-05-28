@@ -569,6 +569,10 @@
         "invalid_file": "请选择 PNG / JPG / WEBP 文件",
         "file_too_large": "图片太大 · 最大 5MB",
         "moderation_blocked": "参考图文件名被拒 · 试下用另一个文件",
+        "unauthorized": "登录已过期 · 请重新登录",
+        "playthrough_not_found": "这场 playthrough 已删除或不存在 · 请刷新页面",
+        "not_owner": "你没有权限执行此操作",
+        "turn_not_found": "这个 turn 已不存在 · 请刷新页面",
         "unknown": "出了点问题 · 请再试"
       },
       "thumbnailHover": "点击查看大图 · {imageType} · {style}",

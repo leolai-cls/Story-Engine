@@ -44,12 +44,13 @@ import {
   matchStylesForSeed,
   type StyleKey,
 } from "@/lib/ai/image-styles";
-import { chargeCredits } from "@/lib/billing/credits";
+import { chargeCredits, getActiveTier } from "@/lib/billing/credits";
 import { generateText } from "ai";
 import { getProviderModel } from "@/lib/ai/providers";
 import { DIRECTOR_MODEL } from "@/lib/ai/models";
 import { captureServerEvent } from "@/lib/posthog/server";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 
 const ALLOWED_IMAGE_TYPES = ["illustration", "comic", "wallpaper"] as const;
 
@@ -65,6 +66,8 @@ export type VisualizeSceneInput = {
   styleReferenceId?: string;
   /** When styleMode='custom' OR user wants override */
   customPrompt?: string;
+  /** Wave 3 fix CR-CRIT-01: Pro Quality comic gen (Storyteller-tier only) · 200 credits */
+  proQuality?: boolean;
 };
 
 export type VisualizeSceneResult =
@@ -131,29 +134,38 @@ export async function generateScene(
     .single();
   if (!story) return { ok: false, error: "playthrough_not_found" };
 
-  // ─── Adult mode gating (Q5 + NSFW UX decision) ────────────────────────
+  // ─── Adult mode + tier gating (Wave 3 fix · founder 2026-05-28) ───────
+  // Single profile fetch (was 2 separate queries → DF-HIGH-03 fix).
+  // - 'sfw' rating: anyone (tier check below)
+  // - 'soft' rating: self-attest 18+ via adult_mode_enabled (NO KYC required)
+  // - 'adult' rating: adult_mode_enabled + is_age_verified (Stripe Identity KYC)
   const contentRating = (story.content_rating ?? "sfw") as "sfw" | "soft" | "adult";
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("adult_mode_enabled, is_age_verified")
+    .eq("id", user.id)
+    .single();
+  // CR-HIGH-02 fix: use getActiveTier (checks subscription.status='active'/'trialing').
+  // Canceled Pro users now correctly get gated even if profile.subscription_tier
+  // still says 'storyteller' due to sync lag.
+  const tier = await getActiveTier(supabase, user.id);
+
+  // Free-tier gate FIRST (SEC-MED-02 fix · short-circuit before adult check)
+  if (tier === "free") {
+    return { ok: false, error: "tier_required" };
+  }
+
+  if (contentRating === "soft" && !profile?.adult_mode_enabled) {
+    return { ok: false, error: "adult_mode_required" };
+  }
   if (contentRating === "adult") {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("adult_mode_enabled, is_age_verified, subscription_tier")
-      .eq("id", user.id)
-      .single();
     if (!profile?.adult_mode_enabled || !profile?.is_age_verified) {
       return { ok: false, error: "adult_mode_required" };
     }
-  }
-
-  // Tier check · Free disabled · Standard+ required (image gen credit cost
-  // would drain Free tier ~1k budget in 20 images · gated for cost protection)
-  const { data: profileForTier } = await supabase
-    .from("profiles")
-    .select("subscription_tier")
-    .eq("id", user.id)
-    .maybeSingle();
-  const tier = (profileForTier?.subscription_tier ?? "free") as string;
-  if (tier === "free") {
-    return { ok: false, error: "tier_required" };
+    // CR-HIGH-01 fix: tier matrix · only Storyteller+ can charge NSFW credits
+    if (tier !== "storyteller" && tier !== "legend") {
+      return { ok: false, error: "tier_required" };
+    }
   }
 
   // ─── Load turn ─────────────────────────────────────────────────────────
@@ -167,10 +179,38 @@ export async function generateScene(
 
   // ─── Resolve scene prompt (Q4 · AI auto OR user-provided) ──────────────
   let scenePrompt: string;
+  let rawCustomPrompt: string | null = null;
   if (input.styleMode === "custom" && input.customPrompt?.trim()) {
     scenePrompt = input.customPrompt.trim().slice(0, 500);
+    rawCustomPrompt = scenePrompt;
+    // Wave 3 fix CRIT-05 (hard rule #6 CSAM pre-filter mandatory):
+    // user-written prompts go through OpenAI Moderation before provider call.
+    // Fail-closed for moderation API errors (CSAM gate cannot be bypassed).
+    try {
+      const verdict = await moderateText(scenePrompt, contentRating, {
+        failClosed: true,
+      });
+      if (!verdict.allowed) {
+        return {
+          ok: false,
+          error: "content_filter",
+          message: "Your prompt was blocked by safety filters · please rephrase",
+        };
+      }
+    } catch (e) {
+      if (e instanceof ModerationConfigError) {
+        return { ok: false, error: "config_error", message: e.message };
+      }
+      // Non-config moderation failure with failClosed=true → reject defensively
+      return {
+        ok: false,
+        error: "config_error",
+        message: "Moderation system unavailable · please try again",
+      };
+    }
   } else {
     // AI summarize turn → scene gen prompt · cheap Haiku call (~$0.001)
+    // Turn text already passed moderation upstream (turn route enforces it).
     scenePrompt = await summarizeTurnForScene(turnRow.text as string);
   }
 
@@ -218,14 +258,26 @@ export async function generateScene(
   }
 
   // ─── Detect characters in scene (Q2) ──────────────────────────────────
-  // Load story characters · simple name match against turn text
+  // Wave 3 audit fix SEC-HIGH-06 + AI-HIGH-07: minimum 2-char name requirement
+  // to prevent 1-char ("a", " ") name exploits + word-boundary check for
+  // English names (CJK boundary matching is impractical · accept naive
+  // substring for CJK · short CJK names like single-char surnames lose
+  // detection, acceptable trade-off · prevents pure substring exploits).
   const { data: characters } = await supabase
     .from("story_characters")
     .select("id, name, role, visual_description, portrait_url")
     .eq("story_id", story.id);
-  const detectedChars = (characters ?? []).filter((c) =>
-    typeof c.name === "string" && (turnRow.text as string).includes(c.name),
-  );
+  const turnText = turnRow.text as string;
+  const detectedChars = (characters ?? []).filter((c) => {
+    if (typeof c.name !== "string" || c.name.trim().length < 2) return false;
+    const name = c.name.trim();
+    // Pure CJK names → naive substring (boundary check impossible for CJK)
+    const isCJK = /[一-鿿㐀-䶿]/.test(name);
+    if (isCJK) return turnText.includes(name);
+    // Latin/mixed names → word boundary
+    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return new RegExp(`\\b${escaped}\\b`, "i").test(turnText);
+  });
 
   // Lazy portrait gen · for each character missing portrait_url · skip MVP
   // wave 1 — character_reference_urls will be empty on first ship · we
@@ -247,8 +299,36 @@ export async function generateScene(
   });
 
   // ─── Pre-flight cost estimate · check user has enough credits ──────────
-  const creditsToCharge = estimateImageCredits(contentRating, input.imageType);
+  // Wave 3 fix CR-CRIT-01: thread proQuality through · only honor flag for
+  // Storyteller-tier + comic combination (server validates · don't trust client).
+  const proQualityHonored =
+    input.proQuality === true &&
+    input.imageType === "comic" &&
+    tier === "storyteller";
+  const creditsToCharge = estimateImageCredits(
+    contentRating,
+    input.imageType,
+    proQualityHonored,
+  );
   const aspect = aspectForImageType(input.imageType);
+
+  // ─── Wave 3 fix CR-CRIT-02 · balance pre-check BEFORE provider call ───
+  // OpenRouter charges $0.005-0.05 per image whether or not user has
+  // credits. Burning $ to learn user can't pay = pure loss. Pre-check.
+  const { data: balanceRow } = await supabase
+    .from("profiles")
+    .select("credit_balance")
+    .eq("id", user.id)
+    .single();
+  const currentBalance = (balanceRow?.credit_balance ?? 0) as number;
+  if (currentBalance < creditsToCharge) {
+    return {
+      ok: false,
+      error: "insufficient_credits",
+      currentBalance,
+      needed: creditsToCharge,
+    };
+  }
 
   // ─── Generate image (the actual provider call) ─────────────────────────
   const genResult = await callProvider({
@@ -281,10 +361,15 @@ export async function generateScene(
   }
 
   // ─── Upload to Supabase Storage ────────────────────────────────────────
-  // Decode base64 · upload as image/png · public bucket
+  // Wave 3 fix CRIT-03 (security audit): private path with cryptographic
+  // randomness so URLs aren't enumerable. Even if bucket stays public for
+  // CDN simplicity, the path component itself is unguessable. Old shape
+  // `{user}/{playthrough}/{turn}-{Date.now()}.png` let an attacker who
+  // knew user.id + playthroughId brute-force time to enumerate adult images.
   const serviceClient = createServiceRoleClient();
   const imageBuffer = Buffer.from(genResult.imageBase64, "base64");
-  const filename = `${user.id}/${input.playthroughId}/${input.turnIndex}-${Date.now()}.png`;
+  const { randomUUID } = await import("node:crypto");
+  const filename = `${user.id}/${input.playthroughId}/${input.turnIndex}-${randomUUID()}.png`;
   const { data: uploadData, error: uploadErr } = await serviceClient.storage
     .from("scene-images")
     .upload(filename, imageBuffer, {
@@ -331,9 +416,11 @@ export async function generateScene(
   }
 
   // ─── Insert scene_images row (service-role · idempotent via uuid) ─────
+  // Wave 3 audit fix DF-MED-02: custom mode stores user's RAW input (audit
+  // trail · moderation review), not the LLM-summarized scenePrompt
   const styleValue =
     styleMode === "custom"
-      ? scenePrompt.slice(0, 200)
+      ? (rawCustomPrompt ?? scenePrompt).slice(0, 200)
       : styleMode === "upload" && styleReferenceUrl
         ? styleReferenceUrl
         : resolvedStyleKey ?? "";
@@ -362,24 +449,61 @@ export async function generateScene(
 
   if (insertErr || !sceneRow) {
     console.error("[scene-image] DB insert failed:", insertErr);
+    // Wave 3 fix CR-CRIT-03 · DF-CRIT-03: rollback to keep ledger honest
+    // (hard rule #4: credits absolutely right · off-by-one breaks trust).
+    // 1. Refund credits via reverse-direction ledger entry
+    // 2. Remove orphan storage object
+    try {
+      await chargeCredits(supabase, {
+        userId: user.id,
+        delta: +creditsToCharge,
+        reason: "refund",
+        refType: "scene_image",
+        metadata: {
+          playthrough_id: input.playthroughId,
+          turn_index: input.turnIndex,
+          original_ledger_id: charge.ledgerId,
+          reason_detail: "scene_images_insert_failed",
+        },
+      });
+    } catch (refundErr) {
+      console.error("[scene-image] refund FAILED · MANUAL ATTENTION:", refundErr, {
+        userId: user.id,
+        credits: creditsToCharge,
+        original_ledger_id: charge.ledgerId,
+      });
+    }
+    try {
+      await serviceClient.storage
+        .from("scene-images")
+        .remove([uploadData.path]);
+    } catch (cleanupErr) {
+      console.error("[scene-image] storage cleanup FAILED · orphan:", cleanupErr, {
+        path: uploadData.path,
+      });
+    }
     return { ok: false, error: "unknown", message: insertErr?.message };
   }
 
-  // ─── PostHog event (server-side) ───────────────────────────────────────
-  try {
-    await captureServerEvent(user.id, "scene_image_generated", {
-      playthrough_id: input.playthroughId,
-      turn_index: input.turnIndex,
-      image_type: input.imageType,
-      style_mode: styleMode,
-      style_value: styleValue,
-      provider: genResult.provider,
-      credits_charged: creditsToCharge,
-      content_rating: contentRating,
-    });
-  } catch {
-    // non-fatal
-  }
+  // ─── PostHog event (server-side · wrapped in after() for serverless) ──
+  // Wave 3 fix CR-MED-03 (hard rule #17): fire-and-forget on Vercel lambda
+  // dies when response stream closes · wrap in after() to keep lambda alive.
+  after(async () => {
+    try {
+      await captureServerEvent(user.id, "scene_image_generated", {
+        playthrough_id: input.playthroughId,
+        turn_index: input.turnIndex,
+        image_type: input.imageType,
+        style_mode: styleMode,
+        style_value: styleValue,
+        provider: genResult.provider,
+        credits_charged: creditsToCharge,
+        content_rating: contentRating,
+      });
+    } catch {
+      // non-fatal
+    }
+  });
 
   revalidatePath(`/play/${input.playthroughId}`);
   revalidatePath(`/play/${input.playthroughId}/memory`);
@@ -418,7 +542,7 @@ export type UploadStyleReferenceResult =
         | "invalid_file"
         | "file_too_large"
         | "moderation_blocked"
-        | "storage_failed"
+        | "storage_upload_failed"
         | "config_error";
       message?: string;
     };
@@ -431,14 +555,9 @@ export async function uploadStyleReference(
 
   const supabase = await createClient();
 
-  // Tier gate · same as scene gen
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("subscription_tier")
-    .eq("id", user.id)
-    .maybeSingle();
-  const tier = (profile?.subscription_tier ?? "free") as string;
-  if (tier === "free") return { ok: false, error: "tier_required" };
+  // Tier gate · same as scene gen · use getActiveTier for canceled-sub correctness
+  const uploadTier = await getActiveTier(supabase, user.id);
+  if (uploadTier === "free") return { ok: false, error: "tier_required" };
 
   const file = formData.get("file");
   if (!(file instanceof File)) {
@@ -454,6 +573,43 @@ export async function uploadStyleReference(
   if (file.size > MAX_SIZE) {
     return { ok: false, error: "file_too_large", message: `${file.size} > 5MB` };
   }
+
+  // Wave 3 fix SEC-HIGH-07: server-side magic byte sniff
+  // (file.type from browser is spoofable · attacker could upload .exe with
+  //  image/png MIME header and have it served from supabase.co domain).
+  const headerBuffer = Buffer.from(await file.slice(0, 16).arrayBuffer());
+  const isPng =
+    headerBuffer[0] === 0x89 &&
+    headerBuffer[1] === 0x50 &&
+    headerBuffer[2] === 0x4e &&
+    headerBuffer[3] === 0x47;
+  const isJpeg =
+    headerBuffer[0] === 0xff &&
+    headerBuffer[1] === 0xd8 &&
+    headerBuffer[2] === 0xff;
+  const isWebp =
+    headerBuffer[0] === 0x52 &&
+    headerBuffer[1] === 0x49 &&
+    headerBuffer[2] === 0x46 &&
+    headerBuffer[3] === 0x46 &&
+    headerBuffer[8] === 0x57 &&
+    headerBuffer[9] === 0x45 &&
+    headerBuffer[10] === 0x42 &&
+    headerBuffer[11] === 0x50;
+  if (!isPng && !isJpeg && !isWebp) {
+    return {
+      ok: false,
+      error: "invalid_file",
+      message: "file content doesn't match an image format",
+    };
+  }
+  // Reconcile MIME claim with sniffed content (don't trust either alone).
+  const sniffedMime = isPng
+    ? "image/png"
+    : isJpeg
+      ? "image/jpeg"
+      : "image/webp";
+  const safeMime = sniffedMime;
 
   // Light text-level moderation on filename (e.g., reject filenames like
   // "child_nude.jpg" before they touch storage · cheap text-only check).
@@ -477,21 +633,25 @@ export async function uploadStyleReference(
     // Non-config error → continue (filename text moderation is best-effort)
   }
 
-  // Upload via service-role (RLS prevents direct client write to bucket)
+  // Upload via service-role (RLS prevents direct client write to bucket).
+  // Wave 3 fix SEC-HIGH-01: crypto.randomUUID() (122 bit entropy) instead of
+  // Math.random() (~31 bit · brute-forceable) for unguessable path.
+  // Wave 3 fix SEC-HIGH-07: use sniffed MIME (safeMime), not browser claim (file.type)
   const serviceClient = createServiceRoleClient();
   const buffer = Buffer.from(await file.arrayBuffer());
-  const ext = file.type === "image/jpeg" ? "jpg" : file.type === "image/webp" ? "webp" : "png";
-  const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const ext = safeMime === "image/jpeg" ? "jpg" : safeMime === "image/webp" ? "webp" : "png";
+  const { randomUUID: randomUUIDRef } = await import("node:crypto");
+  const path = `${user.id}/${randomUUIDRef()}.${ext}`;
 
   const { data: uploadData, error: uploadErr } = await serviceClient.storage
     .from("style-references")
     .upload(path, buffer, {
-      contentType: file.type,
+      contentType: safeMime,
       upsert: false,
     });
   if (uploadErr || !uploadData) {
     console.error("[upload-style-ref] storage upload failed:", uploadErr);
-    return { ok: false, error: "storage_failed", message: uploadErr?.message };
+    return { ok: false, error: "storage_upload_failed", message: uploadErr?.message };
   }
 
   const { data: publicUrlData } = serviceClient.storage
@@ -507,7 +667,7 @@ export async function uploadStyleReference(
       storage_url: storageUrl,
       original_filename: filename.slice(0, 200),
       file_size_bytes: file.size,
-      mime_type: file.type,
+      mime_type: safeMime,
       moderation_status: "approved", // filename-only check passed; provider gates image
     })
     .select("id, expires_at")
@@ -517,7 +677,7 @@ export async function uploadStyleReference(
     // Rollback storage
     await serviceClient.storage.from("style-references").remove([uploadData.path]);
     console.error("[upload-style-ref] DB insert failed:", insertErr);
-    return { ok: false, error: "storage_failed", message: insertErr?.message };
+    return { ok: false, error: "storage_upload_failed", message: insertErr?.message };
   }
 
   return {

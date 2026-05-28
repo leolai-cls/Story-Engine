@@ -585,6 +585,10 @@
         "invalid_file": "請選擇 PNG / JPG / WEBP 檔案",
         "file_too_large": "圖片太大 · 最大 5MB",
         "moderation_blocked": "參考圖檔名被拒 · 試下用另一個檔案",
+        "unauthorized": "登入已逾時 · 請重新登入",
+        "playthrough_not_found": "呢場 playthrough 已刪除或不存在 · 請刷新頁面",
+        "not_owner": "你冇權限做呢個操作",
+        "turn_not_found": "呢個 turn 已不存在 · 請刷新頁面",
         "unknown": "出咗啲問題 · 請再試"
       },
       "thumbnailHover": "點擊查看大圖 · {imageType} · {style}",

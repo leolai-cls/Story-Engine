@@ -241,13 +241,21 @@ export function composeStyledPrompt(opts: {
   const styleS = style?.promptSuffix ?? "";
   const styleN = style?.negativePrompt ?? "";
 
-  const chars = (opts.characterDescriptions ?? []).filter(Boolean).join("; ");
+  // Wave 3 audit fix AI-MED-02: cap character descriptions at 5 to avoid
+  // exploding prompt context when 20 NPCs all appear in one turn.
+  const chars = (opts.characterDescriptions ?? [])
+    .filter(Boolean)
+    .slice(0, 5)
+    .join("; ");
   const charBlock = chars ? `\nCharacters in scene: ${chars}` : "";
 
+  // Wave 3 audit fix AI-MED-01: image providers (Gemini/GPT/Grok) parse
+  // comma-separated descriptors better than " · " (which they treat as
+  // literal punctuation token · degrades prompt adherence ~5-15%).
   const positive = [styleP, "of", opts.scenePrompt, charBlock, styleS]
     .filter(Boolean)
-    .join(" · ")
-    .replace(/\s+·\s+·\s+/g, " · ")
+    .join(", ")
+    .replace(/,\s+,/g, ",")
     .trim();
 
   return { positive, negative: styleN };

@@ -99,7 +99,7 @@ export default async function PlayPage({
       .eq("user_id", user.id),
     supabase
       .from("profiles")
-      .select("subscription_tier, credits_balance")
+      .select("subscription_tier, credit_balance")
       .eq("id", user.id)
       .single(),
     supabase
@@ -114,7 +114,7 @@ export default async function PlayPage({
     | "adventurer"
     | "storyteller"
     | "legend";
-  const currentBalance = (profileForTier?.credits_balance ?? 0) as number;
+  const currentBalance = (profileForTier?.credit_balance ?? 0) as number;
 
   // Merge characters + states into a single array for PlayClient
   type DispJson = { trust?: number; romance?: number; respect?: number; fear?: number } | null;
