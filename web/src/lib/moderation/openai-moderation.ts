@@ -41,6 +41,35 @@
  * this is the hard rule line.
  */
 
+/**
+ * Map moderation verdict categories → stable error code that client
+ * localizes via the `errors.moderation.*` catalog namespace.
+ *
+ * Session 16 PM Review #2 (C-01 follow-up): was duplicated locally in
+ * community/actions.ts; moved here so turn route + stories/new + community
+ * all share the same mapping. Was leaking verdict.reason (繁中-only) to
+ * EN / zh-Hans users at 4 sites.
+ */
+export function verdictToCode(categories: ModerationCategory[]): string {
+  const has = (c: ModerationCategory) => categories.includes(c);
+  if (has("sexual/minors")) return "moderation_csam_sexual_minor";
+  if (has("self-harm") || has("self-harm/intent") || has("self-harm/instructions")) {
+    return "moderation_self_harm";
+  }
+  if (
+    has("hate") ||
+    has("hate/threatening") ||
+    has("violence") ||
+    has("violence/graphic") ||
+    has("harassment") ||
+    has("harassment/threatening")
+  ) {
+    return "moderation_hate_violence";
+  }
+  if (has("sexual")) return "moderation_sexual";
+  return "moderation_blocked";
+}
+
 export type ModerationCategory =
   | "sexual"
   | "sexual/minors"

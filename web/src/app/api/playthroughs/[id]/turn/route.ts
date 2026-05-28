@@ -52,7 +52,7 @@ import {
   userTierAllowsModel,
 } from "@/lib/billing/credits";
 // ─── Phase 5 Wave 2 moderation (W1-MOD-H-03 audit fix) ──────────────────
-import { ModerationConfigError, moderateText } from "@/lib/moderation/openai-moderation";
+import { ModerationConfigError, moderateText, verdictToCode } from "@/lib/moderation/openai-moderation";
 // ─── Phase 6 non-money function: adult mode gate ────────────────────────
 import { MODELS, tierForModel, recentTurnsLimitForTier } from "@/lib/ai/models";
 
@@ -322,8 +322,11 @@ export async function POST(
     console.warn(
       `[turn] moderation blocked action on pt ${playthroughId} user ${user.id}: ${moderationResult.verdict.categories.join(", ")}`,
     );
+    // Session 16 PM Review #2 (C-01 follow-up sweep): was returning
+    // verdict.reason (繁中-only). Now return stable code · client maps
+    // via errors.moderation.* catalog.
     return NextResponse.json(
-      { error: "action_blocked", message: moderationResult.verdict.reason },
+      { error: "action_blocked", code: verdictToCode(moderationResult.verdict.categories) },
       { status: 400 },
     );
   }

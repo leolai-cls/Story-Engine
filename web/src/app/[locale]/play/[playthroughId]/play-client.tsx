@@ -313,6 +313,7 @@ export function PlayClient({
   // Wave 2 i18n migration (2026-05-27): full client localized via play.* namespace.
   const tPlay = useTranslations("play");
   const tPlayErr = useTranslations("play.errors");
+  const tModeration = useTranslations("errors.moderation");
   const [turns, setTurns] = useState<Turn[]>(initialTurns);
   const [state, setState] = useState<Record<string, unknown>>(initialState);
   const [input, setInput] = useState("");
@@ -430,8 +431,18 @@ export function PlayClient({
             throw new Error(`MODEL_TIER:${bodyText}`);
           }
           // W2-UX-H-03 fix: 400 action_blocked from turn moderation.
-          if (res.status === 400 && body?.error === "action_blocked" && body?.message) {
-            throw new Error(`ACTION_BLOCKED:${body.message}`);
+          // Session 16 PM Review #2 (C-01 sweep): turn route now returns
+          // `code` (verdictToCode mapping) instead of raw `message` (繁中).
+          // Client maps to localized via errors.moderation.* catalog.
+          if (res.status === 400 && body?.error === "action_blocked") {
+            const modCode = body?.code as string | undefined;
+            const modKey =
+              modCode === "moderation_csam_sexual_minor" ? "csam" :
+              modCode === "moderation_self_harm" ? "selfHarm" :
+              modCode === "moderation_hate_violence" ? "hateViolence" :
+              modCode === "moderation_sexual" ? "sexual" :
+              "blocked";
+            throw new Error(`ACTION_BLOCKED:${tModeration(modKey)}`);
           }
           if (res.status === 503 && body?.error === "moderation_misconfigured") {
             throw new Error(tPlayErr("moderationConfigBody"));

@@ -686,7 +686,7 @@
       "verifyPending": "正在前往 Stripe…",
       "alreadyVerified": "你已經驗證咗 · 重 reload 個 page 應該見到 toggle 解鎖",
       "authRequired": "請先登入",
-      "verifyInitError": "驗證初始化失敗：{error}",
+      "verifyInitError": "驗證初始化失敗，請稍後再試。",
       "csamReminder": "注意：所有模式都禁止 CSAM、未成年人性描寫、違法內容 · 無論 adult mode 開唔開都會被 moderation 攔截 (hard rule)。",
       "consentDialog": {
         "eyebrow": "確認開啟成人模式",
@@ -916,6 +916,13 @@
       "callbackFailed": "登入回呼失敗，請重新登入。",
       "missingCode": "登入連結唔正確或過期。",
       "googleUnavailable": "Google 登入暫未啟用，請用 email magic link。"
+    },
+    "moderation": {
+      "csam": "禁止涉及未成年人嘅內容。",
+      "selfHarm": "禁止包含自殘指引嘅內容。如果你有需要，請聯絡撒瑪利亞會 2896 0000。",
+      "hateViolence": "內容包含威脅、仇恨言論或者極端暴力。",
+      "sexual": "性描寫超出咗呢個故事嘅內容分級。",
+      "blocked": "內容違反平台規則。請修改後再試。"
     }
   }
 }

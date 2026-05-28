@@ -3,28 +3,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { revalidatePath } from "next/cache";
-import { ModerationConfigError, moderateText, type ModerationCategory } from "@/lib/moderation/openai-moderation";
+import { ModerationConfigError, moderateText, verdictToCode } from "@/lib/moderation/openai-moderation";
 import { MODELS } from "@/lib/ai/models";
-
-/**
- * Session 16 audit MED-04 fix: map moderation verdict categories → stable
- * error codes that the client localizes via the storyDetailActions catalog.
- *
- * Was returning verdict.reason (繁中-only string from openai-moderation.ts)
- * which leaked Cantonese to EN / zh-Hans users.
- */
-function verdictToCode(categories: ModerationCategory[]): string {
-  const has = (c: ModerationCategory) => categories.includes(c);
-  if (has("sexual/minors")) return "moderation_csam_sexual_minor";
-  if (has("self-harm") || has("self-harm/intent") || has("self-harm/instructions")) {
-    return "moderation_self_harm";
-  }
-  if (has("hate") || has("hate/threatening") || has("violence") || has("violence/graphic") || has("harassment") || has("harassment/threatening")) {
-    return "moderation_hate_violence";
-  }
-  if (has("sexual")) return "moderation_sexual";
-  return "moderation_blocked";
-}
 
 /**
  * Phase 5 Community — server actions.
@@ -287,7 +267,11 @@ export async function upsertComment(params: {
       console.warn(
         `[upsertComment] moderation blocked comment on story ${params.storyId} for user ${user.id}: ${verdict.categories.join(", ")}`,
       );
-      return { ok: false, error: verdict.reason };
+      // Session 16 PM Review #2 (C-01) fix: was returning verdict.reason (繁中-only
+      // string from openai-moderation.ts) which leaked Cantonese to EN / zh-Hans
+      // users. rateStory at L188 was correctly using verdictToCode but this sibling
+      // path was missed in the original MED-04 sweep.
+      return { ok: false, error: verdictToCode(verdict.categories) };
     }
   } catch (e) {
     if (e instanceof ModerationConfigError) {

@@ -59,12 +59,16 @@ export function AdultModeToggle({
         return;
       }
       setVerifyPending(false);
+      // Session 16 PM Review #2 sweep: was interpolating raw error code
+      // ("stripe_error") into `{error}` placeholder. Catalog template
+      // updated to drop placeholder · generic localized fallback for any
+      // non-explicit code (auth_required + already_verified handled above).
       setError(
         res.error === "already_verified"
           ? t("alreadyVerified")
           : res.error === "auth_required"
             ? t("authRequired")
-            : t("verifyInitError", { error: res.message ?? res.error }),
+            : t("verifyInitError"),
       );
     });
   }

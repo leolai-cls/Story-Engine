@@ -105,7 +105,9 @@ export function SubscribeButton({
               if (res.ok) {
                 window.location.href = res.url;
               } else {
-                setErr(res.message ?? res.error);
+                // Session 16 PM Review #2 (C-04 sweep): Manage link was missed
+                // in original HIGH-06 fix. Sibling to subscribe-button main button.
+                setErr(tErrors("portalFailed"));
               }
             })
           }

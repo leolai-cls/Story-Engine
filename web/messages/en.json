@@ -670,7 +670,7 @@
       "verifyPending": "Redirecting to Stripe…",
       "alreadyVerified": "You're already verified · reload the page to see the toggle unlocked",
       "authRequired": "Please log in first",
-      "verifyInitError": "Verification initialization failed: {error}",
+      "verifyInitError": "Verification initialization failed. Please try again later.",
       "csamReminder": "Note: all modes ban CSAM, sexualization of minors, and illegal content · whether adult mode is on or off, the moderation pipeline will block these (hard rule).",
       "consentDialog": {
         "eyebrow": "Confirm enable adult mode",
@@ -900,6 +900,13 @@
       "callbackFailed": "Login callback failed. Please log in again.",
       "missingCode": "The login link is invalid or has expired.",
       "googleUnavailable": "Google login is not enabled yet. Please use email magic link."
+    },
+    "moderation": {
+      "csam": "Content involving minors is not allowed.",
+      "selfHarm": "Content about self-harm is not allowed. If you need help, please reach out to a local crisis line.",
+      "hateViolence": "Content contains threats, hate speech, or graphic violence.",
+      "sexual": "Sexual content exceeds this story's content rating.",
+      "blocked": "Content blocked by moderation. Please revise and try again."
     }
   }
 }

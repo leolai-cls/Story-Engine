@@ -670,7 +670,7 @@
       "verifyPending": "正在前往 Stripe…",
       "alreadyVerified": "你已经验证过 · 重 reload 页面应该见到 toggle 解锁",
       "authRequired": "请先登入",
-      "verifyInitError": "验证初始化失败：{error}",
+      "verifyInitError": "验证初始化失败，请稍后再试。",
       "csamReminder": "注意：所有模式都禁止 CSAM、未成年人性描写、违法内容 · 无论 adult mode 开关都会被 moderation 拦截 (hard rule)。",
       "consentDialog": {
         "eyebrow": "确认开启成人模式",
@@ -900,6 +900,13 @@
       "callbackFailed": "登入回调失败，请重新登入。",
       "missingCode": "登入链接不正确或已过期。",
       "googleUnavailable": "Google 登入暂未启用，请用 email magic link。"
+    },
+    "moderation": {
+      "csam": "禁止涉及未成年人的内容。",
+      "selfHarm": "禁止包含自残指引的内容。如果你需要帮助，请联系当地危机热线。",
+      "hateViolence": "内容包含威胁、仇恨言论或极端暴力。",
+      "sexual": "性描写超出此故事的内容分级。",
+      "blocked": "内容违反平台规则。请修改后再试。"
     }
   }
 }

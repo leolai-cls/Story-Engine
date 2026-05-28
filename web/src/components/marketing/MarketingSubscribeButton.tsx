@@ -90,7 +90,10 @@ export function MarketingSubscribeButton({
               setErr(null);
               const res = await openBillingPortal();
               if (res.ok) window.location.href = res.url;
-              else setErr(res.message ?? res.error);
+              // Session 16 PM Review #2 (C-04) fix: sibling spot missed in
+              // original HIGH-06 sweep · 4 error handlers in this file but only
+              // 3 got the tErrors mapping. This "Manage" link was leaking raw code.
+              else setErr(tErrors("portalFailed"));
             })
           }
         >
