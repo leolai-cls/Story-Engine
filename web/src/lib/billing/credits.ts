@@ -605,13 +605,9 @@ export async function getActiveTier(
   ) {
     return subRes.data.tier as "adventurer" | "storyteller" | "legend";
   }
-  const fallback = profileRes.data?.subscription_tier as
-    | "free"
-    | "adventurer"
-    | "storyteller"
-    | "legend"
-    | undefined;
-  return fallback === "free" || !fallback ? "free" : "free";
+  // No active sub → return "free" regardless of profile.subscription_tier
+  // (stale paid tier from canceled subscription should NOT grant access).
+  return "free";
 }
 
 // ─── Tier definitions (Phase 4 will move these to DB) ───────────────────
