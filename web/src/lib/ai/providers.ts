@@ -29,9 +29,9 @@ export const anthropicProvider = createAnthropic({
 export const openrouterProvider = createOpenAI({
   apiKey: process.env.OPENROUTER_API_KEY,
   baseURL: "https://openrouter.ai/api/v1",
-  // OpenRouter requires the OpenAI-compatible "name" header for usage routing.
-  // Hard rule #35 (post-subdomain split): app origin preferred · marketing host
-  // deprecated as referrer source.
+  // OpenRouter requires HTTP-Referer + X-Title headers for usage routing /
+  // analytics. Hard rule #35 (post-subdomain split): app origin preferred ·
+  // marketing host deprecated as referrer source.
   headers: {
     "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL ?? "https://app.kieio.com",
     "X-Title": "Kieio",
@@ -64,6 +64,12 @@ export function getProviderModel(internalModelId: string): LanguageModel {
     case "anthropic":
       return anthropicProvider(entry.model_id);
     case "openrouter":
-      return openrouterProvider(entry.model_id);
+      // W4 fix · 2026-05-28 (PR #4 retest root cause):
+      // @ai-sdk/openai v3+ default route 用 OpenAI 新 Responses API endpoint
+      // (`/v1/responses`) · OpenRouter 只支援舊 Chat Completions API
+      // (`/v1/chat/completions`) · 用 `provider(modelId)` 會出
+      // "Invalid Responses API request" SSE error · narrator silent fail.
+      // 顯式 call `.chat(modelId)` 強制走 chat completions endpoint.
+      return openrouterProvider.chat(entry.model_id);
   }
 }
