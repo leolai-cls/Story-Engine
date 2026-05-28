@@ -518,6 +518,13 @@ export function PlayClient({
         const decoder = new TextDecoder();
         let buffer = "";
         let accumulated = "";
+        // W4 fix 2026-05-28 (agent retest post-PR-#5): SSE stream 可能包
+        // {"type":"error","errorText":"..."} frame (e.g. OpenRouter upstream
+        // TOS violation · Gemini safety filter rejection). 之前嘅 code 只認
+        // text-delta event · error frame 完全 silent · UI 出空白 narrator
+        // block · 用戶唔知出咩事. 而家 capture error frame · throw 出去
+        // catch 用 error UI 顯示俾用戶睇.
+        let streamError: string | null = null;
 
         while (true) {
           const { done, value } = await reader.read();
@@ -539,11 +546,28 @@ export function PlayClient({
               if (event.type === "text-delta" && typeof event.delta === "string") {
                 accumulated += event.delta;
                 setStreamText(accumulated);
+              } else if (event.type === "error") {
+                // Capture error · render below outside loop (don't break stream
+                // mid-iteration · let SSE finish so we got [DONE]).
+                const msg = typeof event.errorText === "string"
+                  ? event.errorText
+                  : typeof event.error === "string"
+                    ? event.error
+                    : "Stream error";
+                streamError = msg;
+                console.error("[turn] SSE error frame:", msg, event);
               }
             } catch {
               // ignore non-JSON lines
             }
           }
+        }
+
+        // W4 fix: if SSE delivered an error frame AND no text accumulated ·
+        // throw to outer catch · roll back the optimistic user turn + render
+        // the error to UI (founder feedback: silent fail = 用戶 instinct push back).
+        if (streamError && !accumulated.trim()) {
+          throw new Error(streamError);
         }
 
         // Finalize: append AI turn locally, clear stream buffer

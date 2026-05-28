@@ -148,8 +148,14 @@ export const ADULT_NSFW_MODEL = "glm-5-1";
  */
 export const DEFAULT_TIER: ModelTier = "standard";
 
-/** Back-compat exports · 漸進 migration 期間用. */
-export const DEFAULT_NARRATOR = "gemini-3-5-flash";
+/** Back-compat exports · 漸進 migration 期間用.
+ *  W4 fix 2026-05-28: DEFAULT_NARRATOR 由 gemini-3-5-flash 改 glm-5-1.
+ *  Root cause: Google Gemini 嘅 safety filter 對 fiction 黑道 / 武俠 / 黑色幽默
+ *  題材好嚴 · 1980 九龍城寨 / 古惑仔 / NBA 衝突場景都觸發 TOS violation.
+ *  GLM 5.1 (Z.ai · "Best for roleplay & creative writing" per BenchLM)
+ *  專門 tune 過做 fiction · 中文 #3 + 黑道 / 武俠 / 玄幻 都 OK · cost 都更平.
+ */
+export const DEFAULT_NARRATOR = "glm-5-1";
 export const DEFAULT_DIRECTOR = DIRECTOR_MODEL;
 
 export function getModel(id: string): ModelEntry {
