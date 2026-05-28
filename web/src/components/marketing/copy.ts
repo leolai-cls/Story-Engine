@@ -400,7 +400,7 @@ export const MARKETING_COPY = {
       panel3Field5: "Mood · 自信",
       pillAutoDesign: "AI designs at story creation",
       pillPerStory: "Unique UI per story",
-      pillMoat: "Months for competitors to copy",
+      pillMoat: "Crafted for every world",
     },
     zhHant: {
       eyebrow: "自適應介面 · 每個故事獨有",
@@ -428,7 +428,7 @@ export const MARKETING_COPY = {
       panel3Field5: "心情 · 自信",
       pillAutoDesign: "AI 創作時自動設計",
       pillPerStory: "每個故事獨有 UI",
-      pillMoat: "對手要 6-12 個月先抄到",
+      pillMoat: "為每個世界度身訂造",
     },
     zhHans: {
       eyebrow: "自适应介面 · 每个故事独有",
@@ -456,7 +456,7 @@ export const MARKETING_COPY = {
       panel3Field5: "心情 · 自信",
       pillAutoDesign: "AI 创作时自动设计",
       pillPerStory: "每个故事独有 UI",
-      pillMoat: "对手要 6-12 个月才能抄到",
+      pillMoat: "为每个世界度身订造",
     },
   },
 
