@@ -361,9 +361,19 @@ export type ChargeReason =
   | "admin_adjust"
   | "free_tier_refresh"
   | "sub_renewal"
-  | "sub_canceled";
+  | "sub_canceled"
+  // Phase 8 scene visualization (Migration 0041)
+  | "scene_image_charge"
+  | "portrait_charge";
 
-export type ChargeRefType = "turn" | "story" | "subscription" | "topup" | "admin";
+export type ChargeRefType =
+  | "turn"
+  | "story"
+  | "subscription"
+  | "topup"
+  | "admin"
+  | "scene_image"           // Phase 8 · ref_id = scene_images.id
+  | "character_portrait";   // Phase 8 · ref_id = story_characters.id
 
 export type ChargeResult =
   | { ok: true; newBalance: number; ledgerId: string }
