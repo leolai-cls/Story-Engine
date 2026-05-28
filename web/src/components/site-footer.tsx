@@ -21,12 +21,23 @@ export async function SiteFooter() {
             {tFooter("pronunciation")} · © {new Date().getFullYear()} · {tFooter("tagline")}
           </span>
         </div>
-        <nav className="flex items-center gap-5">
+        <nav className="flex items-center gap-4 flex-wrap justify-center">
           <Link href="/pricing" className="hover:text-foreground transition">
             {tNav("pricing")}
           </Link>
           <Link href="/library" className="hover:text-foreground transition">
             {tNav("library")}
+          </Link>
+          {/* Session 16 P-01: legal links · Stripe + Apple/Google Ads required */}
+          <span className="opacity-30">·</span>
+          <Link href="/terms" className="hover:text-foreground transition">
+            {(await getTranslations("legal"))("footerTerms")}
+          </Link>
+          <Link href="/privacy" className="hover:text-foreground transition">
+            {(await getTranslations("legal"))("footerPrivacy")}
+          </Link>
+          <Link href="/cookies" className="hover:text-foreground transition">
+            {(await getTranslations("legal"))("footerCookies")}
           </Link>
         </nav>
       </div>

@@ -498,6 +498,8 @@
       "insufficientCreditsTitle": "Not enough credits",
       "insufficientCreditsBody": "You have {balance} credits, this turn needs ~{needed}.",
       "insufficientCreditsCta": "Go to Settings to upgrade / top-up",
+      "insufficientCreditsSubscribeCta": "Subscribe Standard $9.99 / mo",
+      "insufficientCreditsTopupCta": "or one-time top-up →",
       "modelTierTitle": "Model requires a higher tier",
       "modelTierBody": "Your tier ({tier}) can't use {model}. Go to Settings to pick another model or upgrade.",
       "modelTierCta": "Go to Settings",
@@ -733,6 +735,8 @@
   "my": {
     "pageTitle": "My games",
     "subtitleEmpty": "You haven't started any stories — pick a scenario to begin your adventure.",
+    "adultLockBadge": "Adult mode off",
+    "adultLockTooltip": "This story is adult-rated. Re-enable adult mode in Settings to continue, or archive this story.",
     "subtitleCount": "{total} playthroughs · {active} in progress",
     "tabs": {
       "all": "All",
@@ -916,6 +920,60 @@
       "hateViolence": "Content contains threats, hate speech, or graphic violence.",
       "sexual": "Sexual content exceeds this story's content rating.",
       "blocked": "Content blocked by moderation. Please revise and try again."
+    }
+  },
+  "legal": {
+    "footerTerms": "Terms",
+    "footerPrivacy": "Privacy",
+    "footerCookies": "Cookies",
+    "terms": {
+      "eyebrow": "Legal",
+      "title": "Terms of Service",
+      "subtitle": "The rules and expectations for using Kieio.",
+      "placeholderNotice": "⚠️ Placeholder · final terms pending lawyer review for HK + TW jurisdictions.",
+      "section1Title": "1. Service description",
+      "section1Body": "Kieio (operated at kieio.com) provides AI-driven interactive fiction. We generate narratives using third-party language models (Anthropic · OpenAI · Google · Meta via OpenRouter) based on prompts you submit. Output is fictional and not advice.",
+      "section2Title": "2. Account + age requirements",
+      "section2Body": "You must be 13 or older to create an account. Adult mode (NSFW content) requires identity verification confirming you are 18 or older via Stripe Identity. We may suspend accounts for violations of community standards or applicable law.",
+      "section3Title": "3. Acceptable use",
+      "section3Body": "You agree not to: (a) generate or share content involving minors in sexual situations (CSAM · pre-filtered + reported to authorities), (b) generate content depicting real persons without consent, (c) reverse-engineer or scrape our LLM outputs at scale, (d) use the platform for harassment, doxxing, or illegal activity.",
+      "section4Title": "4. Payments + credits",
+      "section4Body": "Subscriptions billed monthly via Stripe. Credits granted upon successful payment (Standard $9.99 / Pro $19.99 USD). Refunds at our discretion within 14 days of purchase. Top-up purchases are non-refundable. See Pricing page for current rates.",
+      "section5Title": "5. Liability + termination",
+      "section5Body": "Service provided as-is. We are not liable for AI-generated content, user-uploaded content, or indirect damages. We may terminate accounts at our discretion. Your data export rights are described in our Privacy Policy.",
+      "lastUpdated": "Last updated: {date} · contact legal@kieio.com for questions"
+    },
+    "privacy": {
+      "eyebrow": "Legal",
+      "title": "Privacy Policy",
+      "subtitle": "What we collect, why we collect it, and your controls.",
+      "placeholderNotice": "⚠️ Placeholder · final privacy policy pending lawyer review for PCPD (HK) + PIPL (TW) compliance.",
+      "section1Title": "1. What we collect",
+      "section1Body": "Account: email, display name (from OAuth provider or you), language preference. Gameplay: stories, playthroughs, characters, memory, credit ledger. Operational: IP, user agent, error reports (Sentry), product analytics (PostHog) — all linked to your user ID.",
+      "section2Title": "2. Third-party processors",
+      "section2Body": "We process data through: Supabase (database + auth · US-East), Vercel (hosting · global edge), Anthropic / OpenAI / Google / OpenRouter (LLM inference), Stripe (payments · global), Sentry (errors), PostHog (analytics). LLM prompts are sent to the model provider only · we do not train models on your content.",
+      "section3Title": "3. Adult mode + identity verification",
+      "section3Body": "Adult mode requires age verification via Stripe Identity (selfie + ID). Verification metadata (verified yes/no · timestamp) is retained; the selfie + ID images are processed by Stripe and not stored by us. Adult mode content is generated using NSFW-friendly providers (OpenRouter) isolated from default LLMs.",
+      "section4Title": "4. Your rights",
+      "section4Body": "You can: export your data (contact privacy@kieio.com), delete your account (settings → delete · cascades to playthroughs + memory), opt out of analytics (PostHog respects DNT header). Data retention: account data kept until deletion; error logs 90 days; analytics 12 months.",
+      "section5Title": "5. Contact + jurisdiction",
+      "section5Body": "Data controller: Kieio (HK-based). Disputes governed by HK law. Contact privacy@kieio.com for data access / deletion / corrections. PCPD (HK) and PIPL (TW) data subject rights apply.",
+      "lastUpdated": "Last updated: {date} · contact privacy@kieio.com for questions"
+    },
+    "cookies": {
+      "eyebrow": "Legal",
+      "title": "Cookie Policy",
+      "subtitle": "Cookies we set and why they're needed.",
+      "placeholderNotice": "⚠️ Placeholder · final cookie disclosure pending lawyer review.",
+      "section1Title": "1. Essential cookies (always on)",
+      "section1Body": "Supabase auth session (httpOnly · scoped to .kieio.com) · next-intl locale preference (NEXT_LOCALE) · Vercel deployment routing (vercel-id). These are required for the site to function · you can't opt out.",
+      "section2Title": "2. Analytics cookies (PostHog)",
+      "section2Body": "PostHog sets a distinct_id cookie to track activation funnel (signup · first turn · subscribe). We do not link this to ad networks · we do not sell data to third parties.",
+      "section3Title": "3. Error reporting (Sentry)",
+      "section3Body": "Sentry session ID for grouping errors to a single browser session. Disabled in development · production-only.",
+      "section4Title": "4. Opt-out + browser controls",
+      "section4Body": "Set Do-Not-Track in your browser · PostHog honors it. Clear cookies via your browser settings to reset analytics distinct_id. Essential cookies cannot be opted out without breaking auth.",
+      "lastUpdated": "Last updated: {date} · contact privacy@kieio.com for questions"
     }
   }
 }

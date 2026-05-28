@@ -7,7 +7,7 @@ import { Cover } from "@/components/se/Cover";
 import { createClient } from "@/lib/supabase/server";
 import { getCachedUser } from "@/lib/supabase/cached-user";
 import { getMyPlaythroughs, type MyPlaythroughRow } from "@/lib/community/queries";
-import { Play, Sparkles, Archive, Trash2, BookOpen, Plus } from "lucide-react";
+import { Play, Sparkles, Archive, Trash2, BookOpen, Plus, Lock } from "lucide-react";
 import type { GenreKey } from "@/components/se/genre";
 
 type RelTimeFn = (
@@ -61,6 +61,17 @@ export default async function MyGamesPage({
     userId: user.id,
     limit: 500,
   });
+
+  // Session 16 PM Review #2 (P-12): fetch adult_mode_enabled so we can
+  // surface lock badge on adult-rated playthroughs when user has adult
+  // mode off (e.g., they cancelled Pro · markSubscriptionDeleted forced
+  // adult_mode_enabled=false). Playthrough still listed but visibly locked.
+  const { data: profileForGating } = await supabase
+    .from("profiles")
+    .select("adult_mode_enabled")
+    .eq("id", user.id)
+    .maybeSingle();
+  const userAdultMode = profileForGating?.adult_mode_enabled === true;
 
   const counts = {
     all: all.length,
@@ -143,7 +154,14 @@ export default async function MyGamesPage({
           ) : (
             <div className="flex flex-col gap-3">
               {filtered.map((p) => (
-                <PlaythroughRow key={p.id} p={p} locale={locale} tLib={tLib} tMy={tMy} />
+                <PlaythroughRow
+                  key={p.id}
+                  p={p}
+                  locale={locale}
+                  tLib={tLib}
+                  tMy={tMy}
+                  userAdultMode={userAdultMode}
+                />
               ))}
             </div>
           )}
@@ -193,21 +211,28 @@ function PlaythroughRow({
   locale,
   tLib,
   tMy,
+  userAdultMode,
 }: {
   p: MyPlaythroughRow;
   locale: string;
   tLib: RelTimeFn;
   tMy: RelTimeFn;
+  userAdultMode: boolean;
 }) {
   const isActive = p.status === "active";
+  // Session 16 PM Review #2 (P-12): lock if story is adult-rated but user
+  // has adult mode off. Playthrough is still clickable but flagged so user
+  // understands turn route will 403 until they re-enable adult mode.
+  const isAdultLocked = p.story_content_rating === "adult" && !userAdultMode;
   return (
     <Link
-      href={`/${locale}/play/${p.id}` as never}
+      href={isAdultLocked ? (`/${locale}/settings` as never) : (`/${locale}/play/${p.id}` as never)}
       className="flex gap-4 p-4 rounded-xl transition-all group"
       style={{
         background: "var(--se-surface)",
-        border: "1px solid var(--se-border)",
+        border: `1px solid ${isAdultLocked ? "var(--se-border-strong)" : "var(--se-border)"}`,
         boxShadow: "var(--se-shadow-card)",
+        opacity: isAdultLocked ? 0.7 : 1,
       }}
     >
       <div style={{ width: 64, flex: "none" }}>
@@ -220,7 +245,7 @@ function PlaythroughRow({
       </div>
       <div className="flex-1 min-w-0 flex flex-col justify-between">
         <div>
-          <div className="flex items-start gap-2">
+          <div className="flex items-start gap-2 flex-wrap">
             <h3
               className="text-base font-semibold se-cjk truncate"
               style={{ color: "var(--se-fg)", letterSpacing: "-0.005em" }}
@@ -229,6 +254,20 @@ function PlaythroughRow({
               {p.story_title || tLib("storyCard.untitled")}
             </h3>
             <StatusBadge status={p.status} tMy={tMy} />
+            {isAdultLocked && (
+              <span
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium"
+                style={{
+                  color: "var(--se-rose, #b91c1c)",
+                  background: "color-mix(in srgb, var(--se-rose, #b91c1c) 12%, transparent)",
+                  border: "1px solid color-mix(in srgb, var(--se-rose, #b91c1c) 30%, transparent)",
+                }}
+                title={tMy("adultLockTooltip")}
+              >
+                <Lock size={9} />
+                {tMy("adultLockBadge")}
+              </span>
+            )}
           </div>
           {p.character_name && (
             <p

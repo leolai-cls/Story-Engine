@@ -31,6 +31,8 @@ const PRODUCT_ROUTE_PREFIXES = [
   "/stories", // catches /stories exactly
   "/settings",
   "/profile",
+  "/admin/",
+  "/admin", // Session 16 P-03 · admin moderation queue on app subdomain
 ];
 
 const MARKETING_ROUTE_PREFIXES = [
@@ -39,6 +41,7 @@ const MARKETING_ROUTE_PREFIXES = [
   "/blog",
   "/terms",
   "/privacy",
+  "/cookies",
 ];
 
 const LOCALE_RE = /^\/(en|zh-Hans|zh-Hant)(\/.*|$)/;

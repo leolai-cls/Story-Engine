@@ -498,6 +498,8 @@
       "insufficientCreditsTitle": "Credit 不够",
       "insufficientCreditsBody": "你现在有 {balance} credits · 这个 turn 需要 ~{needed}。",
       "insufficientCreditsCta": "去 Settings 升级 / Top-up",
+      "insufficientCreditsSubscribeCta": "升 Standard $9.99 / 月",
+      "insufficientCreditsTopupCta": "或一次性 top-up →",
       "modelTierTitle": "Model 需要升级 tier",
       "modelTierBody": "你的 tier ({tier}) 不能用 {model}。去 Settings 选其他 model 或升级。",
       "modelTierCta": "去 Settings",
@@ -733,6 +735,8 @@
   "my": {
     "pageTitle": "我的游戏",
     "subtitleEmpty": "你还没开始任何故事 — 选一个 scenario 开始你的冒险。",
+    "adultLockBadge": "成人模式已关",
+    "adultLockTooltip": "此为成人故事。去 Settings 重新开启成人模式继续玩 · 或 archive 此故事。",
     "subtitleCount": "共 {total} 个 playthrough · {active} 个进行中",
     "tabs": {
       "all": "全部",
@@ -916,6 +920,60 @@
       "hateViolence": "内容包含威胁、仇恨言论或极端暴力。",
       "sexual": "性描写超出此故事的内容分级。",
       "blocked": "内容违反平台规则。请修改后再试。"
+    }
+  },
+  "legal": {
+    "footerTerms": "服务条款",
+    "footerPrivacy": "隐私政策",
+    "footerCookies": "Cookie 政策",
+    "terms": {
+      "eyebrow": "法律",
+      "title": "服务条款",
+      "subtitle": "使用 Kieio 的规则与预期。",
+      "placeholderNotice": "⚠️ 暂定版本 · 最终条款等律师 review (HK + TW 司法管辖)。",
+      "section1Title": "1. 服务描述",
+      "section1Body": "Kieio (kieio.com) 提供 AI 驱动的互动式故事。我们使用第三方 LLM (Anthropic · OpenAI · Google · Meta via OpenRouter) 根据你的 prompt 生成叙事。输出为虚构内容，不构成建议。",
+      "section2Title": "2. 账户 + 年龄要求",
+      "section2Body": "你需要 13 岁或以上才能开账户。成人模式 (NSFW) 需要 Stripe Identity 验证 18 岁或以上。违反社群规范或法律我们可以暂停账户。",
+      "section3Title": "3. 可接受用法",
+      "section3Body": "你同意不会：(a) 生成或分享涉及未成年人的性内容 (CSAM · 已 pre-filter + 上报执法机构)，(b) 生成未经同意的真人内容，(c) 大规模 scrape 或 reverse-engineer LLM 输出，(d) 用平台做骚扰、起底或非法活动。",
+      "section4Title": "4. 付款 + Credits",
+      "section4Body": "订阅每月 Stripe billing。付款成功后 grant credits (Standard $9.99 / Pro $19.99 USD)。我们可以在购买后 14 日内酌情退款。Top-up 购买不设退款。最新价钱看 Pricing 页。",
+      "section5Title": "5. 责任 + 终止",
+      "section5Body": "服务按现状提供。AI 生成内容、用户上传内容或间接损害我们不负责。我们可以酌情终止账户。资料导出权利写在隐私政策里。",
+      "lastUpdated": "最后更新：{date} · 有问题 email legal@kieio.com"
+    },
+    "privacy": {
+      "eyebrow": "法律",
+      "title": "隐私政策",
+      "subtitle": "我们收什么 · 为什么收 · 你的 controls。",
+      "placeholderNotice": "⚠️ 暂定版本 · 最终隐私政策等律师 review PCPD (HK) + PIPL (TW) 合规。",
+      "section1Title": "1. 我们收什么",
+      "section1Body": "账户：email、display name (OAuth provider 或你自己改)、语言偏好。游玩：故事、playthrough、角色、记忆、credit ledger。Operational：IP、user agent、error report (Sentry)、product analytics (PostHog) — 全部 link 你的 user ID。",
+      "section2Title": "2. 第三方 processor",
+      "section2Body": "我们透过：Supabase (DB + auth · US-East)、Vercel (hosting · global edge)、Anthropic / OpenAI / Google / OpenRouter (LLM inference)、Stripe (payments)、Sentry (errors)、PostHog (analytics) 处理资料。LLM prompt 只 send 去 model provider · 我们不会用你的内容 train model。",
+      "section3Title": "3. 成人模式 + 身份验证",
+      "section3Body": "成人模式需要 Stripe Identity 年龄验证 (selfie + ID)。验证 metadata (yes/no · timestamp) 我们保留；selfie + ID 图像由 Stripe 处理 · 我们不 store。成人模式内容由 NSFW-friendly provider (OpenRouter) 生成 · 同 default LLM 隔离。",
+      "section4Title": "4. 你的权利",
+      "section4Body": "你可以：导出资料 (email privacy@kieio.com)、删除账户 (settings → delete · cascades playthrough + 记忆)、退出 analytics (PostHog honors DNT header)。Data retention：账户资料保留到 deletion；error log 90 天；analytics 12 个月。",
+      "section5Title": "5. 联络 + 司法管辖",
+      "section5Body": "资料控制者：Kieio (香港为本)。纠纷由香港法律管辖。Email privacy@kieio.com 处理 data access / deletion / 修正。PCPD (HK) 同 PIPL (TW) data subject rights 适用。",
+      "lastUpdated": "最后更新：{date} · 有问题 email privacy@kieio.com"
+    },
+    "cookies": {
+      "eyebrow": "法律",
+      "title": "Cookie 政策",
+      "subtitle": "我们设置的 cookie 及为何需要。",
+      "placeholderNotice": "⚠️ 暂定版本 · 最终 cookie 披露等律师 review。",
+      "section1Title": "1. 必要 cookie (一定 on)",
+      "section1Body": "Supabase auth session (httpOnly · scoped to .kieio.com) · next-intl 语言偏好 (NEXT_LOCALE) · Vercel deployment 路由 (vercel-id)。网站运作必须 · 不能 opt out。",
+      "section2Title": "2. Analytics cookie (PostHog)",
+      "section2Body": "PostHog 设 distinct_id cookie 追踪激活漏斗 (signup · first turn · subscribe)。我们不会 link 广告网络 · 不会卖资料给第三方。",
+      "section3Title": "3. Error 报告 (Sentry)",
+      "section3Body": "Sentry session ID 将 error 归类到单一 browser session。Development 不开 · production-only。",
+      "section4Title": "4. Opt-out + browser controls",
+      "section4Body": "Browser 设 Do-Not-Track · PostHog 会 honor。Clear cookies 重置 analytics distinct_id。必要 cookie 不能 opt out 否则 break auth。",
+      "lastUpdated": "最后更新：{date} · 有问题 email privacy@kieio.com"
     }
   }
 }

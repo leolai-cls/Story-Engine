@@ -184,13 +184,23 @@ function PlayErrorCard({ error }: { error: string }) {
             <div className="mt-1 text-xs text-amber-800 dark:text-amber-200">
               {error.replace("INSUFFICIENT_CREDITS:", "")}
             </div>
-            <Link
-              href={"/settings" as never}
-              className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700"
-            >
-              <Coins className="h-3.5 w-3.5" />
-              {t("insufficientCreditsCta")}
-            </Link>
+            {/* Session 16 PM Review #2 (P-13): subscribe-first CTA · higher LTV
+                than one-time top-up. Secondary text-link for top-up users. */}
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <Link
+                href={"/pricing" as never}
+                className="inline-flex items-center gap-1.5 rounded-md bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700"
+              >
+                <Coins className="h-3.5 w-3.5" />
+                {t("insufficientCreditsSubscribeCta")}
+              </Link>
+              <Link
+                href={"/settings" as never}
+                className="text-[11px] underline text-amber-700 dark:text-amber-300 hover:text-amber-900"
+              >
+                {t("insufficientCreditsTopupCta")}
+              </Link>
+            </div>
           </div>
         </div>
       </div>

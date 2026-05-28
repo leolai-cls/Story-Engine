@@ -57,6 +57,9 @@ export type MyPlaythroughRow = {
   story_title: string;
   story_genre: string | null;
   story_cover_image_url: string | null;
+  /** Session 16 P-12: surface content_rating so /my UI can lock-badge
+   *  adult-rated playthroughs when user's adult_mode_enabled = false. */
+  story_content_rating: string | null;
   character_name: string | null;
   turn_count: number;
   status: string;
@@ -356,7 +359,7 @@ export async function getMyPlaythroughs(
   let q = supabase
     .from("playthroughs")
     .select(
-      "id, story_id, character_name, turn_count, status, last_played_at, story:stories!playthroughs_story_id_fkey(title, genre, cover_image_url)",
+      "id, story_id, character_name, turn_count, status, last_played_at, story:stories!playthroughs_story_id_fkey(title, genre, cover_image_url, content_rating)",
     )
     .eq("user_id", params.userId);
   if (params.status) {
@@ -371,6 +374,7 @@ export async function getMyPlaythroughs(
       title?: string;
       genre?: string | null;
       cover_image_url?: string | null;
+      content_rating?: string | null;
     };
     const storyJoin = (r as { story?: StoryJoinShape | StoryJoinShape[] | null }).story;
     const storyRow: StoryJoinShape | null = Array.isArray(storyJoin)
@@ -386,6 +390,7 @@ export async function getMyPlaythroughs(
       story_title: storyRow?.title ?? "",
       story_genre: storyRow?.genre ?? null,
       story_cover_image_url: storyRow?.cover_image_url ?? null,
+      story_content_rating: storyRow?.content_rating ?? null,
       character_name: r.character_name as string | null,
       turn_count: r.turn_count as number,
       status: r.status as string,

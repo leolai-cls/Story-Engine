@@ -341,6 +341,102 @@ async function dispatch(
       return;
     }
 
+    case "charge.refunded": {
+      // Session 16 PM Review #2 (C-07): user got Stripe refund · reverse the
+      // corresponding credit grant. Symmetric idempotency via refund.id.
+      // Stripe SDK types · `Charge.invoice` was removed from base type in
+      // recent versions; cast to a structural extension for property access.
+      const charge = event.data.object as Stripe.Charge & {
+        invoice?: string | Stripe.Invoice | null;
+      };
+      if (!charge.refunded || !charge.invoice) {
+        console.log(`[webhook] charge.refunded · no invoice on charge ${charge.id} · skip`);
+        return;
+      }
+
+      // Resolve user via invoice → subscription → user (uses our subscriptions table)
+      const invoiceId = typeof charge.invoice === "string" ? charge.invoice : charge.invoice.id;
+      if (!invoiceId) {
+        console.log(`[webhook] charge.refunded · invoice has no id on charge ${charge.id} · skip`);
+        return;
+      }
+      const invoice = await getStripe().invoices.retrieve(invoiceId);
+      const subId = subscriptionIdFromInvoice(invoice);
+      let userId: string | null = null;
+      if (subId) {
+        const sub = await getStripe().subscriptions.retrieve(subId);
+        userId = await resolveUserIdForSubscription(supabase, sub);
+      } else {
+        // Could be a top-up refund · resolve via customer
+        const customerId = typeof charge.customer === "string"
+          ? charge.customer
+          : charge.customer?.id;
+        if (customerId) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("id")
+            .eq("stripe_customer_id", customerId)
+            .maybeSingle();
+          userId = (profile?.id as string | null) ?? null;
+        }
+      }
+
+      if (!userId) {
+        console.warn(`[webhook] charge.refunded · could not resolve user for charge ${charge.id}`);
+        return;
+      }
+
+      // Look up the original credit grant via invoice.id idempotency key
+      // (subscription grants use invoice.id; top-ups use session.id · we
+      // can only match subscription path here · top-up refund detection
+      // requires charge.metadata mapping · defer).
+      const { data: priorGrant } = await supabase
+        .from("credit_ledger")
+        .select("delta")
+        .eq("user_id", userId)
+        .in("reason", ["sub_renewal", "sub_grant", "topup"])
+        .eq("metadata->>idempotency_key", invoice.id)
+        .maybeSingle();
+
+      if (!priorGrant) {
+        console.warn(
+          `[webhook] charge.refunded · no prior credit grant found for invoice ${invoice.id} · skip reversal`,
+        );
+        return;
+      }
+
+      const refundAmountCents = charge.amount_refunded;
+      // Reverse the full original delta (refund-all assumption · partial refunds
+      // mid-period are unusual on subscriptions). Use refund.id from latest_charge
+      // refunds list as idempotency key.
+      const refundId =
+        charge.refunds?.data?.[0]?.id ?? `${charge.id}.refund_implicit`;
+      const { data: revResult, error: revErr } = await supabase.rpc(
+        "reverse_billing_credit",
+        {
+          p_user_id: userId,
+          p_attempted_delta: priorGrant.delta,
+          p_idempotency_key: refundId,
+          p_metadata: {
+            charge_id: charge.id,
+            invoice_id: invoice.id,
+            refund_amount_cents: refundAmountCents,
+            currency: charge.currency,
+          },
+        },
+      );
+
+      if (revErr) {
+        console.error(`[webhook] charge.refunded · reverse_billing_credit failed:`, revErr);
+        throw new Error(`reverse_billing_credit: ${revErr.message}`);
+      }
+      const row = Array.isArray(revResult) ? revResult[0] : revResult;
+      console.log(
+        `[webhook] charge.refunded · user=${userId} reversed ${row?.actual_delta} credits (attempted ${priorGrant.delta}) · new balance ${row?.new_balance} · duplicate=${row?.was_duplicate}`,
+      );
+      return;
+    }
+
     default:
       // Other event types are stored in stripe_webhook_events for audit but
       // not actively handled. Add cases here as you wire more flows.

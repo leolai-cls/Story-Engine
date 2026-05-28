@@ -47,11 +47,22 @@ function isValidLocale(l: string | null | undefined): l is Locale {
 }
 
 /**
- * Resolve locale outside of an [locale]/ route. Tries:
- *   1. `next` searchParam (most reliable — user came from a localized page)
- *   2. `NEXT_LOCALE` cookie (set by next-intl when user toggles locale)
- *   3. `Accept-Language` header (provider hop usually preserves)
+ * Resolve locale outside of an [locale]/ route. Priority order:
+ *
+ *   1. `NEXT_LOCALE` cookie (most-recent explicit user toggle)
+ *   2. `next` searchParam (where they were going before redirect)
+ *   3. `Accept-Language` header (browser default)
  *   4. Default locale (zh-Hant)
+ *
+ * Session 16 PM Review #2 (C-06) fix: was prioritizing next-param over
+ * cookie. User toggling locale picker sets cookie · then clicking magic
+ * link with `next=/en/library` would silently override their fresh
+ * cookie choice. Cookie now wins (most-recent explicit signal).
+ *
+ * Session 16 PM Review #2 (C-05) cleanup: removed case-sensitive exact-
+ * match loop on Accept-Language tags — browsers send lowercase
+ * (`zh-hant,en-us;q=0.9`) so it never matched. Prefix loop handles all
+ * realistic cases.
  *
  * Used by /auth/callback so OAuth round-trip doesn't drop the user's locale.
  */
@@ -60,26 +71,22 @@ export function resolveLocale(opts: {
   cookieLocale: string | null;
   acceptLanguage: string | null;
 }): Locale {
-  // 1. From next param
+  // 1. Cookie (user's most-recent explicit toggle)
+  if (isValidLocale(opts.cookieLocale)) return opts.cookieLocale;
+
+  // 2. From next param
   const fromNext = localeFromPath(opts.next);
   if (fromNext) return fromNext;
 
-  // 2. From cookie
-  if (isValidLocale(opts.cookieLocale)) return opts.cookieLocale;
-
-  // 3. From Accept-Language — prefer exact match, then language tag prefix
+  // 3. From Accept-Language — normalize lowercase, match by prefix
   if (opts.acceptLanguage) {
     const tags = opts.acceptLanguage
       .split(",")
-      .map((t) => t.split(";")[0].trim());
+      .map((t) => t.split(";")[0].trim().toLowerCase());
     for (const tag of tags) {
-      if (isValidLocale(tag)) return tag;
-    }
-    for (const tag of tags) {
-      const lower = tag.toLowerCase();
-      if (lower.startsWith("zh-tw") || lower.startsWith("zh-hk") || lower === "zh-hant") return "zh-Hant";
-      if (lower.startsWith("zh-cn") || lower.startsWith("zh-sg") || lower === "zh-hans" || lower === "zh") return "zh-Hans";
-      if (lower.startsWith("en")) return "en";
+      if (tag.startsWith("zh-tw") || tag.startsWith("zh-hk") || tag === "zh-hant") return "zh-Hant";
+      if (tag.startsWith("zh-cn") || tag.startsWith("zh-sg") || tag === "zh-hans" || tag === "zh") return "zh-Hans";
+      if (tag.startsWith("en")) return "en";
     }
   }
 

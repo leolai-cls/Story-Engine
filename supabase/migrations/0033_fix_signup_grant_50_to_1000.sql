@@ -13,11 +13,14 @@
 alter table public.profiles alter column credit_balance set default 1000;
 
 -- 2. Update trigger to grant 1000
+-- (Session 16 PM Review #2 C-08 cosmetic fix: added pg_temp to search_path
+-- for consistency with other SECURITY DEFINER functions · 0034 supersedes
+-- this function but this doc fix prevents future fresh-reset confusion.)
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, pg_temp
 as $$
 begin
   insert into public.profiles (id, credit_balance, created_at)
