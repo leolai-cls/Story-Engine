@@ -33,20 +33,46 @@
  * part of the app surface. Marketing CTAs link to /login via appUrl().
  */
 
+/**
+ * Session 16 audit HIGH-01 fix: harden the fallback chain.
+ *
+ * The original fallback `NEXT_PUBLIC_APP_URL || NEXT_PUBLIC_SITE_URL || localhost`
+ * silently re-introduced the CRIT-05 bug if `NEXT_PUBLIC_APP_URL` was missing
+ * in any env (since NEXT_PUBLIC_SITE_URL on prod = kieio.com / marketing).
+ *
+ * New chain:
+ *   1. NEXT_PUBLIC_APP_URL                 (explicit · always honored)
+ *   2. https://${VERCEL_URL}               (preview deploys auto-detect)
+ *   3. NEXT_PUBLIC_SITE_URL                (legacy single-origin envs only)
+ *   4. http://localhost:3001               (dev)
+ *
+ * In production, if (1) is unset we log a loud warning so misconfigs are
+ * visible in Sentry / Vercel logs even if (3) saves the runtime.
+ */
 function appOrigin(): string {
-  return (
-    process.env.NEXT_PUBLIC_APP_URL ||
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    "http://localhost:3001"
-  );
+  const explicit = process.env.NEXT_PUBLIC_APP_URL;
+  if (explicit) return explicit;
+
+  // Vercel preview detection — VERCEL_URL is the deployment hostname (no protocol)
+  const vercelUrl = process.env.VERCEL_URL;
+  if (vercelUrl) return `https://${vercelUrl}`;
+
+  if (process.env.NODE_ENV === "production") {
+    // Don't throw (we'd break legacy single-origin deploys) but make the
+    // misconfig loud so it shows up in logs.
+    console.warn(
+      "[lib/urls] NEXT_PUBLIC_APP_URL not set in production · falling back to NEXT_PUBLIC_SITE_URL · this re-introduces CRIT-05 (OAuth lands on marketing origin)",
+    );
+  }
+  return process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3001";
 }
 
 function marketingOrigin(): string {
-  return (
-    process.env.NEXT_PUBLIC_MARKETING_URL ||
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    "http://localhost:3001"
-  );
+  const explicit = process.env.NEXT_PUBLIC_MARKETING_URL;
+  if (explicit) return explicit;
+  const vercelUrl = process.env.VERCEL_URL;
+  if (vercelUrl) return `https://${vercelUrl}`;
+  return process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3001";
 }
 
 /** True only when founder has split the two subdomains via env vars. */

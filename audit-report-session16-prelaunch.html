@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kieio · Session 16 Pre-Launch Audit · Wave 2 i18n + Subdomain + Marketing</title>
+<style>
+  :root { --primary: #4F46E5; --primary-soft: #EEF2FF; --accent: #F59E0B; --accent-soft: #FEF3C7; --bg: #FAFAF7; --card: #FFFFFF; --ink: #18181B; --ink-soft: #3F3F46; --muted: #71717A; --border: #E4E4E7; --green: #10B981; --green-soft: #D1FAE5; --rose: #E11D48; --rose-soft: #FFE4E6; --amber: #D97706; --code-bg: #F4F4F5; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif; background: var(--bg); color: var(--ink); line-height: 1.65; font-size: 15px; -webkit-font-smoothing: antialiased; }
+  main { max-width: 1080px; margin: 0 auto; padding: 48px 32px 120px; }
+  .hero { text-align: center; margin-bottom: 36px; }
+  .eyebrow { display: inline-block; font-size: 11px; font-weight: 700; color: var(--primary); background: var(--primary-soft); padding: 5px 12px; border-radius: 999px; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 16px; }
+  h1 { font-size: 32px; font-weight: 800; letter-spacing: -0.025em; margin-bottom: 10px; }
+  .hero p { color: var(--muted); font-size: 16px; max-width: 760px; margin: 0 auto; }
+  .meta { color: var(--muted); font-size: 13px; margin-top: 14px; }
+  .summary { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin: 32px 0 28px; }
+  .stat { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px; text-align: center; }
+  .stat-num { font-size: 36px; font-weight: 800; line-height: 1; }
+  .stat-label { font-size: 11px; color: var(--muted); margin-top: 8px; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700; }
+  .stat.crit .stat-num { color: var(--rose); }
+  .stat.high .stat-num { color: var(--amber); }
+  .stat.med .stat-num { color: var(--primary); }
+  .stat.low .stat-num { color: var(--muted); }
+  .stat.info .stat-num { color: var(--green); }
+  h2 { font-size: 22px; font-weight: 700; margin: 44px 0 14px; display: flex; align-items: center; gap: 10px; }
+  h2 .icon { font-size: 26px; }
+  h3.section-h3 { font-size: 16px; font-weight: 700; margin: 24px 0 10px; color: var(--ink-soft); letter-spacing: -.01em; }
+  .verdict { background: linear-gradient(135deg, #fef3c7, #fff7ed); border: 2px solid var(--amber); padding: 24px 28px; border-radius: 14px; margin: 18px 0 36px; }
+  .verdict h3 { color: var(--amber); font-size: 18px; font-weight: 800; margin-bottom: 10px; }
+  .verdict p { font-size: 14.5px; line-height: 1.75; }
+  .verdict p + p { margin-top: 10px; }
+  .verdict.green { background: linear-gradient(135deg, #d1fae5, #ecfeff); border-color: var(--green); }
+  .verdict.green h3 { color: var(--green); }
+  .issue { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px 22px; margin-bottom: 12px; }
+  .issue.crit { border-left: 4px solid var(--rose); background: #fff7f8; }
+  .issue.high { border-left: 4px solid var(--amber); background: #fffbf4; }
+  .issue.med { border-left: 4px solid var(--primary); }
+  .issue.low { border-left: 4px solid var(--muted); }
+  .issue.safe { border-left: 4px solid var(--green); background: #f4fdf8; }
+  .issue-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+  .issue-id { font-family: "SF Mono", Monaco, monospace; font-size: 11px; color: var(--muted); font-weight: 700; }
+  .issue-title { font-size: 15.5px; font-weight: 700; }
+  .sev { font-size: 10px; padding: 3px 9px; border-radius: 999px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; }
+  .sev-crit { background: var(--rose); color: white; }
+  .sev-high { background: var(--amber); color: white; }
+  .sev-med { background: var(--primary-soft); color: var(--primary); }
+  .sev-low { background: var(--code-bg); color: var(--muted); }
+  .sev-safe { background: var(--green-soft); color: var(--green); }
+  .issue p { font-size: 14px; color: var(--ink-soft); margin-bottom: 8px; line-height: 1.7; }
+  .issue p:last-child { margin-bottom: 0; }
+  .issue code, code.inline { background: var(--code-bg); padding: 1px 6px; border-radius: 4px; font-family: "SF Mono", Monaco, monospace; font-size: 12.5px; color: var(--ink); }
+  .file-ref { font-family: "SF Mono", Monaco, monospace; font-size: 12px; color: var(--primary); background: var(--primary-soft); padding: 2px 8px; border-radius: 6px; display: inline-block; margin: 4px 6px 4px 0; }
+  .fix { background: var(--green-soft); border-left: 3px solid var(--green); padding: 10px 14px; border-radius: 6px; margin-top: 10px; font-size: 13.5px; }
+  .fix strong { color: var(--green); font-weight: 800; font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; display: block; margin-bottom: 4px; }
+  .priority-list { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 8px 24px; margin: 18px 0 36px; }
+  .priority-row { display: grid; grid-template-columns: 32px 1fr auto; gap: 14px; align-items: center; padding: 14px 0; border-bottom: 1px dashed var(--border); }
+  .priority-row:last-child { border-bottom: none; }
+  .priority-num { font-size: 18px; font-weight: 800; color: var(--primary); }
+  .priority-text { font-size: 14.5px; }
+  .priority-text strong { display: block; margin-bottom: 2px; }
+  .priority-text small { color: var(--muted); font-size: 12.5px; }
+  .table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 13.5px; }
+  .table th { text-align: left; padding: 10px 12px; background: var(--code-bg); border-bottom: 1px solid var(--border); font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 700; }
+  .table td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+  .table tr:last-child td { border-bottom: none; }
+  .table code { font-size: 11.5px; }
+  .nav-toc { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px 22px; margin-bottom: 32px; }
+  .nav-toc strong { display: block; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
+  .nav-toc a { display: inline-block; margin-right: 14px; color: var(--primary); text-decoration: none; font-size: 13.5px; font-weight: 600; }
+  .nav-toc a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<main>
+
+  <div class="hero">
+    <span class="eyebrow">Session 16 · Pre-Launch Audit</span>
+    <h1>Wave 2 i18n + Subdomain + Marketing Audit</h1>
+    <p>對 commits <code class="inline">e2c8cb0</code> → <code class="inline">9a22782</code> 嘅 independent audit。重點：622-key i18n migration、Google login subdomain fix、signup grant 50→1000、3 個新 marketing sections、hardcoded origin。</p>
+    <div class="meta">3 parallel agents (i18n correctness · auth+credit · marketing) · 2026-05-28 · branch <code class="inline">claude/competent-darwin-ffecf8</code></div>
+  </div>
+
+  <div class="summary">
+    <div class="stat crit"><div class="stat-num">6</div><div class="stat-label">🔴 CRIT</div></div>
+    <div class="stat high"><div class="stat-num">10</div><div class="stat-label">🟠 HIGH</div></div>
+    <div class="stat med"><div class="stat-num">7</div><div class="stat-label">🟡 MED</div></div>
+    <div class="stat low"><div class="stat-num">5</div><div class="stat-label">🔵 LOW</div></div>
+    <div class="stat info"><div class="stat-num">7</div><div class="stat-label">✅ 證實乾淨</div></div>
+  </div>
+
+  <div class="verdict">
+    <h3>📌 Verdict — 9-cycle 收斂係真嘅，但 i18n migration 同期嘅 sibling change 帶咗新債</h3>
+    <p><strong>好消息：</strong> 622 個 catalog key × 3 locales 完美對齊（零 key drift · 零 ICU placeholder 錯位 · 零 t.rich() tag mismatch）。所有 AI prompt（Narrator / Director / NPC Agents / schema-generator / memory retriever / summarizer / lorebook）都已經 locale-branch。架構乾淨。</p>
+    <p><strong>壞消息：</strong> 同一個 commit 7baa4dd 入面嘅 <strong>非-i18n changes</strong>（migration 0033、marketing 兩個新 section、hardcoded origin）有 6 個 CRIT 級 issue。最危險嘅係 <code class="inline">apply_billing_credit</code> RPC 只喺 prod 存在，repo 冇 source — 任何 DB reset 即時 break 所有付費 user 嘅 Stripe webhook grant。</p>
+    <p><strong>建議：</strong> 喺 launch 前要 land 4 個 CRIT fix（ghost migration commit · 0033 trigger regression · SECTIONS array · hardcoded origin），其餘 CRIT/HIGH 可以喺 Wave 3 audit 收尾。</p>
+  </div>
+
+  <div class="nav-toc">
+    <strong>跳去 section</strong>
+    <a href="#crit">🔴 CRIT (6)</a>
+    <a href="#high">🟠 HIGH (10)</a>
+    <a href="#med">🟡 MED (7)</a>
+    <a href="#low">🔵 LOW (5)</a>
+    <a href="#safe">✅ 證實乾淨</a>
+    <a href="#priority">🎯 Fix 順序</a>
+  </div>
+
+  <!-- ═══════════════════════ CRIT ═══════════════════════ -->
+  <h2 id="crit"><span class="icon">🔴</span> CRIT — Launch-blocker</h2>
+
+  <div class="issue crit">
+    <div class="issue-head"><span class="sev sev-crit">CRIT</span><span class="issue-id">CRIT-01</span><span class="issue-title">Ghost migrations 0029-0032 從未 commit · <code class="inline">apply_billing_credit</code> RPC 只喺 prod 存在</span></div>
+    <p><span class="file-ref">supabase/migrations/0028 → 0033 file gap</span> <span class="file-ref">web/src/lib/billing/subscription.ts:199</span> <span class="file-ref">web/src/lib/billing/topup.ts:66</span></p>
+    <p>0033 嘅 header comment 自己承認：「0029-0032 were applied via Supabase MCP during the money tier ship but never committed to repo」。Prod <code class="inline">pg_proc</code> 證實 <code class="inline">apply_billing_credit</code> function 存在（security definer · service_role only · execute權限正確 lock），但 <code class="inline">supabase/migrations/</code> 入面冇任何 file 定義佢。</p>
+    <p><strong>影響：</strong> 任何 <code class="inline">supabase db reset</code> · staging rebuild · disaster recovery · CI fresh build → 所有 Stripe webhook (<code class="inline">grantMonthlyCreditsForInvoice</code>, <code class="inline">grantTopUpCredits</code>) 即時 crash with <code class="inline">function does not exist</code>。每月續訂 + 一次性 top-up 通通靜默死亡。Money tier 嘅 disaster recovery 路徑爆穿。</p>
+    <div class="fix"><strong>Fix</strong> 從 prod <code class="inline">pg_get_functiondef('public.apply_billing_credit'::regproc)</code> dump 出來，連同其他 0029-0032 ghost migrations（top-up daily-50 cron、Stripe related schema），補 commit 做 <code class="inline">0029_apply_billing_credit.sql</code> 至 <code class="inline">0032_*.sql</code>。Audit 完整 prod schema vs repo migrations 差異。</div>
+  </div>
+
+  <div class="issue crit">
+    <div class="issue-head"><span class="sev sev-crit">CRIT</span><span class="issue-id">CRIT-02</span><span class="issue-title">Migration 0033 trigger regress 咗 <code class="inline">display_name</code> + <code class="inline">avatar_url</code> 提取</span></div>
+    <p><span class="file-ref">supabase/migrations/0033_fix_signup_grant_50_to_1000.sql:21-25</span></p>
+    <p>0001 + 0008 嘅 <code class="inline">handle_new_user</code> trigger 都有 <code class="inline">COALESCE(raw_user_meta_data-&gt;&gt;'name', 'full_name', 'user_name', email)</code> → <code class="inline">display_name</code>，同 <code class="inline">'avatar_url' / 'picture'</code> → <code class="inline">avatar_url</code>。0033 嘅新版本只 insert <code class="inline">(id, credit_balance, created_at)</code> — 完全冚走咗呢個 metadata 提取。</p>
+    <p><strong>影響：</strong> 0033 deploy 之後，<strong>每一個</strong> Google OAuth signup（同一個 commit 嘅 "Google login fix" 嘅 target 用戶）profile 入面 <code class="inline">display_name = NULL</code> · <code class="inline">avatar_url = NULL</code>。Header / library card / community profile 全部 fallback 落 email 或者「未命名」。「修咗 Google login」同「整爛 Google 用戶 profile」喺同一個 commit。</p>
+    <div class="fix"><strong>Fix</strong> 開 <code class="inline">0034_restore_handle_new_user_metadata.sql</code>，將 0008 嘅 COALESCE block 加返入 trigger。同時 backfill: <code class="inline">UPDATE profiles SET display_name = COALESCE(display_name, raw_user_meta_data...) WHERE display_name IS NULL</code>（透過 auth.users join）。</div>
+  </div>
+
+  <div class="issue crit">
+    <div class="issue-head"><span class="sev sev-crit">CRIT</span><span class="issue-id">CRIT-03</span><span class="issue-title">Migration 0033 backfill loop · ledger <code class="inline">balance_after</code> 用 stale snapshot</span></div>
+    <p><span class="file-ref">supabase/migrations/0033_fix_signup_grant_50_to_1000.sql:64-78</span></p>
+    <p>Backfill loop 結構：(1) <code class="inline">FOR v_user IN SELECT id, credit_balance FROM profiles WHERE ...</code> (snapshot)，(2) <code class="inline">UPDATE profiles SET credit_balance = credit_balance + 950 WHERE id = v_user.id</code>，(3) <code class="inline">INSERT credit_ledger ... balance_after = v_user.credit_balance + 950</code>。第 3 步用嘅 <code class="inline">v_user.credit_balance</code> 係 snapshot 時嘅值，唔係 UPDATE 之後嘅實際值。如果 user 喺 snapshot 同 UPDATE 之間 charge 過（race），ledger 嘅 <code class="inline">balance_after</code> ≠ 實際 balance。</p>
+    <p><strong>影響：</strong> Ledger drift = CLAUDE.md hard rule #4 違反（「off-by-one = trust collapse」）。Migration 文件夾入面 raw <code class="inline">UPDATE</code> 冇 row lock · 冇透過 <code class="inline">apply_credit_charge</code> RPC。即使現在「零 users」，如果 backfill 喺有真實流量嘅 staging / future re-run 上面跑，ledger 表會搞亂。</p>
+    <div class="fix"><strong>Fix</strong> 將 backfill 改用 <code class="inline">apply_credit_charge(v_user.id, 950, 'admin_adjust', null, key, metadata)</code> · 或者改 loop 為 <code class="inline">UPDATE ... RETURNING credit_balance INTO v_new_balance</code> 然後用 RETURNING 值做 <code class="inline">balance_after</code>。記得加 <code class="inline">FOR UPDATE</code> row lock。</div>
+  </div>
+
+  <div class="issue crit">
+    <div class="issue-head"><span class="sev sev-crit">CRIT</span><span class="issue-id">CRIT-04</span><span class="issue-title">Marketing <code class="inline">SECTIONS</code> array 唔包含新加嘅 <code class="inline">agents</code> + <code class="inline">adaptive</code> section</span></div>
+    <p><span class="file-ref">web/src/components/marketing/MarketingLanding.tsx:43</span> <span class="file-ref">L653</span> <span class="file-ref">L691</span></p>
+    <p>Commit 7baa4dd 加咗兩個全新 section <code class="inline">&lt;section id="agents"&gt;</code> (L653) 同 <code class="inline">&lt;section id="adaptive"&gt;</code> (L691) — 即係 marketing 嘅兩個新賣點（NPC Inner Voices + Adaptive UI）。但 line 43 嘅 <code class="inline">SECTIONS = ["hero", "portal", "how", "memory", "bilingual", "adult", "cta"]</code> array 冇加。L116-118 嘅 IntersectionObserver loop 只 observe SECTIONS 入面嘅 id。</p>
+    <p><strong>影響：</strong> (a) 右邊嘅 counter dots 完全 skip 呢兩個 section（用戶 scroll 過時冇 active state），(b) 兩個 section 永遠唔會攞到 <code class="inline">.in-view</code> class · 任何 CSS animation 依賴 <code class="inline">.in-view</code> trigger 嘅靜默死晒，(c) 用戶 scroll 過 1500+ vh 嘅新內容期間 active dot 停喺 memory section 唔郁。剛剛投資咗整 i18n + 全部 design 嘅 2 個賣點，nav UX 同 animation 直接壞。</p>
+    <div class="fix"><strong>Fix</strong> 改成 <code class="inline">SECTIONS = ["hero", "portal", "how", "memory", "agents", "adaptive", "bilingual", "adult", "cta"]</code>（1 line · 即時修復）。</div>
+  </div>
+
+  <div class="issue crit">
+    <div class="issue-head"><span class="sev sev-crit">CRIT</span><span class="issue-id">CRIT-05</span><span class="issue-title">Hardcoded <code class="inline">https://app.kieio.com</code> 喺 marketing components · 違反 lib/urls.ts contract</span></div>
+    <p><span class="file-ref">web/src/components/marketing/MarketingLanding.tsx:47-50</span> <span class="file-ref">web/src/components/marketing/MarketingPricing.tsx:20</span></p>
+    <p><code class="inline">lib/urls.ts</code> docblock 明確 enforce：「No code outside this file should hardcode either origin. Use the helpers below so the split is a config-only change」。但 marketing 入面有 3 個直接 hardcode <code class="inline">https://app.kieio.com</code>：兩個 helper function (<code class="inline">appLoginUrl</code>, <code class="inline">appLibraryUrl</code>) + 一個 const (<code class="inline">APP_LOGIN_BASE</code>)。</p>
+    <p><strong>影響：</strong> 所有 marketing CTA（hero "Begin" · bottom "Begin adventure" · "Browse library" · 所有 pricing tier subscribe button）喺 Vercel preview deploys / localhost dev / 任何 branch deploy 都 jump 去 <strong>production</strong> app.kieio.com。Preview QA 完全 broken：preview branch 上面 signup → 跳去 prod app → cookie 唔同 origin → auth 唔通。Manual E2E（未啟動但已寫住嘅 manual-e2e-phase5.html）冇辦法 verify preview。</p>
+    <div class="fix"><strong>Fix</strong> Import <code class="inline">appUrl</code> from <code class="inline">@/lib/urls</code>，刪走兩個 helper + 1 個 const，所有用嘅地方改成 <code class="inline">appUrl(\`/${'$'}{locale}/login\`)</code> / <code class="inline">appUrl(\`/${'$'}{locale}/library\`)</code>。</div>
+  </div>
+
+  <div class="issue crit">
+    <div class="issue-head"><span class="sev sev-crit">CRIT</span><span class="issue-id">CRIT-06</span><span class="issue-title"><code class="inline">/auth/callback</code> route 唔喺 <code class="inline">[locale]/</code> 下 · OAuth round-trip 會 locale flip</span></div>
+    <p><span class="file-ref">web/src/app/auth/callback/route.ts:1-72</span> <span class="file-ref">web/src/middleware.ts:129</span></p>
+    <p>Callback route 喺 <code class="inline">app/auth/callback/route.ts</code>（注意：唔喺 <code class="inline">[locale]/</code> 下面）。Middleware matcher explicit exclude <code class="inline">auth</code> path · 所以唔行 next-intl locale resolution。Callback 嘅所有 redirect (<code class="inline">${'$'}{origin}/login?error=...</code>, <code class="inline">${'$'}{origin}/library</code>) 全部冇 locale prefix。Combined with <code class="inline">safeRelativeNext</code> 唔強制 next param 帶 locale → 由 zh-Hant marketing 開始登入嘅 user 可以 land 喺 EN library。</p>
+    <p><strong>影響：</strong> Launch 市場係 HK + TW（粵語 + 繁中為主），但 Google OAuth flow 後 user 可能突然見到 EN UI。直接違反 launch i18n premise。Wave 2 投入 622 keys 嘅 zh-Hant 內容 user 可能根本見唔到。</p>
+    <div class="fix"><strong>Fix</strong> 喺 callback route top 讀 cookie / accept-language → resolve locale → prepend <code class="inline">/${'$'}{locale}</code> 到所有 redirect targets。同時：<code class="inline">safeRelativeNext</code> 要 enforce next param 開頭一定要係 <code class="inline">/${'$'}{validLocale}/</code> 或者 callback 自己加。</div>
+  </div>
+
+  <!-- ═══════════════════════ HIGH ═══════════════════════ -->
+  <h2 id="high"><span class="icon">🟠</span> HIGH — 有 fix urgency · 唔阻 launch 但 ship 前要做</h2>
+
+  <div class="issue high">
+    <div class="issue-head"><span class="sev sev-high">HIGH</span><span class="issue-id">HIGH-01</span><span class="issue-title"><code class="inline">appOrigin()</code> fallback chain 喺 misconfig 時再次跌返 marketing origin</span></div>
+    <p><span class="file-ref">web/src/lib/urls.ts:36-42</span></p>
+    <p>Fallback 順序：<code class="inline">NEXT_PUBLIC_APP_URL → NEXT_PUBLIC_SITE_URL → localhost:3001</code>。<code class="inline">NEXT_PUBLIC_SITE_URL</code> 喺 Wave 1 fix 之前正正係指 <code class="inline">kieio.com</code>（marketing）— 即係 7baa4dd 修嘅果個 bug。如果 prod 漏設 <code class="inline">NEXT_PUBLIC_APP_URL</code>（一次 env config 失誤），bug 100% 復發 · 而且係 silent — OAuth 跳去 marketing 邊度都 404。</p>
+    <div class="fix"><strong>Fix</strong> Prod 入面 hard require <code class="inline">NEXT_PUBLIC_APP_URL</code> · <code class="inline">NODE_ENV==='production'</code> + 兩個 env 都唔設就 throw。Vercel preview detection：<code class="inline">VERCEL_URL</code> set 嘅話用 <code class="inline">https://${'$'}{VERCEL_URL}</code>。</div>
+  </div>
+
+  <div class="issue high">
+    <div class="issue-head"><span class="sev sev-high">HIGH</span><span class="issue-id">HIGH-02</span><span class="issue-title">Daily-50 cron + 0033 backfill loop 都係 non-atomic UPDATE/INSERT</span></div>
+    <p><span class="file-ref">supabase/migrations/0008_phase3_credit_lifecycle.sql:115-132</span></p>
+    <p>同 CRIT-03 同 pattern — outer <code class="inline">FOR v_user IN SELECT ... </code> snapshot，內部 unconditional <code class="inline">UPDATE ... SET credit_balance = p_target_balance</code>。如果 user 喺 cron tick 期間有 concurrent turn charge，cron 將佢嘅 balance clobber 返上 50 — 靜默免費 credit。冇 <code class="inline">FOR UPDATE</code> row lock。Ledger <code class="inline">delta</code> 用 snapshot 計算可能 ≠ 實際 movement。</p>
+    <div class="fix"><strong>Fix</strong> Route 落 <code class="inline">apply_credit_charge</code> RPC · 或者改 <code class="inline">UPDATE ... RETURNING credit_balance</code> 然後用 RETURNING 計算 delta + balance_after。</div>
+  </div>
+
+  <div class="issue high">
+    <div class="issue-head"><span class="sev sev-high">HIGH</span><span class="issue-id">HIGH-03</span><span class="issue-title">Stripe webhook event-id 嘅 idempotency log 有 insert/processed_at race</span></div>
+    <p><span class="file-ref">web/src/app/api/stripe/webhook/route.ts:83-111</span></p>
+    <p>Pattern: <code class="inline">INSERT event_log (event_id) → if processed_at IS NULL → dispatch → UPDATE processed_at = now()</code>。兩次 webhook delivery 落到同一 event_id：第一個 INSERT 成功，dispatching 中；第二個 INSERT conflict（OK），跟住睇 <code class="inline">processed_at IS NULL</code> 仍然 NULL → 都 dispatch。<code class="inline">apply_billing_credit</code> 自己 keyed on invoice id 有 dedupe 保護（OK），但 <code class="inline">markSubscriptionDeleted</code> + <code class="inline">syncSubscriptionToDb</code> 只係 upsert 冇 idempotency key → 兩個 concurrent UPSERT race。</p>
+    <div class="fix"><strong>Fix</strong> Dispatch 前 take <code class="inline">pg_try_advisory_xact_lock(hashtext(event_id))</code> · 或者喺 dispatch 之前 set <code class="inline">processed_at = now()</code>（throw 時再 null 返）。</div>
+  </div>
+
+  <div class="issue high">
+    <div class="issue-head"><span class="sev sev-high">HIGH</span><span class="issue-id">HIGH-04</span><span class="issue-title"><code class="inline">getBalanceAndCheck</code> 喺 RLS deny 時 return <code class="inline">balance=-1</code> 俾 UI</span></div>
+    <p><span class="file-ref">web/src/lib/billing/credits.ts:460-478</span></p>
+    <p>Fail-open 設計（<code class="inline">sufficient=true</code>，靠 atomic RPC 做真 gate）是合理嘅。但 <code class="inline">balance=-1</code> 會 flow 落 UI：turn route 嘅 <code class="inline">profileGate.credit_balance</code> 同 settings page 嘅 raw <code class="inline">credit_balance</code>。UI render「你有 -1 credits」— founder-trust 直接 regression（CLAUDE.md hard rule #4）。</p>
+    <div class="fix"><strong>Fix</strong> 保持 <code class="inline">sufficient=true</code>，但 <code class="inline">balance</code> 改 return <code class="inline">null</code> · UI branch on null 顯示「—」 / spinner。</div>
+  </div>
+
+  <div class="issue high">
+    <div class="issue-head"><span class="sev sev-high">HIGH</span><span class="issue-id">HIGH-05</span><span class="issue-title"><code class="inline">subscriptionIdFromInvoice</code> 對 expanded Stripe object return null · 月度 grant 可能靜默停</span></div>
+    <p><span class="file-ref">web/src/lib/billing/subscription.ts:231-242</span></p>
+    <p><code class="inline">parent.subscription_details.subscription</code> + legacy <code class="inline">invoice.subscription</code> 兩種都可以係 <code class="inline">Stripe.Subscription</code> object（已 expand）或 <code class="inline">string</code> id。Function 現在只接受 string，object 時 return null → 直接 skip grant。如果 Stripe 將來自動 expand 變 default，呢個會 silent break。</p>
+    <div class="fix"><strong>Fix</strong> <code class="inline">typeof modern === 'object' ? modern.id : modern</code>（同 legacy 路徑都加）。</div>
+  </div>
+
+  <div class="issue high">
+    <div class="issue-head"><span class="sev sev-high">HIGH</span><span class="issue-id">HIGH-06</span><span class="issue-title"><code class="inline">subscribe-button.tsx</code> · <code class="inline">topup-buttons.tsx</code> 顯示 raw error code / 英文 Stripe text</span></div>
+    <p><span class="file-ref">web/src/app/[locale]/pricing/subscribe-button.tsx:79,102,132,140</span> <span class="file-ref">web/src/components/settings/topup-buttons.tsx:52</span></p>
+    <p><code class="inline">setErr(res.message ?? res.error)</code> — 失敗時 user 見到原 code (<code class="inline">"auth_required"</code>, <code class="inline">"stripe_error"</code>, <code class="inline">"no_customer"</code>) 或者英文 Stripe message。Catalog 入面已經有 <code class="inline">errors.billing.checkoutFailed</code> / <code class="inline">portalFailed</code> / <code class="inline">topupFailed</code> · 隔離姐妹 component <code class="inline">billing-portal-button.tsx:37</code> 用得啱。Conversion drop risk · $9.99 / $19.99 嘅付款 moment 見到 <code class="inline">stripe_error</code> = 即時放棄。</p>
+    <div class="fix"><strong>Fix</strong> 跟 <code class="inline">billing-portal-button.tsx</code> 嘅 pattern，map code → <code class="inline">tErrors(code)</code>，drop raw <code class="inline">res.message</code> fallback。</div>
+  </div>
+
+  <div class="issue high">
+    <div class="issue-head"><span class="sev sev-high">HIGH</span><span class="issue-id">HIGH-07</span><span class="issue-title"><code class="inline">mapServerError</code> 只 cover 5 / 17 error codes · 大部分 community error 顯示 raw code</span></div>
+    <p><span class="file-ref">web/src/app/[locale]/library/[storyId]/story-detail-actions.tsx:59-68</span></p>
+    <p>Map 5 codes (<code class="inline">cannot_rate_own_story</code>, <code class="inline">moderation_config_error</code>, <code class="inline">already_reported</code>, <code class="inline">parent_mismatch</code>, <code class="inline">body_invalid_length</code>)。Community action emit 嗰 ~17 個 (<code class="inline">unauthorized</code>, <code class="inline">story_not_found</code>, <code class="inline">not_story_owner</code>, <code class="inline">publish_failed</code>, ...) unknown 嘅 fall through to <code class="inline">t("errorRate", { reason: "unauthorized" })</code> — 將 raw code 字串 interpolate 入 localized template。</p>
+    <div class="fix"><strong>Fix</strong> 加 12 個 catalog key + 12 行 map entry。</div>
+  </div>
+
+  <div class="issue high">
+    <div class="issue-head"><span class="sev sev-high">HIGH</span><span class="issue-id">HIGH-08</span><span class="issue-title">Marketing AGENTS section 寫「Storyteller-tier」· 但 pricing tier 叫「Pro」 — 用戶搵唔到要買邊個 tier</span></div>
+    <p><span class="file-ref">web/src/components/marketing/copy.ts:317,321,331,336,340,350,355,359,369</span> <span class="file-ref">web/src/lib/stripe/products.ts:106</span></p>
+    <p>Copy 寫「Storyteller-tier marquee」/「Storyteller 獨享」/「Storyteller 独享」(3 locales)。Pricing page tier 名係 <code class="inline">publicName="Pro"</code> / <code class="inline">publicNameZh="Pro"</code>。一個 visitor 喺 marketing 見到「Storyteller 獨享」→ click Pricing → 三個 tier 叫 Free / Standard / Pro → 完全搵唔到「Storyteller」。Refund risk + conversion drop。</p>
+    <div class="fix"><strong>Fix</strong> 統一 naming。Decision required：跟 marketing 改 products.ts 嘅 publicName，定跟 pricing 改 marketing copy。</div>
+  </div>
+
+  <div class="issue high">
+    <div class="issue-head"><span class="sev sev-high">HIGH</span><span class="issue-id">HIGH-09</span><span class="issue-title"><code class="inline">community/actions.ts:275</code> 仲有 hardcoded 繁中 error message · 唔 localize</span></div>
+    <p><span class="file-ref">web/src/lib/community/actions.ts:275</span></p>
+    <p><code class="inline">return { ok: false, error: "內容審核系統設定問題，請稍後再試。" }</code> — 喺 <code class="inline">upsertComment</code> 嘅 <code class="inline">ModerationConfigError</code> catch。隔離 <code class="inline">rateStory</code> 嘅 parallel path (L174) 已經改 <code class="inline">error: "moderation_config_error"</code> code · 呢度漏咗。EN / zh-Hans user 撞到 moderation provider misconfig 時見到 raw 繁中。</p>
+    <div class="fix"><strong>Fix</strong> 1-line：改成 <code class="inline">error: "moderation_config_error"</code>，mapping 已經喺 story-detail-actions.tsx:62 入面有。</div>
+  </div>
+
+  <div class="issue high">
+    <div class="issue-head"><span class="sev sev-high">HIGH</span><span class="issue-id">HIGH-10</span><span class="issue-title">CSAM moderation pre-filter 喺 <code class="inline">createStoryFromPrompt</code> / <code class="inline">upsertComment</code> / <code class="inline">rateStory</code> 都冇 — 違反 CLAUDE.md hard rule #6</span></div>
+    <p><span class="file-ref">supabase migrations</span> <span class="file-ref">web/src/lib/community/actions.ts</span></p>
+    <p>之前 Phase 5 audit 揾過呢個 issue (CLAUDE.md hard rule #22)：加咗 <code class="inline">moderation_flags</code> enum 包含 <code class="inline">'csam'</code> 同 <code class="inline">'sexual_minor'</code> 但 schema-level admission 無 code-level enforcement。Wave 2 commit 完成咗社區 i18n 但冇 explicit 加 CSAM pre-filter。Launch 前必須證實 OpenAI Moderation API 真係 catch 呢類 vector，或者加獨立 keyword pre-filter。</p>
+    <div class="fix"><strong>Fix</strong> 喺 createStoryFromPrompt / upsertComment / rateStory 三個 entry 加 explicit CSAM / sexual_minor screening · log 拒絕原因落 moderation_decisions 表。Launch 前 verify 至少 5 個已知 CSAM keyword pattern 真係 block。</div>
+  </div>
+
+  <!-- ═══════════════════════ MED ═══════════════════════ -->
+  <h2 id="med"><span class="icon">🟡</span> MED — 唔阻 launch · 收尾 audit 時做</h2>
+
+  <div class="issue med">
+    <div class="issue-head"><span class="sev sev-med">MED</span><span class="issue-id">MED-01</span><span class="issue-title">Layout metadata 冇 <code class="inline">alternates.languages</code> hreflang</span></div>
+    <p><span class="file-ref">web/src/app/[locale]/layout.tsx:60-83</span></p>
+    <p><code class="inline">generateMetadata</code> 正確 driven by <code class="inline">getTranslations("siteMetadata")</code>，OG locale map 啱（<code class="inline">en→en_US, zh-Hant→zh_HK, zh-Hans→zh_CN</code>）。<strong>缺：</strong> <code class="inline">alternates: { canonical, languages: { en, 'zh-Hant', 'zh-Hans' } }</code>。Launch market 係 HK + TW · 冇 hreflang 等於 Google 唔識 route TW user 去 zh-Hant page。Wave 2 嘅 SEO 收益直接 leak。</p>
+  </div>
+
+  <div class="issue med">
+    <div class="issue-head"><span class="sev sev-med">MED</span><span class="issue-id">MED-02</span><span class="issue-title">.toLocaleDateString() 冇 pass locale · server fallback to en-US</span></div>
+    <p><span class="file-ref">web/src/app/[locale]/library/page.tsx:831</span> <span class="file-ref">web/src/app/[locale]/my/page.tsx:381</span> <span class="file-ref">web/src/app/[locale]/play/[playthroughId]/page.tsx:196</span> <span class="file-ref">web/src/components/site-header.tsx:258</span></p>
+    <p>>30 日舊 item 嘅 fallback 唔通過 <code class="inline">relativeTime</code> catalog · 直接 <code class="inline">new Date(iso).toLocaleDateString()</code>。Vercel server default = <code class="inline">en-US</code> → zh user 見到 <code class="inline">5/28/2026</code> 而唔係 <code class="inline">2026/5/28</code> 或 <code class="inline">2026年5月28日</code>。</p>
+  </div>
+
+  <div class="issue med">
+    <div class="issue-head"><span class="sev sev-med">MED</span><span class="issue-id">MED-03</span><span class="issue-title"><code class="inline">/dev/state-demo</code> page 含 customer-facing 競對 positioning leak</span></div>
+    <p><span class="file-ref">web/src/app/[locale]/dev/state-demo/page.tsx:230</span></p>
+    <p>「對手平台 (AI Dungeon, Character.AI) 嘅介面係硬寫死嘅。」<code class="inline">/dev</code> route 冇 auth gate · 唔喺 PRODUCT_ROUTE_PREFIXES。CLAUDE.md hard rule #34 違反（同 9a22782 fix 嘅 marquee leak 一模一樣 pattern · 呢度漏咗）。</p>
+    <div class="fix"><strong>Fix</strong> 兩個選擇：(a) Rewrite copy 做 user-benefit framing「每個故事都有屬於自己嘅介面」，(b) <code class="inline">if (process.env.NODE_ENV === 'production') notFound()</code> gate 整個 /dev/* tree + 加 <code class="inline">robots: noindex</code>。</div>
+  </div>
+
+  <div class="issue med">
+    <div class="issue-head"><span class="sev sev-med">MED</span><span class="issue-id">MED-04</span><span class="issue-title"><code class="inline">verdict.reason</code> raw LLM text 落到 user-facing template</span></div>
+    <p><span class="file-ref">web/src/lib/community/actions.ts:168</span> <span class="file-ref">story-detail-actions.tsx:154</span></p>
+    <p><code class="inline">verdict.reason</code> 係 OpenAI Moderation category list 或 LLM 寫嘅 free text · 非 deterministic · 唔受 locale 控制。Interpolate 入 <code class="inline">t("errorRate", { reason })</code>。</p>
+    <div class="fix"><strong>Fix</strong> Map <code class="inline">verdict.categories</code> → catalog key (e.g., <code class="inline">errors.community.moderationSexual</code>) · 或者 generic <code class="inline">moderation_blocked</code> code。</div>
+  </div>
+
+  <div class="issue med">
+    <div class="issue-head"><span class="sev sev-med">MED</span><span class="issue-id">MED-05</span><span class="issue-title"><code class="inline">safeRelativeNext</code> 喺 actions.ts + route.ts 有兩份 · 行為唔同</span></div>
+    <p><span class="file-ref">web/src/app/[locale]/login/actions.ts:39-47</span> <span class="file-ref">web/src/app/auth/callback/route.ts:27-34</span></p>
+    <p>Action 版 return <code class="inline">""</code> on invalid · Callback 版 return <code class="inline">null</code>。Caller 用 truthy check vs null check · drift surface。</p>
+    <div class="fix"><strong>Fix</strong> 抽走 <code class="inline">lib/auth/safe-next.ts</code> · 兩邊 import。同時可以順便 enforce locale prefix（CRIT-06 解法）。</div>
+  </div>
+
+  <div class="issue med">
+    <div class="issue-head"><span class="sev sev-med">MED</span><span class="issue-id">MED-06</span><span class="issue-title">Memory journal API hardcoded 繁中 fallback</span></div>
+    <p><span class="file-ref">web/src/app/api/playthroughs/[id]/memory-journal/route.ts:162-163</span></p>
+    <p><code class="inline">storyTitle: storyMeta?.title ?? "故事"</code> · <code class="inline">protagonist: pt.character_name ?? "主角"</code>。EN / zh-Hans user 撞到 null 時見到繁中 fallback。</p>
+    <div class="fix"><strong>Fix</strong> Pass locale to handler · branch fallback string · 或 derive from cookie header.</div>
+  </div>
+
+  <div class="issue med">
+    <div class="issue-head"><span class="sev sev-med">MED</span><span class="issue-id">MED-07</span><span class="issue-title">Google Sans (<code class="inline">--font-num</code>) apply 落整條 string 包括 CJK char</span></div>
+    <p><span class="file-ref">web/src/components/marketing/MarketingPricing.tsx:586-591</span></p>
+    <p><code class="inline">.tier-credits</code> 套落 <code class="inline">每月 2,000 credits</code> · <code class="inline">1,000 註冊送 · 每日 50</code>。Google Sans + Inter 係 Latin-only · CJK chars fall through 系統 fallback → 同一 string 入面 weight / metrics 唔一致。Commit 47710c2 嘅 intent 係 number-only · 但 scope 過闊。</p>
+    <div class="fix"><strong>Fix</strong> 將 digits wrap <code class="inline">&lt;span class="num"&gt;...&lt;/span&gt;</code> · CSS scope <code class="inline">--font-num</code> 落 .num only。</div>
+  </div>
+
+  <!-- ═══════════════════════ LOW ═══════════════════════ -->
+  <h2 id="low"><span class="icon">🔵</span> LOW — Stylistic / 將來再做</h2>
+
+  <div class="issue low">
+    <div class="issue-head"><span class="sev sev-low">LOW</span><span class="issue-id">LOW-01</span><span class="issue-title">Dead-code <code class="inline">ModelPicker</code> component 仲有 hardcoded 繁中</span></div>
+    <p><span class="file-ref">web/src/components/settings/model-picker.tsx</span></p>
+    <p>已經被 <code class="inline">tier-picker.tsx</code> 取代 · 冇 consumer。整個 component 跳過 catalog migration。Delete or migrate。</p>
+  </div>
+
+  <div class="issue low">
+    <div class="issue-head"><span class="sev sev-low">LOW</span><span class="issue-id">LOW-02</span><span class="issue-title"><code class="inline">nav.bilingual</code> i18n key 定義但從未 render</span></div>
+    <p><span class="file-ref">web/src/components/marketing/copy.ts:25-27</span> vs <span class="file-ref">MarketingLanding.tsx:341-343</span></p>
+  </div>
+
+  <div class="issue low">
+    <div class="issue-head"><span class="sev sev-low">LOW</span><span class="issue-id">LOW-03</span><span class="issue-title"><code class="inline">--cream</code> CSS var reference 但從未定義</span></div>
+    <p><span class="file-ref">web/src/components/marketing/MarketingLanding.tsx:1425</span></p>
+    <p>Inherits to <code class="inline">--fg</code>，現時 visually OK，但係 fragile。</p>
+  </div>
+
+  <div class="issue low">
+    <div class="issue-head"><span class="sev sev-low">LOW</span><span class="issue-id">LOW-04</span><span class="issue-title"><code class="inline">MODEL_PRICING</code> throw on unknown model · 唔有 fallback alert</span></div>
+    <p><span class="file-ref">web/src/lib/billing/credits.ts:177-186</span></p>
+    <p>Provider rename 即時 break turn。Add fallback rate + Sentry alert。</p>
+  </div>
+
+  <div class="issue low">
+    <div class="issue-head"><span class="sev sev-low">LOW</span><span class="issue-id">LOW-05</span><span class="issue-title">0033 migration 「zero users」claim 冇 self-verify</span></div>
+    <p><span class="file-ref">supabase/migrations/0033_fix_signup_grant_50_to_1000.sql:6</span></p>
+    <p>Migration 自己唔 assert pre-migration user count · 純文檔 claim。<code class="inline">raise notice 'pre-migration user count: %'</code> 做 forensic clarity。</p>
+  </div>
+
+  <!-- ═══════════════════════ SAFE ═══════════════════════ -->
+  <h2 id="safe"><span class="icon">✅</span> 證實乾淨 — Agent 諗住 worst case 但實際安全</h2>
+
+  <div class="issue safe">
+    <div class="issue-head"><span class="sev sev-safe">SAFE</span><span class="issue-id">SAFE-01</span><span class="issue-title"><code class="inline">apply_billing_credit</code> mint exploit · grant 已正確 lock</span></div>
+    <p>Prod 直接查 <code class="inline">pg_proc</code>：<code class="inline">authenticated_can_execute=false</code> · <code class="inline">anon_can_execute=false</code> · 只 <code class="inline">service_role</code> 可以 call。即使 RPC body 冇 caller-role check · authenticated client 直接 invoke 會收 PermissionDenied。<strong>BUT</strong> ghost migration (CRIT-01) 仍然係問題：repo source 唔存在 = 重建 DB 時呢個 grant 都會跟住唔再 set up。</p>
+  </div>
+
+  <div class="issue safe">
+    <div class="issue-head"><span class="sev sev-safe">SAFE</span><span class="issue-id">SAFE-02</span><span class="issue-title">622 catalog keys × 3 locales · 零 key drift</span></div>
+    <p>Top-level + nested keys 喺 en / zh-Hant / zh-Hans byte-aligned。所有 <code class="inline">{param}</code> set 同 <code class="inline">&lt;tag&gt;</code> set 跨 locales 一致。<code class="inline">t.rich()</code> 唯一 callsite (story-detail block403) tag match 啱。</p>
+  </div>
+
+  <div class="issue safe">
+    <div class="issue-head"><span class="sev sev-safe">SAFE</span><span class="issue-id">SAFE-03</span><span class="issue-title">所有 AI prompt locale-branch · 架構乾淨</span></div>
+    <p>Verified: turn-runner Narrator system prompt (3 locales) · director.ts Director · schema-generator (meta / state / bible / characters 4 sub-prompts) · npc-agents · memory retriever (ltmCopy) · summarizer · lorebook extractor。所有 routed by <code class="inline">story.story_bible.hard_locked.language</code>，default to input.locale。</p>
+  </div>
+
+  <div class="issue safe">
+    <div class="issue-head"><span class="sev sev-safe">SAFE</span><span class="issue-id">SAFE-04</span><span class="issue-title">Pricing v3 數字一致 · 3 tier match spec</span></div>
+    <p>Free 1,000 + 50/day · Standard $9.99 / 2,000 credits · Pro $19.99 / 4,000 credits — 全部 match pm/STATUS.md v3 spec · 3 locales 一致。Adult mode CTA explicit mention KYC opt-in。</p>
+  </div>
+
+  <div class="issue safe">
+    <div class="issue-head"><span class="sev sev-safe">SAFE</span><span class="issue-id">SAFE-05</span><span class="issue-title">Marketing 4 個 memory layer · 全 3 locale 完整</span></div>
+    <p>copy.ts:243-312 正確列出 Episodic / Semantic / Emotional / Lorebook，name match CLAUDE.md "near 20 turns + rolling summary + RAG vector + auto lorebook"。</p>
+  </div>
+
+  <div class="issue safe">
+    <div class="issue-head"><span class="sev sev-safe">SAFE</span><span class="issue-id">SAFE-06</span><span class="issue-title">Adaptive UI 3 example state panel (Romance / D&D / NBA) 唔係 vaporware</span></div>
+    <p>Match schema-generator prompt L230-292 嘅 sample output structure (HP/MP bars · relationship_graph · meter_with_label)。架構真係 support。</p>
+  </div>
+
+  <div class="issue safe">
+    <div class="issue-head"><span class="sev sev-safe">SAFE</span><span class="issue-id">SAFE-07</span><span class="issue-title">Visitor Landing logged-in 處理 · production OK</span></div>
+    <p><code class="inline">app/[locale]/page.tsx:27-37</code>: <code class="inline">isProdMarketingHost</code> 入面 render landing 俾所有人（包括 authed user · 因為 marketing 同 product split）· dev/preview env redirect authed user 入 product。Match 設計意圖。</p>
+  </div>
+
+  <!-- ═══════════════════════ PRIORITY ═══════════════════════ -->
+  <h2 id="priority"><span class="icon">🎯</span> Fix 建議順序</h2>
+
+  <div class="priority-list">
+    <div class="priority-row">
+      <div class="priority-num">1</div>
+      <div class="priority-text"><strong>CRIT-01 · Ghost migration commit</strong><small>從 prod dump <code class="inline">apply_billing_credit</code> 同其他 0029-0032 function · commit 做 source-of-truth。Disaster recovery / staging rebuild 即時 unblock。</small></div>
+      <div><span class="sev sev-crit">CRIT</span></div>
+    </div>
+    <div class="priority-row">
+      <div class="priority-num">2</div>
+      <div class="priority-text"><strong>CRIT-02 · 0034 restore display_name + avatar_url trigger</strong><small>用 0008 嘅 COALESCE block 寫 0034 migration · backfill NULL profile 由 auth.users.raw_user_meta_data。</small></div>
+      <div><span class="sev sev-crit">CRIT</span></div>
+    </div>
+    <div class="priority-row">
+      <div class="priority-num">3</div>
+      <div class="priority-text"><strong>CRIT-04 · MarketingLanding SECTIONS array 加 agents + adaptive</strong><small>1-line fix · 即時 unblock 2 個新賣點嘅 nav UX + animation。</small></div>
+      <div><span class="sev sev-crit">CRIT</span></div>
+    </div>
+    <div class="priority-row">
+      <div class="priority-num">4</div>
+      <div class="priority-text"><strong>CRIT-05 · 刪走 hardcoded https://app.kieio.com · 改 appUrl()</strong><small>3 個 callsite · 用 lib/urls.ts 個 helper · 即時 restore preview deploy QA。</small></div>
+      <div><span class="sev sev-crit">CRIT</span></div>
+    </div>
+    <div class="priority-row">
+      <div class="priority-num">5</div>
+      <div class="priority-text"><strong>CRIT-03 + HIGH-02 · 將 backfill 同 cron route 落 apply_credit_charge</strong><small>0033 backfill (零 users 暫時 OK) + 0008 daily-50 cron (active) 統一改用 atomic RPC + row lock。</small></div>
+      <div><span class="sev sev-crit">CRIT</span></div>
+    </div>
+    <div class="priority-row">
+      <div class="priority-num">6</div>
+      <div class="priority-text"><strong>CRIT-06 + HIGH-01 · OAuth callback locale-aware + appOrigin require prod env</strong><small>Callback prepend locale prefix · NEXT_PUBLIC_APP_URL prod hard require · preview detect VERCEL_URL。</small></div>
+      <div><span class="sev sev-crit">CRIT</span></div>
+    </div>
+    <div class="priority-row">
+      <div class="priority-num">7</div>
+      <div class="priority-text"><strong>HIGH-08 · "Storyteller" vs "Pro" naming 統一</strong><small>Decision required：marketing 改 copy 或 pricing 改 products.ts。任何一邊 ship 之前要 lock。</small></div>
+      <div><span class="sev sev-high">HIGH</span></div>
+    </div>
+    <div class="priority-row">
+      <div class="priority-num">8</div>
+      <div class="priority-text"><strong>HIGH-06/07 + HIGH-09 + MED-04 · 將所有 error code → catalog</strong><small>subscribe-button · topup-buttons · mapServerError 12 個新 entry · community/actions.ts:275 hardcoded 繁中 · verdict.reason category map。一 batch 解決所有 error UX leak。</small></div>
+      <div><span class="sev sev-high">HIGH</span></div>
+    </div>
+    <div class="priority-row">
+      <div class="priority-num">9</div>
+      <div class="priority-text"><strong>HIGH-10 · CSAM pre-filter 驗證 + 加 explicit screening</strong><small>Launch hard rule #6。createStoryFromPrompt / upsertComment / rateStory 三個 entry verify OpenAI Moderation block CSAM vector · 加獨立 keyword 防禦。</small></div>
+      <div><span class="sev sev-high">HIGH</span></div>
+    </div>
+    <div class="priority-row">
+      <div class="priority-num">10</div>
+      <div class="priority-text"><strong>MED-01 + MED-02 + MED-03 · hreflang · toLocaleDateString locale · /dev gating</strong><small>SEO + i18n polish + customer-facing leak 一齊收尾。</small></div>
+      <div><span class="sev sev-med">MED</span></div>
+    </div>
+  </div>
+
+  <div class="verdict green">
+    <h3>📊 Audit Convergence Signal</h3>
+    <p>CLAUDE.md hard rule #29 講「3 consecutive 0-ship-blocker cycles = converged」。Wave 2 i18n 內部 9 cycle 收斂係真嘅（schema correctness 完美）— 但今次嘅 fresh independent audit 揾到 6 CRIT，全部來自 <strong>i18n 以外</strong>嘅 sibling change（migration / hardcoded origin / SECTIONS array / callback locale）。Pattern：大 commit 含多個 unrelated change，每個 sub-change 應該獨立過 audit cycle。Wave 3 建議拆 fix 做兩個小 commit（CRIT 1-4 一個 · CRIT 5-6 + HIGH 一個），每個 commit 後 re-audit cycle。預估再 2-3 cycle 就 converge to launch-ready。</p>
+  </div>
+
+</main>
+</body>
+</html>

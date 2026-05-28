@@ -301,8 +301,8 @@ export function MemoryJournalClient({
         {/* Main content */}
         <main className="overflow-y-auto">
           {tab === "active" && <TabActive turn={turnCount} />}
-          {tab === "summaries" && <TabSummaries summaries={summaries} turnCount={turnCount} />}
-          {tab === "lorebook" && <TabLorebook grouped={grouped} types={types} />}
+          {tab === "summaries" && <TabSummaries summaries={summaries} turnCount={turnCount} locale={locale} />}
+          {tab === "lorebook" && <TabLorebook grouped={grouped} types={types} locale={locale} />}
           {tab === "inner-voices" && (
             <TabInnerVoices npcInnerVoices={npcInnerVoices} npcNames={npcNames} />
           )}
@@ -448,9 +448,11 @@ function TabActive({ turn }: { turn: number }) {
 function TabSummaries({
   summaries,
   turnCount,
+  locale,
 }: {
   summaries: Summary[];
   turnCount: number;
+  locale: string;
 }) {
   const tMem = useTranslations("memory.memoir");
   if (summaries.length === 0) {
@@ -542,7 +544,7 @@ function TabSummaries({
                 className="se-mono"
                 style={{ fontSize: 10.5, color: "var(--se-fg-dim)" }}
               >
-                {new Date(s.writtenAt).toLocaleDateString()}
+                {new Date(s.writtenAt).toLocaleDateString(locale)}
               </span>
             </div>
             <p
@@ -569,9 +571,11 @@ function TabSummaries({
 function TabLorebook({
   grouped,
   types,
+  locale,
 }: {
   grouped: Record<string, LoreRow[]>;
   types: readonly string[];
+  locale: string;
 }) {
   // Wave 2 i18n migration (2026-05-27): entity type labels + empty state localized.
   const tChars = useTranslations("memory.characters");
@@ -641,7 +645,7 @@ function TabLorebook({
             </div>
             <div className="grid gap-2.5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}>
               {entries.map((e) => (
-                <LoreCard key={e.id} entry={e} type={typeKey} />
+                <LoreCard key={e.id} entry={e} type={typeKey} locale={locale} />
               ))}
             </div>
           </section>
@@ -651,7 +655,7 @@ function TabLorebook({
   );
 }
 
-function LoreCard({ entry, type }: { entry: LoreRow; type: string }) {
+function LoreCard({ entry, type, locale }: { entry: LoreRow; type: string; locale: string }) {
   // Wave 2 i18n migration (2026-05-27): entity-kind label + "always-on" tooltip + first-seen label localized.
   const tEntry = useTranslations("memory.entryKind");
   const tCharCard = useTranslations("memory.characters");
@@ -707,7 +711,7 @@ function LoreCard({ entry, type }: { entry: LoreRow; type: string }) {
         {entry.description}
       </p>
       <div className="flex items-center gap-2.5 mt-1 text-[10.5px]" style={{ color: "var(--se-fg-dim)" }}>
-        <span className="se-mono">{tCharCard("firstSeen")} {new Date(entry.created_at).toLocaleDateString()}</span>
+        <span className="se-mono">{tCharCard("firstSeen")} {new Date(entry.created_at).toLocaleDateString(locale)}</span>
         <div className="flex-1" />
         <span
           className="inline-flex items-center gap-1 se-mono"

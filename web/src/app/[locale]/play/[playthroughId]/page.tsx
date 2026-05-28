@@ -135,7 +135,7 @@ export default async function PlayPage({
     storyGenre: p.story_genre,
     turnCount: p.turn_count,
     status: p.status,
-    relativeTime: relativeTime(p.last_played_at, tLibTime),
+    relativeTime: relativeTime(p.last_played_at, tLibTime, locale),
   }));
 
   // Wave 2 i18n migration (2026-05-27): default protagonist label per-locale.
@@ -181,6 +181,7 @@ type Turn = import("./play-client").Turn;
 function relativeTime(
   iso: string,
   t: (key: string, params?: Record<string, string | number>) => string,
+  locale: string,
 ): string {
   const ms = new Date(iso).getTime();
   const now = Date.now();
@@ -193,5 +194,6 @@ function relativeTime(
   if (diffDay === 1) return t("yesterday");
   if (diffDay < 7) return t("daysAgo", { count: diffDay });
   if (diffDay < 30) return t("weeksAgo", { count: Math.floor(diffDay / 7) });
-  return new Date(iso).toLocaleDateString();
+  // Session 16 audit MED-02 fix: pass locale (Vercel default = en-US otherwise)
+  return new Date(iso).toLocaleDateString(locale);
 }

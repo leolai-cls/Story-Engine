@@ -18,14 +18,11 @@ import type { StoryRating } from "@/lib/community/queries";
  * Wave 2 deferred-file migration (2026-05-28): all strings localized via
  * `storyDetailActions.*` catalog. Server-side error codes mapped to
  * localized body via `mapServerError` helper below.
+ *
+ * Session 16 audit HIGH-07 fix: was covering only 5 of ~24 codes emitted
+ * by community/actions.ts. Unknown codes fell through to raw code string
+ * interpolated into errorRate / errorComment template. Now exhaustive.
  */
-type ServerErrorMap = {
-  cannot_rate_own_story?: string;
-  moderation_config_error?: string;
-  already_reported?: string;
-  parent_mismatch?: string;
-  body_invalid_length?: string;
-};
 
 /**
  * Story detail actions — client component for interactive UI.
@@ -55,16 +52,47 @@ export function StoryDetailActions({
   const router = useRouter();
   const t = useTranslations("storyDetailActions");
   // Map server error codes to localized bodies. Unknown codes fall through
-  // to raw text (defensive · should never happen for known codes).
+  // to the generic moderation_blocked message (defensive · keeps user-facing
+  // copy clean even if server emits a new code before client is updated).
   function mapServerError(code: string): string {
-    const known: ServerErrorMap = {
-      cannot_rate_own_story: t("errorCannotRateOwn"),
-      moderation_config_error: t("errorModerationConfig"),
-      already_reported: t("reportAlreadyReported"),
-      parent_mismatch: t("errorParentMismatch"),
+    const known: Record<string, string> = {
+      // Auth / ownership
+      unauthorized: t("errorUnauthorized"),
+      not_story_owner: t("errorNotStoryOwner"),
+      not_comment_owner: t("errorNotCommentOwner"),
+      // Resource not found / visibility
+      story_not_found: t("errorStoryNotFound"),
+      story_not_public: t("errorStoryNotPublic"),
+      comment_not_found: t("errorCommentNotFound"),
+      // Validation
+      invalid_score: t("errorInvalidScore"),
+      review_too_long: t("errorReviewTooLong"),
       body_invalid_length: t("errorBodyInvalid"),
+      details_too_long: t("errorDetailsTooLong"),
+      invalid_input: t("errorInvalidInput"),
+      parent_mismatch: t("errorParentMismatch"),
+      cannot_rate_own_story: t("errorCannotRateOwn"),
+      already_reported: t("reportAlreadyReported"),
+      // Generic failures
+      publish_failed: t("errorPublishFailed"),
+      unpublish_failed: t("errorUnpublishFailed"),
+      rate_failed: t("errorRateFailed"),
+      comment_failed: t("errorCommentFailed"),
+      delete_failed: t("errorDeleteFailed"),
+      report_failed: t("errorReportFailed"),
+      fork_failed: t("errorForkFailed"),
+      fork_returned_empty: t("errorForkReturnedEmpty"),
+      // Tier / quota
+      model_tier_required: t("errorModelTierRequired"),
+      // Moderation (verdict categories — see verdictToCode in community/actions.ts)
+      moderation_config_error: t("errorModerationConfig"),
+      moderation_csam_sexual_minor: t("errorModerationCsam"),
+      moderation_self_harm: t("errorModerationSelfHarm"),
+      moderation_hate_violence: t("errorModerationHateViolence"),
+      moderation_sexual: t("errorModerationSexual"),
+      moderation_blocked: t("errorModerationBlocked"),
     };
-    return known[code as keyof ServerErrorMap] ?? code;
+    return known[code] ?? t("errorModerationBlocked");
   }
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);

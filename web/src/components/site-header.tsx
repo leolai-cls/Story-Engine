@@ -61,7 +61,7 @@ export async function SiteHeader() {
       storyTitle: p.story_title || untitledLabel,
       storyGenre: p.story_genre,
       turnCount: p.turn_count,
-      relativeTime: shortRelativeTime(p.last_played_at, tLibTime),
+      relativeTime: shortRelativeTime(p.last_played_at, tLibTime, locale),
     }));
     totalPlaythroughCount = count ?? recent.length;
   }
@@ -243,6 +243,7 @@ export async function SiteHeader() {
 function shortRelativeTime(
   iso: string,
   t: (key: string, params?: Record<string, string | number>) => string,
+  locale: string,
 ): string {
   const ms = new Date(iso).getTime();
   const now = Date.now();
@@ -255,5 +256,6 @@ function shortRelativeTime(
   if (diffDay === 1) return t("yesterday");
   if (diffDay < 7) return t("daysAgo", { count: diffDay });
   if (diffDay < 30) return t("weeksAgo", { count: Math.floor(diffDay / 7) });
-  return new Date(iso).toLocaleDateString();
+  // Session 16 audit MED-02 fix: pass locale arg
+  return new Date(iso).toLocaleDateString(locale);
 }

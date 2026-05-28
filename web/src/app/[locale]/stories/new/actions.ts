@@ -190,12 +190,15 @@ export async function createStoryFromPrompt(
   }
 
   // Balance check — fail-fast if broke (cheap, do this even if moderation passed).
+  // Session 16 audit HIGH-04: getBalanceAndCheck now returns null on transient
+  // RLS / network failure (fail-open). null only when sufficient=true → safe
+  // to coalesce to 0 here since we only enter this branch on sufficient=false.
   if (!balanceResult.sufficient) {
     return {
       ok: false,
       errorCode: "createStory.insufficientCredits",
       errorParams: {
-        balance: balanceResult.balance,
+        balance: balanceResult.balance ?? 0,
         needed: estimateStoryCreationCredits(),
       },
     };

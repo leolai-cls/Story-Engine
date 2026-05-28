@@ -41,7 +41,7 @@
  * this is the hard rule line.
  */
 
-type ModerationCategory =
+export type ModerationCategory =
   | "sexual"
   | "sexual/minors"
   | "hate"
@@ -87,6 +87,16 @@ const HARD_BLOCK_CATEGORIES: ModerationCategory[] = [
   "self-harm/intent",
   "self-harm/instructions",
 ];
+
+// Session 16 audit HIGH-10: module-load assertion that the CSAM hard-block
+// is never inadvertently removed (CLAUDE.md hard rule #6 — law line). If a
+// future refactor pulls "sexual/minors" out of HARD_BLOCK, throw at startup
+// so the misconfig is impossible to deploy.
+if (!HARD_BLOCK_CATEGORIES.includes("sexual/minors")) {
+  throw new Error(
+    "[moderation] HARD_BLOCK_CATEGORIES must include 'sexual/minors' — CLAUDE.md hard rule #6 violation",
+  );
+}
 
 /**
  * Categories that block in SFW content (default content_rating). Adult tier

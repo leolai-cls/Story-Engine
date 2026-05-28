@@ -193,7 +193,7 @@ export default async function LibraryPage({
     turn: pt.turn_count,
     snippet: null,
     delta: null,
-    lastPlayed: relativeTime(pt.last_played_at, tLib),
+    lastPlayed: relativeTime(pt.last_played_at, tLib, locale),
   }));
 
   return (
@@ -816,6 +816,7 @@ async function SearchResults({
 function relativeTime(
   iso: string,
   tLib: (key: string, params?: Record<string, string | number>) => string,
+  locale: string,
 ): string {
   const t = new Date(iso).getTime();
   const now = Date.now();
@@ -828,5 +829,6 @@ function relativeTime(
   if (diffDay === 1) return tLib("relativeTime.yesterday");
   if (diffDay < 7) return tLib("relativeTime.daysAgo", { count: diffDay });
   if (diffDay < 30) return tLib("relativeTime.weeksAgo", { count: Math.floor(diffDay / 7) });
-  return new Date(iso).toLocaleDateString();
+  // Session 16 audit MED-02 fix: pass locale (was using Vercel server default = en-US)
+  return new Date(iso).toLocaleDateString(locale);
 }

@@ -245,7 +245,7 @@ function PlaythroughRow({
         >
           <span>{tMy("row.turn", { count: p.turn_count })}</span>
           <span>·</span>
-          <span>{relativeTime(p.last_played_at, tLib).toUpperCase()}</span>
+          <span>{relativeTime(p.last_played_at, tLib, locale).toUpperCase()}</span>
         </div>
       </div>
       <div className="flex items-center flex-none">
@@ -366,7 +366,7 @@ async function EmptyState({
  * Localized relative-time formatter.
  * Wave 2 i18n migration (2026-05-27): was hardcoded 繁中.
  */
-function relativeTime(iso: string, tLib: RelTimeFn): string {
+function relativeTime(iso: string, tLib: RelTimeFn, locale: string): string {
   const t = new Date(iso).getTime();
   const now = Date.now();
   const diffMin = Math.floor((now - t) / 60_000);
@@ -378,5 +378,6 @@ function relativeTime(iso: string, tLib: RelTimeFn): string {
   if (diffDay === 1) return tLib("relativeTime.yesterday");
   if (diffDay < 7) return tLib("relativeTime.daysAgo", { count: diffDay });
   if (diffDay < 30) return tLib("relativeTime.weeksAgo", { count: Math.floor(diffDay / 7) });
-  return new Date(iso).toLocaleDateString();
+  // Session 16 audit MED-02 fix: pass locale (Vercel default = en-US otherwise)
+  return new Date(iso).toLocaleDateString(locale);
 }

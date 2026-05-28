@@ -3,8 +3,28 @@
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { revalidatePath } from "next/cache";
-import { ModerationConfigError, moderateText } from "@/lib/moderation/openai-moderation";
+import { ModerationConfigError, moderateText, type ModerationCategory } from "@/lib/moderation/openai-moderation";
 import { MODELS } from "@/lib/ai/models";
+
+/**
+ * Session 16 audit MED-04 fix: map moderation verdict categories → stable
+ * error codes that the client localizes via the storyDetailActions catalog.
+ *
+ * Was returning verdict.reason (繁中-only string from openai-moderation.ts)
+ * which leaked Cantonese to EN / zh-Hans users.
+ */
+function verdictToCode(categories: ModerationCategory[]): string {
+  const has = (c: ModerationCategory) => categories.includes(c);
+  if (has("sexual/minors")) return "moderation_csam_sexual_minor";
+  if (has("self-harm") || has("self-harm/intent") || has("self-harm/instructions")) {
+    return "moderation_self_harm";
+  }
+  if (has("hate") || has("hate/threatening") || has("violence") || has("violence/graphic") || has("harassment") || has("harassment/threatening")) {
+    return "moderation_hate_violence";
+  }
+  if (has("sexual")) return "moderation_sexual";
+  return "moderation_blocked";
+}
 
 /**
  * Phase 5 Community — server actions.
@@ -165,7 +185,7 @@ export async function rateStory(params: {
         console.warn(
           `[rateStory] moderation blocked review on story ${params.storyId} for user ${user.id}: ${verdict.categories.join(", ")}`,
         );
-        return { ok: false, error: verdict.reason };
+        return { ok: false, error: verdictToCode(verdict.categories) };
       }
     } catch (e) {
       if (e instanceof ModerationConfigError) {
@@ -272,7 +292,7 @@ export async function upsertComment(params: {
   } catch (e) {
     if (e instanceof ModerationConfigError) {
       console.error("[upsertComment] moderation config error:", e.message);
-      return { ok: false, error: "內容審核系統設定問題，請稍後再試。" };
+      return { ok: false, error: "moderation_config_error" };
     }
     throw e;
   }

@@ -453,14 +453,18 @@ export async function chargeCredits(
  * AUDIT FIX (P3-LOGIC-H-05): on transient errors (network blip, RLS deny,
  * lock timeout), this used to return {balance:0, sufficient:false} —
  * showing the user "Credit 唔夠（剩 0）" even when they had 50k credits.
- * Now: fail-open. We log + return {balance:-1, sufficient:true} so the
+ * Now: fail-open. We log + return {balance:null, sufficient:true} so the
  * atomic RPC remains the true gate. If RPC then fails for the same
  * underlying reason, user sees the real error.
+ *
+ * Session 16 audit HIGH-04 fix: was returning balance=-1 (sentinel) which
+ * leaked into UI as「-1 credits」on settings/turn. Now returns null so the
+ * UI can render "—" / spinner instead.
  */
 export async function getBalanceAndCheck(
   supabase: SupabaseClient,
   params: { userId: string; estimatedCost: number },
-): Promise<{ balance: number; sufficient: boolean }> {
+): Promise<{ balance: number | null; sufficient: boolean }> {
   const { data, error } = await supabase
     .from("profiles")
     .select("credit_balance")
@@ -471,7 +475,7 @@ export async function getBalanceAndCheck(
     console.warn(
       `[credits] getBalanceAndCheck transient failure (fail-open): ${error?.message ?? "no data"}`,
     );
-    return { balance: -1, sufficient: true };
+    return { balance: null, sufficient: true };
   }
   const balance = data.credit_balance as number;
   return { balance, sufficient: balance >= params.estimatedCost };

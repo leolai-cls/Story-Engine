@@ -229,15 +229,23 @@ export async function grantMonthlyCreditsForInvoice(
  * Return null if neither path resolves (top-up invoice etc.).
  */
 export function subscriptionIdFromInvoice(invoice: Stripe.Invoice): string | null {
-  // Try modern API path first (newer pinned versions)
+  // Try modern API path first (newer pinned versions).
+  // Session 16 audit HIGH-05: Stripe may return either a string (subscription id)
+  // OR an expanded Stripe.Subscription object. Was returning null for objects
+  // → monthly grant silently skipped if Stripe ever auto-expands.
   const parent = (invoice as Stripe.Invoice & {
-    parent?: { subscription_details?: { subscription?: string | null } | null } | null;
+    parent?: {
+      subscription_details?: { subscription?: string | Stripe.Subscription | null } | null;
+    } | null;
   }).parent;
   const modern = parent?.subscription_details?.subscription;
   if (typeof modern === "string") return modern;
-  // Fallback to legacy API path
-  const legacy = (invoice as Stripe.Invoice & { subscription?: string | null }).subscription;
+  if (modern && typeof modern === "object" && "id" in modern) return modern.id;
+  // Fallback to legacy API path.
+  const legacy = (invoice as Stripe.Invoice & { subscription?: string | Stripe.Subscription | null })
+    .subscription;
   if (typeof legacy === "string") return legacy;
+  if (legacy && typeof legacy === "object" && "id" in legacy) return legacy.id;
   return null;
 }
 

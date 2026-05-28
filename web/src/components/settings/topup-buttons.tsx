@@ -20,6 +20,9 @@ const PACKS: TopUpPack[] = ["small", "medium", "large"];
 
 export function TopUpButtons() {
   const t = useTranslations("settings.topupButtons");
+  // Session 16 audit HIGH-06 fix: map error codes via catalog
+  // (was `setErr(res.message ?? res.error)` → raw "stripe_error" / raw English).
+  const tErrors = useTranslations("errors.billing");
   const [pending, startTransition] = useTransition();
   const [pendingPack, setPendingPack] = useState<TopUpPack | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -49,7 +52,7 @@ export function TopUpButtons() {
                   if (res.ok) {
                     window.location.href = res.url;
                   } else {
-                    setErr(res.message ?? res.error);
+                    setErr(tErrors("topupFailed"));
                     setPendingPack(null);
                   }
                 })

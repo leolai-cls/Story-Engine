@@ -1,5 +1,16 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { resolveLocale } from "@/lib/auth/safe-next";
+
+/**
+ * Locale-aware fallback strings (Session 16 audit MED-06 fix).
+ * Was hardcoded 繁中 — leaked Cantonese to EN / zh-Hans users.
+ */
+const FALLBACKS = {
+  en: { storyTitle: "Story", protagonist: "Protagonist" },
+  "zh-Hant": { storyTitle: "故事", protagonist: "主角" },
+  "zh-Hans": { storyTitle: "故事", protagonist: "主角" },
+} as const;
 
 /**
  * GET /api/playthroughs/[id]/memory-journal
@@ -33,6 +44,12 @@ export async function GET(
 ) {
   const { id: playthroughId } = await ctx.params;
   const supabase = await createClient();
+  const locale = resolveLocale({
+    next: null,
+    cookieLocale: _req.cookies.get("NEXT_LOCALE")?.value ?? null,
+    acceptLanguage: _req.headers.get("accept-language"),
+  });
+  const fb = FALLBACKS[locale];
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -159,8 +176,8 @@ export async function GET(
   return NextResponse.json({
     playthroughId,
     storyId: pt.story_id,
-    storyTitle: storyMeta?.title ?? "故事",
-    protagonist: pt.character_name ?? "主角",
+    storyTitle: storyMeta?.title ?? fb.storyTitle,
+    protagonist: pt.character_name ?? fb.protagonist,
     turn: pt.turn_count ?? 0,
     summaries,
     lorebook,

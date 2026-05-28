@@ -90,17 +90,9 @@ export async function POST(request: NextRequest) {
 
   if (idempErr) {
     if (idempErr.code === "23505") {
-      // Already-logged event. Check if it was actually processed.
-      const { data: prior } = await supabase
-        .from("stripe_webhook_events")
-        .select("processed_at")
-        .eq("event_id", event.id)
-        .maybeSingle();
-      if (prior?.processed_at) {
-        return NextResponse.json({ ok: true, duplicate: true });
-      }
-      // Prior delivery failed (insert succeeded but dispatch threw)
-      // → fall through to re-dispatch.
+      // Already-logged event — fall through to the atomic claim below.
+      // (Prior delivery may have succeeded OR failed mid-dispatch · we
+      // can't tell from the duplicate alone.)
     } else {
       console.error("Webhook idempotency insert failed:", idempErr);
       return NextResponse.json(
@@ -110,17 +102,49 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // Session 16 audit HIGH-03 fix: atomic CLAIM of the event before dispatch.
+  // Was racy — duplicate delivery between INSERT and UPDATE processed_at meant
+  // two concurrent dispatchers ran the same event. apply_billing_credit has
+  // its own idempotency dedup, but markSubscriptionDeleted + syncSubscriptionToDb
+  // don't, so two concurrent UPSERTs would race.
+  //
+  // The UPDATE ... WHERE processed_at IS NULL RETURNING serves as the claim:
+  //   - If RETURNING gives a row → we claimed it · dispatch
+  //   - If RETURNING gives nothing → either (a) another worker is dispatching
+  //     OR (b) it's already done · either way, exit as duplicate
+  // On dispatch failure we null out processed_at so Stripe's next retry can
+  // re-claim.
+  const claimedAt = new Date().toISOString();
+  const { data: claimed, error: claimErr } = await supabase
+    .from("stripe_webhook_events")
+    .update({ processed_at: claimedAt })
+    .eq("event_id", event.id)
+    .is("processed_at", null)
+    .select("event_id")
+    .maybeSingle();
+
+  if (claimErr) {
+    console.error("Webhook claim failed:", claimErr);
+    return NextResponse.json({ error: "claim failure" }, { status: 500 });
+  }
+  if (!claimed) {
+    // Another worker already claimed (or finished) this event. Stripe will
+    // not retry if we 200 here, so be safe and 200.
+    return NextResponse.json({ ok: true, duplicate: true });
+  }
+
   // Dispatch — wrap each handler in try so we always return a useful response.
   try {
     await dispatch(event, supabase);
-    await supabase
-      .from("stripe_webhook_events")
-      .update({ processed_at: new Date().toISOString() })
-      .eq("event_id", event.id);
     return NextResponse.json({ ok: true });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error(`Webhook handler failed [${event.type}]:`, msg);
+    // Release the claim so the next Stripe retry can re-dispatch.
+    await supabase
+      .from("stripe_webhook_events")
+      .update({ processed_at: null })
+      .eq("event_id", event.id);
     // 500 makes Stripe retry — usually what we want for transient failures.
     return NextResponse.json({ error: msg }, { status: 500 });
   }

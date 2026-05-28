@@ -22,9 +22,9 @@ export type MarketingLang = "en" | "zhHant" | "zhHans";
 export const MARKETING_COPY = {
   // ─── NAV ───────────────────────────────────────────
   nav: {
-    en: { how: "How it works", memory: "Memory", pricing: "Pricing", bilingual: "Languages", begin: "Begin" },
-    zhHant: { how: "點玩", memory: "記憶", pricing: "訂價", bilingual: "語言", begin: "立即開始" },
-    zhHans: { how: "怎么玩", memory: "记忆", pricing: "订价", bilingual: "语言", begin: "立即开始" },
+    en: { how: "How it works", memory: "Memory", pricing: "Pricing", begin: "Begin" },
+    zhHant: { how: "點玩", memory: "記憶", pricing: "訂價", begin: "立即開始" },
+    zhHans: { how: "怎么玩", memory: "记忆", pricing: "订价", begin: "立即开始" },
   },
 
   // ─── HERO ──────────────────────────────────────────
@@ -314,11 +314,11 @@ export const MARKETING_COPY = {
   // ─── AGENTS · NPC Inner Voices (Storyteller-tier marquee) ────────
   agents: {
     en: {
-      eyebrow: "NPC inner voices · Storyteller-tier",
+      eyebrow: "NPC inner voices · Pro tier",
       titlePre: "Every NPC has a ",
       titleAccent: "hidden mind",
       titleSuffix: ".",
-      lede: "Standard NPCs respond to you. Storyteller-tier NPCs THINK — in parallel, off-screen, every turn. Each active character runs their own POV: what they're hiding, what they're plotting, what they really feel. The narrative honors their secrets, not just the script.",
+      lede: "Standard NPCs respond to you. Pro-tier NPCs THINK — in parallel, off-screen, every turn. Each active character runs their own POV: what they're hiding, what they're plotting, what they really feel. The narrative honors their secrets, not just the script.",
       card1Who: "Mei · Innkeeper",
       card1Quote: "Outwardly: pours tea. Inwardly: counts how many times this stranger has shown up late. Three times now. The pattern is becoming a debt.",
       card1Tag: "Inner thought · turn 87",
@@ -328,16 +328,16 @@ export const MARKETING_COPY = {
       card3Who: "Lin · Magistrate's daughter",
       card3Quote: "Outwardly: corrects your accent. Inwardly: hopes you keep talking. Her father would never let her marry a courier. She knows. She speaks slower anyway.",
       card3Tag: "Inner thought · turn 87",
-      pillStoryteller: "Storyteller exclusive",
+      pillStoryteller: "Pro exclusive",
       pillParallel: "Up to 3 NPCs / turn",
       pillPrivate: "Players never see · Narrator weaves in",
     },
     zhHant: {
-      eyebrow: "NPC 內心戲 · Storyteller 獨享",
+      eyebrow: "NPC 內心戲 · Pro 獨享",
       titlePre: "每個 NPC 都有一個",
       titleAccent: "隱藏嘅內心",
       titleSuffix: "。",
-      lede: "Standard tier 嘅 NPC 答你。Storyteller tier 嘅 NPC 識諗 — 每 turn parallel run · 你睇唔到。每個出場角色有自己嘅 POV：佢收緊咩、佢打緊咩主意、佢真係點 feel。敘事跟住佢哋嘅秘密走 · 唔係跟劇本。",
+      lede: "Standard tier 嘅 NPC 答你。Pro tier 嘅 NPC 識諗 — 每 turn parallel run · 你睇唔到。每個出場角色有自己嘅 POV：佢收緊咩、佢打緊咩主意、佢真係點 feel。敘事跟住佢哋嘅秘密走 · 唔係跟劇本。",
       card1Who: "阿美 · 掌櫃",
       card1Quote: "表面：倒茶俾你。內心：數住呢個陌生人遲到幾多次。第三次喇。個 pattern 變緊一筆債。",
       card1Tag: "心底 · turn 87",
@@ -347,16 +347,16 @@ export const MARKETING_COPY = {
       card3Who: "林 · 縣令女兒",
       card3Quote: "表面：糾正你口音。內心：希望你繼續講落去。爸爸唔會畀佢嫁俾一個 courier。佢知。但佢仲係講慢咗。",
       card3Tag: "心底 · turn 87",
-      pillStoryteller: "Storyteller 獨享",
+      pillStoryteller: "Pro 獨享",
       pillParallel: "每 turn 最多 3 個 NPC",
       pillPrivate: "玩家睇唔到 · Narrator 自己 weave 入敘事",
     },
     zhHans: {
-      eyebrow: "NPC 内心戏 · Storyteller 独享",
+      eyebrow: "NPC 内心戏 · Pro 独享",
       titlePre: "每个 NPC 都有一颗",
       titleAccent: "隐藏的心",
       titleSuffix: "。",
-      lede: "Standard tier 的 NPC 回答你。Storyteller tier 的 NPC 会思考 — 每 turn 并行运行 · 你看不到。每个出场角色都有自己的 POV：他在隐藏什么、他在筹划什么、他真正怎么想。叙事跟着他们的秘密走 · 不是跟剧本。",
+      lede: "Standard tier 的 NPC 回答你。Pro tier 的 NPC 会思考 — 每 turn 并行运行 · 你看不到。每个出场角色都有自己的 POV：他在隐藏什么、他在筹划什么、他真正怎么想。叙事跟着他们的秘密走 · 不是跟剧本。",
       card1Who: "阿美 · 掌柜",
       card1Quote: "表面：给你倒茶。内心：数着这个陌生人迟到了几次。第三次了。这 pattern 正在变成一笔债。",
       card1Tag: "心底 · turn 87",
@@ -366,7 +366,7 @@ export const MARKETING_COPY = {
       card3Who: "林 · 县令女儿",
       card3Quote: "表面：纠正你的口音。内心：希望你继续讲下去。爸爸不会让她嫁给一个 courier。她知道。但她还是说慢了。",
       card3Tag: "心底 · turn 87",
-      pillStoryteller: "Storyteller 独享",
+      pillStoryteller: "Pro 独享",
       pillParallel: "每 turn 最多 3 个 NPC",
       pillPrivate: "玩家看不到 · Narrator 自己 weave 入叙事",
     },

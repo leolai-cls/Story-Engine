@@ -16,8 +16,7 @@ import { useEffect, useRef } from "react";
 import { TIER_DISPLAY, TOPUP_DISPLAY, type PublicTier, type PaidTier } from "@/lib/stripe/products";
 import { MarketingSubscribeButton } from "./MarketingSubscribeButton";
 import { LOCALE_SWITCHER, type MarketingLang } from "./copy";
-
-const APP_LOGIN_BASE = "https://app.kieio.com";
+import { appUrl } from "@/lib/urls";
 
 const PUBLIC_TIERS: PublicTier[] = ["free", "adventurer", "storyteller"];
 
@@ -185,8 +184,8 @@ export function MarketingPricing({
   }, []);
 
   const c = COPY[lang];
-  const appLogin = `${APP_LOGIN_BASE}/${locale}/login?next=/pricing`;
-  const appLibrary = `${APP_LOGIN_BASE}/${locale}/library`;
+  const appLogin = appUrl(`/${locale}/login?next=/pricing`);
+  const appLibrary = appUrl(`/${locale}/library`);
 
   return (
     <div className="kieio-marketing">
@@ -428,7 +427,10 @@ const MARKETING_PRICING_CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 .kieio-marketing {
-  --font-num: 'Google Sans', 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  /* Session 16 audit MED-07 fix: append CJK fonts to fallback chain so CJK
+   * chars inside .tier-credits / .tier-period (which interleave "每月 2,000
+   * credits") render in consistent Noto Sans TC instead of system fallback. */
+  --font-num: 'Google Sans', 'Inter', 'Noto Sans TC', 'Noto Sans SC', 'PingFang TC', 'PingFang SC', 'Microsoft JhengHei', 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   --bg: #0a0a0c;
   --bg-2: #131316;
   --bg-3: #18181c;

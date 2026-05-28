@@ -203,11 +203,13 @@ export async function POST(
     );
   }
   const userAdultMode = profileGate?.adult_mode_enabled === true;
+  // Session 16 audit HIGH-04: was using -1 as fail-open sentinel which
+  // could leak into UI / logs. Now use null + boolean sufficient.
   const balance =
     typeof profileGate?.credit_balance === "number"
       ? profileGate.credit_balance
-      : -1;
-  const sufficient = balance < 0 ? true : balance >= estimatedTurnCost;
+      : null;
+  const sufficient = balance === null ? true : balance >= estimatedTurnCost;
 
   if (modelEntry?.allows_nsfw && !userAdultMode) {
     // Wave 2 i18n cycle-3 fix (2026-05-28): error code + structured data
@@ -230,7 +232,9 @@ export async function POST(
     return NextResponse.json(
       {
         error: "insufficient_credits",
-        currentBalance: balance,
+        // Session 16 HIGH-04: balance is null only on fail-open (sufficient=true)
+        // so this branch always has a real number — coalesce to 0 for type safety.
+        currentBalance: balance ?? 0,
         estimatedCost: estimatedTurnCost,
       },
       { status: 402 }, // 402 Payment Required

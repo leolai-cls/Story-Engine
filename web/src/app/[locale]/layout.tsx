@@ -64,10 +64,24 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "siteMetadata" });
+  // Session 16 audit MED-01 fix: hreflang annotations for SEO. Without
+  // these, Google can't route HK/TW users → zh-Hant page vs CN users →
+  // zh-Hans page. Launch markets are HK + TW, so this is real SEO leak.
+  // localePrefix: "as-needed" → zh-Hant (default) has no prefix.
+  const canonical = locale === "zh-Hant" ? "/" : `/${locale}`;
   return {
     title: t("title"),
     description: t("description"),
     metadataBase: new URL("https://kieio.com"),
+    alternates: {
+      canonical,
+      languages: {
+        "en": "/en",
+        "zh-Hant": "/",
+        "zh-Hans": "/zh-Hans",
+        "x-default": "/",
+      },
+    },
     icons: {
       icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
     },
