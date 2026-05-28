@@ -1,16 +1,17 @@
 "use client";
 
 import { Play } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 /**
  * B3 audit fix · Story Detail mobile sticky bottom CTA.
  * Hidden on md+ (desktop has CTA in main flow). On mobile, sticks to
  * bottom of viewport so user can act without scrolling back to top.
  *
- * Scrolls smoothly to the actions section in main flow (where the real
- * fork button lives) — avoids duplicating fork logic + modal.
+ * Wave 2 i18n migration (2026-05-27): localized via storyDetail.* catalog.
  */
 export function MobileStickyForkCta({ disabled }: { disabled?: boolean }) {
+  const t = useTranslations("storyDetail.cta");
   return (
     <div
       className="md:hidden fixed bottom-0 left-0 right-0 z-30 flex items-center gap-2 px-4 py-3"
@@ -30,7 +31,7 @@ export function MobileStickyForkCta({ disabled }: { disabled?: boolean }) {
         aria-disabled={disabled}
       >
         <Play size={14} />
-        {disabled ? "登入之後可以玩" : "開始扮演"}
+        {disabled ? t("loginToPlay") : t("startPlaying")}
       </a>
     </div>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useTranslations } from "next-intl";
 import { Drama } from "lucide-react";
 import { setNpcL3Enabled } from "@/app/[locale]/play/[playthroughId]/actions";
 import { NPC_L3_CREDITS_PER_NPC, MAX_NPC_L3_AGENTS_PER_TURN } from "@/schemas/npc-agent";
@@ -30,6 +31,9 @@ export function NpcL3Toggle({
   initialEnabled: boolean;
   subscriptionTier: "free" | "adventurer" | "storyteller" | "legend";
 }) {
+  const tErrors = useTranslations("errors");
+  // Wave 2 i18n migration (2026-05-27): all card strings localized via npcL3.*.
+  const tCard = useTranslations("npcL3");
   const [enabled, setEnabled] = useState(initialEnabled);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -43,7 +47,19 @@ export function NpcL3Toggle({
       if (result.ok) {
         setEnabled(result.enabled);
       } else {
-        setError(result.error);
+        // Wave 1 audit C-01 fix (2026-05-27): localize server errorCode.
+        if (result.errorCode) {
+          setError(
+            tErrors(
+              result.errorCode as Parameters<typeof tErrors>[0],
+              result.errorParams ?? {},
+            ),
+          );
+        } else if (result.errorRaw) {
+          setError(result.errorRaw);
+        } else {
+          setError(tErrors("common.tryAgainLater"));
+        }
       }
     });
   }
@@ -61,9 +77,9 @@ export function NpcL3Toggle({
         <div className="flex items-start gap-2">
           <Drama size={18} style={{ color: "var(--se-fg, #2c1810)", flexShrink: 0 }} aria-hidden />
           <div className="flex-1 min-w-0">
-            <div className="text-sm font-semibold mb-1">NPC 內心戲</div>
+            <div className="text-sm font-semibold mb-1">{tCard("cardTitle")}</div>
             <div className="text-xs leading-relaxed" style={{ color: "var(--se-fg-dim)" }}>
-              每個 NPC 都有自己嘅 POV + 心理活動 · 對話更深層 · Storyteller 訂閱獨享 feature。
+              {tCard("upsellBody")}
             </div>
             <div
               className="mt-2 inline-block text-xs font-semibold px-2 py-1 rounded"
@@ -72,7 +88,7 @@ export function NpcL3Toggle({
                 color: "var(--se-amber-fg, #78350f)",
               }}
             >
-              升級 Storyteller 解鎖 →
+              {tCard("upsellCta")}
             </div>
           </div>
         </div>
@@ -97,7 +113,7 @@ export function NpcL3Toggle({
         <span style={{ fontSize: 18 }}>🎭</span>
         <div className="flex-1 min-w-0">
           <div className="text-sm font-semibold mb-0.5 flex items-center gap-2">
-            NPC 內心戲
+            {tCard("cardTitle")}
             {enabled && (
               <span
                 className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded"
@@ -113,8 +129,8 @@ export function NpcL3Toggle({
           </div>
           <div className="text-xs leading-relaxed mb-2" style={{ color: "var(--se-fg-dim)" }}>
             {enabled
-              ? `Active · 每個 NPC 有 POV · 多 ~${NPC_L3_CREDITS_PER_NPC} credits / NPC (up to ${maxCost} per turn)`
-              : `啟動後每個 active NPC 都有自己嘅內心戲 · 多 ~${NPC_L3_CREDITS_PER_NPC} credits / NPC (up to ${maxCost} per turn)`}
+              ? tCard("activeDescription", { cost: NPC_L3_CREDITS_PER_NPC, max: maxCost })
+              : tCard("inactiveDescription", { cost: NPC_L3_CREDITS_PER_NPC, max: maxCost })}
           </div>
           <button
             type="button"
@@ -130,7 +146,7 @@ export function NpcL3Toggle({
               color: enabled ? "var(--se-fg, #2c1810)" : "white",
             }}
           >
-            {isPending ? "處理中..." : enabled ? "關閉 NPC 內心戲" : "啟動 NPC 內心戲"}
+            {isPending ? tCard("buttonPending") : enabled ? tCard("buttonOn") : tCard("buttonOff")}
           </button>
           {error && (
             <div

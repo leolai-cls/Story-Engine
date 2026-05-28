@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Noto_Sans_TC } from "next/font/google";
 import localFont from "next/font/local";
 import { NextIntlClientProvider, hasLocale } from "next-intl";
-import { setRequestLocale } from "next-intl/server";
+import { setRequestLocale, getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
 import "../globals.css";
@@ -46,24 +46,41 @@ const gimbalExtended = localFont({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  title: "Kieio — 走入故事，做主角",
-  description:
-    "Kieio (讀「KEE-yo」) · 中文圈嘅互動式故事 RPG。你想像 · KIEIO 講述 · 你成為。AI 為你度身設計故事，永遠記得你嘅選擇，NPC 真有人格、唔會討好你。",
-  metadataBase: new URL("https://kieio.com"),
-  icons: {
-    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
-  },
-  openGraph: {
-    title: "Kieio — 走入故事，做主角",
-    description:
-      "中文圈嘅互動式故事 RPG · You imagine · KIEIO narrates · You become",
-    url: "https://kieio.com",
-    siteName: "Kieio",
-    locale: "zh_HK",
-    type: "website",
-  },
+/**
+ * Wave 2 i18n migration (2026-05-27): metadata now per-locale via
+ * `generateMetadata`. Previously was hardcoded 繁中 — browser tab + Open Graph
+ * share preview displayed Cantonese to EN / zh-Hans users on every page.
+ */
+const OG_LOCALE: Record<string, string> = {
+  en: "en_US",
+  "zh-Hant": "zh_HK",
+  "zh-Hans": "zh_CN",
 };
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "siteMetadata" });
+  return {
+    title: t("title"),
+    description: t("description"),
+    metadataBase: new URL("https://kieio.com"),
+    icons: {
+      icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
+    },
+    openGraph: {
+      title: t("ogTitle"),
+      description: t("ogDescription"),
+      url: "https://kieio.com",
+      siteName: "Kieio",
+      locale: OG_LOCALE[locale] ?? "en_US",
+      type: "website",
+    },
+  };
+}
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));

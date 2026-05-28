@@ -1,4 +1,4 @@
-import { setRequestLocale } from "next-intl/server";
+import { setRequestLocale, getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -129,9 +129,12 @@ export default async function MemoryJournalPage({
     });
   }
 
+  // Wave 2 i18n migration (2026-05-27): default protagonist + story title localized.
+  const tMem = await getTranslations("memory");
   const turnCount = pt.turn_count ?? 0;
-  const protagonist = pt.character_name ?? "主角";
-  const storyTitle = storyMeta?.title ?? "故事";
+  const protagonist =
+    pt.character_name ?? (locale === "en" ? "Protagonist" : "主角");
+  const storyTitle = storyMeta?.title ?? tMem("defaultStoryTitle");
 
   return (
     <MemoryJournalClient

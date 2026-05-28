@@ -5,16 +5,21 @@
  *
  * Each click → startTopUpCheckout(pack) → redirect to Stripe Checkout.
  * After success, Stripe → /settings?topup=1 → webhook grants credits.
+ *
+ * Wave 2 i18n migration (2026-05-27): replaced lang prop with next-intl
+ * useTranslations · was defaulting `lang="zh"` so zh-Hans users saw 繁中.
  */
 
 import { useState, useTransition } from "react";
+import { useTranslations } from "next-intl";
 import { Coins, Sparkles } from "lucide-react";
 import { startTopUpCheckout } from "@/app/[locale]/pricing/actions";
 import { TOPUP_DISPLAY, type TopUpPack } from "@/lib/stripe/products";
 
 const PACKS: TopUpPack[] = ["small", "medium", "large"];
 
-export function TopUpButtons({ lang = "zh" }: { lang?: "zh" | "en" }) {
+export function TopUpButtons() {
+  const t = useTranslations("settings.topupButtons");
   const [pending, startTransition] = useTransition();
   const [pendingPack, setPendingPack] = useState<TopUpPack | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -25,7 +30,7 @@ export function TopUpButtons({ lang = "zh" }: { lang?: "zh" | "en" }) {
         className="se-mono uppercase"
         style={{ fontSize: 10, color: "var(--se-fg-dim)", letterSpacing: "0.06em" }}
       >
-        {lang === "zh" ? "一次性充值 · TOP-UP" : "ONE-TIME TOP-UP"}
+        {t("title")}
       </div>
       <div className="grid grid-cols-3 gap-2">
         {PACKS.map((pack) => {
@@ -62,7 +67,7 @@ export function TopUpButtons({ lang = "zh" }: { lang?: "zh" | "en" }) {
                   className="se-cjk font-medium text-xs"
                   style={{ color: "var(--se-fg)" }}
                 >
-                  {lang === "zh" ? d.nameZh : d.name}
+                  {t(`${pack}.label`)}
                 </span>
                 {d.bonusPct > 0 && (
                   <span
@@ -103,7 +108,7 @@ export function TopUpButtons({ lang = "zh" }: { lang?: "zh" | "en" }) {
       </div>
       {err && (
         <p className="text-xs text-destructive">
-          {lang === "zh" ? "錯誤：" : "Error: "}
+          {t("errorPrefix")}
           {err}
         </p>
       )}

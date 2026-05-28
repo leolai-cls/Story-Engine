@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Play, Star, Flag, Globe, Lock, MessageSquare, Shield, Coins } from "lucide-react";
 import {
   forkStoryToPlaythrough,
@@ -12,6 +13,19 @@ import {
   reportContent,
 } from "@/lib/community/actions";
 import type { StoryRating } from "@/lib/community/queries";
+
+/**
+ * Wave 2 deferred-file migration (2026-05-28): all strings localized via
+ * `storyDetailActions.*` catalog. Server-side error codes mapped to
+ * localized body via `mapServerError` helper below.
+ */
+type ServerErrorMap = {
+  cannot_rate_own_story?: string;
+  moderation_config_error?: string;
+  already_reported?: string;
+  parent_mismatch?: string;
+  body_invalid_length?: string;
+};
 
 /**
  * Story detail actions — client component for interactive UI.
@@ -39,6 +53,19 @@ export function StoryDetailActions({
   myRating: StoryRating | null;
 }) {
   const router = useRouter();
+  const t = useTranslations("storyDetailActions");
+  // Map server error codes to localized bodies. Unknown codes fall through
+  // to raw text (defensive · should never happen for known codes).
+  function mapServerError(code: string): string {
+    const known: ServerErrorMap = {
+      cannot_rate_own_story: t("errorCannotRateOwn"),
+      moderation_config_error: t("errorModerationConfig"),
+      already_reported: t("reportAlreadyReported"),
+      parent_mismatch: t("errorParentMismatch"),
+      body_invalid_length: t("errorBodyInvalid"),
+    };
+    return known[code as keyof ServerErrorMap] ?? code;
+  }
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [openPanel, setOpenPanel] = useState<"rate" | "comment" | "report" | null>(null);
@@ -94,7 +121,11 @@ export function StoryDetailActions({
       if (result.ok) {
         router.push(`/play/${result.data.playthroughId}`);
       } else {
-        setError(`唔可以開始故事：${result.error}`);
+        setError(
+          result.error === "unauthorized"
+            ? t("forkErrorAuth")
+            : t("forkErrorFallback", { reason: mapServerError(result.error) }),
+        );
         setForkModalOpen(false);
       }
     });
@@ -105,7 +136,7 @@ export function StoryDetailActions({
     startTransition(async () => {
       const result = next === "public" ? await publishStory(storyId) : await unpublishStory(storyId);
       if (!result.ok) {
-        setError(`Visibility 變更失敗：${result.error}`);
+        setError(t("errorPublish"));
       } else {
         router.refresh();
       }
@@ -120,7 +151,7 @@ export function StoryDetailActions({
         setOpenPanel(null);
         router.refresh();
       } else {
-        setError(`評分失敗：${result.error}`);
+        setError(t("errorRate", { reason: mapServerError(result.error) }));
       }
     });
   }
@@ -135,7 +166,7 @@ export function StoryDetailActions({
         setOpenPanel(null);
         router.refresh();
       } else {
-        setError(`留言失敗：${result.error}`);
+        setError(t("errorComment", { reason: mapServerError(result.error) }));
       }
     });
   }
@@ -158,7 +189,7 @@ export function StoryDetailActions({
         // Auto-dismiss confirmation after 6s
         setTimeout(() => setReportSuccess(false), 6000);
       } else {
-        setError(`Report 失敗：${result.error}`);
+        setError(t("reportError", { reason: mapServerError(result.error) }));
       }
     });
   }
@@ -177,7 +208,7 @@ export function StoryDetailActions({
           }}
         >
           <Play className="h-4 w-4" />
-          {isAuthenticated ? "開始扮演" : "登入之後可以玩"}
+          {isAuthenticated ? t("playFork") : t("loginToFork")}
         </button>
 
         {isAuthenticated && (
@@ -188,7 +219,7 @@ export function StoryDetailActions({
               className="inline-flex items-center gap-1 rounded-md border border-input px-3 py-2 text-sm hover:bg-accent"
             >
               <Star className="h-4 w-4" />
-              {myRating ? `你嘅評分：${myRating.score}★` : "評分"}
+              {myRating ? `${t("myReviewTitle")} ${myRating.score}★` : t("myReviewSubmit")}
             </button>
             <button
               onClick={() => setOpenPanel(openPanel === "comment" ? null : "comment")}
@@ -196,7 +227,7 @@ export function StoryDetailActions({
               className="inline-flex items-center gap-1 rounded-md border border-input px-3 py-2 text-sm hover:bg-accent"
             >
               <MessageSquare className="h-4 w-4" />
-              留言
+              {t("commentSectionTitle")}
             </button>
             {!isOwner && (
               <button
@@ -205,7 +236,7 @@ export function StoryDetailActions({
                 className="inline-flex items-center gap-1 rounded-md border border-input px-3 py-2 text-sm text-muted-foreground hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40"
               >
                 <Flag className="h-4 w-4" />
-                Report
+                {t("reportTitle")}
               </button>
             )}
           </>
@@ -221,7 +252,7 @@ export function StoryDetailActions({
                 className="inline-flex items-center gap-1 rounded-md bg-emerald-600 text-white px-3 py-2 text-sm font-semibold hover:bg-emerald-700"
               >
                 <Globe className="h-4 w-4" />
-                Publish 公開
+                {t("publishCta")}
               </button>
             ) : (
               <button
@@ -230,7 +261,7 @@ export function StoryDetailActions({
                 className="inline-flex items-center gap-1 rounded-md border border-input px-3 py-2 text-sm hover:bg-accent"
               >
                 <Lock className="h-4 w-4" />
-                收返私人
+                {t("unpublishCta")}
               </button>
             )}
           </div>
@@ -243,14 +274,14 @@ export function StoryDetailActions({
       {reportSuccess && (
         <div className="rounded-md border border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/40 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-300 flex items-center gap-2">
           <Shield className="h-3.5 w-3.5" />
-          已 report — moderation team 會 review。
+          {t("reportSubmitted")}
         </div>
       )}
 
       {/* Rate panel */}
       {openPanel === "rate" && (
         <div className="rounded-md border border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/40 p-4 space-y-3">
-          <div className="text-sm font-semibold">評分（1-5 星）</div>
+          <div className="text-sm font-semibold">{t("myReviewSubmit")}</div>
           <div className="flex gap-1">
             {[1, 2, 3, 4, 5].map((n) => (
               <button
@@ -270,7 +301,7 @@ export function StoryDetailActions({
           <textarea
             value={reviewText}
             onChange={(e) => setReviewText(e.target.value)}
-            placeholder="留低你嘅感想 (optional, 最多 2000 字)"
+            placeholder={t("myReviewPlaceholder")}
             maxLength={2000}
             rows={3}
             className="w-full rounded-md border px-3 py-2 text-sm bg-background"
@@ -281,13 +312,13 @@ export function StoryDetailActions({
               disabled={pending}
               className="rounded-md bg-amber-600 text-white px-3 py-1.5 text-sm font-semibold hover:bg-amber-700 inline-flex items-center gap-1.5"
             >
-              {pending ? (showModerationHint ? (<><Shield className="h-3.5 w-3.5" />AI 審核中...</>) : "儲存中...") : "提交評分"}
+              {pending ? (showModerationHint ? (<><Shield className="h-3.5 w-3.5" />{t("myReviewModerating")}</>) : t("myReviewSaving")) : (myRating ? t("myReviewUpdate") : t("myReviewSubmit"))}
             </button>
             <button
               onClick={() => setOpenPanel(null)}
               className="rounded-md border border-input px-3 py-1.5 text-sm hover:bg-accent"
             >
-              取消
+              {t("myReviewCancel")}
             </button>
           </div>
         </div>
@@ -296,11 +327,11 @@ export function StoryDetailActions({
       {/* Comment panel */}
       {openPanel === "comment" && (
         <div className="rounded-md border border-input bg-card p-4 space-y-3">
-          <div className="text-sm font-semibold">留言</div>
+          <div className="text-sm font-semibold">{t("commentSectionTitle")}</div>
           <textarea
             value={commentBody}
             onChange={(e) => setCommentBody(e.target.value)}
-            placeholder="寫低你想講嘅嘢..."
+            placeholder={t("commentPlaceholder")}
             maxLength={2000}
             rows={4}
             className="w-full rounded-md border px-3 py-2 text-sm bg-background"
@@ -311,13 +342,13 @@ export function StoryDetailActions({
               disabled={pending || !commentBody.trim()}
               className="rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-sm font-semibold hover:opacity-90 disabled:opacity-50 inline-flex items-center gap-1.5"
             >
-              {pending ? (showModerationHint ? (<><Shield className="h-3.5 w-3.5" />AI 審核中...</>) : "發送中...") : "發送"}
+              {pending ? (showModerationHint ? (<><Shield className="h-3.5 w-3.5" />{t("commentModerating")}</>) : t("commentSaving")) : t("commentSubmit")}
             </button>
             <button
               onClick={() => setOpenPanel(null)}
               className="rounded-md border border-input px-3 py-1.5 text-sm hover:bg-accent"
             >
-              取消
+              {t("myReviewCancel")}
             </button>
           </div>
         </div>
@@ -326,24 +357,24 @@ export function StoryDetailActions({
       {/* Report panel */}
       {openPanel === "report" && (
         <div className="rounded-md border border-rose-200 bg-rose-50 dark:border-rose-900 dark:bg-rose-950/40 p-4 space-y-3">
-          <div className="text-sm font-semibold">Report 內容</div>
+          <div className="text-sm font-semibold">{t("reportTitle")}</div>
           <select
             value={reportReason}
             onChange={(e) => setReportReason(e.target.value as typeof reportReason)}
             className="w-full rounded-md border px-3 py-2 text-sm bg-background"
           >
             <option value="spam">Spam</option>
-            <option value="hate">仇恨言論</option>
-            <option value="harassment">騷擾</option>
-            <option value="csam">CSAM（兒童性 exploitation）</option>
-            <option value="sexual_minor">含未成年人性內容</option>
-            <option value="illegal">其他違法</option>
-            <option value="other">其他</option>
+            <option value="hate">{t("reportReasonHate")}</option>
+            <option value="harassment">{t("reportReasonHarassment")}</option>
+            <option value="csam">{t("reportReasonCsam")}</option>
+            <option value="sexual_minor">{t("reportReasonSexualMinor")}</option>
+            <option value="illegal">{t("reportReasonIllegal")}</option>
+            <option value="other">{t("reportReasonOther")}</option>
           </select>
           <textarea
             value={reportDetails}
             onChange={(e) => setReportDetails(e.target.value)}
-            placeholder="補充細節 (optional, 最多 1000 字)"
+            placeholder={t("reportPlaceholder")}
             maxLength={1000}
             rows={3}
             className="w-full rounded-md border px-3 py-2 text-sm bg-background"
@@ -354,13 +385,13 @@ export function StoryDetailActions({
               disabled={pending}
               className="rounded-md bg-rose-600 text-white px-3 py-1.5 text-sm font-semibold hover:bg-rose-700 inline-flex items-center gap-1.5"
             >
-              {pending ? (showModerationHint ? (<><Shield className="h-3.5 w-3.5" />AI 審核中...</>) : "提交中...") : "提交 Report"}
+              {pending ? (showModerationHint ? (<><Shield className="h-3.5 w-3.5" />{t("myReviewModerating")}</>) : t("reportSubmitting")) : t("reportSubmit")}
             </button>
             <button
               onClick={() => setOpenPanel(null)}
               className="rounded-md border border-input px-3 py-1.5 text-sm hover:bg-accent"
             >
-              取消
+              {t("myReviewCancel")}
             </button>
           </div>
         </div>
@@ -402,7 +433,7 @@ export function StoryDetailActions({
                 color: "var(--se-fg)",
               }}
             >
-              開始扮演
+              {t("forkModalTitle")}
             </h2>
             <p
               className="m-0 text-sm se-cjk"
@@ -411,21 +442,20 @@ export function StoryDetailActions({
                 lineHeight: 1.6,
               }}
             >
-              你嘅 playthrough 完全獨立 · 唔會影響其他玩家嘅故事。記憶 + state 100% 自己嘅。
+              {t("forkModalBody")}
             </p>
             <div className="mt-5">
               <label
                 className="text-xs block mb-1.5 se-cjk"
                 style={{ color: "var(--se-fg-muted)" }}
               >
-                主角名字{" "}
-                <span style={{ color: "var(--se-fg-dim)" }}>· 留空 = 「主角」default</span>
+                {t("forkModalProtagonistLabel")}
               </label>
               <input
                 type="text"
                 value={forkProtagonistName}
                 onChange={(e) => setForkProtagonistName(e.target.value)}
-                placeholder="例：陳 Sir / 阿傑 / 你嘅名"
+                placeholder={t("forkModalProtagonistPlaceholder")}
                 maxLength={50}
                 disabled={pending}
                 className="w-full px-3.5 h-11 rounded-md text-sm se-cjk"
@@ -446,14 +476,14 @@ export function StoryDetailActions({
             >
               <Coins size={13} color="var(--se-fg-muted)" />
               <span>
-                每 turn 約 <span className="se-mono" style={{ color: "var(--se-fg)" }}>2 credits</span>
-                {" · 玩到滿意為止 · "}
+                {t("forkModalCostHint")}
+                {" · "}
                 <a
                   href="/settings"
                   className="underline"
                   style={{ color: "var(--se-fg-muted)" }}
                 >
-                  Settings 改 default model
+                  {t("forkModalModelHint")}
                 </a>
               </span>
             </div>
@@ -469,7 +499,7 @@ export function StoryDetailActions({
                   border: "1px solid var(--se-border)",
                 }}
               >
-                取消
+                {t("forkModalCancel")}
               </button>
               <button
                 type="button"
@@ -482,7 +512,7 @@ export function StoryDetailActions({
                 }}
               >
                 <Play size={13} />
-                {pending ? "開緊…" : "開始扮演"}
+                {pending ? t("forkModalSubmitting") : t("forkModalSubmit")}
               </button>
             </div>
           </div>

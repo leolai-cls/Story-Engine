@@ -146,7 +146,8 @@ export async function rateStory(params: {
     return { ok: false, error: "story_not_found" };
   }
   if (storyOwner.owner_id === user.id) {
-    return { ok: false, error: "唔可以俾自己嘅故事評分。" };
+    // Wave 1 audit C-02 fix (2026-05-27): error code instead of 繁中 (client localizes via t("errors.community.cannotRateOwnStory"))
+    return { ok: false, error: "cannot_rate_own_story" };
   }
 
   // P5-SEC-C-01 + W1-MOD-C-02 — moderate review text before persist with
@@ -169,7 +170,8 @@ export async function rateStory(params: {
     } catch (e) {
       if (e instanceof ModerationConfigError) {
         console.error("[rateStory] moderation config error:", e.message);
-        return { ok: false, error: "內容審核系統設定問題，請稍後再試。" };
+        // Wave 1 audit C-02 fix: code instead of 繁中 (client localizes via t("errors.community.moderationConfigError")).
+        return { ok: false, error: "moderation_config_error" };
       }
       throw e;
     }
@@ -190,7 +192,8 @@ export async function rateStory(params: {
   if (error) {
     const msg = error.message ?? "";
     if (/cannot_rate_own_story/i.test(msg)) {
-      return { ok: false, error: "唔可以俾自己嘅故事評分。" };
+      // Wave 1 audit C-02 fix: code (client localizes).
+      return { ok: false, error: "cannot_rate_own_story" };
     }
     if (/story_not_public/i.test(msg)) {
       return { ok: false, error: "story_not_public" };
@@ -395,7 +398,8 @@ export async function reportContent(params: {
       if (e instanceof ModerationConfigError) {
         console.error("[reportContent] moderation config error:", e.message);
         // Deployment misconfig — block to surface loudly.
-        return { ok: false, error: "內容審核系統設定問題，請稍後再試。" };
+        // Wave 1 audit C-02 fix: code instead of 繁中 (client localizes via t("errors.community.moderationConfigError")).
+        return { ok: false, error: "moderation_config_error" };
       }
       throw e;
     }
@@ -418,7 +422,8 @@ export async function reportContent(params: {
     // P5-LOGIC-H-04 — Migration 0010 adds UNIQUE(reporter, content_type, content_id).
     // Duplicate report = friendly "already reported" message instead of generic fail.
     if (error?.code === "23505" || /duplicate key|unique/i.test(msg)) {
-      return { ok: false, error: "你之前已經 report 過呢個內容了。Moderation team 會 review。" };
+      // Wave 1 audit C-02 fix: code instead of 繁中 (client localizes).
+      return { ok: false, error: "already_reported" };
     }
     console.error("[reportContent] insert failed:", msg);
     return { ok: false, error: "report_failed" };

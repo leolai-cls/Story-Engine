@@ -106,6 +106,23 @@ export type StoryBible = z.infer<typeof StoryBibleSchema>;
  * prompts. Keeps it human-readable + token-efficient. Director and
  * Narrator both consume this.
  */
+/**
+ * Human label for the Bible's `language` enum — used by the prompt header
+ * so the Narrator / Director / NPC agents know which language to write in.
+ * Wave 1 audit fix (2026-05-27).
+ */
+function languageLabel(lang: HardLocked["language"]): string {
+  switch (lang) {
+    case "en":
+      return "English";
+    case "zh-Hans":
+      return "Simplified Chinese (简体中文 / Mandarin formal)";
+    case "zh-Hant":
+    default:
+      return "Traditional Chinese (繁體中文 / HK Cantonese voice)";
+  }
+}
+
 export function bibleToSystemPrompt(bible: StoryBible): string {
   const hl = bible.hard_locked;
   const sg = bible.soft_guided;
@@ -123,6 +140,8 @@ export function bibleToSystemPrompt(bible: StoryBible): string {
     : "";
 
   return `## Story Bible (immutable — never override)
+
+Story language: ${languageLabel(hl.language)} — ALL narrative, dialogue, NPC inner thoughts MUST be in this language. Player input may use any language; you still respond in this story's language.
 
 Central conflict: ${hl.central_conflict}
 Tone: ${hl.tone}${themes}${setting}

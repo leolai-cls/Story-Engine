@@ -103,9 +103,22 @@ export async function retrieveNpcPovMemories(params: {
  *
  * Returns empty string when no memories (caller can skip injecting the block
  * entirely · NPC agent prompt has an "if empty array" fallback path).
+ *
+ * Wave 1 audit fix (2026-05-27): empty-state message localized so EN /
+ * zh-Hans NPC agents don't get a Cantonese fallback line. Default zh-Hant
+ * for backward compat with legacy callers.
  */
-export function formatPovMemoriesBlock(memories: PovMemory[]): string {
+export function formatPovMemoriesBlock(
+  memories: PovMemory[],
+  language: "zh-Hant" | "zh-Hans" | "en" = "zh-Hant",
+): string {
   if (memories.length === 0) {
+    if (language === "en") {
+      return "(no relevant POV memories · use character card + current scene state)";
+    }
+    if (language === "zh-Hans") {
+      return "(无相关 POV 记忆 · 用 character card + 当下 scene state 思考)";
+    }
     return "(冇相關 POV 記憶 · 用 character card + 當下 scene state 思考)";
   }
 

@@ -379,7 +379,11 @@ export async function getMyPlaythroughs(
     return {
       id: r.id as string,
       story_id: r.story_id as string,
-      story_title: storyRow?.title ?? "(無標題)",
+      // Wave 2 i18n cycle-5 fix (2026-05-28): drop hardcoded 繁中 "(無標題)"
+      // fallback · queries.ts is a server-side data layer · should NOT be
+      // i18n-aware. Consumers (my/page · play sidebar · etc) render
+      // `story_title || t("library.storyCard.untitled")` instead.
+      story_title: storyRow?.title ?? "",
       story_genre: storyRow?.genre ?? null,
       story_cover_image_url: storyRow?.cover_image_url ?? null,
       character_name: r.character_name as string | null,

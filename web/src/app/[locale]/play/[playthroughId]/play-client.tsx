@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "@/i18n/navigation";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Send, Loader2, ArrowLeft, Coins, Lock, Shield, NotebookPen, Menu } from "lucide-react";
 import { DynamicStatePanel } from "@/components/state-panel";
@@ -42,10 +42,13 @@ function SkillCheckInline({
     skill_key?: string;
   };
 }) {
+  // Wave 2 i18n migration (2026-05-27): tooltip + permanent badge localized.
+  // Note: cfg.label is no longer used in render — kept for inline-skill-check
+  // compatibility. stamp stays canonical English (consistent mono badge).
+  const tPlay = useTranslations("play");
   const cfg = (
     {
       critical_success: {
-        label: "完美成功",
         stamp: "CRITICAL SUCCESS",
         color: "var(--se-accent)",
         bg: "var(--se-accent-bg)",
@@ -53,7 +56,6 @@ function SkillCheckInline({
         sparkle: true,
       },
       success: {
-        label: "成功",
         stamp: "SUCCESS",
         color: "var(--se-ok)",
         bg: "var(--se-ok-bg)",
@@ -61,7 +63,6 @@ function SkillCheckInline({
         sparkle: false,
       },
       failure: {
-        label: "失敗",
         stamp: "FAILURE",
         color: "var(--se-danger)",
         bg: "var(--se-danger-bg)",
@@ -69,7 +70,6 @@ function SkillCheckInline({
         sparkle: false,
       },
       critical_failure: {
-        label: "大敗局",
         stamp: "CRITICAL FAILURE",
         color: "var(--se-danger)",
         bg: "var(--se-danger-bg)",
@@ -152,7 +152,7 @@ function SkillCheckInline({
           color: "var(--se-fg-dim)",
           letterSpacing: "0.04em",
         }}
-        title="Hard rule #5 · 唔可以同一 turn 再試"
+        title={tPlay("permanentTooltip")}
       >
         PERMANENT
       </span>
@@ -163,8 +163,14 @@ function SkillCheckInline({
 /**
  * AUDIT FIX (P3-UX-M-13): friendly UX for credit / tier errors.
  * Parses prefixed error strings into actionable cards with Settings link.
+ *
+ * Wave 2 i18n migration (2026-05-27): titles + CTAs localized · body text
+ * carries the dynamic params (balance/needed/tier/model) which the caller
+ * passes in via the prefix. Moderation message is LLM-generated per input
+ * so stays as-is (shown raw with localized title + helper hint).
  */
 function PlayErrorCard({ error }: { error: string }) {
+  const t = useTranslations("play.errors");
   if (error.startsWith("INSUFFICIENT_CREDITS:")) {
     return (
       <div className="rounded-md border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950/40">
@@ -172,7 +178,7 @@ function PlayErrorCard({ error }: { error: string }) {
           <Coins className="h-5 w-5 flex-shrink-0 text-amber-600 dark:text-amber-300" />
           <div className="flex-1 text-sm">
             <div className="font-semibold text-amber-900 dark:text-amber-100">
-              Credit 唔夠
+              {t("insufficientCreditsTitle")}
             </div>
             <div className="mt-1 text-xs text-amber-800 dark:text-amber-200">
               {error.replace("INSUFFICIENT_CREDITS:", "")}
@@ -182,7 +188,7 @@ function PlayErrorCard({ error }: { error: string }) {
               className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700"
             >
               <Coins className="h-3.5 w-3.5" />
-              去 Settings 升級 / Top-up
+              {t("insufficientCreditsCta")}
             </Link>
           </div>
         </div>
@@ -196,7 +202,7 @@ function PlayErrorCard({ error }: { error: string }) {
           <Lock className="h-5 w-5 flex-shrink-0 text-rose-600 dark:text-rose-300" />
           <div className="flex-1 text-sm">
             <div className="font-semibold text-rose-900 dark:text-rose-100">
-              Model 需要升級 tier
+              {t("modelTierTitle")}
             </div>
             <div className="mt-1 text-xs text-rose-800 dark:text-rose-200">
               {error.replace("MODEL_TIER:", "")}
@@ -205,16 +211,13 @@ function PlayErrorCard({ error }: { error: string }) {
               href={"/settings" as never}
               className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-rose-700"
             >
-              去 Settings
+              {t("modelTierCta")}
             </Link>
           </div>
         </div>
       </div>
     );
   }
-  // W2-UX-H-03 fix: turn moderation returns 400 with action_blocked.
-  // Previously the raw JSON body flowed through to the default branch.
-  // Now play-client throws "ACTION_BLOCKED:..." prefix → friendly card.
   if (error.startsWith("ACTION_BLOCKED:")) {
     return (
       <div className="rounded-md border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950/40">
@@ -222,13 +225,13 @@ function PlayErrorCard({ error }: { error: string }) {
           <Shield className="h-5 w-5 flex-shrink-0 text-amber-600 dark:text-amber-300" />
           <div className="flex-1 text-sm">
             <div className="font-semibold text-amber-900 dark:text-amber-100">
-              內容審核：呢個 action 過唔到
+              {t("moderationTitle")}
             </div>
             <div className="mt-1 text-xs text-amber-800 dark:text-amber-200">
               {error.replace("ACTION_BLOCKED:", "")}
             </div>
             <div className="mt-2 text-[11px] text-amber-700/80 dark:text-amber-300/80">
-              試下換個方式描述你嘅行動，或者調整劇情走向。
+              {t("moderationBody")}
             </div>
           </div>
         </div>
@@ -307,6 +310,9 @@ export function PlayClient({
   subscriptionTier?: "free" | "adventurer" | "storyteller" | "legend";
 }) {
   const locale = useLocale();
+  // Wave 2 i18n migration (2026-05-27): full client localized via play.* namespace.
+  const tPlay = useTranslations("play");
+  const tPlayErr = useTranslations("play.errors");
   const [turns, setTurns] = useState<Turn[]>(initialTurns);
   const [state, setState] = useState<Record<string, unknown>>(initialState);
   const [input, setInput] = useState("");
@@ -393,32 +399,53 @@ export function PlayClient({
 
           if (res.status === 402) {
             // AUDIT FIX (P3-UX-M-13): friendly UX for credit errors.
+            // Wave 2 i18n migration: body text localized via play.errors catalog.
             const currentBalance = body?.currentBalance ?? "?";
             const estimatedCost = body?.estimatedCost ?? "?";
             throw new Error(
-              `INSUFFICIENT_CREDITS:Credit 唔夠（剩 ${currentBalance}，需要約 ${estimatedCost}）。去 Settings 升級或 top-up。`,
+              `INSUFFICIENT_CREDITS:${tPlayErr("insufficientCreditsBody", {
+                balance: currentBalance,
+                needed: estimatedCost,
+              })}`,
             );
           }
           if (res.status === 403 && body?.error === "model_tier_required") {
             throw new Error(
-              `MODEL_TIER:你嘅 tier (${body.currentTier ?? "?"}) 唔可以用 ${body.modelId ?? "呢個 model"}。去 Settings 揀其他 model 或升級。`,
+              `MODEL_TIER:${tPlayErr("modelTierBody", {
+                tier: body.currentTier ?? "?",
+                model: body.modelId ?? "?",
+              })}`,
             );
+          }
+          // Wave 2 i18n cycle-3 fix (2026-05-28): 403 adult_mode_required.
+          // Server sends `reason: "nsfw_model" | "adult_story"` + optional modelName.
+          // Client localizes title + body per user locale.
+          if (res.status === 403 && body?.error === "adult_mode_required") {
+            const bodyText =
+              body?.reason === "nsfw_model"
+                ? tPlayErr("adultModeRequiredBodyModel", {
+                    model: body.modelName ?? "?",
+                  })
+                : tPlayErr("adultModeRequiredBodyStory");
+            throw new Error(`MODEL_TIER:${bodyText}`);
           }
           // W2-UX-H-03 fix: 400 action_blocked from turn moderation.
           if (res.status === 400 && body?.error === "action_blocked" && body?.message) {
             throw new Error(`ACTION_BLOCKED:${body.message}`);
           }
           if (res.status === 503 && body?.error === "moderation_misconfigured") {
-            throw new Error(
-              body.message ?? "內容審核系統設定問題，請稍後再試。",
-            );
+            throw new Error(tPlayErr("moderationConfigBody"));
           }
-          // Fallback: surface the body's message field if present, else a
-          // generic HTTP error. NO second body consume — that's the W2.5-UX-M-01
-          // bug we're fixing.
-          const fallbackMsg =
-            (body && (body.message || body.error)) ||
-            `請求失敗（HTTP ${res.status}）`;
+          if (res.status === 503 && body?.error === "moderation_failed") {
+            throw new Error(tPlayErr("moderationUnavailableBody"));
+          }
+          // Wave 2 i18n cycle-3 fix: 429 rate-limit
+          if (res.status === 429 && body?.error === "rate_limited") {
+            throw new Error(tPlayErr("rateLimitedBody"));
+          }
+          // Fallback: server sends error code only · localize generic HTTP.
+          // NO body.message consumption — server stopped sending raw 繁中 in cycle-3.
+          const fallbackMsg = tPlayErr("httpError", { status: res.status });
           throw new Error(String(fallbackMsg));
         }
 
@@ -498,7 +525,7 @@ export function PlayClient({
               background: "var(--se-surface)",
               border: "1px solid var(--se-border)",
             }}
-            aria-label="開啟遊戲清單"
+            aria-label={tPlay("header.ariaOpenList")}
           >
             <Menu size={14} />
           </button>
@@ -507,10 +534,10 @@ export function PlayClient({
             href="/library"
             className="inline-flex items-center gap-1 px-1.5 sm:px-2.5 py-1.5 rounded-md text-xs flex-none"
             style={{ color: "var(--se-fg-muted)" }}
-            aria-label="返回 Library"
+            aria-label={tPlay("header.ariaBack")}
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">返回</span>
+            <span className="hidden sm:inline">{tPlay("header.back")}</span>
           </Link>
           <div className="flex items-center gap-1.5 sm:gap-2 font-bold text-sm min-w-0 flex-1">
             <Sparkles className="h-4 w-4 text-primary flex-none" />
@@ -525,15 +552,15 @@ export function PlayClient({
                 border: "1px solid var(--se-border)",
                 color: "var(--se-fg-2)",
               }}
-              aria-label="記憶"
-              title="呢個 playthrough 嘅 4 層獨立記憶"
+              aria-label={tPlay("header.ariaMemory")}
+              title={tPlay("header.memoryTooltip")}
             >
               <NotebookPen className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">記憶</span>
+              <span className="hidden sm:inline">{tPlay("header.memory")}</span>
             </Link>
-            {/* "玩緊：characterName" — desktop-only (mobile hides to save ~100px) */}
+            {/* "Playing as: characterName" — desktop-only (mobile hides to save ~100px) */}
             <div className="hidden lg:block text-xs text-muted-foreground">
-              玩緊：<span className="font-medium text-foreground">{characterName}</span>
+              {tPlay("header.playingAs")}<span className="font-medium text-foreground">{characterName}</span>
             </div>
           </div>
         </div>
@@ -549,9 +576,9 @@ export function PlayClient({
       >
         {(
           [
-            { id: "narrative", label: "敘事" },
-            { id: "npc", label: `角色 · ${npcs.length}` },
-            { id: "state", label: "狀態" },
+            { id: "narrative", label: tPlay("tabs.narrative") },
+            { id: "npc", label: tPlay("tabs.npc", { count: npcs.length }) },
+            { id: "state", label: tPlay("tabs.state") },
           ] as const
         ).map((t) => {
           const a = mobileTab === t.id;
@@ -614,7 +641,7 @@ export function PlayClient({
               return (
                 <div
                   key={turn.index}
-                  title={isSoftDirector ? "NPC 反應與你預期不同" : undefined}
+                  title={isSoftDirector ? tPlay("turn.directorSoftTooltip") : undefined}
                   className={
                     turn.role === "user"
                       ? "rounded-lg bg-primary/8 border border-primary/20 p-3"
@@ -630,7 +657,9 @@ export function PlayClient({
                   }
                 >
                   <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
-                    {turn.role === "user" ? `→ ${characterName}` : "↳ 敘事"}
+                    {turn.role === "user"
+                      ? tPlay("turn.userBadge", { protagonist: characterName })
+                      : tPlay("turn.aiBadge")}
                   </div>
                   <div className="text-sm whitespace-pre-wrap">{turn.text}</div>
                   {/* C5a-d audit fix · Skill check 4 outcomes inline badge.
@@ -645,7 +674,7 @@ export function PlayClient({
             {streaming && streamText && (
               <div className="rounded-lg bg-card border border-primary/30 p-4 leading-relaxed">
                 <div className="text-[10px] font-bold uppercase tracking-wider text-primary mb-1.5">
-                  ↳ 敘事 (打緊...)
+                  {tPlay("turn.aiPending")}
                 </div>
                 <div className="text-sm whitespace-pre-wrap">
                   {streamText}
@@ -657,7 +686,7 @@ export function PlayClient({
             {streaming && !streamText && (
               <div className="flex items-center gap-2 text-xs text-muted-foreground py-3">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                {!showSafetyHint && "AI 諗緊..."}
+                {!showSafetyHint && tPlay("turn.aiThinking")}
               </div>
             )}
             {/* C3 audit fix · floating moderation pill chip after 600ms safety hint */}
@@ -686,7 +715,7 @@ export function PlayClient({
                 >
                   <Shield size={12} color="var(--se-ok)" />
                 </span>
-                <span className="se-cjk">內容審核 + AI 思考中…</span>
+                <span className="se-cjk">{tPlay("turn.moderationPending")}</span>
               </div>
             )}
 
@@ -707,7 +736,7 @@ export function PlayClient({
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="你想做咩？（描述行動、對白、決定…）"
+              placeholder={tPlay("input.placeholder")}
               disabled={streaming}
               maxLength={2000}
               className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
@@ -718,7 +747,7 @@ export function PlayClient({
               ) : (
                 <>
                   <Send className="h-3.5 w-3.5" />
-                  行動
+                  {tPlay("input.submit")}
                 </>
               )}
             </Button>
@@ -738,7 +767,7 @@ export function PlayClient({
                 className="se-mono uppercase flex items-center gap-1.5"
                 style={{ fontSize: 10, color: "var(--se-fg-dim)", letterSpacing: "0.08em" }}
               >
-                NPC · {npcs.length}
+                {tPlay("rail.npcCount", { count: npcs.length })}
               </div>
               {/* Session 14 · NPC L3 opt-in toggle (Storyteller tier only · button-click per founder Q4) */}
               <NpcL3Toggle
@@ -762,7 +791,7 @@ export function PlayClient({
             <DynamicStatePanel
               schema={stateSchema}
               state={state}
-              title={`${characterName} 嘅狀態`}
+              title={tPlay("rail.stateTitle", { protagonist: characterName })}
             />
           </div>
         </div>

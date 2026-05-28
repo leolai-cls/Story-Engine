@@ -39,6 +39,12 @@ export async function SiteHeader() {
   // Total count is exact-count for "全部 (N)" footer link.
   let drawerPlaythroughs: DrawerPlaythrough[] = [];
   let totalPlaythroughCount = 0;
+  // Wave 2 i18n migration (2026-05-27): pass library `relativeTime` translator
+  // into shortRelativeTime so the mobile drawer's per-playthrough timestamps
+  // render in the user's locale (was hardcoded 繁中 "剛剛 / 分鐘前").
+  const tLibTime = await getTranslations("library.relativeTime");
+  // Wave 2 i18n cycle-5 fix (2026-05-28): localize untitled fallback.
+  const tLibCard = await getTranslations("library.storyCard");
   if (user) {
     const supabase = await createClient();
     const [recent, { count }] = await Promise.all([
@@ -48,13 +54,14 @@ export async function SiteHeader() {
         .select("id", { count: "exact", head: true })
         .eq("user_id", user.id),
     ]);
+    const untitledLabel = tLibCard("untitled");
     drawerPlaythroughs = recent.map((p) => ({
       id: p.id,
       storyId: p.story_id,
-      storyTitle: p.story_title,
+      storyTitle: p.story_title || untitledLabel,
       storyGenre: p.story_genre,
       turnCount: p.turn_count,
-      relativeTime: shortRelativeTime(p.last_played_at),
+      relativeTime: shortRelativeTime(p.last_played_at, tLibTime),
     }));
     totalPlaythroughCount = count ?? recent.length;
   }
@@ -107,6 +114,14 @@ export async function SiteHeader() {
             settings: t("settings"),
             login: t("login"),
             signup: t("signup"),
+            // Wave 2 i18n migration (2026-05-27): drawer-internal labels (was hardcoded 繁中).
+            newStory: t("drawer.newStory"),
+            continueSection: t("drawer.continueSection"),
+            allPlaythroughs: t("drawer.allPlaythroughs"),
+            logout: t("logout"),
+            ariaClose: t("drawer.ariaClose"),
+            ariaCloseDrawer: t("drawer.ariaCloseDrawer"),
+            ariaOpenMenu: t("drawer.ariaOpenMenu"),
           }}
         />
         <Link
@@ -220,21 +235,25 @@ export async function SiteHeader() {
 
 /**
  * Compact relative time for the mobile drawer (no spaces — fits the 270px
- * drawer width nicely). Mirrors `/play/[id]/page.tsx` relativeTime but
- * trims whitespace. Could be DRY'd with that helper later · for now keeping
- * local to avoid premature abstraction.
+ * drawer width nicely).
+ *
+ * Wave 2 i18n migration (2026-05-27): accepts the `library.relativeTime`
+ * translator so the drawer is locale-aware (was hardcoded 繁中).
  */
-function shortRelativeTime(iso: string): string {
-  const t = new Date(iso).getTime();
+function shortRelativeTime(
+  iso: string,
+  t: (key: string, params?: Record<string, string | number>) => string,
+): string {
+  const ms = new Date(iso).getTime();
   const now = Date.now();
-  const diffMin = Math.floor((now - t) / 60_000);
-  if (diffMin < 1) return "剛剛";
-  if (diffMin < 60) return `${diffMin}分鐘前`;
+  const diffMin = Math.floor((now - ms) / 60_000);
+  if (diffMin < 1) return t("justNow");
+  if (diffMin < 60) return t("minutesAgo", { count: diffMin });
   const diffHour = Math.floor(diffMin / 60);
-  if (diffHour < 24) return `${diffHour}小時前`;
+  if (diffHour < 24) return t("hoursAgo", { count: diffHour });
   const diffDay = Math.floor(diffHour / 24);
-  if (diffDay === 1) return "昨天";
-  if (diffDay < 7) return `${diffDay}日前`;
-  if (diffDay < 30) return `${Math.floor(diffDay / 7)}週前`;
+  if (diffDay === 1) return t("yesterday");
+  if (diffDay < 7) return t("daysAgo", { count: diffDay });
+  if (diffDay < 30) return t("weeksAgo", { count: Math.floor(diffDay / 7) });
   return new Date(iso).toLocaleDateString();
 }

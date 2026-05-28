@@ -1,0 +1,107 @@
+<!--
+  Password recovery email · trilingual (EN / 繁中 / 簡中).
+  Sent when user requests password reset.
+
+  Variables:
+  - {{ .ConfirmationURL }}
+  - {{ .SiteURL }}
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kieio · Reset password</title>
+</head>
+<body style="margin:0;padding:0;background:#fafaf8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:#1a1a1a;">
+
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background:#fafaf8;padding:48px 24px;">
+  <tr>
+    <td align="center">
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="max-width:520px;background:#ffffff;border:1px solid #e7e4dd;border-radius:14px;">
+
+        <tr>
+          <td style="padding:32px 36px 8px;text-align:center;">
+            <div style="font-family:'Termina','Geist',sans-serif;font-weight:700;font-size:24px;letter-spacing:-0.02em;color:#552583;">
+              KIEIO
+            </div>
+            <div style="font-size:11px;color:#9b958a;letter-spacing:0.08em;text-transform:uppercase;margin-top:4px;">
+              pronounced "KEE-yo" · 讀「KEE-yo」
+            </div>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:24px 36px 12px;">
+            <h2 style="margin:0 0 12px;font-size:18px;font-weight:600;">Reset your password</h2>
+            <p style="margin:0 0 20px;font-size:14px;line-height:1.6;color:#4a4a4a;">
+              You asked to reset your Kieio password. Click below to choose a new one. This link expires in 1 hour.
+            </p>
+            <p style="margin:0 0 24px;text-align:center;">
+              <a href="{{ .ConfirmationURL }}"
+                 style="display:inline-block;background:#1a1a1a;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;padding:12px 32px;border-radius:8px;">
+                Reset password →
+              </a>
+            </p>
+            <p style="margin:0;font-size:12px;color:#8a8580;line-height:1.5;">
+              If you didn't request this, ignore this email — your password stays the same.
+            </p>
+          </td>
+        </tr>
+
+        <tr><td style="padding:0 36px;"><div style="border-top:1px solid #e7e4dd;margin:24px 0;"></div></td></tr>
+
+        <tr>
+          <td style="padding:0 36px 12px;">
+            <h2 style="margin:0 0 12px;font-size:18px;font-weight:600;">重設密碼</h2>
+            <p style="margin:0 0 20px;font-size:14px;line-height:1.7;color:#4a4a4a;">
+              你 request 過重設 Kieio 密碼。撳下面個 button 揀新密碼。連結 1 小時內有效。
+            </p>
+            <p style="margin:0 0 24px;text-align:center;">
+              <a href="{{ .ConfirmationURL }}"
+                 style="display:inline-block;background:#1a1a1a;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;padding:12px 32px;border-radius:8px;">
+                重設密碼 →
+              </a>
+            </p>
+            <p style="margin:0;font-size:12px;color:#8a8580;line-height:1.6;">
+              如果唔係你 request · ignore 呢封 email · 密碼唔變。
+            </p>
+          </td>
+        </tr>
+
+        <tr><td style="padding:0 36px;"><div style="border-top:1px solid #e7e4dd;margin:24px 0;"></div></td></tr>
+
+        <tr>
+          <td style="padding:0 36px 32px;">
+            <h2 style="margin:0 0 12px;font-size:18px;font-weight:600;">重设密码</h2>
+            <p style="margin:0 0 20px;font-size:14px;line-height:1.7;color:#4a4a4a;">
+              你请求过重设 Kieio 密码。点击下面的按钮选新密码。链接 1 小时内有效。
+            </p>
+            <p style="margin:0 0 24px;text-align:center;">
+              <a href="{{ .ConfirmationURL }}"
+                 style="display:inline-block;background:#1a1a1a;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;padding:12px 32px;border-radius:8px;">
+                重设密码 →
+              </a>
+            </p>
+            <p style="margin:0;font-size:12px;color:#8a8580;line-height:1.6;">
+              如果不是你请求的 · 忽略此邮件 · 密码不变。
+            </p>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:20px 36px;background:#f7f5f0;border-top:1px solid #e7e4dd;border-radius:0 0 14px 14px;text-align:center;">
+            <p style="margin:0;font-size:11px;color:#9b958a;line-height:1.5;">
+              Kieio · {{ .SiteURL }}<br>
+              Interactive fiction RPG · 互動式故事 RPG
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+
+</body>
+</html>

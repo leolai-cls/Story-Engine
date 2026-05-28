@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Link } from "@/i18n/navigation";
+import { useTranslations } from "next-intl";
 import { X, Sparkles, BookOpen, NotebookPen, Info, Play, Clock, Lock, Drama } from "lucide-react";
 import { CsamStrip } from "@/components/se/CsamStrip";
 
@@ -23,6 +24,10 @@ type LoreRow = {
   created_at: string;
 };
 
+/**
+ * Wave 2 i18n migration (2026-05-27): @deprecated · resolve via
+ * `useTranslations("memory.entryKind")` at render site instead.
+ */
 const ENTITY_LABEL: Record<string, string> = {
   character: "人物",
   place: "地點",
@@ -73,6 +78,8 @@ export function MemoryJournalClient({
   /** D5 audit · show CSAM strip when in adult content context */
   showCsam?: boolean;
 }) {
+  // Wave 2 i18n migration (2026-05-27): full UI localized via memory.* catalog.
+  const t = useTranslations("memory");
   // Default tab = active (the killer demo per CLAUDE.md hard rule #7)
   const [tab, setTab] = useState<Tab>("active");
 
@@ -118,7 +125,7 @@ export function MemoryJournalClient({
           }}
         >
           <X size={12} />
-          返扮演
+          {t("backToPlay")}
         </Link>
         <div style={{ width: 1, height: 18, background: "var(--se-border)" }} />
         <div>
@@ -126,13 +133,15 @@ export function MemoryJournalClient({
             className="m-0 text-sm font-semibold se-cjk"
             style={{ color: "var(--se-fg)" }}
           >
-            你呢次扮演 {protagonist} 嘅記憶
+            {t("headerTitle", { protagonist })}
           </h1>
           <div
             className="se-mono mt-0.5"
             style={{ fontSize: 10.5, color: "var(--se-fg-dim)", letterSpacing: "0.04em" }}
           >
-            {storyTitle.toUpperCase()} · TURN {turnCount} · 唯讀 · 只有你睇到 · FORK 多一次係空白
+            {showCsam
+              ? t("headerSubtitleAdult", { storyTitle: storyTitle.toUpperCase(), turn: turnCount })
+              : t("headerSubtitle", { storyTitle: storyTitle.toUpperCase(), turn: turnCount })}
           </div>
         </div>
         <div className="flex-1" />
@@ -146,7 +155,7 @@ export function MemoryJournalClient({
           }}
         >
           <Play size={11} />
-          繼續扮演
+          {t("continuePlay")}
         </Link>
       </div>
 
@@ -160,21 +169,21 @@ export function MemoryJournalClient({
       >
         {(
           [
-            { id: "active", label: "當前活躍", icon: Sparkles },
-            { id: "summaries", label: `回憶錄 · ${summaries.length}`, icon: BookOpen },
-            { id: "lorebook", label: `角色記事 · ${lorebookCount}`, icon: NotebookPen },
+            { id: "active", label: t("tabs.active"), icon: Sparkles },
+            { id: "summaries", label: t("tabs.memoir", { count: summaries.length }), icon: BookOpen },
+            { id: "lorebook", label: t("tabs.characters", { count: lorebookCount }), icon: NotebookPen },
             // Session 14 · NPC L3 Inner Voices (Storyteller tier · hidden when empty)
             ...(innerVoicesCount > 0
-              ? [{ id: "inner-voices", label: `內心戲 · ${innerVoicesCount}`, icon: Drama }]
+              ? [{ id: "inner-voices", label: t("tabs.innerVoices", { count: innerVoicesCount }), icon: Drama }]
               : []),
           ] as const
-        ).map((t) => {
-          const Ico = t.icon;
-          const a = tab === t.id;
+        ).map((entry) => {
+          const Ico = entry.icon;
+          const a = tab === entry.id;
           return (
             <button
-              key={t.id}
-              onClick={() => setTab(t.id as Tab)}
+              key={entry.id}
+              onClick={() => setTab(entry.id as Tab)}
               className="flex-none inline-flex items-center gap-1.5 px-3 h-8 rounded-full text-xs se-cjk"
               style={{
                 background: a ? "var(--se-fg)" : "transparent",
@@ -183,7 +192,7 @@ export function MemoryJournalClient({
               }}
             >
               <Ico size={11} />
-              {t.label}
+              {entry.label}
             </button>
           );
         })}
@@ -205,31 +214,31 @@ export function MemoryJournalClient({
             className="se-mono uppercase mb-2"
             style={{ fontSize: 10, color: "var(--se-fg-dim)", letterSpacing: "0.08em" }}
           >
-            記憶層 · 4-LAYER
+            {t("nav.layerLabel")}
           </div>
           <div className="flex flex-col gap-1">
             <NavItem
               active={tab === "active"}
               icon={<Sparkles size={14} />}
-              label="當前活躍記憶"
+              label={t("nav.activeLabel")}
               sub={`TURN ${turnCount}`}
-              hint="影響緊呢個 turn 嘅記憶"
+              hint={t("nav.activeHint")}
               onClick={() => setTab("active")}
             />
             <NavItem
               active={tab === "summaries"}
               icon={<BookOpen size={14} />}
-              label="回憶錄"
-              sub={`${summaries.length} 章`}
-              hint="滾動章節摘要 · 每 ~20 turn"
+              label={t("nav.memoirLabel")}
+              sub={t("nav.memoirSub", { count: summaries.length })}
+              hint={t("nav.memoirHint")}
               onClick={() => setTab("summaries")}
             />
             <NavItem
               active={tab === "lorebook"}
               icon={<NotebookPen size={14} />}
-              label="角色記事"
-              sub={`${lorebookCount} 條`}
-              hint="人物 · 地點 · 物品 · 事件 · 概念"
+              label={t("nav.charactersLabel")}
+              sub={t("nav.charactersSub", { count: lorebookCount })}
+              hint={t("nav.charactersHint")}
               onClick={() => setTab("lorebook")}
             />
             {/* Session 14 · NPC L3 Inner Voices (Storyteller tier · only show when data exists) */}
@@ -237,9 +246,9 @@ export function MemoryJournalClient({
               <NavItem
                 active={tab === "inner-voices"}
                 icon={<Drama size={14} />}
-                label="NPC 內心戲"
-                sub={`${innerVoicesCount} 段 · ${npcNames.length} 個 NPC`}
-                hint="Storyteller 獨享 · 每個 NPC 嘅 POV + 心理活動"
+                label={t("nav.innerVoicesLabel")}
+                sub={t("nav.innerVoicesSub", { count: innerVoicesCount, npcs: npcNames.length })}
+                hint={t("nav.innerVoicesHint")}
                 onClick={() => setTab("inner-voices")}
               />
             )}
@@ -255,20 +264,20 @@ export function MemoryJournalClient({
             <div className="flex items-center gap-2">
               <Clock size={12} color="var(--se-fg-dim)" />
               <span className="text-xs" style={{ color: "var(--se-fg-muted)" }}>
-                近 20 turn 全文
+                {t("nav.recentLabel")}
               </span>
               <span
                 className="se-mono ml-auto"
                 style={{ fontSize: 9.5, color: "var(--se-fg-dim)" }}
               >
-                自動
+                {t("nav.recentBadge")}
               </span>
             </div>
             <div
               className="mt-1 pl-5 text-[10.5px] leading-snug"
               style={{ color: "var(--se-fg-dim)" }}
             >
-              敘事 stream 已 show 緊 · 唔需要另一個入口
+              {t("nav.recentHint")}
             </div>
           </div>
 
@@ -282,9 +291,9 @@ export function MemoryJournalClient({
           >
             <Lock size={11} color="var(--se-fg-dim)" className="mt-0.5 flex-none" />
             <div className="text-[10.5px] se-cjk" style={{ color: "var(--se-fg-muted)", lineHeight: 1.5 }}>
-              AI 自動記錄 · 唔可以編輯
+              {t("nav.readonlyTitle")}
               <br />
-              （server-only write 經 Migration 0018 enforce）
+              {t("nav.readonlyBody")}
             </div>
           </div>
         </nav>
@@ -370,6 +379,7 @@ function NavItem({
 //  adds that field (backlog).
 // ─────────────────────────────────────────────────────────────
 function TabActive({ turn }: { turn: number }) {
+  const tAct = useTranslations("memory.active");
   return (
     <div className="px-8 py-6 max-w-[760px] mx-auto">
       <div
@@ -385,10 +395,10 @@ function TabActive({ turn }: { turn: number }) {
             className="se-mono uppercase mb-1"
             style={{ fontSize: 11, color: "var(--se-accent)", letterSpacing: "0.06em" }}
           >
-            LIVE · 當前 TURN {turn}
+            {tAct("currentTurnLabel", { turn })}
           </div>
           <p className="text-xs se-cjk m-0" style={{ color: "var(--se-fg-2)", lineHeight: 1.6 }}>
-            每 turn AI 都會從你嘅整段歷史搜出最相關嘅段落注入返敘事。下面係 AI 而家「腦海入面浮現緊」嘅嘢。
+            {tAct("explainer")}
           </p>
         </div>
       </div>
@@ -416,16 +426,16 @@ function TabActive({ turn }: { turn: number }) {
           className="text-base font-medium m-0 se-cjk"
           style={{ color: "var(--se-fg)" }}
         >
-          AI 而家用近 20 turn 嘅 context 寫敘事
+          {tAct("fallbackTitle")}
         </h3>
         <p
           className="text-sm se-cjk mt-2.5 mx-auto max-w-[460px]"
           style={{ color: "var(--se-fg-muted)", lineHeight: 1.65 }}
         >
-          per-turn RAG retrieval log 仲未 wire 落 backend
-          <span style={{ color: "var(--se-fg-dim)" }}> (Phase 7+ 加 turns.retrieved_memory_ids[] column)</span>。
+          {tAct("fallbackBody")}
+          <span style={{ color: "var(--se-fg-dim)" }}> {tAct("fallbackBodyAside")}</span>
           <br />
-          我哋設咗相似度 floor — 寧願冇 match 都唔要 noisy match。
+          {tAct("fallbackNoMatch")}
         </p>
       </div>
     </div>
@@ -442,6 +452,7 @@ function TabSummaries({
   summaries: Summary[];
   turnCount: number;
 }) {
+  const tMem = useTranslations("memory.memoir");
   if (summaries.length === 0) {
     const first = 10;
     const pct = Math.min(100, Math.round((turnCount / first) * 100));
@@ -461,10 +472,10 @@ function TabSummaries({
           <BookOpen size={22} />
         </span>
         <h2 className="text-lg font-semibold mt-3.5 mb-2 se-cjk" style={{ color: "var(--se-fg)" }}>
-          AI 仲未開始整理回憶
+          {tMem("emptyTitle")}
         </h2>
         <p className="text-sm se-cjk" style={{ color: "var(--se-fg-muted)", lineHeight: 1.65 }}>
-          玩到 turn 10 · AI 會自動寫第一章嘅摘要，記住你做過嘅關鍵決定。之後每 ~20 turn 會再 update。
+          {tMem("emptyBody")}
         </p>
         <div
           className="mt-6 p-3.5 rounded-lg"
@@ -475,7 +486,7 @@ function TabSummaries({
         >
           <div className="flex items-baseline justify-between mb-1.5">
             <span className="text-xs se-cjk" style={{ color: "var(--se-fg-muted)" }}>
-              距離第一章摘要
+              {tMem("untilFirst")}
             </span>
             <span className="se-mono text-xs" style={{ color: "var(--se-fg)" }}>
               {turnCount} / {first}
@@ -508,7 +519,7 @@ function TabSummaries({
         className="m-0 mb-6 text-xs se-cjk"
         style={{ color: "var(--se-fg-muted)", lineHeight: 1.65 }}
       >
-        AI 每 ~20 turn 整理一次。摘要會持續影響 AI 嘅判斷 — 即使你玩到 turn 80，第一章嘅嘢佢仍然記得。
+        {tMem("header")}
       </p>
       <div className="flex flex-col gap-4">
         {summaries.map((s, i) => (
@@ -525,7 +536,7 @@ function TabSummaries({
                 className="se-mono"
                 style={{ fontSize: 11, color: "var(--se-accent)", letterSpacing: "0.06em" }}
               >
-                第 {i + 1} 章 · {s.range}
+                {tMem("chapterTitle", { n: i + 1, range: s.range })}
               </span>
               <span
                 className="se-mono"
@@ -562,6 +573,9 @@ function TabLorebook({
   grouped: Record<string, LoreRow[]>;
   types: readonly string[];
 }) {
+  // Wave 2 i18n migration (2026-05-27): entity type labels + empty state localized.
+  const tChars = useTranslations("memory.characters");
+  const tEntry = useTranslations("memory.entryKind");
   const totalCount = Object.values(grouped).reduce((n, arr) => n + arr.length, 0);
 
   if (totalCount === 0) {
@@ -581,11 +595,10 @@ function TabLorebook({
           <NotebookPen size={22} />
         </span>
         <h2 className="text-lg font-semibold mt-3.5 mb-2 se-cjk" style={{ color: "var(--se-fg)" }}>
-          AI 仲未識到呢個世界嘅人物
+          {tChars("emptyTitle")}
         </h2>
         <p className="text-sm se-cjk" style={{ color: "var(--se-fg-muted)", lineHeight: 1.65 }}>
-          玩多啲 turn · AI 會自動將你遇到嘅人物、地點、物件、事件 extract 出嚟，
-          整理成記事，等後尾遇到都唔會「失憶」。
+          {tChars("emptyBody")}
         </p>
       </div>
     );
@@ -595,21 +608,22 @@ function TabLorebook({
     <div className="px-8 py-6 max-w-[980px] mx-auto">
       <div className="flex items-center gap-3.5 mb-4.5">
         <p className="text-xs se-cjk m-0 flex-1" style={{ color: "var(--se-fg-muted)", lineHeight: 1.6 }}>
-          AI 自動 extract 嘅 entity · 影響每 turn 嘅敘事。
-          <span className="se-mono" style={{ color: "var(--se-accent)" }}>●</span> 標記 = always_on · AI 永遠記得。
+          {tChars("header")}{" "}
+          <span className="se-mono" style={{ color: "var(--se-accent)" }}>●</span>{" "}
+          {tChars("alwaysOnLegend")}
         </p>
         <span className="se-mono" style={{ fontSize: 11, color: "var(--se-fg-dim)" }}>
-          {totalCount} ENTRIES
+          {totalCount} {tChars("entriesSuffix")}
         </span>
       </div>
-      {types.map((t) => {
-        const entries = grouped[t];
+      {types.map((typeKey) => {
+        const entries = grouped[typeKey];
         if (!entries || entries.length === 0) return null;
         return (
-          <section key={t} className="mb-6">
+          <section key={typeKey} className="mb-6">
             <div className="flex items-center gap-2 mb-2.5">
               <h3 className="text-xs font-semibold m-0 se-cjk" style={{ letterSpacing: "-0.005em" }}>
-                {ENTITY_LABEL[t]}
+                {tEntry(typeKey)}
               </h3>
               <span
                 className="se-mono"
@@ -627,7 +641,7 @@ function TabLorebook({
             </div>
             <div className="grid gap-2.5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}>
               {entries.map((e) => (
-                <LoreCard key={e.id} entry={e} type={t} />
+                <LoreCard key={e.id} entry={e} type={typeKey} />
               ))}
             </div>
           </section>
@@ -638,6 +652,9 @@ function TabLorebook({
 }
 
 function LoreCard({ entry, type }: { entry: LoreRow; type: string }) {
+  // Wave 2 i18n migration (2026-05-27): entity-kind label + "always-on" tooltip + first-seen label localized.
+  const tEntry = useTranslations("memory.entryKind");
+  const tCharCard = useTranslations("memory.characters");
   const hue = ENTITY_HUE[type] ?? 240;
   return (
     <div
@@ -650,7 +667,7 @@ function LoreCard({ entry, type }: { entry: LoreRow; type: string }) {
       <div className="flex items-center gap-2">
         {entry.always_on && (
           <span
-            title="Always on · AI 每 turn 都記得"
+            title={tCharCard("alwaysOn")}
             style={{
               width: 6,
               height: 6,
@@ -677,7 +694,7 @@ function LoreCard({ entry, type }: { entry: LoreRow; type: string }) {
             letterSpacing: "0.04em",
           }}
         >
-          {ENTITY_LABEL[type]}
+          {tEntry(type as "character" | "place" | "item" | "event" | "concept")}
         </span>
       </div>
       <p
@@ -690,15 +707,15 @@ function LoreCard({ entry, type }: { entry: LoreRow; type: string }) {
         {entry.description}
       </p>
       <div className="flex items-center gap-2.5 mt-1 text-[10.5px]" style={{ color: "var(--se-fg-dim)" }}>
-        <span className="se-mono">首見 {new Date(entry.created_at).toLocaleDateString()}</span>
+        <span className="se-mono">{tCharCard("firstSeen")} {new Date(entry.created_at).toLocaleDateString()}</span>
         <div className="flex-1" />
         <span
           className="inline-flex items-center gap-1 se-mono"
-          title="AI 自動記錄 · 不可編輯 · Migration 0018 server-only write"
+          title={tCharCard("readonlyTooltip")}
           style={{ fontSize: 10 }}
         >
           <Lock size={10} />
-          唯讀
+          {tCharCard("readonlyBadge")}
         </span>
       </div>
     </div>
@@ -718,6 +735,7 @@ function TabInnerVoices({
   npcInnerVoices: Record<string, NpcInnerThought[]>;
   npcNames: string[];
 }) {
+  const tIV = useTranslations("memory.innerVoices");
   const [selectedNpc, setSelectedNpc] = useState<string>(npcNames[0] ?? "");
   const selectedThoughts = selectedNpc ? npcInnerVoices[selectedNpc] ?? [] : [];
 
@@ -732,14 +750,14 @@ function TabInnerVoices({
           }}
         >
           <Drama size={36} style={{ color: "var(--se-fg-dim)", margin: "0 auto" }} />
-          <div className="mt-3 text-sm font-semibold se-cjk">未有 NPC 內心戲記錄</div>
+          <div className="mt-3 text-sm font-semibold se-cjk">{tIV("emptyTitle")}</div>
           <div
             className="mt-2 text-xs leading-relaxed se-cjk"
             style={{ color: "var(--se-fg-dim)" }}
           >
-            喺 Play 頁啟動「NPC 內心戲」(Storyteller 獨享) ·
+            {tIV("emptyBody")}
             <br />
-            之後每個 turn 嘅 NPC POV 會 record 喺呢度。
+            {tIV("emptyHint")}
           </div>
         </div>
       </div>
@@ -784,12 +802,12 @@ function TabInnerVoices({
       <div className="flex flex-col gap-3">
         {selectedThoughts.length === 0 ? (
           <div className="text-xs se-cjk" style={{ color: "var(--se-fg-dim)" }}>
-            未有 inner thought 記錄。
+            {tIV("noThoughtsForNpc")}
           </div>
         ) : (
-          selectedThoughts.map((t) => (
+          selectedThoughts.map((thought) => (
             <div
-              key={t.id}
+              key={thought.id}
               className="rounded-lg border p-3.5"
               style={{
                 background: "var(--se-bg-elev)",
@@ -805,13 +823,13 @@ function TabInnerVoices({
                     letterSpacing: "0.05em",
                   }}
                 >
-                  TURN {t.turnIndex}
+                  TURN {thought.turnIndex}
                 </span>
                 <span
                   className="text-[10px] inline-flex items-center gap-1"
                   style={{ color: "var(--se-fg-dim)" }}
                 >
-                  <Lock size={9} /> 內部 POV
+                  <Lock size={9} /> {tIV("internalPov")}
                 </span>
               </div>
               <div className="se-cjk text-sm leading-relaxed mb-2">
@@ -819,9 +837,9 @@ function TabInnerVoices({
                   className="se-mono uppercase text-[9px] mr-1.5"
                   style={{ color: "var(--se-fg-dim)", letterSpacing: "0.08em" }}
                 >
-                  心底
+                  {tIV("innerThought")}
                 </span>
-                {t.innerThought}
+                {thought.innerThought}
               </div>
               <div
                 className="se-cjk text-xs leading-relaxed"
@@ -831,9 +849,9 @@ function TabInnerVoices({
                   className="se-mono uppercase text-[9px] mr-1.5"
                   style={{ color: "var(--se-fg-dim)", letterSpacing: "0.08em" }}
                 >
-                  意圖
+                  {tIV("intent")}
                 </span>
-                {t.intent}
+                {thought.intent}
               </div>
             </div>
           ))

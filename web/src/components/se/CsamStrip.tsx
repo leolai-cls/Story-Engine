@@ -1,4 +1,7 @@
+"use client";
+
 import { TriangleAlert } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 /**
  * CSAM hard-rule reminder strip — CLAUDE.md hard rule #2.
@@ -16,6 +19,10 @@ import { TriangleAlert } from "lucide-react";
  *   "banner" — Library page (top strip · full width · with detail link)
  *   "footer" — Memory Journal (bottom of layout)
  *   "card"   — Settings AdultModeBlock (embedded in card)
+ *
+ * Wave 1 audit fix (2026-05-27): localized via next-intl. Was hardcoded
+ * 繁中 — EN / zh-Hans adult-mode users saw Cantonese legal copy which
+ * undermined the compliance signal.
  */
 
 export function CsamStrip({
@@ -25,6 +32,7 @@ export function CsamStrip({
   variant?: "banner" | "footer" | "card";
   className?: string;
 }) {
+  const t = useTranslations("compliance.csam");
   return (
     <div
       className={`flex items-start gap-2.5 px-6 sm:px-14 ${className ?? ""}`}
@@ -51,16 +59,14 @@ export function CsamStrip({
           letterSpacing: "0.06em",
         }}
       >
-        HARD RULE
+        {t("badge")}
       </span>
-      <span className="se-cjk flex-1">
-        平台嚴禁涉及未成年人士、真實人物或非法內容嘅創作。違者帳號永久停權並依法通報。
-      </span>
+      <span className="se-cjk flex-1">{t("body")}</span>
       <a
         className="se-cjk underline ml-auto whitespace-nowrap"
         style={{ color: "var(--se-fg-muted)" }}
       >
-        了解詳情
+        {t("learnMore")}
       </a>
     </div>
   );

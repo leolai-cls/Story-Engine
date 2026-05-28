@@ -4,6 +4,12 @@
     "tagline": "Interactive fiction RPG for Chinese-language readers",
     "comingSoon": "Coming soon"
   },
+  "siteMetadata": {
+    "title": "Kieio — Step into the story, be the protagonist",
+    "description": "Kieio (pronounced \"KEE-yo\") · interactive fiction RPG for Chinese-language readers. You imagine · KIEIO narrates · you become. AI tailors every story to you, remembers your choices, NPCs have real personalities and won't bow to you.",
+    "ogTitle": "Kieio — Step into the story, be the protagonist",
+    "ogDescription": "Interactive fiction RPG for Chinese-language readers · You imagine · KIEIO narrates · You become"
+  },
   "nav": {
     "library": "Library",
     "myGames": "My Games",
@@ -13,10 +19,19 @@
     "settings": "Settings",
     "login": "Log in",
     "logout": "Log out",
-    "signup": "Sign up"
+    "signup": "Sign up",
+    "drawer": {
+      "newStory": "New story",
+      "continueSection": "RESUME",
+      "allPlaythroughs": "All",
+      "ariaClose": "Close",
+      "ariaCloseDrawer": "Close drawer",
+      "ariaOpenMenu": "Open menu"
+    }
   },
   "footer": {
-    "tagline": "Chinese-first"
+    "tagline": "Chinese-first",
+    "pronunciation": "pronounced \"KEE-yo\""
   },
   "marketing": {
     "hero": {
@@ -93,7 +108,10 @@
       "or": "or",
       "noAccount": "No account yet?",
       "signupLink": "Sign up",
-      "phaseNotice": "(Phase 0.6 — wires up after Supabase env)"
+      "phaseNotice": "(Phase 0.6 — wires up after Supabase env)",
+      "guestButton": "Try as guest · one click",
+      "guestNoCardLine": "No credit card · start immediately · guests get their own credit",
+      "guestSignupHint": "Want to keep your playthroughs long-term? Sign up with email to create an account"
     },
     "magicLink": {
       "title": "Check your email",
@@ -127,6 +145,737 @@
         }
       },
       "comingSoon": "Wires up after Phase 0.6"
+    }
+  },
+  "genres": {
+    "romance": "Romance",
+    "adventure": "Adventure",
+    "campus": "Campus",
+    "fantasy": "Fantasy",
+    "sports": "Sports",
+    "mystery": "Mystery",
+    "slice": "Slice of Life",
+    "horror": "Horror"
+  },
+  "ratings": {
+    "general": "General",
+    "pg13": "PG-13",
+    "mature": "Mature",
+    "adult": "18+"
+  },
+  "axes": {
+    "trust": "Trust",
+    "romance": "Romance",
+    "respect": "Respect",
+    "fear": "Fear"
+  },
+  "compliance": {
+    "csam": {
+      "badge": "HARD RULE",
+      "body": "This platform strictly forbids creations involving minors, real people, or illegal content. Violators get permanent account termination and legal reporting.",
+      "learnMore": "Learn more"
+    }
+  },
+  "visitorLanding": {
+    "eyebrow": "STORY ENGINE · BETA",
+    "headlineLine1": "Every story",
+    "headlineLine2": "remembers every choice you made",
+    "subtitle": "The Chinese-language interactive RPG platform · AI generates the plot in real time · characters have their own red lines and disposition · every choice you make is permanently written to long-term memory.",
+    "pillars": {
+      "memory": {
+        "title": "4-layer long-term memory",
+        "body": "Recent 20 turns · rolling summaries · RAG vectors · auto-lorebook · the AI really does remember"
+      },
+      "npcs": {
+        "title": "NPCs with red lines",
+        "body": "Characters are no yes-men · 4-axis disposition · they can't be overridden by a prompt"
+      },
+      "adaptive": {
+        "title": "Adaptive UI",
+        "body": "Every story gets a custom state schema · affinity rings for romance · HP/MP bars for D&D"
+      }
+    },
+    "ctaGuest": "Try free · one-click guest",
+    "ctaEmail": "Log in with email",
+    "noCardHint": "No credit card · start immediately"
+  },
+  "statePanel": {
+    "relationshipGraph": {
+      "empty": "No relationships yet",
+      "buckets": {
+        "trust": "Trust",
+        "close": "Close",
+        "friendly": "Friendly",
+        "stranger": "Stranger",
+        "wary": "Wary",
+        "hostile": "Hostile"
+      }
+    },
+    "note": {
+      "empty": "(empty)"
+    },
+    "inventory": {
+      "empty": "Empty"
+    },
+    "unsupportedField": "(unsupported field: {hint})"
+  },
+  "storyDetail": {
+    "cta": {
+      "loginToPlay": "Log in to play",
+      "startPlaying": "Start playing"
+    },
+    "breadcrumbLibrary": "Library",
+    "community": "Community creation",
+    "visibility": {
+      "public": "Published · PUBLIC",
+      "unlisted": "LINK SHARE",
+      "private": "PRIVATE"
+    },
+    "openingHeader": "Opening",
+    "openingHint": "Every playthrough starts here — but each player's story diverges from this point.",
+    "castHeader": "Main characters",
+    "castSubFormat": "CAST · {count} NPCs",
+    "commentsHeader": "Comments",
+    "commentsSubFormat": "{comments} REPLIES · {ratings} RATINGS",
+    "commentsEmpty": "No comments yet.",
+    "commentsEmptyAuthed": "Leave your thoughts after playing.",
+    "commentsEmptyAnon": "Log in to comment.",
+    "commentDeleted": "[deleted]",
+    "ratingCountSuffix": " ratings",
+    "stats": {
+      "playthroughs": "Total playthroughs",
+      "ratings": "Ratings",
+      "comments": "Comments",
+      "published": "Published"
+    },
+    "costLabel": "COST",
+    "costPerTurn": "~2 credits / turn",
+    "costTagline": " · play until you're satisfied",
+    "tagsLabel": "TAGS",
+    "block403": {
+      "httpLabel": "HTTP 403 · ADULT MODE REQUIRED",
+      "title": "This story is locked behind Adult Mode",
+      "body": "The author marked this story as <plus>18+</plus> content. To continue, please open Adult Mode in <settings>Settings</settings> (identity verification required).",
+      "cta": "Go to Settings →",
+      "back": "Back to Library",
+      "whyTitle": "Why identity verification?",
+      "whyBody": "The platform must confirm users are adults before unlocking 18+ content. Verification is handled by Stripe Identity · one-time · ID images are not stored.",
+      "phaseNote": " (Phase 6 money tier · live)"
+    }
+  },
+  "storyDetailActions": {
+    "playOwn": "Start playing",
+    "playFork": "Start your own playthrough",
+    "loginToFork": "Log in to play",
+    "ownerEditTitle": "You own this story",
+    "ownerEditBody": "Choose who can see it. Default is Private — only you.",
+    "visibilityPrivate": "Private",
+    "visibilityPrivateDesc": "Only you can see / play",
+    "visibilityUnlisted": "Link share",
+    "visibilityUnlistedDesc": "Anyone with the link can play",
+    "visibilityPublic": "Public",
+    "visibilityPublicDesc": "Appears in Library + searchable",
+    "saving": "Saving…",
+    "publishCta": "Publish public",
+    "unpublishCta": "Make private",
+    "errorPublish": "Couldn't update visibility — try again later.",
+    "myReviewTitle": "Your rating",
+    "myReviewSubmit": "Rate / review",
+    "myReviewUpdate": "Update rating",
+    "myReviewSaving": "Saving…",
+    "myReviewModerating": "Moderating…",
+    "myReviewPlaceholder": "Tell other players what you experienced (optional).",
+    "myReviewCancel": "Cancel",
+    "errorRate": "Rating failed: {reason}",
+    "errorCannotRateOwn": "You can't rate your own story.",
+    "commentSectionTitle": "Add a comment",
+    "commentPlaceholder": "What did you think? (will be moderated)",
+    "commentSubmit": "Post",
+    "commentSaving": "Saving…",
+    "commentModerating": "AI moderating…",
+    "commentLoginToPost": "Log in to post a comment",
+    "errorComment": "Comment failed: {reason}",
+    "errorParentMismatch": "Comment thread mismatch — reload the page.",
+    "errorBodyInvalid": "Comment too short or too long.",
+    "errorModerationConfig": "Content moderation system configuration error. Please try again later.",
+    "reportTitle": "Report",
+    "reportPlaceholder": "Why are you reporting this? (optional · max 200 chars)",
+    "reportReasonLabel": "Reason",
+    "reportReasonCsam": "Sexual content involving minors (CSAM)",
+    "reportReasonSexualMinor": "Implied sexual content involving minors",
+    "reportReasonHate": "Hate speech",
+    "reportReasonHarassment": "Harassment",
+    "reportReasonIllegal": "Other illegal content",
+    "reportReasonOther": "Other",
+    "reportSubmit": "Submit report",
+    "reportSubmitting": "Submitting…",
+    "reportSubmitted": "Reported · the moderation team will review",
+    "reportError": "Report failed: {reason}",
+    "reportAlreadyReported": "You've already reported this content. The moderation team will review.",
+    "forkModalTitle": "Start your own playthrough",
+    "forkModalBody": "Your playthrough is completely separate · the original story stays unchanged. Each player writes their own ending.",
+    "forkModalProtagonistLabel": "Protagonist name / leave blank = default \"Protagonist\"",
+    "forkModalProtagonistPlaceholder": "e.g. Mr. Chan / Lin Siu-ah / Tom",
+    "forkModalModelHint": "Settings → change default model",
+    "forkModalCostHint": "~2 credits / turn",
+    "forkModalSubmit": "Start playing",
+    "forkModalSubmitting": "Starting…",
+    "forkModalCancel": "Cancel",
+    "forkErrorAuth": "Couldn't start playthrough: please log in.",
+    "forkErrorFallback": "Couldn't start playthrough: {reason}"
+  },
+  "memory": {
+    "defaultStoryTitle": "Story",
+    "headerTitle": "Memory of your {protagonist} playthrough",
+    "headerSubtitle": "{storyTitle} · TURN {turn} · read-only · only you see this · forks start blank",
+    "headerSubtitleAdult": "{storyTitle} · TURN {turn} · read-only · adult mode",
+    "tabs": {
+      "active": "Active",
+      "memoir": "Memoir · {count}",
+      "characters": "Characters · {count}",
+      "innerVoices": "Inner voices · {count}"
+    },
+    "entryKind": {
+      "character": "Character",
+      "place": "Place",
+      "item": "Item",
+      "event": "Event",
+      "concept": "Concept"
+    },
+    "active": {
+      "emptyTitle": "No active memory for this turn",
+      "emptyBody": "The AI couldn't find relevant context for what just happened — that's by design (similarity floor). Memory shows up when you reference past events."
+    },
+    "memoir": {
+      "emptyTitle": "The AI hasn't started writing a memoir yet",
+      "emptyBody": "Summaries are written every 20 turns. Keep playing and chapters will appear here."
+    },
+    "characters": {
+      "emptyTitle": "The AI hasn't met anyone in this world yet",
+      "emptyBody": "Lorebook entries (people · places · items · events · lore) are extracted in the background while you play.",
+      "alwaysOn": "Always on",
+      "firstSeen": "First seen",
+      "readonlyBadge": "Read-only"
+    },
+    "innerVoices": {
+      "emptyTitle": "No NPC inner voices recorded yet",
+      "emptyBody": "Enable NPC inner voices in the play screen (Storyteller tier) to see each NPC's POV here.",
+      "storyteller": "Storyteller exclusive",
+      "innerThought": "Inner thought",
+      "intent": "Intent",
+      "internalPov": "Internal POV"
+    },
+    "backToPlay": "Back to play",
+    "continuePlay": "Continue playing",
+    "ariaBack": "Back to play",
+    "readOnly": "Read-only",
+    "nav": {
+      "layerLabel": "MEMORY LAYERS · 4-LAYER",
+      "activeLabel": "Active memory",
+      "activeHint": "Memory influencing this turn",
+      "memoirLabel": "Memoir",
+      "memoirSub": "{count} chapters",
+      "memoirHint": "Rolling chapter summaries · every ~20 turns",
+      "charactersLabel": "Character file",
+      "charactersSub": "{count} entries",
+      "charactersHint": "People · places · items · events · concepts",
+      "innerVoicesLabel": "NPC inner voices",
+      "innerVoicesSub": "{count} entries · {npcs} NPCs",
+      "innerVoicesHint": "Storyteller exclusive · each NPC's POV + inner thoughts",
+      "recentLabel": "Recent 20 turns",
+      "recentBadge": "Auto",
+      "recentHint": "Already in the narrative stream — no extra entry point needed",
+      "readonlyTitle": "AI auto-records · cannot be edited",
+      "readonlyBody": "(server-only write enforced via Migration 0018)"
+    },
+    "active": {
+      "emptyTitle": "No active memory for this turn",
+      "emptyBody": "The AI couldn't find relevant context for what just happened — that's by design (similarity floor). Memory shows up when you reference past events.",
+      "header": "Active retrieval — what the AI saw this turn",
+      "currentTurnLabel": "LIVE · CURRENT TURN {turn}",
+      "explainer": "Every turn the AI searches your whole history for the most relevant passages and injects them into the narrative. Below is what's surfacing in the AI's mind right now.",
+      "fallbackTitle": "AI is using the last 20 turns for context",
+      "fallbackBody": "Per-turn RAG retrieval log not yet wired into backend",
+      "fallbackBodyAside": "(Phase 7+ adds turns.retrieved_memory_ids[] column)",
+      "fallbackNoMatch": "We set a similarity floor — silence beats noisy matches."
+    },
+    "memoir": {
+      "emptyTitle": "The AI hasn't started writing a memoir yet",
+      "emptyBody": "Summaries are written every 20 turns. Keep playing and chapters will appear here.",
+      "chapterTitle": "Chapter {n} · {range}",
+      "header": "Each chapter is auto-written every ~20 turns. The summary keeps influencing AI decisions — even at turn 80, chapter 1 still resonates.",
+      "untilFirst": "Until your first chapter summary",
+      "untilFirstBody": "Play to turn 10 · AI will write the first chapter summary, locking in the key decisions you've made. Each ~20 turns it'll write again."
+    },
+    "characters": {
+      "emptyTitle": "The AI hasn't met anyone in this world yet",
+      "emptyBody": "Lorebook entries (people · places · items · events · concepts) are extracted in the background while you play.",
+      "alwaysOn": "Always on · AI remembers every turn",
+      "firstSeen": "First seen",
+      "readonlyBadge": "Read-only",
+      "readonlyTooltip": "AI auto-records · cannot be edited · Migration 0018 server-only write",
+      "header": "Auto-extracted entities · they influence every turn's narrative.",
+      "alwaysOnLegend": "● = always_on · AI remembers forever.",
+      "entriesSuffix": "ENTRIES",
+      "appearancesLabel": "Appearances"
+    },
+    "innerVoices": {
+      "emptyTitle": "No NPC inner voices recorded yet",
+      "emptyBody": "Enable NPC inner voices in the play screen (Storyteller tier) to see each NPC's POV here.",
+      "emptyHint": "Each turn's NPC POV is recorded here afterwards.",
+      "storyteller": "Storyteller exclusive",
+      "innerThought": "Inner thought",
+      "intent": "Intent",
+      "internalPov": "Internal POV",
+      "noThoughtsForNpc": "No inner thoughts recorded yet."
+    }
+  },
+  "play": {
+    "header": {
+      "ariaOpenList": "Open game list",
+      "ariaBack": "Back to Library",
+      "back": "Back",
+      "ariaMemory": "Memory",
+      "memoryTooltip": "This playthrough's 4-layer private memory",
+      "memory": "Memory",
+      "playingAs": "Playing as:"
+    },
+    "tabs": {
+      "narrative": "Narrative",
+      "npc": "Cast · {count}",
+      "state": "State"
+    },
+    "turn": {
+      "userBadge": "→ {protagonist}",
+      "aiBadge": "↳ Narrative",
+      "aiPending": "↳ Narrative (writing...)",
+      "aiThinking": "AI thinking...",
+      "moderationPending": "Moderation + AI thinking…",
+      "directorSoftTooltip": "NPC reaction differed from your expectation"
+    },
+    "input": {
+      "placeholder": "What do you want to do? (describe action, dialogue, decision…)",
+      "submit": "Act"
+    },
+    "rail": {
+      "npcCount": "NPCs · {count}",
+      "stateTitle": "{protagonist} state"
+    },
+    "errors": {
+      "insufficientCreditsTitle": "Not enough credits",
+      "insufficientCreditsBody": "You have {balance} credits, this turn needs ~{needed}.",
+      "insufficientCreditsCta": "Go to Settings to upgrade / top-up",
+      "modelTierTitle": "Model requires a higher tier",
+      "modelTierBody": "Your tier ({tier}) can't use {model}. Go to Settings to pick another model or upgrade.",
+      "modelTierCta": "Go to Settings",
+      "moderationTitle": "Moderation · this action was blocked",
+      "moderationBody": "Try rephrasing your action or changing the story direction.",
+      "moderationConfigBody": "Content moderation system configuration error. Please try again later.",
+      "moderationUnavailableBody": "Content moderation is temporarily unavailable. Please try again later.",
+      "rateLimitedTitle": "Hold on — last turn is still processing",
+      "rateLimitedBody": "Wait a few seconds and try again.",
+      "adultModeRequiredTitle": "Adult mode required",
+      "adultModeRequiredBodyModel": "{model} is an NSFW model · enable Adult Mode in Settings first (KYC required). Or pick a different model to continue.",
+      "adultModeRequiredBodyStory": "This story is adult-rated · enable Adult Mode in Settings first (KYC required) to keep playing.",
+      "adultModeRequiredCta": "Go to Settings",
+      "httpError": "Request failed (HTTP {status})"
+    },
+    "permanentBadge": "PERMANENT · no retry",
+    "permanentTooltip": "Hard rule #5 · can't retry the same turn"
+  },
+  "skillCheck": {
+    "rolling": "SKILL CHECK · ROLLING",
+    "vsLabel": "{skill} {value} · vs difficulty {difficulty}",
+    "difficultyLabel": "Difficulty",
+    "opponent": "Opponent",
+    "willTheyBudge": "Will {target} budge?",
+    "reveal": "Reveal result",
+    "permanent": "PERMANENT · no retry",
+    "permanentTooltip": "Hard rule #5 · can't retry the same turn",
+    "outcomes": {
+      "critical_success": "Critical success",
+      "success": "Success",
+      "failure": "Failure",
+      "critical_failure": "Critical failure"
+    },
+    "stampSuffix": "SKILL CHECK · {stamp}",
+    "consequencesHeader": "CONSEQUENCES · WRITTEN PERMANENTLY",
+    "writtenFooter": "Result recorded into the story · to progress, write your next action",
+    "continue": "Continue"
+  },
+  "playthroughSidebar": {
+    "header": "MY GAMES",
+    "ariaCloseList": "Close list",
+    "ariaClose": "Close",
+    "newStory": "New story",
+    "emptyList": "No other playthroughs",
+    "seeAll": "See all {count}",
+    "allCount": "All ({count})"
+  },
+  "npcL3": {
+    "cardTitle": "NPC inner voices",
+    "upsellBody": "Every NPC gets their own POV + inner monologue · richer dialogue · Storyteller-tier exclusive.",
+    "upsellCta": "Upgrade to Storyteller →",
+    "activeDescription": "Active · each NPC has POV · ~{cost} credits / NPC (up to {max} per turn)",
+    "inactiveDescription": "When enabled, each active NPC gets their own inner monologue · ~{cost} credits / NPC (up to {max} per turn)",
+    "buttonOn": "Disable NPC inner voices",
+    "buttonOff": "Enable NPC inner voices",
+    "buttonPending": "Processing..."
+  },
+  "settings": {
+    "pageTitle": "Settings",
+    "nav": {
+      "profile": "Profile",
+      "preferences": "Preferences",
+      "adult": "Adult mode",
+      "credits": "Credits",
+      "account": "Account"
+    },
+    "anonBanner": {
+      "title": "You're in guest mode",
+      "body": "Link an email to lock in your progress and credit balance — without it, clearing browser cookies will lose your stories.",
+      "cta": "Sign up / link email"
+    },
+    "profile": {
+      "title": "Profile",
+      "subtitle": "Account login · display name · language",
+      "emailLabel": "Email",
+      "emailGuestPlaceholder": "(Guest / anonymous login)",
+      "displayNameLabel": "Display name",
+      "languageLabel": "Language",
+      "languageHint": "Affects UI text · individual story narrative language is picked at creation time",
+      "joinedLabel": "Joined"
+    },
+    "preferences": {
+      "title": "Preferences",
+      "subtitle": "Pick a tier · we route the best model for you (Chinese vs English · vendor availability) · adult tier requires Adult Mode first"
+    },
+    "adult": {
+      "title": "Adult mode",
+      "subtitle": "Legal requirement · CSAM / illegal pre-filter is always on, regardless of toggle"
+    },
+    "credits": {
+      "title": "Credits",
+      "subtitleFormat": "Current {tier} · balance {balance} credits · Phase 4 money tier unlocks top-up",
+      "balanceLabel": "BALANCE",
+      "balanceUnit": "credits",
+      "subscriptionStatus": "Subscription status:",
+      "nextRenewal": "next renewal:",
+      "cancelAtPeriodEnd": "Cancels at period end",
+      "upgrade": "Upgrade",
+      "viewPlans": "View plans",
+      "recentLedger": "RECENT CREDIT ACTIVITY",
+      "ledgerEmpty": "No credit activity yet.",
+      "ledgerBalance": "bal {balance}",
+      "tierDescriptions": {
+        "free": "50 credits per day · entry-level models only",
+        "adventurer": "2,000 credits per month · no turn cap · Pro + Pro Max models unlocked · 80 NPC L3 turns / month",
+        "storyteller": "4,000 credits per month · all models · Adult mode (KYC required) · unlimited NPC L3",
+        "legend": "Deprecated · same as Pro"
+      }
+    },
+    "billing": {
+      "managePortal": "Manage subscription"
+    },
+    "account": {
+      "title": "Account",
+      "subtitle": "Sign out · export data · delete account",
+      "signOutLabel": "Sign out",
+      "signOutHint": "Signs out on all devices",
+      "exportLabel": "Export my data",
+      "exportHint": "All playthroughs · memory · comments · ~zip file",
+      "exportButton": "Export (v1.5+)",
+      "deleteLabel": "Delete account",
+      "deleteHint": "Irreversible · all stories · playthroughs · memory permanently lost",
+      "deleteButton": "Delete..."
+    },
+    "ledger": {
+      "turn_charge": "Played a turn",
+      "story_charge": "Created a new story",
+      "embed_charge": "Embed usage",
+      "sub_grant": "Subscription credit grant",
+      "sub_renewal": "Subscription renewal credit",
+      "sub_canceled": "Subscription canceled",
+      "topup": "Top-up purchase",
+      "refund": "Refund",
+      "admin_adjust": "Admin adjustment",
+      "free_tier_refresh": "Free tier daily refresh"
+    },
+    "tierPicker": {
+      "title": "Narrator AI Tier",
+      "subtitle": "Pick a tier · we route the best model (language + vendor availability). Director always uses Haiku 4.5.",
+      "saved": "Saved",
+      "saveFailed": "Save failed",
+      "saveFailedWithError": "Save failed · {error}",
+      "perTurnEstimate": "PER-TURN EST",
+      "requiresSubTier": "Requires {tier}",
+      "andKyc": " + verification",
+      "tiers": {
+        "standard": "Standard",
+        "pro": "Pro",
+        "pro-max": "Pro Max",
+        "adult": "Adult NSFW"
+      },
+      "blurbs": {
+        "standard": "Fast · cheap · fluent Chinese · NovelAI-equivalent",
+        "pro": "Deeper narration · emotional detail · strong in Chinese + English",
+        "pro-max": "Deepest narration · multi-character interactions · complex plots",
+        "adult": "Adult mode only · identity verification required"
+      },
+      "subTierLabels": {
+        "free": "Free",
+        "adventurer": "Adventurer",
+        "storyteller": "Storyteller",
+        "legend": "Legend"
+      }
+    },
+    "adultModeToggle": {
+      "cardTitle": "Adult mode (18+)",
+      "cardDescription": "Enable to pick NSFW models · create + play adult-rated stories.",
+      "enabledBadge": "Enabled",
+      "stateOn": "Adult mode enabled",
+      "stateOff": "Adult mode disabled",
+      "enabledExplainer": "You can pick OpenRouter NSFW models · create adult-rated stories · the Library shows adult content.",
+      "disabledExplainer": "SFW + soft content only. NSFW models + adult-rated stories hidden.",
+      "ageVerifiedYes": "You're age-verified — you can toggle adult mode on/off freely.",
+      "ageVerifiedNo": "Identity verification required to enable adult mode.",
+      "requiresVerificationTitle": "Age verification required (18+)",
+      "verificationBody": "Per platform policy · adult mode requires Stripe Identity to confirm age · ensuring only 18+ users can access. Tap the button to go to Stripe's secure page · the toggle unlocks automatically after.",
+      "stripePrivacyNote": "Stripe Identity only takes an ID + selfie to verify age · Kieio does NOT store the images.",
+      "verifyCta": "Start age verification",
+      "verifyPending": "Redirecting to Stripe…",
+      "alreadyVerified": "You're already verified · reload the page to see the toggle unlocked",
+      "authRequired": "Please log in first",
+      "verifyInitError": "Verification initialization failed: {error}",
+      "csamReminder": "Note: all modes ban CSAM, sexualization of minors, and illegal content · whether adult mode is on or off, the moderation pipeline will block these (hard rule).",
+      "consentDialog": {
+        "eyebrow": "Confirm enable adult mode",
+        "title": "Ready to open 18+ content?",
+        "intro": "Once enabled:",
+        "bullet1": "Model picker shows OpenRouter NSFW models (explicit content)",
+        "bullet2": "Creation flow can pick \"Adult\" content_rating",
+        "bullet3": "Library exposes the \"18+ Adult\" filter",
+        "bullet4": "Story detail no longer hides adult stories",
+        "csamStrong": "Platform strictly forbids",
+        "csamBody": "creations involving minors, real people, or illegal content · violators get permanent account termination and legal reporting. CSAM / illegal pre-filter is always-on in every mode.",
+        "ageConfirm": "I am 18 years of age or older · and accept the rules above",
+        "cancel": "Cancel",
+        "confirm": "Confirm enable",
+        "processing": "Processing…",
+        "ariaClose": "Close"
+      },
+      "settingsFailed": "Settings change failed: {error}"
+    },
+    "topupButtons": {
+      "title": "One-time top-up",
+      "errorPrefix": "Error:",
+      "small": {
+        "label": "Small pack",
+        "credits": "+ 2,000 credits"
+      },
+      "medium": {
+        "label": "Medium pack",
+        "credits": "+ 5,500 credits"
+      },
+      "large": {
+        "label": "Large pack",
+        "credits": "+ 12,000 credits"
+      }
+    },
+    "billingToast": {
+      "subscribedTitle": "Subscription complete ✓",
+      "subscribedBody": "Stripe confirmed payment. Credits will appear in a few seconds; the page auto-refreshes.",
+      "topupTitle": "Top-up complete ✓",
+      "topupBody": "Credits will appear in a few seconds; the page auto-refreshes.",
+      "topupCanceledTitle": "Top-up canceled",
+      "topupCanceledBody": "You were not charged. Try again anytime.",
+      "checkoutCanceledTitle": "Subscription canceled",
+      "checkoutCanceledBody": "You were not charged. Try again anytime.",
+      "verifyingTitle": "Verifying age…",
+      "verifyingBody": "Stripe Identity is processing (5-15 sec). Page will auto-refresh.",
+      "secondsLeft": " ({count}s)",
+      "ariaClose": "Close"
+    }
+  },
+  "my": {
+    "pageTitle": "My games",
+    "subtitleEmpty": "You haven't started any stories — pick a scenario to begin your adventure.",
+    "subtitleCount": "{total} playthroughs · {active} in progress",
+    "tabs": {
+      "all": "All",
+      "active": "In progress",
+      "archived": "Archived",
+      "abandoned": "Abandoned"
+    },
+    "row": {
+      "character": "Character: {name}",
+      "turn": "TURN {count}",
+      "resume": "Resume",
+      "review": "Review"
+    },
+    "status": {
+      "active": "In progress",
+      "archived": "Archived",
+      "abandoned": "Abandoned"
+    },
+    "empty": {
+      "title": "No stories started yet",
+      "body": "Pick a scenario to begin your adventure or create your own. All active playthroughs will show up here automatically.",
+      "browseLibrary": "Browse the Library",
+      "createNew": "Create new story",
+      "noPlaythroughsForTab": "No playthroughs in \"{tab}\"."
+    }
+  },
+  "library": {
+    "storyCard": {
+      "anonymous": "Anonymous",
+      "untitled": "(Untitled)"
+    },
+    "continueCard": {
+      "resume": "Resume"
+    },
+    "hero": {
+      "editorPick": "★ Editor's pick",
+      "featured": "FEATURED",
+      "playNow": "Start playing",
+      "details": "Details",
+      "community": "Community creation"
+    },
+    "search": {
+      "heroPlaceholder": "Search stories, authors, tags…",
+      "fullPlaceholder": "Search stories (title / description / tags / Chinese all work)…",
+      "languageAll": "All languages",
+      "languageZhHant": "Traditional Chinese",
+      "languageZhHans": "Simplified Chinese",
+      "languageEn": "English",
+      "ratingAll": "All ratings",
+      "ratingAdultOption": "18+ Adult",
+      "submit": "Search",
+      "clear": "Clear",
+      "resultsHeader": "Search results: \"{query}\"",
+      "resultsCount": "{count} HITS",
+      "tooShortTitle": "Enter at least 2 characters",
+      "tooShortBody": "Chinese search needs 2-character bigrams to work — try keywords like \"campus\", \"romance\", \"triad\".",
+      "noResults": "No stories matched — try different keywords."
+    },
+    "rail": {
+      "all": "All",
+      "adultLockTooltip": "Enable Adult Mode in Settings first"
+    },
+    "carousels": {
+      "continue": "Continue playing",
+      "continueSub": "{count} ACTIVE RUNS",
+      "myStories": "My stories",
+      "myStoriesSub": "{count} STORIES",
+      "publicLibrary": "Public library",
+      "publicLibrarySub": "PUBLIC LIBRARY",
+      "trending": "Trending",
+      "trendingSub": "TRENDING · 24H",
+      "latest": "Latest",
+      "latestSub": "JUST PUBLISHED"
+    },
+    "header": {
+      "newStory": "New story"
+    },
+    "you": "You",
+    "relativeTime": {
+      "justNow": "just now",
+      "minutesAgo": "{count} min ago",
+      "hoursAgo": "{count} hr ago",
+      "yesterday": "yesterday",
+      "daysAgo": "{count} d ago",
+      "weeksAgo": "{count} wk ago"
+    }
+  },
+  "createStory": {
+    "pageTitle": "Create your story",
+    "pageBody": "Describe the story you want to play — any genre / cultural setting / protagonist. AI designs the interface, world rules, 3-5 NPCs with real personalities, and the opening narrative — on the spot.",
+    "tasks": {
+      "meta": "Story meta + opening narrative",
+      "schema": "Adaptive state schema",
+      "bible": "Story Bible · world rules",
+      "chars": "NPC character cards"
+    },
+    "form": {
+      "promptLabel": "Story concept",
+      "promptPlaceholder": "e.g. A 1980s Hong Kong gang story, I play a new recruit doing jobs for my big brother, navigating brotherhood and the dangers of the underworld…",
+      "promptHint": "The more specific the better — include era, location, protagonist setup, and what you want to experience.",
+      "promptCounter": "{count} / {max}",
+      "protagonistLabel": "Protagonist hint",
+      "protagonistOptional": "(optional)",
+      "protagonistPlaceholder": "e.g. \"I'm an 18-year-old new recruit, slim but skilled in martial arts\"",
+      "ratingLabel": "Content rating",
+      "ratingSfw": "General (SFW)",
+      "ratingSoft": "Mild suggestive",
+      "ratingAdult18": "Adult (18+)",
+      "ratingAdultLocked": "Adult (verification required)",
+      "ratingAdultTooltip": "Enable Adult Mode in Settings first (identity verification required)",
+      "moderationCode": "403 · MODERATION REJECTED",
+      "moderationTitle": "This premise triggered safety rules",
+      "moderationTip": "💡 Tip: For crime stories, frame the protagonist as an observer or victim rather than a perpetrator.",
+      "submitBusy": "AI is designing your story… (~15–30s)",
+      "submit": "Generate + start immediately",
+      "estimatedCost": "Estimated cost ~{count} credits",
+      "generatingHeader": "GENERATING · 4 PARALLEL TASKS · ~35–50s",
+      "generatingHint": "You can open a new tab · we'll redirect when done",
+      "generatingModelLine": "sonnet-4.6 · generating…",
+      "ideasHeader": "Need ideas? Try one of these:"
+    },
+    "examples": {
+      "0": "1980s Hong Kong triad story — I play a young recruit doing jobs for my big brother to make ends meet while supporting family. The underworld is brutal; I have to navigate brotherhood vs. self-interest.",
+      "1": "Taiwan university campus romance — I'm a transfer student, choosing clubs, three women maybe interested: literary Siu-ah, athletic A-lin, vivacious senior Cherry.",
+      "2": "Medieval fantasy adventure — I'm an exiled former royal guard, searching ruins for my family's lost heirloom. Meet elves, dwarves, and cultists along the way.",
+      "3": "First-year NBA rookie — I'm a controlled draft pick sent to a losing team, fighting to prove myself on a bad squad."
+    }
+  },
+  "errors": {
+    "common": {
+      "notLoggedIn": "You need to log in first.",
+      "tryAgainLater": "Something went wrong. Please try again later.",
+      "rateLimited": "AI is busy right now. Please retry in 30 seconds."
+    },
+    "createStory": {
+      "adultRequiresVerification": "Adult-rated stories require Adult Mode enabled in Settings (identity verification required). Pick SFW or Soft rating instead.",
+      "insufficientCredits": "Not enough credits to create a story (you have {balance}, need ~{needed}). Top up or upgrade and try again.",
+      "moderationConfigError": "Content moderation system configuration error. Please try again later.",
+      "moderationUnavailable": "Content moderation is temporarily unavailable. Please try again later.",
+      "aiBusy": "AI is busy right now. Please retry in 30 seconds.",
+      "aiUnavailable": "AI service temporarily unavailable. Please try again later.",
+      "promptInvalid": "Your story concept needs a bit more — try adding more background or a different angle.",
+      "storyInsertFailed": "Failed to create the story. Please try again later.",
+      "characterInsertFailed": "Failed to create characters. Please try again later.",
+      "playthroughInsertFailed": "Failed to create the playthrough. Please try again later."
+    },
+    "billing": {
+      "checkoutFailed": "Failed to start checkout. Please try again later.",
+      "portalFailed": "Failed to open billing portal. Please try again later.",
+      "identityVerificationFailed": "Failed to start identity verification. Please try again later.",
+      "topupFailed": "Failed to purchase credits. Please try again later."
+    },
+    "play": {
+      "playthroughNotFound": "Playthrough not found.",
+      "playthroughNotOwner": "You're not the owner of this playthrough.",
+      "npcL3TierRequired": "NPC inner thoughts are a Storyteller-tier feature (you're on {tier} · upgrade to Storyteller to unlock).",
+      "npcL3TierRequiredGeneric": "NPC inner thoughts require a Storyteller subscription.",
+      "saveFailed": "Save failed. Please try again later."
+    },
+    "settings": {
+      "adultRequiresKyc": "Identity verification required first — coming in the Phase 6 money tier.",
+      "adultTierRequiresMode": "Adult tier requires Adult Mode enabled + identity verification.",
+      "tierSubscriptionGate": "{tier} tier requires {required} subscription — you're on {current}"
+    },
+    "community": {
+      "cannotRateOwnStory": "You can't rate your own story.",
+      "moderationConfigError": "Content moderation system configuration error. Please try again later.",
+      "alreadyReported": "You've already reported this content. The moderation team will review."
+    },
+    "auth": {
+      "guestSigninFailed": "Guest sign-in failed. Please try again.",
+      "emailRequired": "Please enter your email.",
+      "otpFailed": "Magic link send failed. Please try again later.",
+      "callbackFailed": "Login callback failed. Please log in again.",
+      "missingCode": "The login link is invalid or has expired.",
+      "googleUnavailable": "Google login is not enabled yet. Please use email magic link."
     }
   }
 }

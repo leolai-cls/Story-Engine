@@ -1,6 +1,7 @@
 "use client";
 
 import { Sparkles, Info } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 /**
  * C4-C5 audit fix · Skill check modal system (Hard rule #5: PERMANENT · no retry).
@@ -19,8 +20,13 @@ import { Sparkles, Info } from "lucide-react";
 
 export type SkillCheckOutcome = "critical_success" | "success" | "failure" | "critical_failure";
 
+/**
+ * Wave 2 i18n migration (2026-05-27): outcome labels are now resolved via
+ * `skillCheck.outcomes.*` catalog. The constants here keep only visual style.
+ * `stamp` is uppercase canonical English (consistent visual identity across
+ * locales — mono badge stays English-uppercase).
+ */
 const OUTCOME_CFG: Record<SkillCheckOutcome, {
-  label: string;
   stamp: string;
   color: string;
   bg: string;
@@ -29,7 +35,6 @@ const OUTCOME_CFG: Record<SkillCheckOutcome, {
   dramatic: boolean;
 }> = {
   critical_success: {
-    label: "完美成功",
     stamp: "CRITICAL SUCCESS",
     color: "var(--se-accent)",
     bg: "var(--se-accent-bg)",
@@ -38,7 +43,6 @@ const OUTCOME_CFG: Record<SkillCheckOutcome, {
     dramatic: false,
   },
   success: {
-    label: "成功",
     stamp: "SUCCESS",
     color: "var(--se-ok)",
     bg: "var(--se-ok-bg)",
@@ -47,7 +51,6 @@ const OUTCOME_CFG: Record<SkillCheckOutcome, {
     dramatic: false,
   },
   failure: {
-    label: "失敗",
     stamp: "FAILURE",
     color: "var(--se-danger)",
     bg: "var(--se-danger-bg)",
@@ -56,7 +59,6 @@ const OUTCOME_CFG: Record<SkillCheckOutcome, {
     dramatic: false,
   },
   critical_failure: {
-    label: "大敗局",
     stamp: "CRITICAL FAILURE",
     color: "var(--se-danger)",
     bg: "var(--se-danger-bg)",
@@ -84,6 +86,7 @@ export function SkillCheckRolling({
   npcName?: string;
   onSettle?: () => void;
 }) {
+  const t = useTranslations("skillCheck");
   return (
     <ModalShell>
       <div
@@ -102,7 +105,7 @@ export function SkillCheckRolling({
             letterSpacing: "0.06em",
           }}
         >
-          SKILL CHECK · 擲骰中
+          {t("rolling")}
         </span>
         <h2
           className="mt-3 mb-1 se-cjk"
@@ -120,7 +123,7 @@ export function SkillCheckRolling({
           className="m-0 text-sm se-cjk"
           style={{ color: "var(--se-fg-muted)" }}
         >
-          {skillName} {skillValue} · 對抗 難度 {difficulty}
+          {t("vsLabel", { skill: skillName, value: skillValue, difficulty })}
         </p>
 
         {/* Dice display */}
@@ -201,7 +204,7 @@ export function SkillCheckRolling({
               className="se-cjk"
               style={{ fontSize: 10, color: "var(--se-fg-dim)", marginTop: 2 }}
             >
-              難度
+              {t("difficultyLabel")}
             </span>
           </div>
         </div>
@@ -210,8 +213,7 @@ export function SkillCheckRolling({
           className="m-0 text-sm se-cjk"
           style={{ color: "var(--se-fg-muted)" }}
         >
-          {npcName ?? "對方"}
-          <span style={{ color: "var(--se-fg)" }}> 會唔會</span>退讓？
+          {t("willTheyBudge", { target: npcName ?? t("opponent") })}
         </p>
 
         {/* Auto-settle if onSettle provided */}
@@ -222,7 +224,7 @@ export function SkillCheckRolling({
             className="mt-6 text-xs se-cjk"
             style={{ color: "var(--se-fg-muted)", textDecoration: "underline" }}
           >
-            揭曉結果
+            {t("reveal")}
           </button>
         )}
         <style>{`@keyframes se-dice-shake { 0% { transform: rotate(-3deg) } 100% { transform: rotate(3deg) } }`}</style>
@@ -258,6 +260,7 @@ export function SkillCheckResult({
   aftermath: Array<{ target: string; axis: string; val: number; label: string }>;
   onContinue: () => void;
 }) {
+  const t = useTranslations("skillCheck");
   const cfg = OUTCOME_CFG[outcome];
   const natBadge =
     dice === 20
@@ -290,14 +293,14 @@ export function SkillCheckResult({
             }}
           >
             {cfg.sparkle && <Sparkles size={12} />}
-            SKILL CHECK · {cfg.stamp}
+            {t("stampSuffix", { stamp: cfg.stamp })}
           </span>
           <span
             className="se-mono"
             style={{ fontSize: 11, color: "var(--se-fg-dim)" }}
-            title="Hard rule #5 · 唔可以同一 turn 再試"
+            title={t("permanentTooltip")}
           >
-            PERMANENT · 不可重試
+            {t("permanent")}
           </span>
         </div>
 
@@ -408,7 +411,7 @@ export function SkillCheckResult({
                 letterSpacing: "0.06em",
               }}
             >
-              後果 · 永久記入記憶
+              {t("consequencesHeader")}
             </div>
             {aftermath.map((d, i) => (
               <div key={i} className="flex items-center gap-2 text-xs">
@@ -431,7 +434,7 @@ export function SkillCheckResult({
             style={{ color: "var(--se-fg-dim)" }}
           >
             <Info size={11} />
-            結果已記入故事 · 想推進，請寫下一個 action
+            {t("writtenFooter")}
           </span>
           <button
             type="button"
@@ -442,7 +445,7 @@ export function SkillCheckResult({
               color: "var(--se-bg)",
             }}
           >
-            繼續
+            {t("continue")}
           </button>
         </div>
       </div>

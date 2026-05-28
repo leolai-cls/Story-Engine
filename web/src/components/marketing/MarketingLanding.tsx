@@ -62,6 +62,8 @@ export function MarketingLanding({
   const stream = MARKETING_COPY.stream[lang];
   const how = MARKETING_COPY.how[lang];
   const memory = MARKETING_COPY.memory[lang];
+  const agents = MARKETING_COPY.agents[lang];
+  const adaptive = MARKETING_COPY.adaptive[lang];
   const bilingual = MARKETING_COPY.bilingual[lang];
   const adult = MARKETING_COPY.adult[lang];
   const cta = MARKETING_COPY.cta[lang];
@@ -637,6 +639,103 @@ export function MarketingLanding({
               <p>{memory.card3Body}</p>
               <div className="turn">{memory.card3Turn}</div>
             </div>
+            <div className="memory-card">
+              <div className="memory-card-tag">{memory.card4Tag}</div>
+              <h3>{memory.card4Title}</h3>
+              <p>{memory.card4Body}</p>
+              <div className="turn">{memory.card4Turn}</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* AGENTS · NPC Inner Voices (Storyteller-tier marquee) */}
+      <section className="agents" id="agents" data-section="agents">
+        <div className="agents-inner">
+          <div className="eyebrow">
+            <span className="dot" />
+            {agents.eyebrow}
+          </div>
+          <h2>
+            {agents.titlePre}
+            <span className="accent">{agents.titleAccent}</span>
+            {agents.titleSuffix}
+          </h2>
+          <p className="agents-lede">{agents.lede}</p>
+          <div className="agents-grid">
+            <div className="agent-card">
+              <div className="agent-card-who">{agents.card1Who}</div>
+              <p className="agent-card-quote">{agents.card1Quote}</p>
+              <div className="agent-card-tag">{agents.card1Tag}</div>
+            </div>
+            <div className="agent-card">
+              <div className="agent-card-who">{agents.card2Who}</div>
+              <p className="agent-card-quote">{agents.card2Quote}</p>
+              <div className="agent-card-tag">{agents.card2Tag}</div>
+            </div>
+            <div className="agent-card">
+              <div className="agent-card-who">{agents.card3Who}</div>
+              <p className="agent-card-quote">{agents.card3Quote}</p>
+              <div className="agent-card-tag">{agents.card3Tag}</div>
+            </div>
+          </div>
+          <div className="agents-pills">
+            <span className="agent-pill agent-pill-star">{agents.pillStoryteller}</span>
+            <span className="agent-pill">{agents.pillParallel}</span>
+            <span className="agent-pill">{agents.pillPrivate}</span>
+          </div>
+        </div>
+      </section>
+
+      {/* ADAPTIVE · per-story state panel */}
+      <section className="adaptive" id="adaptive" data-section="adaptive">
+        <div className="adaptive-inner">
+          <div className="eyebrow">
+            <span className="dot" />
+            {adaptive.eyebrow}
+          </div>
+          <h2>
+            {adaptive.titlePre}
+            <span className="accent">{adaptive.titleAccent}</span>
+            {adaptive.titleSuffix}
+          </h2>
+          <p className="adaptive-lede">{adaptive.lede}</p>
+          <div className="adaptive-grid">
+            <div className="adaptive-panel">
+              <div className="adaptive-panel-tag">{adaptive.panel1Tag}</div>
+              <ul>
+                <li>{adaptive.panel1Field1}</li>
+                <li>{adaptive.panel1Field2}</li>
+                <li>{adaptive.panel1Field3}</li>
+                <li>{adaptive.panel1Field4}</li>
+                <li>{adaptive.panel1Field5}</li>
+              </ul>
+            </div>
+            <div className="adaptive-panel">
+              <div className="adaptive-panel-tag">{adaptive.panel2Tag}</div>
+              <ul>
+                <li>{adaptive.panel2Field1}</li>
+                <li>{adaptive.panel2Field2}</li>
+                <li>{adaptive.panel2Field3}</li>
+                <li>{adaptive.panel2Field4}</li>
+                <li>{adaptive.panel2Field5}</li>
+              </ul>
+            </div>
+            <div className="adaptive-panel">
+              <div className="adaptive-panel-tag">{adaptive.panel3Tag}</div>
+              <ul>
+                <li>{adaptive.panel3Field1}</li>
+                <li>{adaptive.panel3Field2}</li>
+                <li>{adaptive.panel3Field3}</li>
+                <li>{adaptive.panel3Field4}</li>
+                <li>{adaptive.panel3Field5}</li>
+              </ul>
+            </div>
+          </div>
+          <div className="adaptive-pills">
+            <span className="adaptive-pill">{adaptive.pillAutoDesign}</span>
+            <span className="adaptive-pill">{adaptive.pillPerStory}</span>
+            <span className="adaptive-pill adaptive-pill-moat">{adaptive.pillMoat}</span>
           </div>
         </div>
       </section>
@@ -1256,7 +1355,9 @@ const MARKETING_CSS = `
   font-family: 'Noto Sans TC', sans-serif; font-size: 17px; line-height: 1.7;
   color: var(--mist); max-width: 580px;
 }
-.kieio-marketing .memory-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 80px; }
+/* Wave 2 + new selling-point sections (2026-05-28): grid switched 3-col → 2-col
+   to fit 4 memory cards (added Layer 04 · Lorebook). Mobile stays 1-col. */
+.kieio-marketing .memory-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; margin-top: 80px; }
 .kieio-marketing .memory-card {
   background: var(--bg-2); border: 1px solid var(--line); border-radius: 12px;
   padding: 32px 28px; transition: all 0.6s ease; opacity: 0; transform: translateY(40px);
@@ -1264,6 +1365,7 @@ const MARKETING_CSS = `
 .kieio-marketing .memory-card.in-view { opacity: 1; transform: translateY(0); }
 .kieio-marketing .memory-card:nth-child(2) { transition-delay: 0.15s; }
 .kieio-marketing .memory-card:nth-child(3) { transition-delay: 0.3s; }
+.kieio-marketing .memory-card:nth-child(4) { transition-delay: 0.45s; }
 .kieio-marketing .memory-card-tag {
   font-family: var(--font-geist-mono), monospace; font-size: 11px;
   letter-spacing: 0.18em; text-transform: uppercase; color: var(--purple-soft);
@@ -1280,6 +1382,119 @@ const MARKETING_CSS = `
   margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--line);
   font-family: var(--font-geist-mono), monospace; font-size: 11px; color: var(--dim);
   letter-spacing: 0.10em;
+}
+
+/* AGENTS · NPC Inner Voices (Storyteller-tier marquee · 2026-05-28) */
+.kieio-marketing .agents { padding: 160px 32px; background: var(--bg); position: relative; overflow: hidden; }
+.kieio-marketing .agents::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(40% 50% at 70% 40%, rgba(85,37,131,0.18), transparent 60%);
+  pointer-events: none;
+}
+.kieio-marketing .agents-inner { max-width: 1240px; margin: 0 auto; position: relative; }
+.kieio-marketing .agents h2 {
+  font-family: var(--font-termina), sans-serif; font-weight: 700;
+  font-size: clamp(48px, 6vw, 88px); letter-spacing: -0.045em; line-height: 0.95;
+  text-transform: uppercase; margin-top: 18px; max-width: 920px;
+}
+.kieio-marketing .agents h2 .accent {
+  background: linear-gradient(135deg, var(--purple), var(--purple-soft));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.kieio-marketing .agents-lede {
+  font-family: 'Noto Sans TC', sans-serif; font-size: 17px; line-height: 1.7;
+  color: var(--mist); max-width: 720px; margin-top: 28px;
+}
+.kieio-marketing .agents-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 72px;
+}
+.kieio-marketing .agent-card {
+  background: var(--bg-2); border: 1px solid var(--line); border-radius: 12px;
+  padding: 28px 26px; position: relative;
+}
+.kieio-marketing .agent-card::before {
+  content: ''; position: absolute; left: 0; top: 28px; bottom: 28px; width: 2px;
+  background: var(--purple); border-radius: 2px;
+}
+.kieio-marketing .agent-card-who {
+  font-family: var(--font-geist-mono), monospace; font-size: 11px;
+  letter-spacing: 0.16em; text-transform: uppercase; color: var(--purple-soft);
+}
+.kieio-marketing .agent-card-quote {
+  font-family: 'Noto Sans TC', sans-serif; font-size: 15px; line-height: 1.7;
+  color: var(--cream); margin: 14px 0 18px;
+}
+.kieio-marketing .agent-card-tag {
+  margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--line);
+  font-family: var(--font-geist-mono), monospace; font-size: 10.5px;
+  color: var(--dim); letter-spacing: 0.10em; text-transform: uppercase;
+}
+.kieio-marketing .agents-pills {
+  display: flex; gap: 12px; margin-top: 48px; flex-wrap: wrap;
+}
+.kieio-marketing .agent-pill {
+  font-family: var(--font-geist-mono), monospace; font-size: 11px;
+  letter-spacing: 0.12em; padding: 8px 14px; border-radius: 999px;
+  background: var(--bg-2); border: 1px solid var(--line); color: var(--mist);
+}
+.kieio-marketing .agent-pill.agent-pill-star {
+  background: linear-gradient(135deg, var(--purple), var(--purple-soft));
+  color: #fff; border-color: transparent;
+}
+
+/* ADAPTIVE · per-story state panel (護城河 feature · 2026-05-28) */
+.kieio-marketing .adaptive { padding: 160px 32px; background: var(--bg-2); position: relative; overflow: hidden; }
+.kieio-marketing .adaptive::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(45% 50% at 25% 60%, rgba(244,215,122,0.10), transparent 60%);
+  pointer-events: none;
+}
+.kieio-marketing .adaptive-inner { max-width: 1240px; margin: 0 auto; position: relative; }
+.kieio-marketing .adaptive h2 {
+  font-family: var(--font-termina), sans-serif; font-weight: 700;
+  font-size: clamp(48px, 6vw, 88px); letter-spacing: -0.045em; line-height: 0.95;
+  text-transform: uppercase; margin-top: 18px; max-width: 920px;
+}
+.kieio-marketing .adaptive h2 .accent {
+  background: linear-gradient(135deg, #f4d77a, var(--purple-soft));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.kieio-marketing .adaptive-lede {
+  font-family: 'Noto Sans TC', sans-serif; font-size: 17px; line-height: 1.7;
+  color: var(--mist); max-width: 720px; margin-top: 28px;
+}
+.kieio-marketing .adaptive-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 72px;
+}
+.kieio-marketing .adaptive-panel {
+  background: var(--bg); border: 1px solid var(--line); border-radius: 12px;
+  padding: 26px 24px;
+}
+.kieio-marketing .adaptive-panel-tag {
+  font-family: var(--font-geist-mono), monospace; font-size: 11px;
+  letter-spacing: 0.16em; text-transform: uppercase; color: #f4d77a;
+  padding-bottom: 16px; border-bottom: 1px solid var(--line);
+}
+.kieio-marketing .adaptive-panel ul {
+  list-style: none; padding: 0; margin: 18px 0 0;
+}
+.kieio-marketing .adaptive-panel li {
+  font-family: 'Noto Sans TC', sans-serif; font-size: 13.5px; color: var(--mist);
+  padding: 10px 0; border-bottom: 1px dashed rgba(255,255,255,0.06);
+  letter-spacing: -0.005em;
+}
+.kieio-marketing .adaptive-panel li:last-child { border-bottom: none; }
+.kieio-marketing .adaptive-pills {
+  display: flex; gap: 12px; margin-top: 48px; flex-wrap: wrap;
+}
+.kieio-marketing .adaptive-pill {
+  font-family: var(--font-geist-mono), monospace; font-size: 11px;
+  letter-spacing: 0.12em; padding: 8px 14px; border-radius: 999px;
+  background: var(--bg); border: 1px solid var(--line); color: var(--mist);
+}
+.kieio-marketing .adaptive-pill.adaptive-pill-moat {
+  background: linear-gradient(135deg, #f4d77a, #d4a82a);
+  color: #1a1410; border-color: transparent; font-weight: 600;
 }
 
 .kieio-marketing .bilingual { padding: 160px 32px; background: var(--bg-2); position: relative; overflow: hidden; }
@@ -1388,6 +1603,8 @@ const MARKETING_CSS = `
 @media (max-width: 900px) {
   .kieio-marketing .how-grid { grid-template-columns: 1fr; gap: 40px; }
   .kieio-marketing .memory-grid { grid-template-columns: 1fr; }
+  .kieio-marketing .agents-grid { grid-template-columns: 1fr; }
+  .kieio-marketing .adaptive-grid { grid-template-columns: 1fr; }
   .kieio-marketing .bilingual-grid { grid-template-columns: 1fr; gap: 48px; }
   .kieio-marketing .counter { display: none; }
   .kieio-marketing .nav-links { display: none; }

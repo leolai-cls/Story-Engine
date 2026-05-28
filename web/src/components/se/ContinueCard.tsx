@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Cover } from "./Cover";
-import { AXIS_LABEL, AXIS_TOKEN, type DispositionAxisKey, type GenreKey } from "./genre";
+import { AXIS_TOKEN, type DispositionAxisKey, type GenreKey } from "./genre";
 import { Play } from "lucide-react";
 
 /**
@@ -36,6 +37,9 @@ export function ContinueCard({
   p: ActivePlaythroughData;
   locale: string;
 }) {
+  // Wave 2 i18n migration (2026-05-27): localize axis label + "繼續" button.
+  const tAxes = useTranslations("axes");
+  const tCard = useTranslations("library.continueCard");
   return (
     <Link
       href={`/${locale}/play/${p.playthroughId}`}
@@ -100,7 +104,7 @@ export function ContinueCard({
             }}
           >
             <Play size={10} />
-            繼續
+            {tCard("resume")}
           </button>
           {p.delta && (
             <span className="inline-flex items-center gap-1 text-[11px]" style={{ color: "var(--se-fg-2)" }}>
@@ -109,7 +113,7 @@ export function ContinueCard({
                 className="se-mono font-medium"
                 style={{ color: AXIS_TOKEN[p.delta.axis] }}
               >
-                {AXIS_LABEL[p.delta.axis]} {p.delta.val > 0 ? "+" : ""}
+                {tAxes(p.delta.axis)} {p.delta.val > 0 ? "+" : ""}
                 {p.delta.val}
               </span>
             </span>

@@ -1,4 +1,4 @@
-import { setRequestLocale } from "next-intl/server";
+import { setRequestLocale, getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -101,6 +101,10 @@ export default async function LibraryPage({
   const { locale } = await params;
   const sp = await searchParams;
   setRequestLocale(locale);
+  // Wave 2 i18n migration (2026-05-27): library page now reads strings from
+  // messages catalog (was hardcoded 繁中).
+  const tLib = await getTranslations("library");
+  const tGenres = await getTranslations("genres");
 
   const supabase = await createClient();
   // AUDIT FIX MG-PERF-HIGH-01: cached so SiteHeader doesn't repeat the call.
@@ -179,14 +183,17 @@ export default async function LibraryPage({
   const heroStory = trending[0] ?? latest[0] ?? null;
 
   // Continue cards: adapt MyPlaythroughRow → ActivePlaythroughData
+  // Wave 2 i18n cycle-5 fix (2026-05-28): localize empty-title fallback (queries.ts
+  // now returns "" for deleted-story rows · was hardcoded "(無標題)").
+  const untitledLabel = tLib("storyCard.untitled");
   const activeCards: ActivePlaythroughData[] = myPlaythroughs.map((pt) => ({
     playthroughId: pt.id,
     storyId: pt.story_id,
-    storyTitle: pt.story_title,
+    storyTitle: pt.story_title || untitledLabel,
     turn: pt.turn_count,
     snippet: null,
     delta: null,
-    lastPlayed: relativeTime(pt.last_played_at),
+    lastPlayed: relativeTime(pt.last_played_at, tLib),
   }));
 
   return (
@@ -229,8 +236,8 @@ export default async function LibraryPage({
         {/* Continue Playing — pinned first for returning users */}
         {user && activeCards.length > 0 && (
           <Carousel
-            title="繼續玩"
-            sub={`${activeCards.length} ACTIVE RUNS`}
+            title={tLib("carousels.continue")}
+            sub={tLib("carousels.continueSub", { count: activeCards.length })}
             icon={<Bookmark size={13} />}
           >
             {activeCards.map((p) => (
@@ -242,8 +249,8 @@ export default async function LibraryPage({
         {/* My Stories */}
         {user && myStories.length > 0 && (
           <Carousel
-            title="我嘅故事"
-            sub={`${myStories.length} STORIES`}
+            title={tLib("carousels.myStories")}
+            sub={tLib("carousels.myStoriesSub", { count: myStories.length })}
             icon={<Sparkles size={13} />}
           >
             {myStories.map((s) => (
@@ -252,7 +259,7 @@ export default async function LibraryPage({
                 s={{
                   id: s.id,
                   title: s.title,
-                  author: "你",
+                  author: tLib("you"),
                   authorHue: 290,
                   rating: s.content_rating,
                   stars: s.rating_avg ?? 0,
@@ -276,8 +283,8 @@ export default async function LibraryPage({
         {/* Browse mode: launch fallback OR multi-board */}
         {!searchMode && useLaunchFallback && (
           <Carousel
-            title="公開故事"
-            sub="PUBLIC LIBRARY"
+            title={tLib("carousels.publicLibrary")}
+            sub={tLib("carousels.publicLibrarySub")}
             icon={<Sparkles size={13} />}
             empty={trending.length === 0}
           >
@@ -290,8 +297,8 @@ export default async function LibraryPage({
         {!searchMode && !useLaunchFallback && (
           <>
             <Carousel
-              title="熱門"
-              sub="TRENDING · 24H"
+              title={tLib("carousels.trending")}
+              sub={tLib("carousels.trendingSub")}
               icon={<Flame size={13} />}
             >
               {trending.map((s) => (
@@ -299,8 +306,8 @@ export default async function LibraryPage({
               ))}
             </Carousel>
             <Carousel
-              title="最新"
-              sub="JUST PUBLISHED"
+              title={tLib("carousels.latest")}
+              sub={tLib("carousels.latestSub")}
               icon={<Sparkles size={13} />}
               empty={latest.length === 0}
             >
@@ -310,11 +317,10 @@ export default async function LibraryPage({
             </Carousel>
             {GENRE_BOARDS.map((g, i) => {
               const Ico = GENRE_ICONS[g.key];
-              const meta = GENRE[g.key];
               return (
                 <Carousel
                   key={g.key}
-                  title={meta.label}
+                  title={tGenres(g.key)}
                   sub={g.key.toUpperCase()}
                   icon={<Ico size={13} />}
                   empty={(genreResults[i] ?? []).length === 0}
@@ -340,7 +346,7 @@ export default async function LibraryPage({
 // ─────────────────────────────────────────────────────────────
 //  Hero — full-bleed cinematic takeover (Netflix DNA)
 // ─────────────────────────────────────────────────────────────
-function LibraryHero({
+async function LibraryHero({
   story,
   locale,
 }: {
@@ -348,8 +354,12 @@ function LibraryHero({
   locale: string;
   adultModeEnabled: boolean;
 }) {
-  const genreLabel = (GENRE as Record<string, { label: string; hue: number }>)[story.genre ?? ""]
-    ?.label;
+  const tLib = await getTranslations("library");
+  const tGenres = await getTranslations("genres");
+  // Wave 2 i18n migration: resolve genre label from catalog instead of GENRE.label.
+  const genreKey = story.genre as string;
+  const isKnownGenre = !!GENRE[genreKey as GenreKey];
+  const genreLabel = isKnownGenre ? tGenres(genreKey as GenreKey) : null;
   return (
     <section
       className="relative overflow-hidden border-b"
@@ -404,7 +414,7 @@ function LibraryHero({
           <input
             type="text"
             name="q"
-            placeholder="搜尋故事、作者、tag…"
+            placeholder={tLib("search.heroPlaceholder")}
             className="flex-1 bg-transparent outline-none text-sm se-cjk"
             style={{ color: "var(--se-fg)" }}
           />
@@ -435,7 +445,7 @@ function LibraryHero({
           }}
         >
           <Plus size={14} />
-          開新故事
+          {tLib("header.newStory")}
         </Link>
       </div>
 
@@ -489,9 +499,9 @@ function LibraryHero({
             color: "rgba(255,255,255,0.78)",
           }}
         >
-          <span style={{ color: "#f4d77a" }}>★ 編輯精選</span>
+          <span style={{ color: "#f4d77a" }}>{tLib("hero.editorPick")}</span>
           <span style={{ marginLeft: 12, color: "rgba(255,255,255,0.55)" }}>
-            FEATURED
+            {tLib("hero.featured")}
             {genreLabel ? ` · ${genreLabel}` : ""}
             {story.rating_avg ? ` · ${story.rating_avg.toFixed(1)}/5` : ""}
           </span>
@@ -529,7 +539,7 @@ function LibraryHero({
             className="inline-flex items-center gap-2 px-5 py-3 rounded-md font-semibold"
             style={{ background: "#fff", color: "#0a0a0b" }}
           >
-            開始扮演
+            {tLib("hero.playNow")}
           </Link>
           <Link
             href={`/library/${story.id}` as never}
@@ -541,7 +551,7 @@ function LibraryHero({
               border: "1px solid rgba(255,255,255,0.32)",
             }}
           >
-            詳情
+            {tLib("hero.details")}
           </Link>
           <div
             style={{
@@ -556,7 +566,7 @@ function LibraryHero({
             style={{ color: "rgba(255,255,255,0.78)" }}
           >
             <Avatar name="·" size={20} hue={220} />
-            <span style={{ color: "#fff" }}>社群創作</span>
+            <span style={{ color: "#fff" }}>{tLib("hero.community")}</span>
           </span>
         </div>
       </div>
@@ -567,13 +577,15 @@ function LibraryHero({
 // ─────────────────────────────────────────────────────────────
 //  Genre Rail — sticky below hero · filter chips
 // ─────────────────────────────────────────────────────────────
-function GenreRail({
+async function GenreRail({
   adultModeEnabled,
   locale,
 }: {
   adultModeEnabled: boolean;
   locale: string;
 }) {
+  const tLib = await getTranslations("library");
+  const tGenres = await getTranslations("genres");
   return (
     <div
       className="se-row-scroll sticky z-[5] flex items-center gap-2.5 overflow-x-auto"
@@ -594,9 +606,9 @@ function GenreRail({
           color: "var(--se-bg)",
         }}
       >
-        全部
+        {tLib("rail.all")}
       </Link>
-      {Object.entries(GENRE).map(([key, meta]) => (
+      {Object.entries(GENRE).map(([key]) => (
         <Link
           key={key}
           href={`/library?genre=${key}` as never}
@@ -608,7 +620,7 @@ function GenreRail({
             background: "transparent",
           }}
         >
-          {meta.label}
+          {tGenres(key as GenreKey)}
         </Link>
       ))}
       <div
@@ -630,7 +642,7 @@ function GenreRail({
             border: "1px solid var(--se-border)",
             opacity: 0.6,
           }}
-          title="需要喺 設定 開啟成人模式"
+          title={tLib("rail.adultLockTooltip")}
         >
           <Lock size={10} />
           18+
@@ -643,7 +655,7 @@ function GenreRail({
 // ─────────────────────────────────────────────────────────────
 //  Search form
 // ─────────────────────────────────────────────────────────────
-function SearchForm({
+async function SearchForm({
   q,
   language,
   rating,
@@ -658,6 +670,8 @@ function SearchForm({
   searchMode: boolean;
   locale: string;
 }) {
+  const tLib = await getTranslations("library");
+  const tRatings = await getTranslations("ratings");
   return (
     <form className="flex gap-2 flex-wrap items-center" method="get">
       <div className="flex-1 min-w-[220px] relative">
@@ -670,7 +684,7 @@ function SearchForm({
           type="text"
           name="q"
           defaultValue={q}
-          placeholder="搵故事（標題 / 描述 / 標籤 / 中文都得）..."
+          placeholder={tLib("search.fullPlaceholder")}
           className="w-full rounded-md pl-10 pr-3 py-2 text-sm"
           style={{
             background: "var(--se-surface)",
@@ -687,10 +701,10 @@ function SearchForm({
           border: "1px solid var(--se-border)",
         }}
       >
-        <option value="">所有語言</option>
-        <option value="zh-Hant">繁中</option>
-        <option value="zh-Hans">簡中</option>
-        <option value="en">English</option>
+        <option value="">{tLib("search.languageAll")}</option>
+        <option value="zh-Hant">{tLib("search.languageZhHant")}</option>
+        <option value="zh-Hans">{tLib("search.languageZhHans")}</option>
+        <option value="en">{tLib("search.languageEn")}</option>
       </select>
       <select
         name="rating"
@@ -701,19 +715,19 @@ function SearchForm({
           border: "1px solid var(--se-border)",
         }}
       >
-        <option value="">所有 rating</option>
-        <option value="general">一般</option>
-        <option value="pg13">PG-13</option>
-        <option value="mature">成熟</option>
+        <option value="">{tLib("search.ratingAll")}</option>
+        <option value="general">{tRatings("general")}</option>
+        <option value="pg13">{tRatings("pg13")}</option>
+        <option value="mature">{tRatings("mature")}</option>
         {/* P6-HIGH-02: Adult option only when adult mode enabled */}
-        {adultModeEnabled && <option value="adult">18+ 成人</option>}
+        {adultModeEnabled && <option value="adult">{tLib("search.ratingAdultOption")}</option>}
       </select>
       <button
         type="submit"
         className="rounded-md px-4 py-2 text-sm font-semibold"
         style={{ background: "var(--se-fg)", color: "var(--se-bg)" }}
       >
-        搜尋
+        {tLib("search.submit")}
       </button>
       {searchMode && (
         <Link
@@ -722,7 +736,7 @@ function SearchForm({
           className="inline-flex items-center rounded-md px-3 py-2 text-sm"
           style={{ border: "1px solid var(--se-border)", color: "var(--se-fg-muted)" }}
         >
-          清除
+          {tLib("search.clear")}
         </Link>
       )}
     </form>
@@ -732,7 +746,7 @@ function SearchForm({
 // ─────────────────────────────────────────────────────────────
 //  Search results
 // ─────────────────────────────────────────────────────────────
-function SearchResults({
+async function SearchResults({
   q,
   results,
   locale,
@@ -741,12 +755,13 @@ function SearchResults({
   results: LibraryStory[];
   locale: string;
 }) {
+  const tLib = await getTranslations("library");
   return (
     <section className="px-6 sm:px-14">
       <h2 className="text-xl font-bold mb-4 se-cjk" style={{ color: "var(--se-fg)" }}>
-        搜尋結果：「{q}」
+        {tLib("search.resultsHeader", { query: q })}
         <span className="se-mono ml-2 text-xs" style={{ color: "var(--se-fg-dim)" }}>
-          {results.length} HITS
+          {tLib("search.resultsCount", { count: results.length })}
         </span>
       </h2>
       {results.length === 0 && q.trim().length === 1 ? (
@@ -760,10 +775,10 @@ function SearchResults({
           <Info size={16} color="var(--se-warn)" className="mt-0.5 flex-none" />
           <div>
             <h3 className="font-semibold text-sm mb-1.5 se-cjk" style={{ color: "var(--se-fg)" }}>
-              請輸入至少 2 個字
+              {tLib("search.tooShortTitle")}
             </h3>
             <p className="text-xs se-cjk" style={{ color: "var(--se-fg-muted)" }}>
-              中文搜索要 2 字以上嘅 bigram 組合至 work — 試下「校園」「戀愛」「古惑仔」呢類有 phrase 嘅 keyword。
+              {tLib("search.tooShortBody")}
             </p>
           </div>
         </div>
@@ -776,7 +791,7 @@ function SearchResults({
           }}
         >
           <p className="text-sm se-cjk" style={{ color: "var(--se-fg-muted)" }}>
-            搵唔到符合嘅故事 — 試下其他關鍵字
+            {tLib("search.noResults")}
           </p>
         </div>
       ) : (
@@ -793,17 +808,25 @@ function SearchResults({
 // ─────────────────────────────────────────────────────────────
 //  Helpers
 // ─────────────────────────────────────────────────────────────
-function relativeTime(iso: string): string {
+/**
+ * Localized relative-time formatter.
+ * Wave 2 i18n migration (2026-05-27): was hardcoded 繁中 (剛剛 / 分鐘前 / 日前).
+ * Accepts the `library` namespace translator so all 3 locales render correctly.
+ */
+function relativeTime(
+  iso: string,
+  tLib: (key: string, params?: Record<string, string | number>) => string,
+): string {
   const t = new Date(iso).getTime();
   const now = Date.now();
   const diffMin = Math.floor((now - t) / 60_000);
-  if (diffMin < 1) return "剛剛";
-  if (diffMin < 60) return `${diffMin} 分鐘前`;
+  if (diffMin < 1) return tLib("relativeTime.justNow");
+  if (diffMin < 60) return tLib("relativeTime.minutesAgo", { count: diffMin });
   const diffHour = Math.floor(diffMin / 60);
-  if (diffHour < 24) return `${diffHour} 小時前`;
+  if (diffHour < 24) return tLib("relativeTime.hoursAgo", { count: diffHour });
   const diffDay = Math.floor(diffHour / 24);
-  if (diffDay === 1) return "昨天";
-  if (diffDay < 7) return `${diffDay} 日前`;
-  if (diffDay < 30) return `${Math.floor(diffDay / 7)} 週前`;
+  if (diffDay === 1) return tLib("relativeTime.yesterday");
+  if (diffDay < 7) return tLib("relativeTime.daysAgo", { count: diffDay });
+  if (diffDay < 30) return tLib("relativeTime.weeksAgo", { count: Math.floor(diffDay / 7) });
   return new Date(iso).toLocaleDateString();
 }

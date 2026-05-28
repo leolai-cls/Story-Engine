@@ -17,6 +17,33 @@
 import { getStripe } from "./client";
 import { priceIdForTier, priceIdForTopUp, type PaidTier, type TopUpPack } from "./products";
 
+/**
+ * Stripe Checkout `locale` enum (narrowed to the locales we actually pass).
+ * Stripe's full enum is wider — `"auto" | "en" | "zh" | "zh-HK" | ...` — but
+ * the SDK's namespace path isn't accessible through `Stripe.Checkout`, so we
+ * keep our own narrow union and let the SDK validate it at runtime.
+ */
+type StripeCheckoutLocale = "auto" | "en" | "zh" | "zh-HK";
+
+/**
+ * Map our app locales to Stripe Checkout `locale` enum values.
+ * Wave 1 audit fix (2026-05-27): Stripe was hardcoded to its auto-detect
+ * locale (browser Accept-Language) → English users on a HK IP saw 繁中
+ * checkout. Now we pass our store's locale explicitly so checkout language
+ * matches the rest of the app.
+ *
+ *   en          → English
+ *   zh          → Mandarin (Simplified Chinese)
+ *   zh-HK       → Cantonese (Traditional Chinese)
+ */
+function stripeLocaleFor(appLocale?: string): StripeCheckoutLocale {
+  if (!appLocale) return "auto";
+  if (appLocale === "en") return "en";
+  if (appLocale === "zh-Hans") return "zh";
+  if (appLocale === "zh-Hant") return "zh-HK";
+  return "auto";
+}
+
 export async function createCheckoutSession({
   userId,
   email,
@@ -24,6 +51,7 @@ export async function createCheckoutSession({
   successUrl,
   cancelUrl,
   customerId,
+  locale,
 }: {
   /** Supabase auth user id · gets propagated via client_reference_id + metadata. */
   userId: string;
@@ -34,6 +62,8 @@ export async function createCheckoutSession({
   cancelUrl: string;
   /** If user already has a Stripe customer (e.g. resubscribing), reuse it. */
   customerId?: string | null;
+  /** App locale (en / zh-Hant / zh-Hans) for Stripe Checkout UI language. */
+  locale?: string;
 }) {
   const stripe = getStripe();
   const priceId = priceIdForTier(tier);
@@ -47,6 +77,7 @@ export async function createCheckoutSession({
     customer: customerId ?? undefined,
     customer_email: customerId ? undefined : email,
     client_reference_id: userId,
+    locale: stripeLocaleFor(locale),
     // Metadata persists on both the Session and the resulting Subscription.
     // Webhook handlers read this to identify which user the subscription
     // belongs to — Stripe's `customer.email` is unreliable as an FK because
@@ -84,6 +115,7 @@ export async function createTopUpCheckoutSession({
   successUrl,
   cancelUrl,
   customerId,
+  locale,
 }: {
   userId: string;
   email?: string;
@@ -91,6 +123,8 @@ export async function createTopUpCheckoutSession({
   successUrl: string;
   cancelUrl: string;
   customerId?: string | null;
+  /** App locale (en / zh-Hant / zh-Hans) for Stripe Checkout UI language. */
+  locale?: string;
 }) {
   const stripe = getStripe();
   const priceId = priceIdForTopUp(pack);
@@ -104,6 +138,7 @@ export async function createTopUpCheckoutSession({
     customer: customerId ?? undefined,
     customer_email: customerId ? undefined : email,
     client_reference_id: userId,
+    locale: stripeLocaleFor(locale),
     metadata: { user_id: userId, topup_pack: pack, purchase_kind: "topup" },
     payment_intent_data: {
       metadata: { user_id: userId, topup_pack: pack, purchase_kind: "topup" },

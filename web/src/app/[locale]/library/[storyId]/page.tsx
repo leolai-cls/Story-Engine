@@ -1,4 +1,4 @@
-import { setRequestLocale } from "next-intl/server";
+import { setRequestLocale, getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { notFound } from "next/navigation";
 import { SiteHeader } from "@/components/site-header";
@@ -40,6 +40,8 @@ export default async function StoryDetailPage({
 }) {
   const { locale, storyId } = await params;
   setRequestLocale(locale);
+  // Wave 2 deferred-file migration (2026-05-28): full story-detail page localized.
+  const t = await getTranslations("storyDetail");
 
   const supabase = await createClient();
   // AUDIT FIX MG-PERF-HIGH-01: cached — SiteHeader piggybacks on same call.
@@ -93,6 +95,12 @@ export default async function StoryDetailPage({
   if (adultBlocked) {
     return <StoryDetail403 locale={locale} />;
   }
+  const visibilityLabel =
+    visibility === "public"
+      ? t("visibility.public")
+      : visibility === "unlisted"
+        ? t("visibility.unlisted")
+        : t("visibility.private");
 
   return (
     <>
@@ -114,7 +122,7 @@ export default async function StoryDetailPage({
               style={{ color: "var(--se-fg-muted)" }}
             >
               <ArrowLeft size={11} />
-              故事庫
+              {t("breadcrumbLibrary")}
             </Link>
           </div>
           <div className="flex items-start gap-3.5">
@@ -143,7 +151,7 @@ export default async function StoryDetailPage({
                 style={{ color: "var(--se-fg-muted)" }}
               >
                 <Avatar name="·" size={16} hue={220} />
-                <span style={{ color: "var(--se-fg-2)" }}>社群創作</span>
+                <span style={{ color: "var(--se-fg-2)" }}>{t("community")}</span>
               </div>
               <div className="mt-2">
                 <Stars value={story.rating_avg ?? 0} count={story.rating_count} size={11} />
@@ -205,7 +213,7 @@ export default async function StoryDetailPage({
               }}
             >
               <ArrowLeft size={12} />
-              故事庫
+              {t("breadcrumbLibrary")}
             </Link>
           </div>
           {/* Hero content bottom-left */}
@@ -253,7 +261,7 @@ export default async function StoryDetailPage({
             )}
             <div className="mt-6 flex items-center gap-2 flex-wrap" style={{ rowGap: 6 }}>
               <Avatar name="·" size={20} hue={220} />
-              <span className="text-sm" style={{ color: "#fff" }}>社群創作</span>
+              <span className="text-sm" style={{ color: "#fff" }}>{t("community")}</span>
               {isOwner && (
                 <span
                   className="ml-2 se-mono"
@@ -266,7 +274,7 @@ export default async function StoryDetailPage({
                     letterSpacing: "0.05em",
                   }}
                 >
-                  {visibility === "public" ? "已發佈 PUBLIC" : visibility === "unlisted" ? "LINK 分享" : "PRIVATE"}
+                  {visibilityLabel}
                 </span>
               )}
             </div>
@@ -295,7 +303,7 @@ export default async function StoryDetailPage({
               <section className="mb-10">
                 <div className="flex items-baseline gap-3 mb-3.5">
                   <h2 className="text-base font-semibold m-0 se-cjk" style={{ color: "var(--se-fg)" }}>
-                    開場
+                    {t("openingHeader")}
                   </h2>
                   <span className="se-mono text-[10.5px]" style={{ color: "var(--se-fg-dim)", letterSpacing: "0.08em" }}>
                     OPENING NARRATIVE
@@ -325,7 +333,7 @@ export default async function StoryDetailPage({
                   className="mt-3 text-xs se-cjk text-center"
                   style={{ color: "var(--se-fg-muted)" }}
                 >
-                  所有 playthrough 由呢度起 · 之後每個玩家寫嘅故事都唔同
+                  {t("openingHint")}
                 </p>
               </section>
             )}
@@ -335,10 +343,10 @@ export default async function StoryDetailPage({
               <section className="mb-10">
                 <div className="flex items-baseline gap-3 mb-3.5">
                   <h2 className="text-base font-semibold m-0 se-cjk" style={{ color: "var(--se-fg)" }}>
-                    主要角色
+                    {t("castHeader")}
                   </h2>
                   <span className="se-mono text-[10.5px]" style={{ color: "var(--se-fg-dim)", letterSpacing: "0.08em" }}>
-                    CAST · {characters.length} NPC
+                    {t("castSubFormat", { count: characters.length })}
                   </span>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -391,10 +399,10 @@ export default async function StoryDetailPage({
             <section className="mb-12">
               <div className="flex items-baseline gap-3 mb-4">
                 <h2 className="text-base font-semibold m-0 se-cjk" style={{ color: "var(--se-fg)" }}>
-                  評論
+                  {t("commentsHeader")}
                 </h2>
                 <span className="se-mono text-[10.5px]" style={{ color: "var(--se-fg-dim)", letterSpacing: "0.08em" }}>
-                  {comments.length} REPLIES · {story.rating_count} RATINGS
+                  {t("commentsSubFormat", { comments: comments.length, ratings: story.rating_count })}
                 </span>
               </div>
 
@@ -451,7 +459,8 @@ export default async function StoryDetailPage({
                 >
                   <MessageSquare size={20} className="mx-auto mb-2" color="var(--se-fg-dim)" />
                   <p className="text-sm se-cjk" style={{ color: "var(--se-fg-muted)" }}>
-                    未有留言。{user ? "玩完之後留低你嘅感想。" : "登入之後可以留言。"}
+                    {t("commentsEmpty")}
+                    {user ? t("commentsEmptyAuthed") : t("commentsEmptyAnon")}
                   </p>
                 </div>
               ) : (
@@ -479,7 +488,7 @@ export default async function StoryDetailPage({
                       </div>
                       {c.deleted ? (
                         <p className="text-sm italic se-cjk" style={{ color: "var(--se-fg-dim)" }}>
-                          [已刪除]
+                          {t("commentDeleted")}
                         </p>
                       ) : (
                         <p
@@ -521,7 +530,7 @@ export default async function StoryDetailPage({
                 <Stars value={story.rating_avg ?? 0} size={13} />
               </div>
               <div className="text-[11.5px] mt-0.5" style={{ color: "var(--se-fg-dim)" }}>
-                {story.rating_count} 個評分
+                {story.rating_count}{t("ratingCountSuffix")}
               </div>
 
               <div
@@ -534,10 +543,10 @@ export default async function StoryDetailPage({
 
               {/* Descriptive stats grid · NO completion % · NO 建議長度 */}
               <div className="grid grid-cols-2 gap-3.5 text-xs">
-                <StatTile label="累計開過 playthrough" value={story.play_count.toLocaleString()} />
-                <StatTile label="評分數" value={String(story.rating_count)} />
-                <StatTile label="留言數" value={String(comments.length)} />
-                <StatTile label="發佈日期" value={new Date(story.created_at).toLocaleDateString()} />
+                <StatTile label={t("stats.playthroughs")} value={story.play_count.toLocaleString()} />
+                <StatTile label={t("stats.ratings")} value={String(story.rating_count)} />
+                <StatTile label={t("stats.comments")} value={String(comments.length)} />
+                <StatTile label={t("stats.published")} value={new Date(story.created_at).toLocaleDateString()} />
               </div>
 
               {/* Cost framing · per-turn only · NO 全程 estimate */}
@@ -554,10 +563,10 @@ export default async function StoryDetailPage({
                 }}
               >
                 <div className="se-mono uppercase mb-1 text-[10px]" style={{ color: "var(--se-fg-dim)", letterSpacing: "0.06em" }}>
-                  COST
+                  {t("costLabel")}
                 </div>
-                <span className="se-mono" style={{ color: "var(--se-fg-2)" }}>~2 credits / turn</span>
-                <span className="se-cjk"> · 玩到滿意為止</span>
+                <span className="se-mono" style={{ color: "var(--se-fg-2)" }}>{t("costPerTurn")}</span>
+                <span className="se-cjk">{t("costTagline")}</span>
               </div>
 
               {/* Tags */}
@@ -630,7 +639,9 @@ function StatTile({ label, value }: { label: string; value: string }) {
 // ─────────────────────────────────────────────────────────────
 //  Adult 403 friendly card (P6-UX-L-03 backlog · UI tier addressed)
 // ─────────────────────────────────────────────────────────────
-function StoryDetail403({ locale }: { locale: string }) {
+async function StoryDetail403({ locale }: { locale: string }) {
+  // Wave 2 deferred-file migration (2026-05-28): localize 403 panel.
+  const tBlock = await getTranslations("storyDetail.block403");
   return (
     <>
       <SiteHeader />
@@ -649,17 +660,20 @@ function StoryDetail403({ locale }: { locale: string }) {
             <Lock size={22} />
           </span>
           <div className="se-mono uppercase text-xs" style={{ color: "var(--se-warn)", letterSpacing: "0.06em" }}>
-            HTTP 403 · ADULT MODE REQUIRED
+            {tBlock("httpLabel")}
           </div>
           <h1 className="text-[22px] font-semibold mt-3.5 mb-2.5 se-cjk" style={{ letterSpacing: "-0.015em" }}>
-            呢個故事鎖咗喺成人模式入面
+            {tBlock("title")}
           </h1>
           <p className="text-sm se-cjk max-w-[440px] mx-auto" style={{ color: "var(--se-fg-muted)", lineHeight: 1.65 }}>
-            作者標記咗呢個故事為{" "}
-            <span className="se-mono" style={{ color: "var(--se-fg)" }}>18+</span>{" "}
-            內容。要繼續，請喺
-            <span style={{ color: "var(--se-fg)" }}>設定</span>
-            開啟成人模式（需要完成身份驗證）。
+            {tBlock.rich("body", {
+              plus: (chunks) => (
+                <span className="se-mono" style={{ color: "var(--se-fg)" }}>{chunks}</span>
+              ),
+              settings: (chunks) => (
+                <span style={{ color: "var(--se-fg)" }}>{chunks}</span>
+              ),
+            })}
           </p>
           <div className="flex gap-2.5 justify-center mt-6">
             <Link
@@ -668,7 +682,7 @@ function StoryDetail403({ locale }: { locale: string }) {
               className="px-4 py-2 rounded-md text-sm font-medium"
               style={{ background: "var(--se-fg)", color: "var(--se-bg)" }}
             >
-              前往設定 →
+              {tBlock("cta")}
             </Link>
             <Link
               href={"/library" as never}
@@ -676,7 +690,7 @@ function StoryDetail403({ locale }: { locale: string }) {
               className="px-4 py-2 rounded-md text-sm"
               style={{ border: "1px solid var(--se-border)", color: "var(--se-fg-muted)" }}
             >
-              返回故事庫
+              {tBlock("back")}
             </Link>
           </div>
           <div
@@ -692,10 +706,10 @@ function StoryDetail403({ locale }: { locale: string }) {
               <Info size={14} color="var(--se-fg-muted)" className="mt-0.5 flex-none" />
               <div>
                 <div className="font-medium mb-1" style={{ color: "var(--se-fg-2)" }}>
-                  點解需要身份驗證？
+                  {tBlock("whyTitle")}
                 </div>
-                平台必須確認用戶為成年人，方可解鎖 18+ 內容。身份驗證由 Stripe Identity 處理 · 一次性 · 唔會儲低身份證件影像。
-                <span style={{ color: "var(--se-fg-dim)" }}>（此功能 Phase 6 money tier 上線）</span>
+                {tBlock("whyBody")}
+                <span style={{ color: "var(--se-fg-dim)" }}>{tBlock("phaseNote")}</span>
               </div>
             </div>
           </div>

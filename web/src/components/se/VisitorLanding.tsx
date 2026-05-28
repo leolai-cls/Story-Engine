@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Cover } from "./Cover";
 import { Sparkles, Brain, Users } from "lucide-react";
 
@@ -9,8 +12,11 @@ import { Sparkles, Brain, Users } from "lucide-react";
  * Rendered above Library hero when !user. Uses 3-pillar messaging
  * (memory · NPC integrity · cover-led storytelling) for first-impression
  * differentiation vs AI Dungeon / Character.AI / NovelAI.
+ *
+ * Wave 2 i18n migration (2026-05-27): all copy localized via visitorLanding.*.
  */
 export function VisitorLanding({ locale }: { locale: string }) {
+  const t = useTranslations("visitorLanding");
   return (
     <section
       className="relative overflow-hidden"
@@ -39,7 +45,7 @@ export function VisitorLanding({ locale }: { locale: string }) {
               letterSpacing: "0.18em",
             }}
           >
-            STORY ENGINE · BETA
+            {t("eyebrow")}
           </span>
           <h1
             className="se-cjk m-0 mt-4"
@@ -52,9 +58,9 @@ export function VisitorLanding({ locale }: { locale: string }) {
               textWrap: "balance",
             }}
           >
-            每一個故事
+            {t("headlineLine1")}
             <br />
-            都記住你做過嘅每一個決定
+            {t("headlineLine2")}
           </h1>
           <p
             className="mt-6 se-cjk"
@@ -66,25 +72,24 @@ export function VisitorLanding({ locale }: { locale: string }) {
               textWrap: "pretty",
             }}
           >
-            中文圈嘅互動式 RPG 平台 · AI 即時生成劇情 · 角色有自己嘅紅線同好感度 ·
-            你做嘅每個選擇永久記入長期記憶。
+            {t("subtitle")}
           </p>
           {/* 3 pillars */}
           <div className="grid grid-cols-3 gap-5 mt-9">
             <Pillar
               icon={<Brain size={16} />}
-              title="4 層長期記憶"
-              body="近 20 turn · 滾動摘要 · RAG 向量 · auto-lorebook · AI 真係記得"
+              title={t("pillars.memory.title")}
+              body={t("pillars.memory.body")}
             />
             <Pillar
               icon={<Users size={16} />}
-              title="NPC 有紅線"
-              body="角色唔係 Yes-man · 4-axis disposition · 唔可以單靠 prompt 推翻"
+              title={t("pillars.npcs.title")}
+              body={t("pillars.npcs.body")}
             />
             <Pillar
               icon={<Sparkles size={16} />}
-              title="自適應介面"
-              body="每個故事 AI 生成專屬 state schema · 戀愛係好感度環 · D&D 係 HP/MP 條"
+              title={t("pillars.adaptive.title")}
+              body={t("pillars.adaptive.body")}
             />
           </div>
           <div className="flex gap-2.5 mt-9 flex-wrap items-center">
@@ -97,7 +102,7 @@ export function VisitorLanding({ locale }: { locale: string }) {
               }}
             >
               <Sparkles size={14} />
-              免費試玩 · 一鍵 Guest
+              {t("ctaGuest")}
             </Link>
             <Link
               href={`/${locale}/login`}
@@ -107,13 +112,13 @@ export function VisitorLanding({ locale }: { locale: string }) {
                 color: "var(--se-fg-2)",
               }}
             >
-              用 Email 登入
+              {t("ctaEmail")}
             </Link>
             <span
               className="text-xs ml-1 se-cjk"
               style={{ color: "var(--se-fg-dim)" }}
             >
-              無需信用卡 · 即時開始
+              {t("noCardHint")}
             </span>
           </div>
         </div>

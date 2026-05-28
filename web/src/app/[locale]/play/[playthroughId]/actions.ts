@@ -22,16 +22,32 @@ import { revalidatePath } from "next/cache";
  *   - Disable path here (`enabled: false`) always works regardless of tier
  *     (covers cancel-subscription → turn off feature gracefully)
  */
+/**
+ * Wave 1 audit C-01 fix (2026-05-27): switched from hardcoded 繁中 error
+ * strings to i18n error codes — was leaking Cantonese to EN / zh-Hans users
+ * the moment they touched the NPC L3 toggle. Client renders via
+ * useTranslations("errors") with the user's UI locale.
+ */
+export type SetNpcL3Result =
+  | { ok: true; enabled: boolean }
+  | {
+      ok: false;
+      errorCode?: string;
+      errorParams?: Record<string, string | number>;
+      errorRaw?: string;
+      code?: string;
+    };
+
 export async function setNpcL3Enabled(
   playthroughId: string,
   enabled: boolean,
-): Promise<{ ok: true; enabled: boolean } | { ok: false; error: string; code?: string }> {
+): Promise<SetNpcL3Result> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return { ok: false, error: "請先登入。", code: "unauthorized" };
+    return { ok: false, errorCode: "common.notLoggedIn", code: "unauthorized" };
   }
 
   // Owner check FIRST (avoid tier-error leak to non-owner)
@@ -42,10 +58,10 @@ export async function setNpcL3Enabled(
     .single();
 
   if (ptErr || !playthrough) {
-    return { ok: false, error: "搵唔到呢個 playthrough。", code: "not_found" };
+    return { ok: false, errorCode: "play.playthroughNotFound", code: "not_found" };
   }
   if (playthrough.user_id !== user.id) {
-    return { ok: false, error: "你唔係呢個 playthrough 嘅主人。", code: "forbidden" };
+    return { ok: false, errorCode: "play.playthroughNotOwner", code: "forbidden" };
   }
 
   // No-op early exit (same state · skip DB roundtrip)
@@ -64,7 +80,8 @@ export async function setNpcL3Enabled(
     if (tier !== "storyteller" && tier !== "legend") {
       return {
         ok: false,
-        error: `NPC 內心戲係 Storyteller 訂閱獨享 (你而家係 ${tier} tier · 升級至 Storyteller 即可解鎖)。`,
+        errorCode: "play.npcL3TierRequired",
+        errorParams: { tier },
         code: "tier_required",
       };
     }
@@ -78,16 +95,16 @@ export async function setNpcL3Enabled(
 
   if (updErr) {
     const msg = String(updErr.message ?? "");
-    // Trigger raised exception · surface clean message
+    // Trigger raised exception · surface as tier-required (DB-side gate)
     if (/Storyteller subscription/i.test(msg)) {
       return {
         ok: false,
-        error: msg.replace(/^.*?:\s*/, ""),
+        errorCode: "play.npcL3TierRequiredGeneric",
         code: "tier_required",
       };
     }
     console.error("[setNpcL3Enabled] update failed:", msg);
-    return { ok: false, error: "儲存失敗 · 請稍後再試。", code: "db_error" };
+    return { ok: false, errorCode: "play.saveFailed", code: "db_error" };
   }
 
   // Revalidate play page so UI sees new state on next render

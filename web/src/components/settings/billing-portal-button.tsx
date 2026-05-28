@@ -9,11 +9,15 @@
  */
 
 import { useState, useTransition } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { CreditCard } from "lucide-react";
 import { openBillingPortal } from "@/app/[locale]/pricing/actions";
 
 export function BillingPortalButton() {
+  // Wave 2 i18n migration (2026-05-27): localize "管理訂閱" + error fallback.
+  const t = useTranslations("settings.billing");
+  const tErrors = useTranslations("errors.billing");
   const [pending, startTransition] = useTransition();
   const [err, setErr] = useState<string | null>(null);
 
@@ -30,13 +34,13 @@ export function BillingPortalButton() {
             if (res.ok) {
               window.location.href = res.url;
             } else {
-              setErr(res.message ?? res.error);
+              setErr(tErrors("portalFailed"));
             }
           })
         }
       >
         <CreditCard className="h-4 w-4" />
-        {pending ? "..." : "管理訂閱"}
+        {pending ? "..." : t("managePortal")}
       </Button>
       {err && <span className="text-xs text-destructive">{err}</span>}
     </div>

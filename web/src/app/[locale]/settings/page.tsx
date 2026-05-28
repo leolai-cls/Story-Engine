@@ -1,4 +1,4 @@
-import { setRequestLocale, getLocale } from "next-intl/server";
+import { setRequestLocale, getLocale, getTranslations } from "next-intl/server";
 import { redirect, Link } from "@/i18n/navigation";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -49,8 +49,9 @@ export default async function SettingsPage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
+  // Wave 2 i18n migration (2026-05-27): full page localized via settings.* catalog.
+  const t = await getTranslations("settings");
   const sp = await searchParams;
-  const billingLang = locale.startsWith("en") ? "en" : "zh";
 
   // AUDIT FIX MG-PERF-HIGH-01: cached — SiteHeader dedupes against this call.
   const user = await getCachedUser();
@@ -102,11 +103,11 @@ export default async function SettingsPage({
   const isAnonymous = (user as unknown as { is_anonymous?: boolean }).is_anonymous === true;
 
   const NAV = [
-    { id: "profile", label: "個人資料", icon: UserIcon },
-    { id: "preferences", label: "偏好", icon: SettingsIcon },
-    { id: "adult", label: "成人模式", icon: ShieldAlert },
-    { id: "credits", label: "Credits", icon: Coins },
-    { id: "account", label: "帳號", icon: Info },
+    { id: "profile", label: t("nav.profile"), icon: UserIcon },
+    { id: "preferences", label: t("nav.preferences"), icon: SettingsIcon },
+    { id: "adult", label: t("nav.adult"), icon: ShieldAlert },
+    { id: "credits", label: t("nav.credits"), icon: Coins },
+    { id: "account", label: t("nav.account"), icon: Info },
   ] as const;
 
   return (
@@ -119,16 +120,16 @@ export default async function SettingsPage({
         >
           {/* Audit Wave 2 B2: surface Stripe redirect status — was dead query params */}
           {sp.subscribed === "1" && (
-            <BillingToast variant="subscribed" lang={billingLang} autoRefreshSeconds={8} />
+            <BillingToast variant="subscribed" autoRefreshSeconds={8} />
           )}
           {sp.topup === "1" && (
-            <BillingToast variant="topup" lang={billingLang} autoRefreshSeconds={8} />
+            <BillingToast variant="topup" autoRefreshSeconds={8} />
           )}
           {sp.topup_canceled === "1" && (
-            <BillingToast variant="topup_canceled" lang={billingLang} />
+            <BillingToast variant="topup_canceled" />
           )}
           {sp.verified === "pending" && (
-            <BillingToast variant="verifying" lang={billingLang} autoRefreshSeconds={12} />
+            <BillingToast variant="verifying" autoRefreshSeconds={12} />
           )}
           <div className="flex items-baseline gap-3 mb-8">
             <h1
@@ -138,7 +139,7 @@ export default async function SettingsPage({
                 color: "var(--se-fg)",
               }}
             >
-              設定
+              {t("pageTitle")}
             </h1>
             <span
               className="se-mono"
@@ -167,7 +168,7 @@ export default async function SettingsPage({
                   className="font-semibold text-sm se-cjk"
                   style={{ color: "var(--se-fg)" }}
                 >
-                  你而家係訪客模式
+                  {t("anonBanner.title")}
                 </div>
                 <p
                   className="mt-1 text-xs se-cjk"
@@ -176,7 +177,7 @@ export default async function SettingsPage({
                     lineHeight: 1.6,
                   }}
                 >
-                  連結 email 鎖定進度同 credit 餘額 — 唔連結 · 清 browser cookies 之後故事會失去。
+                  {t("anonBanner.body")}
                 </p>
                 <Link
                   href={"/login" as never}
@@ -186,7 +187,7 @@ export default async function SettingsPage({
                     color: "var(--se-bg)",
                   }}
                 >
-                  立即註冊 / 連結 email
+                  {t("anonBanner.cta")}
                 </Link>
               </div>
             </div>
@@ -223,20 +224,20 @@ export default async function SettingsPage({
             <div className="min-w-0 flex flex-col gap-9">
               <SettingsSection
                 id="profile"
-                title="個人資料"
-                sub="登入帳戶 · 顯示名稱 · 語言"
+                title={t("profile.title")}
+                sub={t("profile.subtitle")}
               >
                 <SettingsCard>
                   <SettingsRow
-                    label="Email"
+                    label={t("profile.emailLabel")}
                     control={
                       <span className="se-mono text-xs" style={{ color: "var(--se-fg-2)" }}>
-                        {user.email ?? "（訪客 / 匿名登入）"}
+                        {user.email ?? t("profile.emailGuestPlaceholder")}
                       </span>
                     }
                   />
                   <SettingsRow
-                    label="顯示名稱"
+                    label={t("profile.displayNameLabel")}
                     control={
                       <span className="text-sm se-cjk" style={{ color: "var(--se-fg)" }}>
                         {profile?.display_name?.trim() || "—"}
@@ -244,8 +245,8 @@ export default async function SettingsPage({
                     }
                   />
                   <SettingsRow
-                    label="語言"
-                    hint="影響 UI 文字 · 個別故事嘅 narrative language 喺 creation 時揀"
+                    label={t("profile.languageLabel")}
+                    hint={t("profile.languageHint")}
                     control={
                       <span className="se-mono text-xs" style={{ color: "var(--se-fg-2)" }}>
                         {profile?.locale ?? "zh-Hant"}
@@ -253,7 +254,7 @@ export default async function SettingsPage({
                     }
                   />
                   <SettingsRow
-                    label="加入日期"
+                    label={t("profile.joinedLabel")}
                     control={
                       <span className="se-mono text-xs" style={{ color: "var(--se-fg-muted)" }}>
                         {profile?.created_at
@@ -268,8 +269,8 @@ export default async function SettingsPage({
 
               <SettingsSection
                 id="preferences"
-                title="偏好"
-                sub="揀 tier · 我哋幫你揀最啱嘅 model（中文 vs 英文 · vendor 可用性）· adult tier 需要先開成人模式"
+                title={t("preferences.title")}
+                sub={t("preferences.subtitle")}
               >
                 <TierPicker
                   currentTier={(profile?.default_tier as ModelTier) ?? DEFAULT_TIER}
@@ -281,8 +282,8 @@ export default async function SettingsPage({
 
               <SettingsSection
                 id="adult"
-                title="成人模式"
-                sub="法律要求 · CSAM/illegal pre-filter 永遠 on · 無論開唔開都會 enforce"
+                title={t("adult.title")}
+                sub={t("adult.subtitle")}
               >
                 <AdultModeToggle
                   initialEnabled={profile?.adult_mode_enabled ?? false}
@@ -292,8 +293,11 @@ export default async function SettingsPage({
 
               <SettingsSection
                 id="credits"
-                title="Credits"
-                sub={`當前 ${tierConfig.label} · 餘額 ${balance.toLocaleString()} credits · Phase 4 money tier 開放 top-up`}
+                title={t("credits.title")}
+                sub={t("credits.subtitleFormat", {
+                  tier: tierConfig.label,
+                  balance: balance.toLocaleString(),
+                })}
               >
                 <SettingsCard>
                   <div
@@ -304,7 +308,7 @@ export default async function SettingsPage({
                       className="se-mono uppercase"
                       style={{ fontSize: 10, color: "var(--se-fg-dim)", letterSpacing: "0.06em" }}
                     >
-                      BALANCE
+                      {t("credits.balanceLabel")}
                     </div>
                     <div className="flex items-baseline gap-2 mt-1.5">
                       <span
@@ -319,30 +323,36 @@ export default async function SettingsPage({
                         {balance.toLocaleString()}
                       </span>
                       <span className="text-sm" style={{ color: "var(--se-fg-muted)" }}>
-                        credits
+                        {t("credits.balanceUnit")}
                       </span>
                     </div>
                     <div className="flex flex-wrap items-center gap-2 mt-3 text-xs">
                       <Badge variant="secondary" className="se-cjk">{tierConfig.label}</Badge>
                       <span className="se-cjk" style={{ color: "var(--se-fg-muted)" }}>
-                        {tierConfig.description}
+                        {/* Wave 2 i18n cycle-5 fix (2026-05-28): localize tier description.
+                            Was reading hardcoded 繁中 `tierConfig.description` from credits.ts. */}
+                        {t(`credits.tierDescriptions.${tier}` as
+                          | "credits.tierDescriptions.free"
+                          | "credits.tierDescriptions.adventurer"
+                          | "credits.tierDescriptions.storyteller"
+                          | "credits.tierDescriptions.legend")}
                       </span>
                     </div>
                     {subscription && (
                       <div className="mt-3 text-xs se-cjk" style={{ color: "var(--se-fg-muted)" }}>
-                        訂閱狀態：
+                        {t("credits.subscriptionStatus")}
                         <span className="ml-1 font-medium" style={{ color: "var(--se-fg)" }}>
                           {subscription.status}
                         </span>
                         {subscription.current_period_end && (
                           <span className="ml-2">
-                            · 下次續期：
+                            · {t("credits.nextRenewal")}
                             {new Date(subscription.current_period_end).toLocaleDateString()}
                           </span>
                         )}
                         {subscription.cancel_at_period_end && (
                           <Badge variant="destructive" className="ml-2 text-[10px]">
-                            期末取消
+                            {t("credits.cancelAtPeriodEnd")}
                           </Badge>
                         )}
                       </div>
@@ -362,13 +372,13 @@ export default async function SettingsPage({
                           render={<Link href="/pricing" />}
                         >
                           <CreditCard className="h-4 w-4" />
-                          {tier === "free" ? "升級訂閱" : "查看方案"}
+                          {tier === "free" ? t("credits.upgrade") : t("credits.viewPlans")}
                         </Button>
                       )}
                     </div>
                     {/* One-time top-up packs (live 2026-05-27) */}
                     <div className="mt-4 pt-4" style={{ borderTop: "1px solid var(--se-border)" }}>
-                      <TopUpButtons lang={locale.startsWith("en") ? "en" : "zh"} />
+                      <TopUpButtons />
                     </div>
                   </div>
                   <div className="p-5">
@@ -376,11 +386,11 @@ export default async function SettingsPage({
                       className="se-mono uppercase mb-2.5"
                       style={{ fontSize: 10, color: "var(--se-fg-dim)", letterSpacing: "0.06em" }}
                     >
-                      最近 CREDIT 變動
+                      {t("credits.recentLedger")}
                     </div>
                     {ledger.length === 0 ? (
                       <p className="text-xs se-cjk" style={{ color: "var(--se-fg-muted)" }}>
-                        未有任何 credit 變動。
+                        {t("credits.ledgerEmpty")}
                       </p>
                     ) : (
                       <div className="flex flex-col divide-y" style={{ borderColor: "var(--se-border)" }}>
@@ -391,7 +401,7 @@ export default async function SettingsPage({
                           >
                             <div className="flex flex-col">
                               <span className="font-medium se-cjk" style={{ color: "var(--se-fg)" }}>
-                                {reasonLabel(entry.reason)}
+                                {reasonLabel(entry.reason, t)}
                               </span>
                               <span className="se-mono" style={{ color: "var(--se-fg-dim)" }}>
                                 {new Date(entry.created_at).toLocaleString()}
@@ -411,7 +421,7 @@ export default async function SettingsPage({
                                 className="se-mono"
                                 style={{ fontSize: 10, color: "var(--se-fg-dim)" }}
                               >
-                                餘 {entry.balance_after}
+                                {t("credits.ledgerBalance", { balance: entry.balance_after })}
                               </div>
                             </div>
                           </div>
@@ -422,29 +432,29 @@ export default async function SettingsPage({
                 </SettingsCard>
               </SettingsSection>
 
-              <SettingsSection id="account" title="帳號" sub="登出 · 匯出 data · 刪除帳號">
+              <SettingsSection id="account" title={t("account.title")} sub={t("account.subtitle")}>
                 <SettingsCard>
                   <SettingsRow
-                    label="登出"
-                    hint="所有裝置同時登出"
+                    label={t("account.signOutLabel")}
+                    hint={t("account.signOutHint")}
                     control={<SignOutButton />}
                   />
                   <SettingsRow
-                    label="匯出我嘅 data"
-                    hint="所有 playthrough · 記憶 · 評論 · ~zip 檔"
+                    label={t("account.exportLabel")}
+                    hint={t("account.exportHint")}
                     control={
                       <Button variant="outline" size="sm" disabled>
-                        匯出（v1.5+）
+                        {t("account.exportButton")}
                       </Button>
                     }
                   />
                   <SettingsRow
-                    label="刪除帳號"
-                    hint="不可逆 · 所有故事 · playthrough · 記憶會永久消失"
+                    label={t("account.deleteLabel")}
+                    hint={t("account.deleteHint")}
                     danger
                     control={
                       <Button variant="destructive" size="sm" disabled>
-                        刪除...
+                        {t("account.deleteButton")}
                       </Button>
                     }
                     last
@@ -556,29 +566,41 @@ function SettingsRow({
   );
 }
 
-function reasonLabel(reason: string): string {
-  switch (reason) {
-    case "turn_charge":
-      return "玩 turn 扣費";
-    case "story_charge":
-      return "創作新故事";
-    case "embed_charge":
-      return "Embed 用量";
-    case "sub_grant":
-      return "訂閱開通 credit";
-    case "sub_renewal":
-      return "訂閱續期 credit";
-    case "sub_canceled":
-      return "訂閱取消";
-    case "topup":
-      return "Top-up 購買";
-    case "refund":
-      return "退回";
-    case "admin_adjust":
-      return "管理員調整";
-    case "free_tier_refresh":
-      return "Free tier 每日重置";
-    default:
-      return reason;
+/**
+ * Wave 2 i18n migration (2026-05-27): localized via `settings.ledger.*` catalog.
+ * Was hardcoded 繁中 labels — EN / zh-Hans users saw Cantonese reason labels
+ * in their credit history.
+ */
+type LedgerKey =
+  | "turn_charge"
+  | "story_charge"
+  | "embed_charge"
+  | "sub_grant"
+  | "sub_renewal"
+  | "sub_canceled"
+  | "topup"
+  | "refund"
+  | "admin_adjust"
+  | "free_tier_refresh";
+
+function reasonLabel(
+  reason: string,
+  t: (key: string) => string,
+): string {
+  const KNOWN: ReadonlyArray<LedgerKey> = [
+    "turn_charge",
+    "story_charge",
+    "embed_charge",
+    "sub_grant",
+    "sub_renewal",
+    "sub_canceled",
+    "topup",
+    "refund",
+    "admin_adjust",
+    "free_tier_refresh",
+  ];
+  if (KNOWN.includes(reason as LedgerKey)) {
+    return t(`ledger.${reason}`);
   }
+  return reason;
 }

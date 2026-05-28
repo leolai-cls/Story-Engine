@@ -1,0 +1,128 @@
+<!--
+  Magic link email template · trilingual (EN / 繁中 / 簡中 stacked).
+  Supabase doesn't support per-locale email templates · so all 3 languages
+  appear in one email · user reads the section that matches their locale.
+
+  Variables (Supabase Go template syntax):
+  - {{ .ConfirmationURL }}  the magic-link URL
+  - {{ .Email }}            the user's email
+  - {{ .Token }}             6-digit code (alternative · we don't use)
+  - {{ .SiteURL }}           the site URL
+
+  To deploy: copy this HTML into Supabase Dashboard → Authentication →
+  Email Templates → Magic Link. (config.toml only applies to local dev.)
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kieio · Sign in</title>
+</head>
+<body style="margin:0;padding:0;background:#fafaf8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:#1a1a1a;">
+
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background:#fafaf8;padding:48px 24px;">
+  <tr>
+    <td align="center">
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="max-width:520px;background:#ffffff;border:1px solid #e7e4dd;border-radius:14px;">
+
+        <!-- Brand header -->
+        <tr>
+          <td style="padding:32px 36px 8px;text-align:center;">
+            <div style="font-family:'Termina','Geist',sans-serif;font-weight:700;font-size:24px;letter-spacing:-0.02em;color:#552583;">
+              KIEIO
+            </div>
+            <div style="font-size:11px;color:#9b958a;letter-spacing:0.08em;text-transform:uppercase;margin-top:4px;">
+              pronounced "KEE-yo" · 讀「KEE-yo」
+            </div>
+          </td>
+        </tr>
+
+        <!-- ── ENGLISH ─────────────────────────────────────────── -->
+        <tr>
+          <td style="padding:24px 36px 12px;">
+            <h2 style="margin:0 0 12px;font-size:18px;font-weight:600;color:#1a1a1a;">Sign in to Kieio</h2>
+            <p style="margin:0 0 20px;font-size:14px;line-height:1.6;color:#4a4a4a;">
+              Click the button below to sign in. This link expires in 1 hour.
+            </p>
+            <p style="margin:0 0 24px;text-align:center;">
+              <a href="{{ .ConfirmationURL }}"
+                 style="display:inline-block;background:#1a1a1a;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;padding:12px 32px;border-radius:8px;">
+                Sign in to Kieio →
+              </a>
+            </p>
+            <p style="margin:0;font-size:12px;color:#8a8580;line-height:1.5;">
+              If you didn't request this email, you can safely ignore it.
+            </p>
+          </td>
+        </tr>
+
+        <!-- divider -->
+        <tr>
+          <td style="padding:0 36px;">
+            <div style="border-top:1px solid #e7e4dd;margin:24px 0;"></div>
+          </td>
+        </tr>
+
+        <!-- ── 繁體中文（廣東話） ──────────────────────────────── -->
+        <tr>
+          <td style="padding:0 36px 12px;">
+            <h2 style="margin:0 0 12px;font-size:18px;font-weight:600;color:#1a1a1a;">登入 Kieio</h2>
+            <p style="margin:0 0 20px;font-size:14px;line-height:1.7;color:#4a4a4a;">
+              撳下面個 button 就會自動登入。連結 1 小時內有效。
+            </p>
+            <p style="margin:0 0 24px;text-align:center;">
+              <a href="{{ .ConfirmationURL }}"
+                 style="display:inline-block;background:#1a1a1a;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;padding:12px 32px;border-radius:8px;">
+                登入 Kieio →
+              </a>
+            </p>
+            <p style="margin:0;font-size:12px;color:#8a8580;line-height:1.6;">
+              如果唔係你 request 嘅，可以 ignore 呢封 email。
+            </p>
+          </td>
+        </tr>
+
+        <!-- divider -->
+        <tr>
+          <td style="padding:0 36px;">
+            <div style="border-top:1px solid #e7e4dd;margin:24px 0;"></div>
+          </td>
+        </tr>
+
+        <!-- ── 简体中文 ────────────────────────────────────────── -->
+        <tr>
+          <td style="padding:0 36px 32px;">
+            <h2 style="margin:0 0 12px;font-size:18px;font-weight:600;color:#1a1a1a;">登入 Kieio</h2>
+            <p style="margin:0 0 20px;font-size:14px;line-height:1.7;color:#4a4a4a;">
+              点击下面的按钮即可自动登入。链接 1 小时内有效。
+            </p>
+            <p style="margin:0 0 24px;text-align:center;">
+              <a href="{{ .ConfirmationURL }}"
+                 style="display:inline-block;background:#1a1a1a;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;padding:12px 32px;border-radius:8px;">
+                登入 Kieio →
+              </a>
+            </p>
+            <p style="margin:0;font-size:12px;color:#8a8580;line-height:1.6;">
+              如果不是你请求的，可以忽略此邮件。
+            </p>
+          </td>
+        </tr>
+
+        <!-- footer -->
+        <tr>
+          <td style="padding:20px 36px;background:#f7f5f0;border-top:1px solid #e7e4dd;border-radius:0 0 14px 14px;text-align:center;">
+            <p style="margin:0;font-size:11px;color:#9b958a;line-height:1.5;">
+              Kieio · {{ .SiteURL }}<br>
+              Interactive fiction RPG · 互動式故事 RPG
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+
+</body>
+</html>

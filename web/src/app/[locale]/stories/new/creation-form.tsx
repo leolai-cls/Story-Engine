@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useTranslations } from "next-intl";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,24 +25,17 @@ import { estimateStoryCreationCredits } from "@/lib/billing/credits";
  * Backend uses Promise.all so we can't get per-task progress events without SSE.
  * UI mocks all 4 tasks as concurrently running · all flip to done on form return.
  * Indeterminate spinners + mono task labels reinforce the「AI dashboard」feel.
+ *
+ * Wave 2 i18n migration (2026-05-27): labels read from messages catalog.
  */
-const TASKS = [
-  { id: "meta", label: "故事 meta + opening 敘事", icon: BookOpen },
-  { id: "schema", label: "自適應 state schema", icon: SettingsIcon },
-  { id: "bible", label: "Story Bible · 世界規則", icon: Gem },
-  { id: "chars", label: "NPC character cards", icon: Users },
-] as const;
+const TASK_IDS = ["meta", "schema", "bible", "chars"] as const;
+const TASK_ICONS = { meta: BookOpen, schema: SettingsIcon, bible: Gem, chars: Users } as const;
 
 // AUDIT FIX (P3-UX-L-16): pre-display cost so user knows what threshold
 // to hit before clicking. Previously they only learned via 402 error.
 const ESTIMATED_STORY_COST = estimateStoryCreationCredits();
 
-const EXAMPLE_PROMPTS = [
-  "1980 年代香港古惑仔故事，我做新仔，幫師兄做嘢搵錢，順便照顧屋企人。江湖險惡，要 navigate 兄弟情同利益。",
-  "TW 大學校園戀愛故事，我做轉校生男仔，社團要揀，3 個女仔可能有意思 — 文藝系思雅、運動系阿琳、活躍學姊 Cherry。",
-  "中世紀奇幻冒險，我做被流放嘅前皇室護衛，要喺廢墟搵返家族失落嘅遺物。沿途遇到精靈、矮人、邪教徒。",
-  "NBA 新秀第一年，我做被選去爛波隊嘅 controlled draft pick，要喺爛 team 證明自己。",
-];
+const EXAMPLE_KEYS = ["0", "1", "2", "3"] as const;
 
 export function CreationForm({
   adultModeEnabled,
@@ -49,6 +43,10 @@ export function CreationForm({
   /** Phase 6 non-money function: gate 'adult' content_rating button */
   adultModeEnabled: boolean;
 }) {
+  const tErrors = useTranslations("errors");
+  const tForm = useTranslations("createStory.form");
+  const tTasks = useTranslations("createStory.tasks");
+  const tExamples = useTranslations("createStory.examples");
   const [prompt, setPrompt] = useState("");
   const [protagonist, setProtagonist] = useState("");
   const [rating, setRating] = useState<"sfw" | "soft" | "adult">("sfw");
@@ -60,7 +58,23 @@ export function CreationForm({
     startTransition(async () => {
       const result = await createStoryFromPrompt(formData);
       if (result && !result.ok) {
-        setError(result.error);
+        // Wave 1 i18n migration (2026-05-27): server returns errorCode + params
+        // for static catalog-lookup messages, or errorRaw for LLM-generated text
+        // (moderation reason). Localize via next-intl when code is present.
+        if (result.errorCode) {
+          setError(
+            tErrors(
+              // Cast: next-intl `t()` requires a literal-narrow key; runtime
+              // codes from server are accepted but TS can't prove safety.
+              result.errorCode as Parameters<typeof tErrors>[0],
+              result.errorParams ?? {},
+            ),
+          );
+        } else if (result.errorRaw) {
+          setError(result.errorRaw);
+        } else {
+          setError(tErrors("common.tryAgainLater"));
+        }
       }
       // success path: server action redirects to /play/[id]
     });
@@ -71,7 +85,7 @@ export function CreationForm({
       <CardContent className="pt-6 space-y-5">
         <form action={submit} className="space-y-5">
           <div className="space-y-2">
-            <Label htmlFor="prompt">故事概念</Label>
+            <Label htmlFor="prompt">{tForm("promptLabel")}</Label>
             <textarea
               id="prompt"
               name="prompt"
@@ -82,19 +96,23 @@ export function CreationForm({
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y"
-              placeholder="例：1980 年代香港古惑仔故事，我做新仔幫師兄做嘢，要 navigate 兄弟情同江湖險惡…"
+              placeholder={tForm("promptPlaceholder")}
               disabled={isPending}
             />
             <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>越具體越好 — 包括時代、地點、主角設定、想體驗咩。</span>
-              <span className="tabular-nums">{prompt.length} / 2000</span>
+              <span>{tForm("promptHint")}</span>
+              <span className="tabular-nums">
+                {tForm("promptCounter", { count: prompt.length, max: 2000 })}
+              </span>
             </div>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="protagonist_hint">
-              主角設定提示{" "}
-              <span className="text-xs text-muted-foreground">（可選）</span>
+              {tForm("protagonistLabel")}{" "}
+              <span className="text-xs text-muted-foreground">
+                {tForm("protagonistOptional")}
+              </span>
             </Label>
             <Input
               id="protagonist_hint"
@@ -102,13 +120,13 @@ export function CreationForm({
               maxLength={280}
               value={protagonist}
               onChange={(e) => setProtagonist(e.target.value)}
-              placeholder="例：「我做 18 歲新仔，瘦但拳腳功夫好」"
+              placeholder={tForm("protagonistPlaceholder")}
               disabled={isPending}
             />
           </div>
 
           <div className="space-y-2">
-            <Label>內容分級</Label>
+            <Label>{tForm("ratingLabel")}</Label>
             <div className="flex gap-2 flex-wrap">
               {(["sfw", "soft", "adult"] as const).map((r) => {
                 // Phase 6 non-money function: adult content rating requires
@@ -120,11 +138,7 @@ export function CreationForm({
                     type="button"
                     onClick={() => !adultDisabled && setRating(r)}
                     disabled={isPending || adultDisabled}
-                    title={
-                      adultDisabled
-                        ? "需要喺 設定 開啟成人模式（需身份驗證）"
-                        : undefined
-                    }
+                    title={adultDisabled ? tForm("ratingAdultTooltip") : undefined}
                     className={`px-3 py-1.5 rounded-md text-xs font-medium border transition ${
                       rating === r
                         ? "bg-primary text-primary-foreground border-primary"
@@ -132,12 +146,12 @@ export function CreationForm({
                     } ${adultDisabled ? "opacity-50 cursor-not-allowed" : ""}`}
                   >
                     {r === "sfw"
-                      ? "一般向 (SFW)"
+                      ? tForm("ratingSfw")
                       : r === "soft"
-                        ? "輕度暗示"
+                        ? tForm("ratingSoft")
                         : adultModeEnabled
-                          ? "成人 (18+)"
-                          : "成人 (需身份驗證)"}
+                          ? tForm("ratingAdult18")
+                          : tForm("ratingAdultLocked")}
                   </button>
                 );
               })}
@@ -167,13 +181,13 @@ export function CreationForm({
                     letterSpacing: "0.06em",
                   }}
                 >
-                  403 · MODERATION REJECTED
+                  {tForm("moderationCode")}
                 </div>
                 <div
                   className="text-sm font-medium mb-1 se-cjk"
                   style={{ color: "var(--se-fg)" }}
                 >
-                  呢個 premise 觸發咗安全規則
+                  {tForm("moderationTitle")}
                 </div>
                 <div
                   className="text-xs se-cjk"
@@ -188,7 +202,7 @@ export function CreationForm({
                   className="mt-2 text-[11px] se-cjk"
                   style={{ color: "var(--se-fg-dim)" }}
                 >
-                  💡 Tip: 描寫犯罪故事可以將主角設為<em>觀察者</em>或<em>受害者</em>角度 · 唔好做加害者。
+                  {tForm("moderationTip")}
                 </div>
               </div>
             </div>
@@ -203,12 +217,12 @@ export function CreationForm({
             {isPending ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                AI 設計緊你嘅故事…（約 15-30 秒）
+                {tForm("submitBusy")}
               </>
             ) : (
               <>
                 <Sparkles className="h-4 w-4" />
-                生成 + 即時開始
+                {tForm("submit")}
               </>
             )}
           </Button>
@@ -217,7 +231,7 @@ export function CreationForm({
           {!isPending && (
             <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
               <Coins className="h-3 w-3" />
-              估計成本 ~{ESTIMATED_STORY_COST} credits
+              {tForm("estimatedCost", { count: ESTIMATED_STORY_COST })}
             </div>
           )}
 
@@ -235,18 +249,18 @@ export function CreationForm({
                   }}
                 >
                   <Loader2 className="h-3 w-3 animate-spin" />
-                  GENERATING · 4 PARALLEL TASKS · ~35-50s
+                  {tForm("generatingHeader")}
                 </span>
                 <span className="se-mono" style={{ color: "var(--se-fg-dim)" }}>
-                  你可以打開新 tab · 完成會自動跳轉
+                  {tForm("generatingHint")}
                 </span>
               </div>
               <div className="flex flex-col gap-2">
-                {TASKS.map((t) => {
-                  const Ico = t.icon;
+                {TASK_IDS.map((id) => {
+                  const Ico = TASK_ICONS[id];
                   return (
                     <div
-                      key={t.id}
+                      key={id}
                       className="flex items-center gap-3 px-3.5 py-2.5 rounded-lg"
                       style={{
                         background: "var(--se-surface)",
@@ -270,14 +284,14 @@ export function CreationForm({
                           className="text-sm font-medium se-cjk"
                           style={{ color: "var(--se-fg)" }}
                         >
-                          {t.label}
+                          {tTasks(id)}
                         </div>
                         <div
                           className="se-mono mt-0.5"
                           style={{ fontSize: 10.5, color: "var(--se-fg-dim)" }}
                         >
                           <Ico size={9} className="inline mr-1" />
-                          sonnet-4.6 · 生成中…
+                          {tForm("generatingModelLine")}
                         </div>
                       </div>
                     </div>
@@ -291,20 +305,20 @@ export function CreationForm({
         {!isPending && (
           <div className="pt-3 border-t border-border/40">
             <div className="text-xs font-semibold text-muted-foreground mb-2">
-              冇靈感？試下：
+              {tForm("ideasHeader")}
             </div>
             <div className="flex flex-col gap-1.5">
-              {EXAMPLE_PROMPTS.map((ex, i) => (
+              {EXAMPLE_KEYS.map((k, i) => (
                 <button
-                  key={i}
+                  key={k}
                   type="button"
-                  onClick={() => setPrompt(ex)}
+                  onClick={() => setPrompt(tExamples(k))}
                   className="text-left text-xs text-ink-soft hover:text-foreground transition rounded p-2 -mx-2 hover:bg-secondary/50"
                 >
                   <Badge variant="outline" className="mr-2 text-[10px]">
                     {i + 1}
                   </Badge>
-                  {ex}
+                  {tExamples(k)}
                 </button>
               ))}
             </div>

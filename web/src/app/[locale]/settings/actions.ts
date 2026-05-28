@@ -21,9 +21,18 @@ import { revalidatePath } from "next/cache";
  * Phase 6 money tier KYC). For now (pre-KYC), only test profiles manually
  * flipped via service-role would have is_age_verified=true.
  */
+/**
+ * Wave 1 audit fix (2026-05-27): switched to i18n error codes. Two hardcoded
+ * 繁中 strings ("需要先完成身份驗證..." and "Adult tier 需要先...") were
+ * leaking to EN / zh-Hans users via the settings adult-mode toggle path.
+ */
+export type SetAdultModeResult =
+  | { ok: true }
+  | { ok: false; error: string; errorCode?: string };
+
 export async function setAdultMode(
   enabled: boolean,
-): Promise<{ ok: true } | { ok: false; error: string }> {
+): Promise<SetAdultModeResult> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -46,7 +55,9 @@ export async function setAdultMode(
     if (!profile?.is_age_verified) {
       return {
         ok: false,
-        error: "需要先完成身份驗證 — Phase 6 money tier 嚟緊先可以開啟。",
+        // Wave 1 audit fix: i18n error code (was hardcoded 繁中).
+        error: "adult_requires_kyc",
+        errorCode: "settings.adultRequiresKyc",
       };
     }
   }
@@ -131,14 +142,15 @@ export async function setDefaultModel(
   }
 
   // Tier gate
+  // Wave 2 i18n cycle-6 fix (2026-05-28): dropped hardcoded 廣東話 strings.
+  // setDefaultModel is currently dead code (replaced by TierPicker · per
+  // tier-picker.tsx header comment) but cleaned up here for hygiene in case
+  // it's revived. Caller would need to render localized body via i18n catalog.
   const tierCheck = await userTierAllowsModel(supabase, user.id, modelId);
   if (!tierCheck.allowed) {
     return {
       ok: false,
-      error:
-        tierCheck.reason === "tier_too_low"
-          ? `${model.display_name} 需要 ${model.min_tier} tier — 你而家係 ${tierCheck.tier}`
-          : "tier_not_allowed",
+      error: tierCheck.reason === "tier_too_low" ? "tier_too_low" : "tier_not_allowed",
     };
   }
 
@@ -156,7 +168,7 @@ export async function setDefaultModel(
     if (!profile?.adult_mode_enabled) {
       return {
         ok: false,
-        error: `${model.display_name} 需要先開啟「成人模式」(Settings page top)。`,
+        error: "adult_mode_required",
       };
     }
   }
@@ -195,9 +207,23 @@ export async function setDefaultModel(
  * applied. Until then this action will fail with "save_failed" — apply
  * via Supabase dashboard SQL Editor.
  */
+/**
+ * Wave 2 i18n cycle-6 fix (2026-05-28): added optional errorParams · tier-picker
+ * client uses these to render localized "Pro tier requires Adventurer · you're
+ * on Free" body via settings.tierSubscriptionGate.
+ */
+export type SetDefaultTierResult =
+  | { ok: true }
+  | {
+      ok: false;
+      error: string;
+      errorCode?: string;
+      errorParams?: Record<string, string | number>;
+    };
+
 export async function setDefaultTier(
   tier: ModelTier,
-): Promise<{ ok: true } | { ok: false; error: string }> {
+): Promise<SetDefaultTierResult> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -222,10 +248,15 @@ export async function setDefaultTier(
   const requiredSubTier = TIER_GATE[tier];
   const tierOrder = ["free", "adventurer", "storyteller", "legend"] as const;
   if (tierOrder.indexOf(userSubTier as (typeof tierOrder)[number]) < tierOrder.indexOf(requiredSubTier)) {
+    // Wave 2 i18n cycle-6 fix (2026-05-28): drop hardcoded 廣東話 error string.
+    // Client (tier-picker) renders body via tier-picker.requiresSubTier with
+    // {tier} param. Server only sends code + structured data.
     return {
       ok: false,
-      error: `${tier} tier 需要 ${requiredSubTier} 訂閱 — 你而家係 ${userSubTier}`,
-    };
+      error: "subscription_gate",
+      errorCode: "settings.tierSubscriptionGate",
+      errorParams: { tier, required: requiredSubTier, current: userSubTier },
+    } as SetDefaultTierResult;
   }
 
   // Adult tier extra gate.
@@ -233,7 +264,9 @@ export async function setDefaultTier(
     if (!profile?.adult_mode_enabled || !profile?.is_age_verified) {
       return {
         ok: false,
-        error: "Adult tier 需要先開啟成人模式 + 完成身份驗證。",
+        // Wave 1 audit fix: i18n error code (was hardcoded 繁中).
+        error: "adult_tier_requires_mode",
+        errorCode: "settings.adultTierRequiresMode",
       };
     }
   }

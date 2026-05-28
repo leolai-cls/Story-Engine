@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Cpu, Lock, Sparkles, Zap, Crown, Flame } from "lucide-react";
@@ -17,41 +18,36 @@ import { setDefaultTier } from "@/app/[locale]/settings/actions";
  * subscription doesn't unlock them.
  */
 
-const TIER_META: Record<
+/**
+ * Wave 2 i18n migration (2026-05-27): tier label + blurb now resolved at render
+ * time via `settings.tierPicker.tiers.*` / `settings.tierPicker.blurbs.*`.
+ * Constants now hold only icon + color (display-only) per tier.
+ */
+const TIER_ICONS: Record<
   ModelTier,
   {
-    label: string;
     icon: typeof Sparkles;
-    blurb: string;
     color: string;
     bgColor: string;
   }
 > = {
   standard: {
-    label: "Standard",
     icon: Zap,
-    blurb: "快 · 平 · 中文流暢 · 對標 NovelAI",
     color: "text-emerald-700 dark:text-emerald-300",
     bgColor: "bg-emerald-50 dark:bg-emerald-950/30",
   },
   pro: {
-    label: "Pro",
     icon: Sparkles,
-    blurb: "深層敘事 · 情感細膩 · 中英都強",
     color: "text-indigo-700 dark:text-indigo-300",
     bgColor: "bg-indigo-50 dark:bg-indigo-950/30",
   },
   "pro-max": {
-    label: "Pro Max",
     icon: Crown,
-    blurb: "最深層 · 多角色互動 · 複雜情節",
     color: "text-amber-700 dark:text-amber-300",
     bgColor: "bg-amber-50 dark:bg-amber-950/30",
   },
   adult: {
-    label: "Adult NSFW",
     icon: Flame,
-    blurb: "成人模式專用 · 需身份驗證",
     color: "text-rose-700 dark:text-rose-300",
     bgColor: "bg-rose-50 dark:bg-rose-950/30",
   },
@@ -72,13 +68,6 @@ function tierAvgCredits(tier: ModelTier): number {
   return Math.round(sum / estimates.length);
 }
 
-const SUB_TIER_LABEL: Record<string, string> = {
-  free: "Free",
-  adventurer: "Adventurer",
-  storyteller: "Storyteller",
-  legend: "Legend",
-};
-
 export function TierPicker({
   currentTier,
   subscriptionTier,
@@ -91,6 +80,10 @@ export function TierPicker({
   /** is_age_verified · Adult tier additionally gated on KYC */
   ageVerified: boolean;
 }) {
+  // Wave 2 i18n migration (2026-05-27): all labels via settings.tierPicker.*.
+  const t = useTranslations("settings.tierPicker");
+  // Wave 2 i18n cycle-6 fix (2026-05-28): localize server error bodies.
+  const tErrors = useTranslations("errors");
   const [selected, setSelected] = useState<ModelTier>(currentTier);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState<string | null>(null);
@@ -121,13 +114,26 @@ export function TierPicker({
     try {
       const result = await setDefaultTier(tier);
       if (result.ok) {
-        setSaved("已儲存");
+        setSaved(t("saved"));
         setTimeout(() => setSaved(null), 2000);
       } else {
-        setSaved("儲存失敗 · " + result.error);
+        // Wave 2 i18n cycle-6 fix (2026-05-28): localize server error body via
+        // errorCode + errorParams. Was passing raw server error string (which
+        // was hardcoded 廣東話) into a half-EN wrapper.
+        const r = result as typeof result & {
+          errorCode?: string;
+          errorParams?: Record<string, string | number>;
+        };
+        const body = r.errorCode
+          ? tErrors(
+              r.errorCode as Parameters<typeof tErrors>[0],
+              r.errorParams ?? {},
+            )
+          : result.error;
+        setSaved(t("saveFailedWithError", { error: body }));
       }
     } catch {
-      setSaved("儲存失敗");
+      setSaved(t("saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -149,10 +155,8 @@ export function TierPicker({
             <Cpu className="h-5 w-5" />
           </div>
           <div>
-            <CardTitle className="text-base">敘事 AI Tier</CardTitle>
-            <CardDescription className="text-xs">
-              揀 tier · 我哋幫你揀最啱嘅 model（語言 + vendor availability）。Director 永遠用 Haiku 4.5。
-            </CardDescription>
+            <CardTitle className="text-base">{t("title")}</CardTitle>
+            <CardDescription className="text-xs">{t("subtitle")}</CardDescription>
           </div>
           {saved && (
             <Badge variant="secondary" className="ml-auto">
@@ -163,7 +167,7 @@ export function TierPicker({
       </CardHeader>
       <CardContent className="space-y-2">
         {allTiers.map((tier) => {
-          const meta = TIER_META[tier];
+          const meta = TIER_ICONS[tier];
           const allowed = isAllowed(tier);
           const isSelected = selected === tier;
           const Ico = meta.icon;
@@ -196,7 +200,7 @@ export function TierPicker({
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-semibold">{meta.label}</span>
+                    <span className="text-sm font-semibold">{t(`tiers.${tier}`)}</span>
                     {tier === "adult" && (
                       <Badge
                         variant="outline"
@@ -208,18 +212,18 @@ export function TierPicker({
                     {!allowed && (
                       <Badge variant="outline" className="text-[10px]">
                         <Lock className="h-3 w-3" />
-                        要 {SUB_TIER_LABEL[requiredSub]}
-                        {tier === "adult" && !ageVerified ? " + 身份驗證" : ""}
+                        {t("requiresSubTier", { tier: t(`subTierLabels.${requiredSub}`) })}
+                        {tier === "adult" && !ageVerified ? t("andKyc") : ""}
                       </Badge>
                     )}
                   </div>
                   <div className="mt-1 text-xs text-muted-foreground">
-                    {meta.blurb}
+                    {t(`blurbs.${tier}`)}
                   </div>
                 </div>
                 <div className="flex-shrink-0 text-right">
                   <div className="text-xs uppercase tracking-wide text-muted-foreground">
-                    每 turn 估
+                    {t("perTurnEstimate")}
                   </div>
                   <div className="font-mono text-sm font-semibold text-amber-600 dark:text-amber-300">
                     ~{tierEstimates[tier]}

@@ -42,6 +42,23 @@ export type DrawerPlaythrough = {
   relativeTime: string;
 };
 
+export type MobileNavLabels = {
+  library: string;
+  myGames: string;
+  pricing: string;
+  settings: string;
+  login: string;
+  signup: string;
+  /** Wave 2 i18n migration (2026-05-27): drawer-internal labels. */
+  newStory: string;
+  continueSection: string;
+  allPlaythroughs: string;
+  logout: string;
+  ariaClose: string;
+  ariaCloseDrawer: string;
+  ariaOpenMenu: string;
+};
+
 export function MobileNavDrawer({
   locale,
   isAuthed,
@@ -53,14 +70,7 @@ export function MobileNavDrawer({
   isAuthed: boolean;
   playthroughs: DrawerPlaythrough[];
   totalPlaythroughCount: number;
-  labels: {
-    library: string;
-    myGames: string;
-    pricing: string;
-    settings: string;
-    login: string;
-    signup: string;
-  };
+  labels: MobileNavLabels;
 }) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -126,7 +136,7 @@ export function MobileNavDrawer({
                 onClick={close}
                 className="p-1 rounded"
                 style={{ color: "var(--se-fg-muted)" }}
-                aria-label="關閉"
+                aria-label={labels.ariaClose}
               >
                 <X size={16} />
               </button>
@@ -169,7 +179,7 @@ export function MobileNavDrawer({
                     style={{ color: "var(--se-fg-muted)" }}
                   >
                     <LogOut size={14} />
-                    <span className="se-cjk">登出</span>
+                    <span className="se-cjk">{labels.logout}</span>
                   </button>
                 </form>
               </div>
@@ -180,7 +190,7 @@ export function MobileNavDrawer({
       <div
         className="flex-1 bg-black/40"
         onClick={close}
-        aria-label="關閉抽屜"
+        aria-label={labels.ariaCloseDrawer}
       />
     </div>
   ) : null;
@@ -196,7 +206,7 @@ export function MobileNavDrawer({
           color: "var(--se-fg-2)",
           background: "transparent",
         }}
-        aria-label="開啟選單"
+        aria-label={labels.ariaOpenMenu}
       >
         <Menu size={18} />
       </button>
@@ -222,7 +232,7 @@ function AuthedBody({
   locale: string;
   playthroughs: DrawerPlaythrough[];
   totalPlaythroughCount: number;
-  labels: { library: string; myGames: string; pricing: string; settings: string; login: string; signup: string };
+  labels: MobileNavLabels;
   onItemClick: () => void;
 }) {
   return (
@@ -241,7 +251,7 @@ function AuthedBody({
           }}
         >
           <Plus size={14} />
-          <span className="se-cjk">開新故事</span>
+          <span className="se-cjk">{labels.newStory}</span>
         </Link>
       </div>
 
@@ -256,7 +266,7 @@ function AuthedBody({
               className="se-mono text-[10px]"
               style={{ letterSpacing: "0.08em" }}
             >
-              繼續玩
+              {labels.continueSection}
             </span>
             {totalPlaythroughCount > playthroughs.length && (
               <Link
@@ -268,7 +278,7 @@ function AuthedBody({
                   letterSpacing: "0.04em",
                 }}
               >
-                全部 ({totalPlaythroughCount})
+                {labels.allPlaythroughs} ({totalPlaythroughCount})
               </Link>
             )}
           </div>
@@ -329,7 +339,7 @@ function AnonBody({
   onItemClick,
 }: {
   locale: string;
-  labels: { library: string; myGames: string; pricing: string; settings: string; login: string; signup: string };
+  labels: MobileNavLabels;
   onItemClick: () => void;
 }) {
   return (

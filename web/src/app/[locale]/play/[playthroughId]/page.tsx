@@ -1,4 +1,4 @@
-import { setRequestLocale, getLocale } from "next-intl/server";
+import { setRequestLocale, getLocale, getTranslations } from "next-intl/server";
 import { redirect } from "@/i18n/navigation";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -14,6 +14,10 @@ export default async function PlayPage({
 }) {
   const { locale, playthroughId } = await params;
   setRequestLocale(locale);
+  // Wave 2 i18n migration (2026-05-27): localize relativeTime + default protagonist.
+  const tLibTime = await getTranslations("library.relativeTime");
+  // Wave 2 i18n cycle-5 fix (2026-05-28): localize empty-title fallback.
+  const tLibCard = await getTranslations("library.storyCard");
 
   const supabase = await createClient();
   const {
@@ -123,15 +127,25 @@ export default async function PlayPage({
   });
 
   // Sidebar payload: adapt MyPlaythroughRow → SidebarPlaythrough.
+  const untitledLabel = tLibCard("untitled");
   const sidebarPlaythroughs: SidebarPlaythrough[] = recentPlaythroughs.map((p) => ({
     id: p.id,
     storyId: p.story_id,
-    storyTitle: p.story_title,
+    storyTitle: p.story_title || untitledLabel,
     storyGenre: p.story_genre,
     turnCount: p.turn_count,
     status: p.status,
-    relativeTime: relativeTime(p.last_played_at),
+    relativeTime: relativeTime(p.last_played_at, tLibTime),
   }));
+
+  // Wave 2 i18n migration (2026-05-27): default protagonist label per-locale.
+  // Glyphs happen to be the same in 繁/簡, but the EN fallback differs.
+  const defaultProtagonist =
+    locale === "en"
+      ? "Protagonist"
+      : locale === "zh-Hans"
+        ? "主角"
+        : "主角";
 
   return (
     <PlayClient
@@ -147,7 +161,7 @@ export default async function PlayPage({
         skillCheck: t.skill_check as Turn["skillCheck"] | undefined,
         directorVerdict: t.director_verdict as Turn["directorVerdict"] | undefined,
       }))}
-      characterName={pt.character_name ?? "主角"}
+      characterName={pt.character_name ?? defaultProtagonist}
       npcs={npcs}
       sidebarPlaythroughs={sidebarPlaythroughs}
       sidebarTotalCount={totalPlaythroughCount ?? sidebarPlaythroughs.length}
@@ -160,17 +174,24 @@ export default async function PlayPage({
 // Local alias so the cast above doesn't need to import the full type from client
 type Turn = import("./play-client").Turn;
 
-function relativeTime(iso: string): string {
-  const t = new Date(iso).getTime();
+/**
+ * Localized relative-time formatter.
+ * Wave 2 i18n migration (2026-05-27): was hardcoded 繁中.
+ */
+function relativeTime(
+  iso: string,
+  t: (key: string, params?: Record<string, string | number>) => string,
+): string {
+  const ms = new Date(iso).getTime();
   const now = Date.now();
-  const diffMin = Math.floor((now - t) / 60_000);
-  if (diffMin < 1) return "剛剛";
-  if (diffMin < 60) return `${diffMin}分鐘前`;
+  const diffMin = Math.floor((now - ms) / 60_000);
+  if (diffMin < 1) return t("justNow");
+  if (diffMin < 60) return t("minutesAgo", { count: diffMin });
   const diffHour = Math.floor(diffMin / 60);
-  if (diffHour < 24) return `${diffHour}小時前`;
+  if (diffHour < 24) return t("hoursAgo", { count: diffHour });
   const diffDay = Math.floor(diffHour / 24);
-  if (diffDay === 1) return "昨天";
-  if (diffDay < 7) return `${diffDay}日前`;
-  if (diffDay < 30) return `${Math.floor(diffDay / 7)}週前`;
+  if (diffDay === 1) return t("yesterday");
+  if (diffDay < 7) return t("daysAgo", { count: diffDay });
+  if (diffDay < 30) return t("weeksAgo", { count: Math.floor(diffDay / 7) });
   return new Date(iso).toLocaleDateString();
 }

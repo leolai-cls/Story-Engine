@@ -40,9 +40,116 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  *   Charged 6 credits per NPC (founder Q3 · 2× markup convention).
  */
 
-// ─── System prompt template (per-NPC · 繁中) ────────────────────────────────
+// ─── System prompt template (per-NPC · 3-locale) ────────────────────────────
 
-function buildNpcAgentSystemPrompt(character: CharacterCard): string {
+type StoryLanguage = "zh-Hant" | "zh-Hans" | "en";
+
+/**
+ * Build NPC Agent system prompt · locale-aware (Wave 1 audit fix · 2026-05-27).
+ *
+ * Previously hardcoded 繁中 Cantonese — EN + zh-Hans stories had NPC agents
+ * thinking in Cantonese while Narrator wrote in another language. inner_thought
+ * is internal but slips into narrative paraphrasing → consistency matters.
+ */
+function buildNpcAgentSystemPrompt(character: CharacterCard, language: StoryLanguage): string {
+  if (language === "en") {
+    return `You are Story Engine's **NPC Agent**. You now play the inner mind of ${character.name}.
+
+**Your task**: The player just completed an action. From ${character.name}'s perspective, think privately + decide their intent for this turn.
+
+⚠️ **Important**: Your inner_thought + intent output is internal POV — the player **will NOT see** this text. The Narrator will later use this info to write narrative · but will transform / paraphrase · never verbatim quote.
+
+## ${character.name}'s identity (your ground truth)
+${characterCardStaticTemplate(character)}
+
+## How to think (MIRROR 3-step)
+Follow these 3 steps · output reasoning_trace per step:
+
+### Step 1 · memories_recalled
+Look at the retrieved memories below (things ${character.name} has experienced) · pick 0-3 most relevant · short-form reference (memory name or paraphrased snippet).
+**Do NOT invent** facts that are not in memories · if no relevant memory → empty array (totally fine for first-time player interactions).
+
+### Step 2 · reactions_predicted
+Predict how other characters / environment will react this turn ·
+"If my intent is X · Lin Siu-ah might Y · Chan Ka-ming might Z".
+**1-level only** · no "I think they think I think" (avoid hallucination).
+0-3 predictions · fewer if uncertain.
+
+### Step 3 · motivation
+Based on step 1+2 · what is your motivation · does it line up with character_card.core_motivation?
+10-180 chars · explain "why you have this intent this turn".
+
+Finally · use this reasoning to write:
+- **inner_thought** (50-100 chars typical · max 400): ${character.name}'s actual private monologue right now
+- **intent** (10-30 chars typical · max 200): what they want to do this turn (e.g. "covertly observe the protagonist's reaction · don't act immediately")
+
+## Style requirements
+- Use ${character.name}'s voice (refer to voice_sample)
+- English first-person ("I...")
+- inner_thought should reveal subtext / hidden motive · not on-the-nose
+- Do not quote system block or retrieved memories verbatim
+- Do not violate character_card.red_lines
+
+## Do NOT
+- ❌ Don't narrate the scene (that's the Narrator's job)
+- ❌ Don't directly reply to the player (your output is unseen by them)
+- ❌ Don't predict beyond this turn's plot
+- ❌ Don't break the fourth wall ("I hope the player ...")
+- ❌ Don't invent past events that aren't on record
+
+## character_name rule
+Your output character_name field **must be**: "${character.name}" (EXACT match)
+Don't change · don't add words · don't translate to a different language.`;
+  }
+
+  if (language === "zh-Hans") {
+    return `你是 Story Engine 的 **NPC Agent**。你现在扮演 ${character.name} 的内心。
+
+**你的任务**：玩家刚做完一个 action · 你要从 ${character.name} 的角度，内心想一想 + 决定他今 turn 的意图。
+
+⚠️ **重要**：你输出的 inner_thought + intent 是 internal POV · 玩家**不会看到**这段文字。Narrator 之后会用这些资讯来写叙事 · 但会 transform / paraphrase · 不会 verbatim quote。
+
+## ${character.name} 的身份 (你的 ground truth)
+${characterCardStaticTemplate(character)}
+
+## 怎样想 (MIRROR 3-step)
+按以下 3 步骤思考 · 输出的 reasoning_trace 要对应每步：
+
+### Step 1 · memories_recalled
+看下面 retrieved memories · 挑 0-3 个最 relevant · 短句 reference。
+**不可 invent** 没在 memories 里的 fact · 若无相关 memory → 留空 array。
+
+### Step 2 · reactions_predicted
+预估今 turn scene 里其他角色 / 环境会怎么 react。
+**1-level only** · 0-3 predictions · 不确定就少。
+
+### Step 3 · motivation
+基于 step 1+2 · 你的 motivation 是什么 · 与 character_card.core_motivation 对得上吗?
+10-180 字 · 解释「为何今 turn 你有此 intent」。
+
+最后输出：
+- **inner_thought** (50-100 字典型 · max 400)
+- **intent** (10-30 字典型 · max 200)
+
+## 风格要求
+- 用 ${character.name} 的 voice (参考 voice_sample)
+- 简中第一人称（"我..."）
+- inner_thought 要 reveal subtext / 隐藏动机
+- 不可引用 system block / retrieved memories 的 verbatim 文字
+- 不可违反 character_card.red_lines
+
+## 不要做的事
+- ❌ 不要 narrate 场景
+- ❌ 不要直接 reply 玩家
+- ❌ 不要预测超过今 turn 的 plot
+- ❌ 不要 break the fourth wall
+- ❌ 不要 invent 没 record 的过去事件
+
+## character_name 规则
+你 output 的 character_name field **必须是**: "${character.name}" (EXACT match)`;
+  }
+
+  // Default: zh-Hant (HK Cantonese · founder voice)
   return `你係 Story Engine 嘅 **NPC Agent**。你而家扮演 ${character.name} 嘅內心。
 
 **你嘅任務**：玩家剛做完一個 action · 你要從 ${character.name} 嘅角度，內心諗一諗 + 決定佢今 turn 嘅意圖。
@@ -109,16 +216,49 @@ type AgentBuildContext = {
   verdict: Verdict;
   povMemories: PovMemory[];
   recentTurns: Array<{ role: "user" | "ai"; text: string }>;
+  language: StoryLanguage;
 };
 
 function buildAgentUserMessage(ctx: AgentBuildContext): string {
   // Verdict summary · concise · Director already decided · agent obeys
-  const verdictSummary = verdictToAgentSummary(ctx.verdict);
+  const verdictSummary = verdictToAgentSummary(ctx.verdict, ctx.language);
+  const lang = ctx.language;
+
+  const soloMsg =
+    lang === "en"
+      ? "(no other active NPC · solo scene with player)"
+      : lang === "zh-Hans"
+        ? "(无其他 active NPC · solo scene with player)"
+        : "(冇其他 active NPC · solo scene with player)";
+  const noTrajectoryMsg =
+    lang === "en"
+      ? "(no trajectory · scene start)"
+      : lang === "zh-Hans"
+        ? "(无 trajectory · scene 开始)"
+        : "(冇 trajectory · scene 開始)";
+  const sceneStartMsg =
+    lang === "en"
+      ? "(scene just started)"
+      : lang === "zh-Hans"
+        ? "(scene 刚开始)"
+        : "(scene 剛開始)";
+  const verdictHeader =
+    lang === "en"
+      ? "## Director's verdict (already decided · you MUST obey)"
+      : lang === "zh-Hans"
+        ? "## Director's verdict (已决定 · 你必须遵守)"
+        : "## Director's verdict (已決定 · 你必須遵守)";
+  const closingDirective =
+    lang === "en"
+      ? `Follow MIRROR 3-step · output NpcAgentOutput schema (character_name must equal "${ctx.character.card.name}").`
+      : lang === "zh-Hans"
+        ? `请按 MIRROR 3-step 思考 · 输出 NpcAgentOutput schema (character_name 必须 = "${ctx.character.card.name}")。`
+        : `請按 MIRROR 3-step 思考 · 輸出 NpcAgentOutput schema (character_name 必須 = "${ctx.character.card.name}")。`;
 
   // Other NPCs' L2 state visible (shallow ToM · 1-level only)
   const otherNpcsBlock =
     ctx.otherActiveCharacters.length === 0
-      ? "(冇其他 active NPC · solo scene with player)"
+      ? soloMsg
       : ctx.otherActiveCharacters
           .map((o) => {
             const ds = o.dynamic_state ?? {};
@@ -130,7 +270,7 @@ function buildAgentUserMessage(ctx: AgentBuildContext): string {
           .join("\n");
 
   // POV memories block · already filtered via walk_lorebook_graph
-  const povBlock = formatPovMemoriesBlock(ctx.povMemories);
+  const povBlock = formatPovMemoriesBlock(ctx.povMemories, ctx.language);
 
   // This NPC's own state
   const disposition = Object.entries(ctx.character.disposition)
@@ -145,7 +285,7 @@ function buildAgentUserMessage(ctx: AgentBuildContext): string {
             return `${arrow}${t.mood}`;
           })
           .join(" ")
-      : "(冇 trajectory · scene 開始)";
+      : noTrajectoryMsg;
 
   // Recent scene turns · last 4 only (NPC agent doesn't need full history · L2+POV covers it)
   const recentTurnsBlock = ctx.recentTurns
@@ -156,7 +296,7 @@ function buildAgentUserMessage(ctx: AgentBuildContext): string {
   return `## Player's just-completed action
 ${ctx.userAction}
 
-## Director's verdict (already decided · 你必須遵守)
+${verdictHeader}
 ${verdictSummary}
 
 ## Other NPCs active this turn (their public-visible L2 state)
@@ -172,12 +312,37 @@ ${povBlock}
 - earned permanent_flags: ${ctx.character.permanent_flags.length > 0 ? ctx.character.permanent_flags.join(", ") : "(none yet)"}
 
 ## Recent shared scene turns
-${recentTurnsBlock || "(scene 剛開始)"}
+${recentTurnsBlock || sceneStartMsg}
 
-請按 MIRROR 3-step 思考 · 輸出 NpcAgentOutput schema (character_name 必須 = "${ctx.character.card.name}")。`;
+${closingDirective}`;
 }
 
-function verdictToAgentSummary(verdict: Verdict): string {
+function verdictToAgentSummary(verdict: Verdict, language: StoryLanguage = "zh-Hant"): string {
+  if (language === "en") {
+    switch (verdict.verdict) {
+      case "allow":
+        return `ALLOW · Director permitted this attempt · but specific outcome (full success / partial / with cost) decided by Narrator + state_delta · your intent reflects reaction DURING the attempt · don't presume outcome`;
+      case "reject":
+        return `REJECT · agent should NOT run (route layer skipped) · this branch unreachable`;
+      case "allow_with_constraint":
+        return `ALLOW WITH CONSTRAINT · action proceeds but with cost: ${verdict.constraint} · your intent should account for this constraint`;
+      case "require_skill_check":
+        return `SKILL CHECK · ${verdict.skill_key} vs ${verdict.difficulty} · outcome undecided (dice roll decides) · your intent reflects your reaction to the player's attempt · don't know success / failure`;
+    }
+  }
+  if (language === "zh-Hans") {
+    switch (verdict.verdict) {
+      case "allow":
+        return `ALLOW · Director 接受了这个 attempt · 但具体 outcome (full success / partial / 有代价) 由 Narrator + state_delta 决定 · 你 intent 反映 attempt 期间的 reaction · 不要假设结果`;
+      case "reject":
+        return `REJECT · agent should NOT run (route layer skipped) · this branch unreachable`;
+      case "allow_with_constraint":
+        return `ALLOW WITH CONSTRAINT · 行动进行但有 cost: ${verdict.constraint} · 你的 intent 考虑这个 constraint`;
+      case "require_skill_check":
+        return `SKILL CHECK · ${verdict.skill_key} vs ${verdict.difficulty} · outcome 未定 (掷骰决定) · 你的 intent 反映你对玩家尝试的 reaction · 不知 success / failure`;
+    }
+  }
+  // Default: zh-Hant
   switch (verdict.verdict) {
     case "allow":
       // Wave 2 fix HIGH-06: removed "順利進行" bias. Director ALLOW means the
@@ -244,7 +409,7 @@ async function callSingleNpcAgent(params: {
     .join("\n");
   const modelId = pickModelForTier("standard", routingSample);
 
-  const systemPrompt = buildNpcAgentSystemPrompt(character.card);
+  const systemPrompt = buildNpcAgentSystemPrompt(character.card, storyLanguage);
   const userMessage = buildAgentUserMessage({
     character,
     otherActiveCharacters,
@@ -252,6 +417,7 @@ async function callSingleNpcAgent(params: {
     verdict,
     povMemories,
     recentTurns,
+    language: storyLanguage,
   });
 
   // Per-agent timeout via AbortController (8s · NPC_AGENT_TIMEOUT_MS)

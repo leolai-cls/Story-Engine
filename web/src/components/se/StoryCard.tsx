@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Cover } from "./Cover";
 import { RatingBadge, Avatar } from "./Badges";
 import type { GenreKey, ContentRating } from "./genre";
@@ -39,6 +42,8 @@ export function StoryCard({
   mobileW?: number;
   locale: string;
 }) {
+  // Wave 2 i18n migration (2026-05-27): "匿名" fallback localized.
+  const tCard = useTranslations("library.storyCard");
   const href = s.href ?? `/${locale}/library/${s.id}`;
   return (
     <Link
@@ -77,7 +82,7 @@ export function StoryCard({
           className="overflow-hidden whitespace-nowrap text-ellipsis"
           style={{ color: "var(--se-fg-2)" }}
         >
-          {s.author ?? "匿名"}
+          {s.author ?? tCard("anonymous")}
         </span>
         <span style={{ color: "var(--se-fg-faint)" }}>·</span>
         <span className="se-mono">

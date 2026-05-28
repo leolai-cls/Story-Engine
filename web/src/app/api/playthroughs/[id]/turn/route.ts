@@ -103,10 +103,11 @@ export async function POST(
   }
 
   // 1.5 Rate limit (L-06 fix)
+  // Wave 2 i18n cycle-3 fix (2026-05-28): error code only · client localizes.
   const lastAt = lastTurnAt.get(playthroughId) ?? 0;
   if (Date.now() - lastAt < TURN_COOLDOWN_MS) {
     return NextResponse.json(
-      { error: "請稍等 — 上一個 turn 仲處理緊" },
+      { error: "rate_limited" },
       { status: 429 },
     );
   }
@@ -157,10 +158,12 @@ export async function POST(
   const playthroughModel = pt.llm_model ?? "claude-sonnet-4-6";
   const tierCheck = await userTierAllowsModel(supabase, user.id, playthroughModel);
   if (!tierCheck.allowed) {
+    // Wave 2 i18n cycle-3 fix (2026-05-28): drop hardcoded 繁中 `message`.
+    // play-client already renders body via play.errors.modelTierBody using
+    // currentTier + modelId. Server only sends data + error code.
     return NextResponse.json(
       {
         error: "model_tier_required",
-        message: `你嘅 tier (${tierCheck.tier}) 唔可以用 ${playthroughModel}。請去 Settings 揀其他 model 或升級。`,
         currentTier: tierCheck.tier,
         modelId: playthroughModel,
         reason: tierCheck.reason,
@@ -207,20 +210,26 @@ export async function POST(
   const sufficient = balance < 0 ? true : balance >= estimatedTurnCost;
 
   if (modelEntry?.allows_nsfw && !userAdultMode) {
+    // Wave 2 i18n cycle-3 fix (2026-05-28): error code + structured data
+    // instead of hardcoded 繁中 message. play-client renders localized body
+    // via play.errors.adultModeRequired{Title,Body,Cta} per user locale.
     return NextResponse.json(
       {
         error: "adult_mode_required",
-        message: `${modelEntry.display_name} 係 NSFW model · 需要先喺 Settings 開啟「成人模式」(KYC 後)。請揀其他 model 繼續。`,
+        reason: "nsfw_model",
+        modelName: modelEntry.display_name,
       },
       { status: 403 },
     );
   }
 
   if (!sufficient) {
+    // Wave 2 i18n cycle-3 fix (2026-05-28): drop hardcoded 繁中 `message`.
+    // Client renders body via play.errors.insufficientCreditsBody using
+    // currentBalance + estimatedCost (already on the response).
     return NextResponse.json(
       {
         error: "insufficient_credits",
-        message: `Credit 唔夠（剩 ${balance}，需要約 ${estimatedTurnCost}）。Top-up 或 upgrade 之後再玩。`,
         currentBalance: balance,
         estimatedCost: estimatedTurnCost,
       },
@@ -242,12 +251,14 @@ export async function POST(
   // disabled adult mode. Without this gate, the user can keep playing on
   // Anthropic Sonnet with story.content_rating='adult' moderation thresholds
   // (which are more permissive on sexual category) → NSFW intent reaches a
-  // direct provider that mustn't see it. Block here · friendly 繁中 error.
+  // direct provider that mustn't see it. Block here · client localizes body.
   if (story.content_rating === "adult" && !userAdultMode) {
+    // Wave 2 i18n cycle-3 fix (2026-05-28): error code · play-client renders
+    // adultModeRequiredBody{Story} per user locale.
     return NextResponse.json(
       {
         error: "adult_mode_required",
-        message: "呢個故事係 adult-rated · 需要先喺 Settings 開啟「成人模式」(KYC 後) 至可以繼續玩。",
+        reason: "adult_story",
       },
       { status: 403 },
     );
@@ -286,18 +297,20 @@ export async function POST(
   ]);
 
   // Handle moderation verdict / error before continuing into the LLM pipeline
+  // Wave 2 i18n cycle-3 fix (2026-05-28): drop hardcoded 繁中 `message`.
+  // play-client renders body via play.errors.moderationConfigBody.
   if (!moderationResult.ok) {
     const err = moderationResult.error;
     if (err instanceof ModerationConfigError) {
       console.error("[turn] moderation config error:", err.message);
       return NextResponse.json(
-        { error: "moderation_misconfigured", message: "內容審核系統設定問題，請稍後再試。" },
+        { error: "moderation_misconfigured" },
         { status: 503 },
       );
     }
     console.error("[turn] moderation threw unexpected:", err);
     return NextResponse.json(
-      { error: "moderation_failed", message: "內容審核暫時無法使用，請稍後再試。" },
+      { error: "moderation_failed" },
       { status: 503 },
     );
   }
@@ -407,6 +420,14 @@ export async function POST(
   // before Director call but enables long-term memory for both Director +
   // Narrator. Graceful fallback if pgvector tables missing (returns empty
   // context string — pipeline continues without memory).
+  // Wave 1 audit C-03 fix (2026-05-27): pass story language so LTM block
+  // headers + anti-quote preamble render in the story's language. Without
+  // this, EN / zh-Hans stories got a 200-char Cantonese system block + 繁中
+  // section headers every turn.
+  const storyLanguage = (story.story_bible?.hard_locked?.language ?? "zh-Hant") as
+    | "zh-Hant"
+    | "zh-Hans"
+    | "en";
   const memory = await retrieveMemory({
     supabase,
     playthroughId,
@@ -416,6 +437,7 @@ export async function POST(
       text: t.text,
       turn_index: t.turn_index,
     })),
+    language: storyLanguage,
   });
   ctx.memoryContextString = memory.contextString;
   if (memory.contextString) {
@@ -568,6 +590,8 @@ export async function POST(
           matchedLorebook: refinedLorebook,
           summaries: memory.summaries,
           ragTurns: memory.ragTurns,
+          // Wave 1 audit C-03 fix: thread story language through refined LTM rebuild.
+          language: storyLanguage,
         });
         memory.matchedLorebook = refinedLorebook;
         memory.contextString = newContextString;

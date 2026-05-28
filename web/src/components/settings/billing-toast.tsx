@@ -9,9 +9,13 @@
  * pages — users hit Stripe, returned to /settings, saw the same page with
  * no indication anything happened. Toast component surfaces a one-line
  * message + auto-polls for webhook-driven state changes when relevant.
+ *
+ * Wave 2 i18n migration (2026-05-27): removed `lang` prop · uses next-intl.
+ * Previously hard defaulted `lang="zh"` for zh-Hans users.
  */
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { CheckCircle2, AlertCircle, ShieldCheck, X } from "lucide-react";
 
 type Variant =
@@ -21,76 +25,39 @@ type Variant =
   | "checkout_canceled"    // /pricing?canceled=1
   | "verifying";           // /settings?verified=pending · Identity submitted, awaiting webhook
 
-const COPY = {
-  zh: {
-    subscribed: {
-      title: "訂閱完成 ✓",
-      body: "Stripe 已收到付款。Credits 會喺幾秒內自動到帳，page 自動 refresh。",
-      icon: <CheckCircle2 size={16} />,
-    },
-    topup: {
-      title: "充值完成 ✓",
-      body: "Credits 會喺幾秒內到帳，page 自動 refresh。",
-      icon: <CheckCircle2 size={16} />,
-    },
-    topup_canceled: {
-      title: "充值取消",
-      body: "你冇 charge 到。隨時可以再試。",
-      icon: <AlertCircle size={16} />,
-    },
-    checkout_canceled: {
-      title: "訂閱取消",
-      body: "你冇 charge 到。隨時可以再試。",
-      icon: <AlertCircle size={16} />,
-    },
-    verifying: {
-      title: "驗證進行中…",
-      body: "Stripe Identity 正在處理 · 通常 5-15 秒。Page 會自動 refresh 顯示結果。",
-      icon: <ShieldCheck size={16} />,
-    },
-  },
-  en: {
-    subscribed: {
-      title: "Subscription complete ✓",
-      body: "Stripe confirmed payment. Credits will appear in a few seconds; the page auto-refreshes.",
-      icon: <CheckCircle2 size={16} />,
-    },
-    topup: {
-      title: "Top-up complete ✓",
-      body: "Credits will appear in a few seconds; the page auto-refreshes.",
-      icon: <CheckCircle2 size={16} />,
-    },
-    topup_canceled: {
-      title: "Top-up canceled",
-      body: "You were not charged. Try again anytime.",
-      icon: <AlertCircle size={16} />,
-    },
-    checkout_canceled: {
-      title: "Subscription canceled",
-      body: "You were not charged. Try again anytime.",
-      icon: <AlertCircle size={16} />,
-    },
-    verifying: {
-      title: "Verifying age…",
-      body: "Stripe Identity is processing (5-15 sec). Page will auto-refresh.",
-      icon: <ShieldCheck size={16} />,
-    },
-  },
+const VARIANT_TO_KEY: Record<Variant, { title: string; body: string }> = {
+  subscribed: { title: "subscribedTitle", body: "subscribedBody" },
+  topup: { title: "topupTitle", body: "topupBody" },
+  topup_canceled: { title: "topupCanceledTitle", body: "topupCanceledBody" },
+  checkout_canceled: { title: "checkoutCanceledTitle", body: "checkoutCanceledBody" },
+  verifying: { title: "verifyingTitle", body: "verifyingBody" },
+};
+
+const VARIANT_ICONS: Record<Variant, React.ReactNode> = {
+  subscribed: <CheckCircle2 size={16} />,
+  topup: <CheckCircle2 size={16} />,
+  topup_canceled: <AlertCircle size={16} />,
+  checkout_canceled: <AlertCircle size={16} />,
+  verifying: <ShieldCheck size={16} />,
 };
 
 export function BillingToast({
   variant,
-  lang = "zh",
   autoRefreshSeconds = 0,
 }: {
   variant: Variant;
-  lang?: "zh" | "en";
   /** If >0, schedules a page reload after N seconds (useful while waiting for webhook). */
   autoRefreshSeconds?: number;
 }) {
+  const t = useTranslations("settings.billingToast");
   const [dismissed, setDismissed] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(autoRefreshSeconds);
-  const c = COPY[lang][variant];
+  const keys = VARIANT_TO_KEY[variant];
+  const c = {
+    title: t(keys.title),
+    body: t(keys.body),
+    icon: VARIANT_ICONS[variant],
+  };
 
   useEffect(() => {
     if (autoRefreshSeconds <= 0) return;
@@ -154,14 +121,14 @@ export function BillingToast({
           style={{ color: "var(--se-fg-muted)" }}
         >
           {c.body}
-          {autoRefreshSeconds > 0 && secondsLeft > 0 && ` (${secondsLeft}s)`}
+          {autoRefreshSeconds > 0 && secondsLeft > 0 && t("secondsLeft", { count: secondsLeft })}
         </div>
       </div>
       <button
         type="button"
         onClick={() => setDismissed(true)}
         className="text-[color:var(--se-fg-dim)] hover:text-[color:var(--se-fg)] flex-none"
-        aria-label="關閉"
+        aria-label={t("ariaClose")}
       >
         <X size={14} />
       </button>

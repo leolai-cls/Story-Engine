@@ -18,7 +18,7 @@ export async function SiteFooter() {
             <KieioLogo size={12} markColor="purple" wordColor="default" />
           </Link>
           <span className="text-[11px]" style={{ color: "var(--se-fg-dim)" }}>
-            讀「KEE-yo」 · © {new Date().getFullYear()} · {tFooter("tagline")}
+            {tFooter("pronunciation")} · © {new Date().getFullYear()} · {tFooter("tagline")}
           </span>
         </div>
         <nav className="flex items-center gap-5">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { useTranslations } from "next-intl";
 import type { Field, StateSchema } from "@/schemas/state-schema";
 import { getFieldValue, INTERNAL_STATE_KEY_PREFIX } from "@/schemas/state-schema";
 import { BarRenderer } from "./renderers/bar";
@@ -96,6 +97,8 @@ export function DynamicStatePanel({
 }
 
 function FieldRow({ field, value }: { field: Field; value: unknown }) {
+  // Wave 2 i18n migration (2026-05-28): unsupported-field fallback localized.
+  const tPanel = useTranslations("statePanel");
   // Dispatch to renderer based on render_hint. Each renderer is responsible
   // for its own type narrowing via z.infer<typeof XSchema>.
   switch (field.render_hint) {
@@ -150,7 +153,7 @@ function FieldRow({ field, value }: { field: Field; value: unknown }) {
       warnUnknownHint(hint);
       return (
         <div className="text-xs text-muted-foreground italic">
-          (未支援嘅 field：{hint})
+          {tPanel("unsupportedField", { hint })}
         </div>
       );
     }

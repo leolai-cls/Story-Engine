@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useTranslations } from "next-intl";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ShieldAlert, Lock, AlertCircle, TriangleAlert, X, ShieldCheck } from "lucide-react";
@@ -32,6 +33,9 @@ export function AdultModeToggle({
   initialEnabled: boolean;
   isAgeVerified: boolean;
 }) {
+  // Wave 2 i18n migration (2026-05-27): all strings localized via settings.adultModeToggle.*.
+  const t = useTranslations("settings.adultModeToggle");
+  const tErrors = useTranslations("errors");
   const [enabled, setEnabled] = useState(initialEnabled);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -57,10 +61,10 @@ export function AdultModeToggle({
       setVerifyPending(false);
       setError(
         res.error === "already_verified"
-          ? "你已經驗證咗 · 重 reload 個 page 應該見到 toggle 解鎖"
+          ? t("alreadyVerified")
           : res.error === "auth_required"
-            ? "請先登入"
-            : `驗證初始化失敗：${res.message ?? res.error}`,
+            ? t("authRequired")
+            : t("verifyInitError", { error: res.message ?? res.error }),
       );
     });
   }
@@ -86,7 +90,11 @@ export function AdultModeToggle({
         setEnabled(next);
         setConfirmOpen(false);
       } else {
-        setError(`設定失敗：${result.error}`);
+        // Wave 1 audit fix (2026-05-27): localize via i18n catalog.
+        const localized = result.errorCode
+          ? tErrors(result.errorCode as Parameters<typeof tErrors>[0])
+          : t("settingsFailed", { error: result.error });
+        setError(localized);
       }
     });
   }
@@ -105,17 +113,15 @@ export function AdultModeToggle({
             <ShieldAlert className="h-5 w-5" />
           </div>
           <div>
-            <CardTitle className="text-base">成人模式 (18+)</CardTitle>
-            <CardDescription className="text-xs">
-              開啟之後可以揀 NSFW model · 創作 + 玩 adult-rated 故事。
-            </CardDescription>
+            <CardTitle className="text-base">{t("cardTitle")}</CardTitle>
+            <CardDescription className="text-xs">{t("cardDescription")}</CardDescription>
           </div>
           {enabled && (
             <Badge
               variant="outline"
               className="ml-auto border-rose-300 text-rose-600 dark:text-rose-300"
             >
-              已開啟
+              {t("enabledBadge")}
             </Badge>
           )}
         </div>
@@ -127,15 +133,10 @@ export function AdultModeToggle({
             <div className="flex items-start gap-3">
               <Lock className="h-4 w-4 flex-shrink-0 text-muted-foreground mt-0.5" />
               <div className="flex-1 text-xs space-y-2">
-                <p className="font-semibold text-foreground">需要年齡驗證 (18+)</p>
-                <p className="text-muted-foreground">
-                  根據平台政策 · 成人模式需要 Stripe Identity 完成身份驗證 ·
-                  確保只有 18+ 用戶 access。點下面 button 跳轉去 Stripe 安全頁面 ·
-                  完成後自動 unlock toggle。
-                </p>
+                <p className="font-semibold text-foreground">{t("requiresVerificationTitle")}</p>
+                <p className="text-muted-foreground">{t("verificationBody")}</p>
                 <p className="text-muted-foreground text-[10.5px]">
-                  Stripe Identity 只攞身份證 + selfie 確認年齡 · Kieio 唔會
-                  存儲圖片。
+                  {t("stripePrivacyNote")}
                 </p>
               </div>
             </div>
@@ -146,7 +147,7 @@ export function AdultModeToggle({
               className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium border border-rose-300 bg-rose-50 text-rose-700 hover:bg-rose-100 disabled:opacity-60 disabled:cursor-not-allowed dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300 dark:hover:bg-rose-950/60"
             >
               <ShieldCheck className="h-4 w-4" />
-              {verifyPending ? "正在前往 Stripe…" : "開始年齡驗證"}
+              {verifyPending ? t("verifyPending") : t("verifyCta")}
             </button>
           </div>
         )}
@@ -156,12 +157,10 @@ export function AdultModeToggle({
           <div className="flex items-center justify-between gap-4">
             <div className="flex-1 text-sm">
               <p className="font-medium">
-                {enabled ? "成人模式已開啟" : "成人模式關閉"}
+                {enabled ? t("stateOn") : t("stateOff")}
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                {enabled
-                  ? "你可以揀 OpenRouter NSFW model · 創作 adult-rated 故事 · Library 顯示成人內容。"
-                  : "限定 SFW + Soft 內容。NSFW model + adult-rated 故事不可見。"}
+                {enabled ? t("enabledExplainer") : t("disabledExplainer")}
               </p>
             </div>
             <button
@@ -192,8 +191,7 @@ export function AdultModeToggle({
 
         {/* CSAM / safety reminder — always show */}
         <div className="rounded-md border border-amber-200 bg-amber-50/50 dark:border-amber-900 dark:bg-amber-950/30 p-2 text-[11px] text-amber-800 dark:text-amber-200">
-          <strong>注意</strong>：所有模式都禁止 CSAM、未成年人性描寫、違法內容 ·
-          無論 adult mode 開唔開都會被 moderation 攔截 (hard rule)。
+          {t("csamReminder")}
         </div>
       </CardContent>
 
@@ -225,14 +223,14 @@ export function AdultModeToggle({
                   letterSpacing: "0.06em",
                 }}
               >
-                確認開啟成人模式
+                {t("consentDialog.eyebrow")}
               </span>
               <button
                 type="button"
                 onClick={() => !pending && setConfirmOpen(false)}
                 disabled={pending}
                 className="text-[color:var(--se-fg-muted)] hover:text-[color:var(--se-fg)]"
-                aria-label="關閉"
+                aria-label={t("consentDialog.ariaClose")}
               >
                 <X size={16} />
               </button>
@@ -244,7 +242,7 @@ export function AdultModeToggle({
                 color: "var(--se-fg)",
               }}
             >
-              你準備好打開 18+ 內容？
+              {t("consentDialog.title")}
             </h2>
             <p
               className="m-0 text-sm se-cjk"
@@ -253,7 +251,7 @@ export function AdultModeToggle({
                 lineHeight: 1.65,
               }}
             >
-              打開之後：
+              {t("consentDialog.intro")}
             </p>
             <ul
               className="mt-2.5 mb-1.5 pl-5 text-sm se-cjk"
@@ -263,10 +261,10 @@ export function AdultModeToggle({
                 listStyle: "disc",
               }}
             >
-              <li>Model picker 多咗 OpenRouter NSFW model（露骨內容）</li>
-              <li>Creation 可以揀「成人」content_rating</li>
-              <li>Library 多咗「18+ 成人」filter</li>
-              <li>Story detail 唔再 hide 成人故事</li>
+              <li>{t("consentDialog.bullet1")}</li>
+              <li>{t("consentDialog.bullet2")}</li>
+              <li>{t("consentDialog.bullet3")}</li>
+              <li>{t("consentDialog.bullet4")}</li>
             </ul>
             <div
               className="p-3 rounded-lg mt-2 text-xs se-cjk flex items-start gap-2.5"
@@ -283,9 +281,8 @@ export function AdultModeToggle({
                 className="mt-0.5 flex-none"
               />
               <span>
-                <strong>平台嚴禁</strong>涉及未成年人士、真實人物或非法內容嘅創作 ·
-                違者帳號永久停權並依法通報。CSAM/illegal pre-filter 喺任何 mode
-                下都 always-on。
+                <strong>{t("consentDialog.csamStrong")}</strong>
+                {t("consentDialog.csamBody")}
               </span>
             </div>
             <label
@@ -299,7 +296,7 @@ export function AdultModeToggle({
                 className="mt-1 flex-none"
                 style={{ accentColor: "var(--se-accent)" }}
               />
-              <span>我已年滿 18 歲 · 並理解上述守則。</span>
+              <span>{t("consentDialog.ageConfirm")}</span>
             </label>
             <div className="flex gap-2.5 mt-5">
               <button
@@ -313,7 +310,7 @@ export function AdultModeToggle({
                   border: "1px solid var(--se-border)",
                 }}
               >
-                取消
+                {t("consentDialog.cancel")}
               </button>
               <button
                 type="button"
@@ -325,7 +322,7 @@ export function AdultModeToggle({
                   color: "#fff",
                 }}
               >
-                {pending ? "處理中…" : "確認開啟"}
+                {pending ? t("consentDialog.processing") : t("consentDialog.confirm")}
               </button>
             </div>
           </div>

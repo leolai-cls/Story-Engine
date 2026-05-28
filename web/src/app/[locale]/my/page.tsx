@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { setRequestLocale } from "next-intl/server";
+import { setRequestLocale, getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -9,6 +9,11 @@ import { getCachedUser } from "@/lib/supabase/cached-user";
 import { getMyPlaythroughs, type MyPlaythroughRow } from "@/lib/community/queries";
 import { Play, Sparkles, Archive, Trash2, BookOpen, Plus } from "lucide-react";
 import type { GenreKey } from "@/components/se/genre";
+
+type RelTimeFn = (
+  key: string,
+  params?: Record<string, string | number>,
+) => string;
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +39,9 @@ export default async function MyGamesPage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
+  // Wave 2 i18n migration (2026-05-27): all strings from messages catalog.
+  const tMy = await getTranslations("my");
+  const tLib = await getTranslations("library");
   const sp = await searchParams;
   const tab: Tab =
     sp.tab === "active" || sp.tab === "archived" || sp.tab === "abandoned"
@@ -83,12 +91,12 @@ export default async function MyGamesPage({
               className="text-3xl sm:text-4xl font-bold se-cjk"
               style={{ color: "var(--se-fg)", letterSpacing: "-0.02em" }}
             >
-              我嘅遊戲
+              {tMy("pageTitle")}
             </h1>
             <p className="mt-2 se-cjk text-sm" style={{ color: "var(--se-fg-muted)" }}>
               {counts.all === 0
-                ? "你仲未開始任何故事 — 揀一個 scenario 開始你嘅冒險。"
-                : `共 ${counts.all} 個 playthrough · ${counts.active} 個進行中`}
+                ? tMy("subtitleEmpty")
+                : tMy("subtitleCount", { total: counts.all, active: counts.active })}
             </p>
           </div>
 
@@ -98,13 +106,13 @@ export default async function MyGamesPage({
               <TabPill
                 href={`/${locale}/my`}
                 active={tab === "all"}
-                label="全部"
+                label={tMy("tabs.all")}
                 count={counts.all}
               />
               <TabPill
                 href={`/${locale}/my?tab=active`}
                 active={tab === "active"}
-                label="進行中"
+                label={tMy("tabs.active")}
                 count={counts.active}
                 icon={<Sparkles size={12} />}
               />
@@ -112,7 +120,7 @@ export default async function MyGamesPage({
                 <TabPill
                   href={`/${locale}/my?tab=archived`}
                   active={tab === "archived"}
-                  label="已封存"
+                  label={tMy("tabs.archived")}
                   count={counts.archived}
                   icon={<Archive size={12} />}
                 />
@@ -121,7 +129,7 @@ export default async function MyGamesPage({
                 <TabPill
                   href={`/${locale}/my?tab=abandoned`}
                   active={tab === "abandoned"}
-                  label="棄置"
+                  label={tMy("tabs.abandoned")}
                   count={counts.abandoned}
                   icon={<Trash2 size={12} />}
                 />
@@ -135,7 +143,7 @@ export default async function MyGamesPage({
           ) : (
             <div className="flex flex-col gap-3">
               {filtered.map((p) => (
-                <PlaythroughRow key={p.id} p={p} locale={locale} />
+                <PlaythroughRow key={p.id} p={p} locale={locale} tLib={tLib} tMy={tMy} />
               ))}
             </div>
           )}
@@ -180,7 +188,17 @@ function TabPill({
   );
 }
 
-function PlaythroughRow({ p, locale }: { p: MyPlaythroughRow; locale: string }) {
+function PlaythroughRow({
+  p,
+  locale,
+  tLib,
+  tMy,
+}: {
+  p: MyPlaythroughRow;
+  locale: string;
+  tLib: RelTimeFn;
+  tMy: RelTimeFn;
+}) {
   const isActive = p.status === "active";
   return (
     <Link
@@ -207,16 +225,17 @@ function PlaythroughRow({ p, locale }: { p: MyPlaythroughRow; locale: string }) 
               className="text-base font-semibold se-cjk truncate"
               style={{ color: "var(--se-fg)", letterSpacing: "-0.005em" }}
             >
-              {p.story_title}
+              {/* Wave 2 i18n cycle-5 fix (2026-05-28): localize untitled fallback. */}
+              {p.story_title || tLib("storyCard.untitled")}
             </h3>
-            <StatusBadge status={p.status} />
+            <StatusBadge status={p.status} tMy={tMy} />
           </div>
           {p.character_name && (
             <p
               className="mt-1 text-xs se-cjk truncate"
               style={{ color: "var(--se-fg-muted)" }}
             >
-              角色: {p.character_name}
+              {tMy("row.character", { name: p.character_name })}
             </p>
           )}
         </div>
@@ -224,9 +243,9 @@ function PlaythroughRow({ p, locale }: { p: MyPlaythroughRow; locale: string }) 
           className="flex items-center gap-2 mt-2 text-[11px] se-mono"
           style={{ color: "var(--se-fg-dim)", letterSpacing: "0.05em" }}
         >
-          <span>TURN {p.turn_count}</span>
+          <span>{tMy("row.turn", { count: p.turn_count })}</span>
           <span>·</span>
-          <span>{relativeTime(p.last_played_at).toUpperCase()}</span>
+          <span>{relativeTime(p.last_played_at, tLib).toUpperCase()}</span>
         </div>
       </div>
       <div className="flex items-center flex-none">
@@ -239,43 +258,36 @@ function PlaythroughRow({ p, locale }: { p: MyPlaythroughRow; locale: string }) 
           }}
         >
           <Play size={11} />
-          {isActive ? "繼續" : "查看"}
+          {isActive ? tMy("row.resume") : tMy("row.review")}
         </span>
       </div>
     </Link>
   );
 }
 
-function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, { label: string; color: string; bg: string }> = {
-    active: {
-      label: "進行中",
-      color: "var(--se-accent)",
-      bg: "var(--se-accent-bg)",
-    },
-    archived: {
-      label: "已封存",
-      color: "var(--se-fg-muted)",
-      bg: "var(--se-surface-2)",
-    },
-    abandoned: {
-      label: "棄置",
-      color: "var(--se-fg-dim)",
-      bg: "var(--se-surface-2)",
-    },
+function StatusBadge({ status, tMy }: { status: string; tMy: RelTimeFn }) {
+  const styleByStatus: Record<string, { color: string; bg: string }> = {
+    active: { color: "var(--se-accent)", bg: "var(--se-accent-bg)" },
+    archived: { color: "var(--se-fg-muted)", bg: "var(--se-surface-2)" },
+    abandoned: { color: "var(--se-fg-dim)", bg: "var(--se-surface-2)" },
   };
-  const v = map[status] ?? map.archived;
+  const v = styleByStatus[status] ?? styleByStatus.archived;
+  // Wave 2 i18n migration: localized status label.
+  const labelKey =
+    status === "active" || status === "archived" || status === "abandoned"
+      ? status
+      : "archived";
   return (
     <span
       className="inline-flex flex-none items-center px-2 py-0.5 rounded-full text-[10px] font-medium se-cjk"
       style={{ color: v.color, background: v.bg }}
     >
-      {v.label}
+      {tMy(`status.${labelKey}`)}
     </span>
   );
 }
 
-function EmptyState({
+async function EmptyState({
   locale,
   tab,
   hasAny,
@@ -284,6 +296,7 @@ function EmptyState({
   tab: Tab;
   hasAny: boolean;
 }) {
+  const tMy = await getTranslations("my");
   if (!hasAny) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -302,14 +315,13 @@ function EmptyState({
           className="mt-5 text-xl font-semibold se-cjk"
           style={{ color: "var(--se-fg)" }}
         >
-          仲未開始任何故事
+          {tMy("empty.title")}
         </h2>
         <p
           className="mt-2 max-w-md text-sm se-cjk"
           style={{ color: "var(--se-fg-muted)", lineHeight: 1.6 }}
         >
-          揀一個 scenario 開始你嘅冒險，或者自己創作一個。所有進行中嘅 playthrough
-          會自動出現喺呢度。
+          {tMy("empty.body")}
         </p>
         <div className="mt-6 flex gap-3">
           <Link
@@ -318,7 +330,7 @@ function EmptyState({
             style={{ background: "var(--se-fg)", color: "var(--se-bg)" }}
           >
             <BookOpen size={14} />
-            去 Library 揾故事
+            {tMy("empty.browseLibrary")}
           </Link>
           <Link
             href={`/${locale}/stories/new` as never}
@@ -330,18 +342,17 @@ function EmptyState({
             }}
           >
             <Plus size={14} />
-            創作新故事
+            {tMy("empty.createNew")}
           </Link>
         </div>
       </div>
     );
   }
-  const tabLabel =
-    tab === "active" ? "進行中" : tab === "archived" ? "已封存" : "棄置";
+  const tabLabel = tMy(`tabs.${tab}` as "tabs.active" | "tabs.archived" | "tabs.abandoned");
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
       <p className="text-sm se-cjk" style={{ color: "var(--se-fg-muted)" }}>
-        冇任何「{tabLabel}」嘅 playthrough。
+        {tMy("empty.noPlaythroughsForTab", { tab: tabLabel })}
       </p>
     </div>
   );
@@ -351,17 +362,21 @@ function EmptyState({
 //  Helpers
 // ─────────────────────────────────────────────────────────────
 
-function relativeTime(iso: string): string {
+/**
+ * Localized relative-time formatter.
+ * Wave 2 i18n migration (2026-05-27): was hardcoded 繁中.
+ */
+function relativeTime(iso: string, tLib: RelTimeFn): string {
   const t = new Date(iso).getTime();
   const now = Date.now();
   const diffMin = Math.floor((now - t) / 60_000);
-  if (diffMin < 1) return "剛剛";
-  if (diffMin < 60) return `${diffMin} 分鐘前`;
+  if (diffMin < 1) return tLib("relativeTime.justNow");
+  if (diffMin < 60) return tLib("relativeTime.minutesAgo", { count: diffMin });
   const diffHour = Math.floor(diffMin / 60);
-  if (diffHour < 24) return `${diffHour} 小時前`;
+  if (diffHour < 24) return tLib("relativeTime.hoursAgo", { count: diffHour });
   const diffDay = Math.floor(diffHour / 24);
-  if (diffDay === 1) return "昨天";
-  if (diffDay < 7) return `${diffDay} 日前`;
-  if (diffDay < 30) return `${Math.floor(diffDay / 7)} 週前`;
+  if (diffDay === 1) return tLib("relativeTime.yesterday");
+  if (diffDay < 7) return tLib("relativeTime.daysAgo", { count: diffDay });
+  if (diffDay < 30) return tLib("relativeTime.weeksAgo", { count: Math.floor(diffDay / 7) });
   return new Date(iso).toLocaleDateString();
 }

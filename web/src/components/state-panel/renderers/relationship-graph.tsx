@@ -1,6 +1,7 @@
 "use client";
 
 import { z } from "zod";
+import { useTranslations } from "next-intl";
 import type { RelationshipGraphFieldSchema } from "@/schemas/state-schema";
 
 type Field = z.infer<typeof RelationshipGraphFieldSchema>;
@@ -13,13 +14,25 @@ function scoreToColor(score: number): string {
   return "bg-rose-600";
 }
 
-function scoreLabel(score: number): string {
-  if (score >= 80) return "信任";
-  if (score >= 50) return "親近";
-  if (score >= 20) return "友善";
-  if (score >= -20) return "陌生";
-  if (score >= -50) return "提防";
-  return "敵對";
+/**
+ * Wave 2 i18n migration (2026-05-28): disposition bucket labels resolve via
+ * `statePanel.relationshipGraph.buckets.*` catalog. Were hardcoded 繁中.
+ */
+type BucketKey =
+  | "trust"
+  | "close"
+  | "friendly"
+  | "stranger"
+  | "wary"
+  | "hostile";
+
+function scoreBucket(score: number): BucketKey {
+  if (score >= 80) return "trust";
+  if (score >= 50) return "close";
+  if (score >= 20) return "friendly";
+  if (score >= -20) return "stranger";
+  if (score >= -50) return "wary";
+  return "hostile";
 }
 
 export function RelationshipGraphRenderer({
@@ -29,6 +42,7 @@ export function RelationshipGraphRenderer({
   field: Field;
   value: Record<string, number>;
 }) {
+  const t = useTranslations("statePanel.relationshipGraph");
   const entries = Object.entries(value ?? {});
 
   return (
@@ -38,7 +52,7 @@ export function RelationshipGraphRenderer({
       </div>
       {entries.length === 0 ? (
         <div className="text-xs text-muted-foreground italic py-1.5">
-          仲未認識任何人
+          {t("empty")}
         </div>
       ) : (
         <div className="space-y-1.5">
@@ -50,7 +64,7 @@ export function RelationshipGraphRenderer({
                 <div className="flex items-baseline justify-between text-xs">
                   <span className="font-medium truncate">{name}</span>
                   <span className="text-[10px] text-muted-foreground">
-                    {scoreLabel(clamped)} ({clamped > 0 ? "+" : ""}
+                    {t(`buckets.${scoreBucket(clamped)}`)} ({clamped > 0 ? "+" : ""}
                     {clamped})
                   </span>
                 </div>

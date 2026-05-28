@@ -1,6 +1,7 @@
 "use client";
 
-import { AXIS_LABEL, AXIS_TOKEN, type DispositionAxisKey } from "./genre";
+import { useTranslations } from "next-intl";
+import { AXIS_TOKEN, type DispositionAxisKey } from "./genre";
 
 /**
  * 4-axis disposition bar — Grok-style stat readout.
@@ -20,12 +21,14 @@ export function DispositionAxis({
   /** If this axis changed last turn, render the delta inline. */
   lastDelta?: { axis: DispositionAxisKey; val: number } | null;
 }) {
+  // Wave 2 i18n migration (2026-05-27): label now resolved per locale.
+  const tAxes = useTranslations("axes");
   const showDelta = lastDelta && lastDelta.axis === axis;
   const pct = Math.max(-100, Math.min(100, val));
   const positive = pct >= 0;
   return (
     <div className="flex items-center gap-2 text-xs" style={{ lineHeight: 1.4 }}>
-      <span style={{ width: 32, color: "var(--se-fg-muted)" }}>{AXIS_LABEL[axis]}</span>
+      <span style={{ width: 32, color: "var(--se-fg-muted)" }}>{tAxes(axis)}</span>
       <div
         className="relative flex-1"
         style={{

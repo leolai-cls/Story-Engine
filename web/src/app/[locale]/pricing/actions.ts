@@ -78,6 +78,10 @@ export async function startCheckout(tier: PaidTier): Promise<
       successUrl: `${origin}/${locale}/settings?subscribed=1`,
       cancelUrl: `${origin}/${locale}/pricing?canceled=1`,
       customerId,
+      // Wave 1 audit fix (2026-05-27): pass app locale so Stripe Checkout UI
+      // language matches the rest of the site (was browser-auto, mismatched
+      // for EN users on a HK IP / vice-versa).
+      locale,
     });
 
     if (!session.url) {
@@ -137,6 +141,8 @@ export async function openBillingPortal(): Promise<
     const session = await createBillingPortalSession({
       customerId,
       returnUrl: `${origin}/${locale}/settings`,
+      // Wave 1 audit fix (2026-05-27): pass app locale through.
+      locale,
     });
     return { ok: true, url: session.url };
   } catch (e) {
@@ -182,6 +188,8 @@ export async function startTopUpCheckout(pack: TopUpPack): Promise<
       successUrl: `${origin}/${locale}/settings?topup=1`,
       cancelUrl: `${origin}/${locale}/settings?topup_canceled=1`,
       customerId: existingSub?.stripe_customer_id ?? null,
+      // Wave 1 audit fix (2026-05-27): pass app locale through.
+      locale,
     });
     if (!session.url) {
       return { ok: false, error: "stripe_error", message: "no session URL returned" };

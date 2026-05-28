@@ -26,6 +26,7 @@ export default async function LoginPage({
   setRequestLocale(locale);
   const t = await getTranslations("auth.login");
   const tMagic = await getTranslations("auth.magicLink");
+  const tAuthErrors = await getTranslations("errors.auth");
   const sp = await searchParams;
   // AUDIT FIX MG-UX-HIGH-01: forward ?next= into the action so anon users who
   // hit /my, /memory, etc. get returned to their destination after login. Same
@@ -40,17 +41,24 @@ export default async function LoginPage({
       ? sp.next
       : "";
 
-  // Map raw error codes from server actions / auth callback into user-friendly
-  // 繁中 messages. Unknown codes fall through to raw display (existing pattern).
-  const ERROR_MESSAGES: Record<string, string> = {
-    email_required: "請輸入 email",
-    otp_failed: "Magic link 發送失敗，請稍後再試",
-    callback_failed: "登入回呼失敗，請重新登入",
-    missing_code: "登入連結唔正確或過期",
-    google_unavailable: "Google 登入暫未啟用，請用 email magic link",
+  // Wave 1 audit H-02 fix (2026-05-27): localized via next-intl catalog
+  // (was hardcoded 繁中 dict — broke for EN / zh-Hans logins).
+  // Unknown codes fall through to raw display (existing pattern preserved).
+  const ERROR_CODE_TO_KEY: Record<
+    string,
+    "emailRequired" | "otpFailed" | "callbackFailed" | "missingCode" | "googleUnavailable" | "guestSigninFailed"
+  > = {
+    email_required: "emailRequired",
+    otp_failed: "otpFailed",
+    callback_failed: "callbackFailed",
+    missing_code: "missingCode",
+    google_unavailable: "googleUnavailable",
+    guest_signin_failed: "guestSigninFailed",
   };
   const errorText = sp.error
-    ? (ERROR_MESSAGES[sp.error] ?? decodeURIComponent(sp.error))
+    ? (ERROR_CODE_TO_KEY[sp.error]
+        ? tAuthErrors(ERROR_CODE_TO_KEY[sp.error])
+        : decodeURIComponent(sp.error))
     : null;
 
   return (
@@ -166,7 +174,7 @@ export default async function LoginPage({
                 className="w-full"
               >
                 <Zap className="h-4 w-4" />
-                一鍵 Guest 試玩
+                {t("guestButton")}
               </Button>
             </form>
             {/* Honest copy (UI tier audit fix · designer 2.3):
@@ -174,9 +182,9 @@ export default async function LoginPage({
                 auth.linkIdentity() API exists but app hasn't built migration
                 UX). Don't promise data link until backend supports it. */}
             <p className="text-[11px] text-center text-muted-foreground mt-2">
-              無需信用卡 · 即時開始 · Guest 用獨立 credit
+              {t("guestNoCardLine")}
               <br />
-              想長期保存 playthrough · sign up 用 email 開新 account
+              {t("guestSignupHint")}
             </p>
           </div>
         </CardContent>

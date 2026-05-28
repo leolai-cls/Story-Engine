@@ -58,7 +58,22 @@ function dispositionFromDefault(
   };
 }
 
-export type CreateStoryResult = { ok: false; error: string };
+/**
+ * Wave 1 audit fix (2026-05-27): switched from raw `error` string to an
+ * i18n-aware shape. Client component renders the message via next-intl with
+ * the user's locale — so EN / zh-Hans users no longer see Cantonese strings.
+ *
+ * `errorCode` is a dot-path into `messages.json#errors.*`.
+ * `errorParams` are optional ICU MessageFormat params (e.g. {balance, needed}).
+ * `errorRaw` is kept ONLY for moderation reasons (which are LLM-generated
+ * per-input and can't be looked up in a static catalog).
+ */
+export type CreateStoryResult = {
+  ok: false;
+  errorCode?: string;
+  errorParams?: Record<string, string | number>;
+  errorRaw?: string;
+};
 
 /**
  * Returns an error object on failure; on success it calls `redirect()`
@@ -71,7 +86,7 @@ export async function createStoryFromPrompt(
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
-    return { ok: false, error: "你要先登入" };
+    return { ok: false, errorCode: "common.notLoggedIn" };
   }
 
   const locale = await getLocale();
@@ -81,7 +96,11 @@ export async function createStoryFromPrompt(
     content_rating: formData.get("content_rating") || "sfw",
   });
   if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Input invalid" };
+    return {
+      ok: false,
+      errorCode: "createStory.promptInvalid",
+      errorRaw: parsed.error.issues[0]?.message,
+    };
   }
 
   // Phase 6 non-money function — adult mode gate.
@@ -97,8 +116,7 @@ export async function createStoryFromPrompt(
     if (!profileAdult?.adult_mode_enabled) {
       return {
         ok: false,
-        error:
-          "Adult-rated 故事需要先喺 設定 開啟「成人模式」(需身份驗證)。請揀 SFW 或 Soft rating。",
+        errorCode: "createStory.adultRequiresVerification",
       };
     }
   }
@@ -175,7 +193,11 @@ export async function createStoryFromPrompt(
   if (!balanceResult.sufficient) {
     return {
       ok: false,
-      error: `Credit 唔夠創作故事（剩 ${balanceResult.balance}，需要約 ${estimateStoryCreationCredits()}）。Top-up 或 upgrade 之後再試。`,
+      errorCode: "createStory.insufficientCredits",
+      errorParams: {
+        balance: balanceResult.balance,
+        needed: estimateStoryCreationCredits(),
+      },
     };
   }
 
@@ -184,17 +206,23 @@ export async function createStoryFromPrompt(
     const err = seedVerdictResult.error;
     if (err instanceof ModerationConfigError) {
       console.error("[createStory] moderation config error:", err.message);
-      return { ok: false, error: "內容審核系統設定問題，請稍後再試。" };
+      return { ok: false, errorCode: "createStory.moderationConfigError" };
     }
     // Unexpected throw — log + treat as block (defensive).
     console.error("[createStory] moderation threw unexpected:", err);
-    return { ok: false, error: "內容審核暫時無法使用，請稍後再試。" };
+    return { ok: false, errorCode: "createStory.moderationUnavailable" };
   }
   if (!seedVerdictResult.verdict.allowed) {
     console.warn(
       `[createStory] moderation blocked seed for user ${user.id}: ${seedVerdictResult.verdict.categories.join(", ")}`,
     );
-    return { ok: false, error: seedVerdictResult.verdict.reason };
+    // Moderation reason is LLM-generated per input — can't be a static i18n key.
+    // Surface as errorRaw so the client renders it as-is (it's the reason
+    // string from OpenAI Moderation, not Cantonese static copy).
+    return {
+      ok: false,
+      errorRaw: seedVerdictResult.verdict.reason,
+    };
   }
   const estimatedCost = estimateStoryCreationCredits();
 
@@ -208,17 +236,17 @@ export async function createStoryFromPrompt(
     });
   } catch (e) {
     // AUDIT FIX (SEC-M-04): don't leak raw Anthropic / model error text to
-    // the client (rate-limit hints, model ids, request_id headers, schema
-    // info). Log details server-side, return categorized 繁中 message.
+    // the client. Wave 1 follow-up (2026-05-27): switched from hardcoded 繁中
+    // strings to i18n error codes so EN / zh-Hans users see localized copy.
     const msg = e instanceof Error ? e.message : String(e);
     console.error("[createStory] schema-generator failed", e);
-    let friendly = "AI 而家好忙，請 30 秒後再試一次";
+    let errorCode = "createStory.aiBusy";
     if (/\b(401|403)\b|invalid[_-]api[_-]key|authentication/i.test(msg)) {
-      friendly = "AI 服務暫時無法使用，請稍後再試";
+      errorCode = "createStory.aiUnavailable";
     } else if (/\b400\b|invalid|schema/i.test(msg)) {
-      friendly = "你嘅故事概念有少少問題 — 試下講多啲背景或者換個角度";
+      errorCode = "createStory.promptInvalid";
     }
-    return { ok: false, error: friendly };
+    return { ok: false, errorCode };
   }
 
   // Helper: best-effort cleanup if a later step fails. Supabase JS client
@@ -253,9 +281,10 @@ export async function createStoryFromPrompt(
     .single();
 
   if (storyErr || !story) {
-    // AUDIT FIX (SEC-M-04): generic 繁中 client message; detailed server log.
+    // AUDIT FIX (SEC-M-04): generic client message; detailed server log.
+    // Wave 1: switched to i18n error code (was hardcoded 繁中).
     console.error("[createStory] story insert failed", storyErr);
-    return { ok: false, error: "建立故事失敗，請稍後再試" };
+    return { ok: false, errorCode: "createStory.storyInsertFailed" };
   }
 
   // Insert characters
@@ -281,7 +310,7 @@ export async function createStoryFromPrompt(
   if (charsErr || !insertedChars) {
     console.error("[createStory] character insert failed", charsErr);
     await cleanup(story.id);
-    return { ok: false, error: "建立角色失敗，請稍後再試" };
+    return { ok: false, errorCode: "createStory.characterInsertFailed" };
   }
 
   // Create playthrough (immediately starts playing — no separate "save then play" step)
@@ -289,12 +318,20 @@ export async function createStoryFromPrompt(
   // P6-HIGH-01 fix: derive llm_provider from MODELS catalog · accurate
   // attribution for Llama (openrouter) vs Anthropic playthroughs.
   const narratorProvider = MODELS[userNarratorModel]?.provider ?? "anthropic";
+  // Wave 1 audit fix (2026-05-27): default protagonist label per locale
+  // (previously always "主角" — looked wrong inside English stories).
+  const defaultProtagonist =
+    locale === "en"
+      ? "Protagonist"
+      : locale === "zh-Hans"
+        ? "主角"
+        : "主角";
   const { data: playthrough, error: ptErr } = await supabase
     .from("playthroughs")
     .insert({
       user_id: user.id,
       story_id: story.id,
-      character_name: parsed.data.protagonist_hint?.slice(0, 40) ?? "主角",
+      character_name: parsed.data.protagonist_hint?.slice(0, 40) ?? defaultProtagonist,
       current_state: initialState,
       llm_provider: narratorProvider,
       llm_model: userNarratorModel,
@@ -307,7 +344,7 @@ export async function createStoryFromPrompt(
   if (ptErr || !playthrough) {
     console.error("[createStory] playthrough insert failed", ptErr);
     await cleanup(story.id);
-    return { ok: false, error: "建立遊玩進度失敗，請稍後再試" };
+    return { ok: false, errorCode: "createStory.playthroughInsertFailed" };
   }
 
   // Initialize per-character disposition states

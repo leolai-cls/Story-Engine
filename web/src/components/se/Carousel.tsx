@@ -1,5 +1,8 @@
+"use client";
+
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 /**
  * Horizontal carousel row — Netflix pattern.
@@ -28,6 +31,8 @@ export function Carousel({
   /** If true, returns null (smart-hide). */
   empty?: boolean;
 }) {
+  // Wave 2 i18n migration (2026-05-27): "全部" label localized.
+  const tLib = useTranslations("library.rail");
   if (empty) return null;
   return (
     <section className="mt-7" style={{ paddingLeft: padX }}>
@@ -67,7 +72,7 @@ export function Carousel({
             className="inline-flex items-center gap-1 text-xs"
             style={{ color: "var(--se-fg-muted)" }}
           >
-            全部 <ChevronRight size={11} />
+            {tLib("all")} <ChevronRight size={11} />
           </Link>
         )}
       </header>

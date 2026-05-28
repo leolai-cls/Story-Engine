@@ -4,6 +4,12 @@
     "tagline": "中文圈的互动式故事 RPG 平台",
     "comingSoon": "稍后推出"
   },
+  "siteMetadata": {
+    "title": "Kieio — 走入故事，做主角",
+    "description": "Kieio (读「KEE-yo」) · 中文圈的互动式故事 RPG。你想像 · KIEIO 讲述 · 你成为。AI 为你度身设计故事，永远记得你的选择，NPC 真有人格、不会讨好你。",
+    "ogTitle": "Kieio — 走入故事，做主角",
+    "ogDescription": "中文圈的互动式故事 RPG · You imagine · KIEIO narrates · You become"
+  },
   "nav": {
     "library": "故事库",
     "myGames": "我的游戏",
@@ -13,10 +19,19 @@
     "settings": "设置",
     "login": "登录",
     "logout": "登出",
-    "signup": "注册"
+    "signup": "注册",
+    "drawer": {
+      "newStory": "开新故事",
+      "continueSection": "继续玩",
+      "allPlaythroughs": "全部",
+      "ariaClose": "关闭",
+      "ariaCloseDrawer": "关闭抽屉",
+      "ariaOpenMenu": "开启选单"
+    }
   },
   "footer": {
-    "tagline": "中文圈 first"
+    "tagline": "中文圈 first",
+    "pronunciation": "读「KEE-yo」"
   },
   "marketing": {
     "hero": {
@@ -93,7 +108,10 @@
       "or": "或者",
       "noAccount": "未有帐户？",
       "signupLink": "立即注册",
-      "phaseNotice": "（Phase 0.6 wire up after Supabase env set）"
+      "phaseNotice": "（Phase 0.6 wire up after Supabase env set）",
+      "guestButton": "一键 Guest 试玩",
+      "guestNoCardLine": "无需信用卡 · 即时开始 · Guest 用独立 credit",
+      "guestSignupHint": "想长期保存 playthrough · sign up 用 email 开新 account"
     },
     "magicLink": {
       "title": "查收 email",
@@ -127,6 +145,737 @@
         }
       },
       "comingSoon": "Phase 0.6 之后 wire up"
+    }
+  },
+  "genres": {
+    "romance": "恋爱",
+    "adventure": "冒险",
+    "campus": "校园",
+    "fantasy": "奇幻",
+    "sports": "运动",
+    "mystery": "悬疑",
+    "slice": "日常",
+    "horror": "恐怖"
+  },
+  "ratings": {
+    "general": "一般",
+    "pg13": "PG-13",
+    "mature": "成熟",
+    "adult": "18+"
+  },
+  "axes": {
+    "trust": "信任",
+    "romance": "恋慕",
+    "respect": "敬重",
+    "fear": "惧怕"
+  },
+  "compliance": {
+    "csam": {
+      "badge": "HARD RULE",
+      "body": "平台严禁涉及未成年人士、真实人物或非法内容的创作。违者帐号永久停权并依法通报。",
+      "learnMore": "了解详情"
+    }
+  },
+  "visitorLanding": {
+    "eyebrow": "STORY ENGINE · BETA",
+    "headlineLine1": "每一个故事",
+    "headlineLine2": "都记住你做过的每一个决定",
+    "subtitle": "中文圈的互动式 RPG 平台 · AI 即时生成剧情 · 角色有自己的红线和好感度 · 你做的每个选择永久记入长期记忆。",
+    "pillars": {
+      "memory": {
+        "title": "4 层长期记忆",
+        "body": "近 20 turn · 滚动摘要 · RAG 向量 · auto-lorebook · AI 真的记得"
+      },
+      "npcs": {
+        "title": "NPC 有红线",
+        "body": "角色不是 Yes-man · 4-axis disposition · 不能单靠 prompt 推翻"
+      },
+      "adaptive": {
+        "title": "自适应介面",
+        "body": "每个故事 AI 生成专属 state schema · 恋爱是好感度环 · D&D 是 HP/MP 条"
+      }
+    },
+    "ctaGuest": "免费试玩 · 一键 Guest",
+    "ctaEmail": "用 Email 登入",
+    "noCardHint": "无需信用卡 · 即时开始"
+  },
+  "statePanel": {
+    "relationshipGraph": {
+      "empty": "还没认识任何人",
+      "buckets": {
+        "trust": "信任",
+        "close": "亲近",
+        "friendly": "友善",
+        "stranger": "陌生",
+        "wary": "提防",
+        "hostile": "敌对"
+      }
+    },
+    "note": {
+      "empty": "（空白）"
+    },
+    "inventory": {
+      "empty": "空"
+    },
+    "unsupportedField": "(不支援的 field：{hint})"
+  },
+  "storyDetail": {
+    "cta": {
+      "loginToPlay": "登入之后可以玩",
+      "startPlaying": "开始扮演"
+    },
+    "breadcrumbLibrary": "故事库",
+    "community": "社群创作",
+    "visibility": {
+      "public": "已发布 PUBLIC",
+      "unlisted": "LINK 分享",
+      "private": "PRIVATE"
+    },
+    "openingHeader": "开场",
+    "openingHint": "所有 playthrough 由这里开始 · 之后每个玩家写的故事都不同",
+    "castHeader": "主要角色",
+    "castSubFormat": "CAST · {count} NPC",
+    "commentsHeader": "评论",
+    "commentsSubFormat": "{comments} REPLIES · {ratings} RATINGS",
+    "commentsEmpty": "暂无留言。",
+    "commentsEmptyAuthed": "玩完之后留下你的感想。",
+    "commentsEmptyAnon": "登入之后可以留言。",
+    "commentDeleted": "[已删除]",
+    "ratingCountSuffix": " 个评分",
+    "stats": {
+      "playthroughs": "累计开过 playthrough",
+      "ratings": "评分数",
+      "comments": "留言数",
+      "published": "发布日期"
+    },
+    "costLabel": "COST",
+    "costPerTurn": "~2 credits / turn",
+    "costTagline": " · 玩到满意为止",
+    "tagsLabel": "TAGS",
+    "block403": {
+      "httpLabel": "HTTP 403 · ADULT MODE REQUIRED",
+      "title": "这个故事锁在成人模式里面",
+      "body": "作者标记了这个故事为 <plus>18+</plus> 内容。要继续，请在<settings>设置</settings>开启成人模式（需要完成身份验证）。",
+      "cta": "前往设置 →",
+      "back": "返回故事库",
+      "whyTitle": "为什么需要身份验证？",
+      "whyBody": "平台必须确认用户为成年人，方可解锁 18+ 内容。身份验证由 Stripe Identity 处理 · 一次性 · 不会储存身份证件影像。",
+      "phaseNote": "（此功能 Phase 6 money tier 上线）"
+    }
+  },
+  "storyDetailActions": {
+    "playOwn": "开始扮演",
+    "playFork": "开始你自己的 playthrough",
+    "loginToFork": "登入之后可以玩",
+    "ownerEditTitle": "你是这个故事的作者",
+    "ownerEditBody": "选谁能看到。默认是 Private — 只有你看到。",
+    "visibilityPrivate": "Private",
+    "visibilityPrivateDesc": "只有你看得到 / 玩得到",
+    "visibilityUnlisted": "Link 分享",
+    "visibilityUnlistedDesc": "有 link 的人都玩得到",
+    "visibilityPublic": "Public",
+    "visibilityPublicDesc": "出现在 Library + 可搜索",
+    "saving": "保存中…",
+    "publishCta": "Publish 公开",
+    "unpublishCta": "收回私人",
+    "errorPublish": "更新失败 — 请稍后再试。",
+    "myReviewTitle": "你的评分",
+    "myReviewSubmit": "评分 / 评论",
+    "myReviewUpdate": "更新评分",
+    "myReviewSaving": "保存中…",
+    "myReviewModerating": "AI 审核中…",
+    "myReviewPlaceholder": "告诉其他玩家你的体验（可选）。",
+    "myReviewCancel": "取消",
+    "errorRate": "评分失败：{reason}",
+    "errorCannotRateOwn": "不可以为自己的故事评分。",
+    "commentSectionTitle": "留下评论",
+    "commentPlaceholder": "你觉得怎样？（会经过审核）",
+    "commentSubmit": "Post",
+    "commentSaving": "保存中…",
+    "commentModerating": "AI 审核中…",
+    "commentLoginToPost": "登入之后可以留言",
+    "errorComment": "留言失败：{reason}",
+    "errorParentMismatch": "留言 thread 对不上 — 重 reload 页面。",
+    "errorBodyInvalid": "留言太短或太长。",
+    "errorModerationConfig": "内容审核系统配置问题，请稍后再试。",
+    "reportTitle": "举报",
+    "reportPlaceholder": "为何举报？（可选 · 最多 200 字）",
+    "reportReasonLabel": "原因",
+    "reportReasonCsam": "含未成年人性内容 (CSAM)",
+    "reportReasonSexualMinor": "含未成年人性内容",
+    "reportReasonHate": "仇恨言论",
+    "reportReasonHarassment": "骚扰",
+    "reportReasonIllegal": "其他违法内容",
+    "reportReasonOther": "其他",
+    "reportSubmit": "提交举报",
+    "reportSubmitting": "提交中…",
+    "reportSubmitted": "已 report — moderation team 会 review",
+    "reportError": "举报失败：{reason}",
+    "reportAlreadyReported": "你之前已经举报过这个内容了。Moderation team 会 review。",
+    "forkModalTitle": "开始你自己的 playthrough",
+    "forkModalBody": "你的 playthrough 完全独立 · 原故事保持不变。每个玩家写自己的结局。",
+    "forkModalProtagonistLabel": "主角名字 / 留空 = 默认「主角」",
+    "forkModalProtagonistPlaceholder": "例：陈生 / 林思雅 / Tom",
+    "forkModalModelHint": "Settings 改 default model",
+    "forkModalCostHint": "~2 credits / turn",
+    "forkModalSubmit": "开始扮演",
+    "forkModalSubmitting": "启动中…",
+    "forkModalCancel": "取消",
+    "forkErrorAuth": "不能开始故事：请先登入。",
+    "forkErrorFallback": "不能开始故事：{reason}"
+  },
+  "memory": {
+    "defaultStoryTitle": "故事",
+    "headerTitle": "你这次扮演 {protagonist} 的记忆",
+    "headerSubtitle": "{storyTitle} · TURN {turn} · 唯读 · 只有你看到 · FORK 重开是空白",
+    "headerSubtitleAdult": "{storyTitle} · TURN {turn} · 唯读 · 成人模式",
+    "tabs": {
+      "active": "当前活跃",
+      "memoir": "回忆录 · {count}",
+      "characters": "角色记事 · {count}",
+      "innerVoices": "内心戏 · {count}"
+    },
+    "entryKind": {
+      "character": "人物",
+      "place": "地点",
+      "item": "物品",
+      "event": "事件",
+      "concept": "概念"
+    },
+    "active": {
+      "emptyTitle": "本 turn 没 active memory",
+      "emptyBody": "AI 现在看不到相关 context — 这是 by design（similarity floor）。当你 reference 过去发生的事，记忆就会 surface。"
+    },
+    "memoir": {
+      "emptyTitle": "AI 还没开始整理回忆",
+      "emptyBody": "每 20 turn 写一次摘要。继续玩，章节会出现在这里。"
+    },
+    "characters": {
+      "emptyTitle": "AI 还没认识这个世界的人物",
+      "emptyBody": "Lorebook entries（人物 · 地点 · 物品 · 事件 · lore）会在你玩的时候在后台抽取。",
+      "alwaysOn": "Always on",
+      "firstSeen": "首见",
+      "readonlyBadge": "唯读"
+    },
+    "innerVoices": {
+      "emptyTitle": "尚无 NPC 内心戏记录",
+      "emptyBody": "在扮演画面启用 NPC 内心戏（Storyteller tier）即可看到每个 NPC 的 POV。",
+      "storyteller": "Storyteller 独享",
+      "innerThought": "心底",
+      "intent": "意图",
+      "internalPov": "内部 POV"
+    },
+    "backToPlay": "返回扮演",
+    "continuePlay": "继续扮演",
+    "ariaBack": "返回扮演",
+    "readOnly": "唯读",
+    "nav": {
+      "layerLabel": "记忆层 · 4-LAYER",
+      "activeLabel": "当前活跃记忆",
+      "activeHint": "影响这个 turn 的记忆",
+      "memoirLabel": "回忆录",
+      "memoirSub": "{count} 章",
+      "memoirHint": "滚动章节摘要 · 每 ~20 turn",
+      "charactersLabel": "角色记事",
+      "charactersSub": "{count} 条",
+      "charactersHint": "人物 · 地点 · 物品 · 事件 · 概念",
+      "innerVoicesLabel": "NPC 内心戏",
+      "innerVoicesSub": "{count} 段 · {npcs} 个 NPC",
+      "innerVoicesHint": "Storyteller 独享 · 每个 NPC 的 POV + 心理活动",
+      "recentLabel": "近 20 turn 全文",
+      "recentBadge": "自动",
+      "recentHint": "叙事 stream 已显示 · 不需要另一个入口",
+      "readonlyTitle": "AI 自动记录 · 不可编辑",
+      "readonlyBody": "（server-only write 经 Migration 0018 enforce）"
+    },
+    "active": {
+      "emptyTitle": "本 turn 没 active memory",
+      "emptyBody": "AI 现在看不到相关 context — 这是 by design（similarity floor）。当你 reference 过去发生的事，记忆就会 surface。",
+      "header": "Active retrieval — AI 在本 turn 看到的内容",
+      "currentTurnLabel": "LIVE · 当前 TURN {turn}",
+      "explainer": "每 turn AI 都会从你的整段历史搜出最相关的段落注入叙事。下面是 AI 现在「脑海中浮现」的内容。",
+      "fallbackTitle": "AI 现在用近 20 turn 的 context 写叙事",
+      "fallbackBody": "per-turn RAG retrieval log 还未 wire 进 backend",
+      "fallbackBodyAside": "(Phase 7+ 加 turns.retrieved_memory_ids[] column)",
+      "fallbackNoMatch": "我们设了相似度 floor — 宁愿无 match 也不要 noisy match。"
+    },
+    "memoir": {
+      "emptyTitle": "AI 还没开始整理回忆",
+      "emptyBody": "玩到 turn 10 · AI 会自动写第一章的摘要，记住你做过的关键决定。之后每 ~20 turn 会再 update。",
+      "chapterTitle": "第 {n} 章 · {range}",
+      "header": "AI 每 ~20 turn 整理一次。摘要会持续影响 AI 的判断 — 即使你玩到 turn 80，第一章的内容它仍然记得。",
+      "untilFirst": "距离第一章摘要",
+      "untilFirstBody": "玩到 turn 10 · AI 会自动写第一章的摘要，记住你做过的关键决定。之后每 ~20 turn 会再 update。"
+    },
+    "characters": {
+      "emptyTitle": "AI 还没认识这个世界的人物",
+      "emptyBody": "玩多些 turn · AI 会自动把你遇到的人物、地点、物件、事件 extract 出来，整理成记事，之后遇到也不会「失忆」。",
+      "alwaysOn": "Always on · AI 每 turn 都记得",
+      "firstSeen": "首见",
+      "readonlyBadge": "唯读",
+      "readonlyTooltip": "AI 自动记录 · 不可编辑 · Migration 0018 server-only write",
+      "header": "AI 自动 extract 的 entity · 影响每 turn 的叙事。",
+      "alwaysOnLegend": "● 标记 = always_on · AI 永远记得。",
+      "entriesSuffix": "ENTRIES",
+      "appearancesLabel": "出现次数"
+    },
+    "innerVoices": {
+      "emptyTitle": "暂无 NPC 内心戏记录",
+      "emptyBody": "在 Play 页启动「NPC 内心戏」(Storyteller 独享)。",
+      "emptyHint": "之后每个 turn 的 NPC POV 会 record 在这里。",
+      "storyteller": "Storyteller 独享",
+      "innerThought": "心底",
+      "intent": "意图",
+      "internalPov": "内部 POV",
+      "noThoughtsForNpc": "尚无 inner thought 记录。"
+    }
+  },
+  "play": {
+    "header": {
+      "ariaOpenList": "开启游戏清单",
+      "ariaBack": "返回 Library",
+      "back": "返回",
+      "ariaMemory": "记忆",
+      "memoryTooltip": "这个 playthrough 的 4 层独立记忆",
+      "memory": "记忆",
+      "playingAs": "正玩："
+    },
+    "tabs": {
+      "narrative": "叙事",
+      "npc": "角色 · {count}",
+      "state": "状态"
+    },
+    "turn": {
+      "userBadge": "→ {protagonist}",
+      "aiBadge": "↳ 叙事",
+      "aiPending": "↳ 叙事 (输出中...)",
+      "aiThinking": "AI 思考中...",
+      "moderationPending": "内容审核 + AI 思考中…",
+      "directorSoftTooltip": "NPC 反应与你预期不同"
+    },
+    "input": {
+      "placeholder": "你想做什么？（描述行动、对白、决定…）",
+      "submit": "行动"
+    },
+    "rail": {
+      "npcCount": "NPC · {count}",
+      "stateTitle": "{protagonist} 的状态"
+    },
+    "errors": {
+      "insufficientCreditsTitle": "Credit 不够",
+      "insufficientCreditsBody": "你现在有 {balance} credits · 这个 turn 需要 ~{needed}。",
+      "insufficientCreditsCta": "去 Settings 升级 / Top-up",
+      "modelTierTitle": "Model 需要升级 tier",
+      "modelTierBody": "你的 tier ({tier}) 不能用 {model}。去 Settings 选其他 model 或升级。",
+      "modelTierCta": "去 Settings",
+      "moderationTitle": "内容审核：这个 action 过不了",
+      "moderationBody": "试着换个方式描述你的行动，或者调整剧情走向。",
+      "moderationConfigBody": "内容审核系统配置问题，请稍后再试。",
+      "moderationUnavailableBody": "内容审核暂时不可用，请稍后再试。",
+      "rateLimitedTitle": "请稍等 — 上一个 turn 仍在处理",
+      "rateLimitedBody": "等几秒再试。",
+      "adultModeRequiredTitle": "需要开启成人模式",
+      "adultModeRequiredBodyModel": "{model} 是 NSFW model · 需要先在 Settings 开启「成人模式」(KYC 后)。或者选其他 model 继续。",
+      "adultModeRequiredBodyStory": "这个故事是 adult-rated · 需要先在 Settings 开启「成人模式」(KYC 后) 才能继续玩。",
+      "adultModeRequiredCta": "去 Settings",
+      "httpError": "请求失败（HTTP {status}）"
+    },
+    "permanentBadge": "PERMANENT · 不可重试",
+    "permanentTooltip": "Hard rule #5 · 不可同一 turn 再试"
+  },
+  "skillCheck": {
+    "rolling": "SKILL CHECK · 掷骰中",
+    "vsLabel": "{skill} {value} · 对抗 难度 {difficulty}",
+    "difficultyLabel": "难度",
+    "opponent": "对方",
+    "willTheyBudge": "{target} 会不会退让？",
+    "reveal": "揭晓结果",
+    "permanent": "PERMANENT · 不可重试",
+    "permanentTooltip": "Hard rule #5 · 不可以同一 turn 再试",
+    "outcomes": {
+      "critical_success": "完美成功",
+      "success": "成功",
+      "failure": "失败",
+      "critical_failure": "大败局"
+    },
+    "stampSuffix": "SKILL CHECK · {stamp}",
+    "consequencesHeader": "后果 · 永久记入记忆",
+    "writtenFooter": "结果已记入故事 · 想推进，请写下一个 action",
+    "continue": "继续"
+  },
+  "playthroughSidebar": {
+    "header": "MY GAMES",
+    "ariaCloseList": "关闭清单",
+    "ariaClose": "关闭",
+    "newStory": "开新故事",
+    "emptyList": "没其他 playthrough",
+    "seeAll": "查看全部 {count} 个",
+    "allCount": "全部 ({count})"
+  },
+  "npcL3": {
+    "cardTitle": "NPC 内心戏",
+    "upsellBody": "每个 NPC 都有自己的 POV + 心理活动 · 对话更深层 · Storyteller 订阅独享 feature。",
+    "upsellCta": "升级 Storyteller 解锁 →",
+    "activeDescription": "Active · 每个 NPC 有 POV · 多 ~{cost} credits / NPC (up to {max} per turn)",
+    "inactiveDescription": "启动后每个 active NPC 都有自己的内心戏 · 多 ~{cost} credits / NPC (up to {max} per turn)",
+    "buttonOn": "关闭 NPC 内心戏",
+    "buttonOff": "启动 NPC 内心戏",
+    "buttonPending": "处理中..."
+  },
+  "settings": {
+    "pageTitle": "设置",
+    "nav": {
+      "profile": "个人资料",
+      "preferences": "偏好",
+      "adult": "成人模式",
+      "credits": "Credits",
+      "account": "账号"
+    },
+    "anonBanner": {
+      "title": "你现在是访客模式",
+      "body": "连结 email 锁定进度和 credit 余额 — 不连结 · 清 browser cookies 之后故事会丢失。",
+      "cta": "立即注册 / 连结 email"
+    },
+    "profile": {
+      "title": "个人资料",
+      "subtitle": "登入帐户 · 显示名称 · 语言",
+      "emailLabel": "Email",
+      "emailGuestPlaceholder": "（访客 / 匿名登入）",
+      "displayNameLabel": "显示名称",
+      "languageLabel": "语言",
+      "languageHint": "影响 UI 文字 · 个别故事的 narrative language 在 creation 时选",
+      "joinedLabel": "加入日期"
+    },
+    "preferences": {
+      "title": "偏好",
+      "subtitle": "选 tier · 我们帮你选最合适的 model（中文 vs 英文 · vendor 可用性）· adult tier 需要先开成人模式"
+    },
+    "adult": {
+      "title": "成人模式",
+      "subtitle": "法律要求 · CSAM/illegal pre-filter 永远 on · 无论开不开都会 enforce"
+    },
+    "credits": {
+      "title": "Credits",
+      "subtitleFormat": "当前 {tier} · 余额 {balance} credits · Phase 4 money tier 开放 top-up",
+      "balanceLabel": "BALANCE",
+      "balanceUnit": "credits",
+      "subscriptionStatus": "订阅状态：",
+      "nextRenewal": "下次续期：",
+      "cancelAtPeriodEnd": "期末取消",
+      "upgrade": "升级订阅",
+      "viewPlans": "查看方案",
+      "recentLedger": "最近 CREDIT 变动",
+      "ledgerEmpty": "暂无 credit 变动。",
+      "ledgerBalance": "余 {balance}",
+      "tierDescriptions": {
+        "free": "50 credits 每日 · 仅限基础 model",
+        "adventurer": "2,000 credits 每月 · 无 turn 上限 · Pro + Pro Max model 解锁 · 80 NPC L3 turn/月",
+        "storyteller": "4,000 credits 每月 · 全部 model · 成人模式 (需 KYC) · NPC L3 无限",
+        "legend": "已下架 · 与 Pro 相同"
+      }
+    },
+    "billing": {
+      "managePortal": "管理订阅"
+    },
+    "account": {
+      "title": "账号",
+      "subtitle": "登出 · 导出 data · 删除账号",
+      "signOutLabel": "登出",
+      "signOutHint": "所有设备同时登出",
+      "exportLabel": "导出我的 data",
+      "exportHint": "所有 playthrough · 记忆 · 评论 · ~zip 档",
+      "exportButton": "导出（v1.5+）",
+      "deleteLabel": "删除账号",
+      "deleteHint": "不可逆 · 所有故事 · playthrough · 记忆会永久消失",
+      "deleteButton": "删除..."
+    },
+    "ledger": {
+      "turn_charge": "玩 turn 扣费",
+      "story_charge": "创作新故事",
+      "embed_charge": "Embed 用量",
+      "sub_grant": "订阅开通 credit",
+      "sub_renewal": "订阅续期 credit",
+      "sub_canceled": "订阅取消",
+      "topup": "Top-up 购买",
+      "refund": "退回",
+      "admin_adjust": "管理员调整",
+      "free_tier_refresh": "Free tier 每日重置"
+    },
+    "tierPicker": {
+      "title": "叙事 AI Tier",
+      "subtitle": "选 tier · 我们帮你选最合适的 model（语言 + vendor availability）。Director 永远用 Haiku 4.5。",
+      "saved": "已保存",
+      "saveFailed": "保存失败",
+      "saveFailedWithError": "保存失败 · {error}",
+      "perTurnEstimate": "每 turn 估",
+      "requiresSubTier": "需要 {tier}",
+      "andKyc": " + 身份验证",
+      "tiers": {
+        "standard": "Standard",
+        "pro": "Pro",
+        "pro-max": "Pro Max",
+        "adult": "Adult NSFW"
+      },
+      "blurbs": {
+        "standard": "快 · 便宜 · 中文流畅 · 对标 NovelAI",
+        "pro": "深层叙事 · 情感细腻 · 中英都强",
+        "pro-max": "最深层 · 多角色互动 · 复杂情节",
+        "adult": "成人模式专用 · 需身份验证"
+      },
+      "subTierLabels": {
+        "free": "Free",
+        "adventurer": "Adventurer",
+        "storyteller": "Storyteller",
+        "legend": "Legend"
+      }
+    },
+    "adultModeToggle": {
+      "cardTitle": "成人模式 (18+)",
+      "cardDescription": "开启之后可以选 NSFW model · 创作 + 玩 adult-rated 故事。",
+      "enabledBadge": "已开启",
+      "stateOn": "成人模式已开启",
+      "stateOff": "成人模式关闭",
+      "enabledExplainer": "你可以选 OpenRouter NSFW model · 创作 adult-rated 故事 · Library 显示成人内容。",
+      "disabledExplainer": "限定 SFW + Soft 内容。NSFW model + adult-rated 故事不可见。",
+      "ageVerifiedYes": "你已经完成年龄验证 — 可以随时开关成人模式。",
+      "ageVerifiedNo": "需要先做身份验证才能开启成人模式。",
+      "requiresVerificationTitle": "需要年龄验证 (18+)",
+      "verificationBody": "根据平台政策 · 成人模式需要 Stripe Identity 完成身份验证 · 确保只有 18+ 用户 access。点下面 button 跳转到 Stripe 安全页面 · 完成后自动 unlock toggle。",
+      "stripePrivacyNote": "Stripe Identity 只取身份证 + selfie 验证年龄 · Kieio 不会存储图片。",
+      "verifyCta": "开始年龄验证",
+      "verifyPending": "正在前往 Stripe…",
+      "alreadyVerified": "你已经验证过 · 重 reload 页面应该见到 toggle 解锁",
+      "authRequired": "请先登入",
+      "verifyInitError": "验证初始化失败：{error}",
+      "csamReminder": "注意：所有模式都禁止 CSAM、未成年人性描写、违法内容 · 无论 adult mode 开关都会被 moderation 拦截 (hard rule)。",
+      "consentDialog": {
+        "eyebrow": "确认开启成人模式",
+        "title": "你准备好打开 18+ 内容？",
+        "intro": "打开之后：",
+        "bullet1": "Model picker 多了 OpenRouter NSFW model（露骨内容）",
+        "bullet2": "Creation 可以选「成人」content_rating",
+        "bullet3": "Library 多了「18+ 成人」filter",
+        "bullet4": "Story detail 不再 hide 成人故事",
+        "csamStrong": "平台严禁",
+        "csamBody": "涉及未成年人士、真实人物或非法内容的创作 · 违者帐号永久停权并依法通报。CSAM/illegal pre-filter 在任何 mode 下都 always-on。",
+        "ageConfirm": "我已年满 18 岁 · 并理解上述守则。",
+        "cancel": "取消",
+        "confirm": "确认开启",
+        "processing": "处理中…",
+        "ariaClose": "关闭"
+      },
+      "settingsFailed": "设定失败：{error}"
+    },
+    "topupButtons": {
+      "title": "一次性充值",
+      "errorPrefix": "错误：",
+      "small": {
+        "label": "小型 pack",
+        "credits": "+ 2,000 credits"
+      },
+      "medium": {
+        "label": "中型 pack",
+        "credits": "+ 5,500 credits"
+      },
+      "large": {
+        "label": "大型 pack",
+        "credits": "+ 12,000 credits"
+      }
+    },
+    "billingToast": {
+      "subscribedTitle": "订阅完成 ✓",
+      "subscribedBody": "Stripe 已收到付款。Credits 会在几秒内自动到账，page 自动 refresh。",
+      "topupTitle": "充值完成 ✓",
+      "topupBody": "Credits 会在几秒内到账，page 自动 refresh。",
+      "topupCanceledTitle": "充值取消",
+      "topupCanceledBody": "你没 charge 到。随时可以再试。",
+      "checkoutCanceledTitle": "订阅取消",
+      "checkoutCanceledBody": "你没 charge 到。随时可以再试。",
+      "verifyingTitle": "验证进行中…",
+      "verifyingBody": "Stripe Identity 正在处理 · 通常 5-15 秒。Page 会自动 refresh 显示结果。",
+      "secondsLeft": " ({count}s)",
+      "ariaClose": "关闭"
+    }
+  },
+  "my": {
+    "pageTitle": "我的游戏",
+    "subtitleEmpty": "你还没开始任何故事 — 选一个 scenario 开始你的冒险。",
+    "subtitleCount": "共 {total} 个 playthrough · {active} 个进行中",
+    "tabs": {
+      "all": "全部",
+      "active": "进行中",
+      "archived": "已归档",
+      "abandoned": "弃置"
+    },
+    "row": {
+      "character": "角色: {name}",
+      "turn": "TURN {count}",
+      "resume": "继续",
+      "review": "查看"
+    },
+    "status": {
+      "active": "进行中",
+      "archived": "已归档",
+      "abandoned": "弃置"
+    },
+    "empty": {
+      "title": "还没开始任何故事",
+      "body": "选一个 scenario 开始你的冒险，或自己创作一个。所有进行中的 playthrough 会自动出现在这里。",
+      "browseLibrary": "去 Library 找故事",
+      "createNew": "创作新故事",
+      "noPlaythroughsForTab": "没有任何「{tab}」的 playthrough。"
+    }
+  },
+  "library": {
+    "storyCard": {
+      "anonymous": "匿名",
+      "untitled": "(无标题)"
+    },
+    "continueCard": {
+      "resume": "继续"
+    },
+    "hero": {
+      "editorPick": "★ 编辑精选",
+      "featured": "FEATURED",
+      "playNow": "开始扮演",
+      "details": "详情",
+      "community": "社群创作"
+    },
+    "search": {
+      "heroPlaceholder": "搜寻故事、作者、tag…",
+      "fullPlaceholder": "找故事（标题 / 描述 / 标签 / 中文都行）...",
+      "languageAll": "所有语言",
+      "languageZhHant": "繁中",
+      "languageZhHans": "简中",
+      "languageEn": "English",
+      "ratingAll": "所有 rating",
+      "ratingAdultOption": "18+ 成人",
+      "submit": "搜寻",
+      "clear": "清除",
+      "resultsHeader": "搜寻结果：「{query}」",
+      "resultsCount": "{count} HITS",
+      "tooShortTitle": "请输入至少 2 个字",
+      "tooShortBody": "中文搜索要 2 字以上的 bigram 组合才 work — 试试「校园」「恋爱」「古惑仔」这类有 phrase 的 keyword。",
+      "noResults": "找不到符合的故事 — 试试其他关键字"
+    },
+    "rail": {
+      "all": "全部",
+      "adultLockTooltip": "需要在 设置 开启成人模式"
+    },
+    "carousels": {
+      "continue": "继续玩",
+      "continueSub": "{count} ACTIVE RUNS",
+      "myStories": "我的故事",
+      "myStoriesSub": "{count} STORIES",
+      "publicLibrary": "公开故事",
+      "publicLibrarySub": "PUBLIC LIBRARY",
+      "trending": "热门",
+      "trendingSub": "TRENDING · 24H",
+      "latest": "最新",
+      "latestSub": "JUST PUBLISHED"
+    },
+    "header": {
+      "newStory": "开新故事"
+    },
+    "you": "你",
+    "relativeTime": {
+      "justNow": "刚刚",
+      "minutesAgo": "{count} 分钟前",
+      "hoursAgo": "{count} 小时前",
+      "yesterday": "昨天",
+      "daysAgo": "{count} 天前",
+      "weeksAgo": "{count} 周前"
+    }
+  },
+  "createStory": {
+    "pageTitle": "创作你的故事",
+    "pageBody": "描述你想玩的故事 — 任何 genre / 文化 setting / 主角设定都行。AI 会即时为你设计：故事介面、世界观规则、3-5 个有人格的 NPC、开场叙事。",
+    "tasks": {
+      "meta": "故事 meta + opening 叙事",
+      "schema": "自适应 state schema",
+      "bible": "Story Bible · 世界规则",
+      "chars": "NPC character cards"
+    },
+    "form": {
+      "promptLabel": "故事概念",
+      "promptPlaceholder": "例：1980 年代香港古惑仔故事，我做新人帮师兄办事，要 navigate 兄弟情与江湖险恶…",
+      "promptHint": "越具体越好 — 包括时代、地点、主角设定、想体验什么。",
+      "promptCounter": "{count} / {max}",
+      "protagonistLabel": "主角设定提示",
+      "protagonistOptional": "（可选）",
+      "protagonistPlaceholder": "例：「我是 18 岁新人，瘦但拳脚功夫不错」",
+      "ratingLabel": "内容分级",
+      "ratingSfw": "一般向 (SFW)",
+      "ratingSoft": "轻度暗示",
+      "ratingAdult18": "成人 (18+)",
+      "ratingAdultLocked": "成人 (需身份验证)",
+      "ratingAdultTooltip": "需要在 设置 开启成人模式（需身份验证）",
+      "moderationCode": "403 · MODERATION REJECTED",
+      "moderationTitle": "这个 premise 触发了安全规则",
+      "moderationTip": "💡 Tip: 描写犯罪故事可以将主角设为观察者或受害者角度 · 不要扮演加害者。",
+      "submitBusy": "AI 正在设计你的故事…（约 15–30 秒）",
+      "submit": "生成 + 即时开始",
+      "estimatedCost": "预计成本 ~{count} credits",
+      "generatingHeader": "GENERATING · 4 PARALLEL TASKS · ~35–50s",
+      "generatingHint": "你可以打开新 tab · 完成会自动跳转",
+      "generatingModelLine": "sonnet-4.6 · 生成中…",
+      "ideasHeader": "没灵感？试试这些："
+    },
+    "examples": {
+      "0": "1980 年代香港古惑仔故事，我做新人，帮师兄做事赚钱，顺便照顾家人。江湖险恶，要 navigate 兄弟情与利益。",
+      "1": "台湾大学校园恋爱故事，我做转校生，社团要选，3 个女生可能有意思 — 文艺系思雅、运动系阿琳、活跃学姐 Cherry。",
+      "2": "中世纪奇幻冒险，我做被流放的前皇室护卫，要在废墟寻回家族失落的遗物。沿途遇到精灵、矮人、邪教徒。",
+      "3": "NBA 新秀第一年，我做被选去差球队的 controlled draft pick，要在差队证明自己。"
+    }
+  },
+  "errors": {
+    "common": {
+      "notLoggedIn": "请先登录。",
+      "tryAgainLater": "出了点问题，请稍后再试。",
+      "rateLimited": "AI 现在很忙，请 30 秒后再试。"
+    },
+    "createStory": {
+      "adultRequiresVerification": "Adult-rated 故事需要先在「设置」开启「成人模式」(需身份验证)。请选 SFW 或 Soft rating。",
+      "insufficientCredits": "Credit 不够创作故事（剩 {balance}，需要约 {needed}）。Top-up 或升级之后再试。",
+      "moderationConfigError": "内容审核系统配置问题，请稍后再试。",
+      "moderationUnavailable": "内容审核暂时不可用，请稍后再试。",
+      "aiBusy": "AI 现在很忙，请 30 秒后再试。",
+      "aiUnavailable": "AI 服务暂时不可用，请稍后再试。",
+      "promptInvalid": "你的故事概念稍有问题 — 试着多讲一些背景或换个角度。",
+      "storyInsertFailed": "创建故事失败，请稍后再试。",
+      "characterInsertFailed": "创建角色失败，请稍后再试。",
+      "playthroughInsertFailed": "创建游玩进度失败，请稍后再试。"
+    },
+    "billing": {
+      "checkoutFailed": "打不开支付页面，请稍后再试。",
+      "portalFailed": "打不开账单管理页，请稍后再试。",
+      "identityVerificationFailed": "打不开身份验证，请稍后再试。",
+      "topupFailed": "充值失败，请稍后再试。"
+    },
+    "play": {
+      "playthroughNotFound": "找不到这个 playthrough。",
+      "playthroughNotOwner": "你不是这个 playthrough 的主人。",
+      "npcL3TierRequired": "NPC 内心戏是 Storyteller 订阅独享（你现在是 {tier} tier · 升级至 Storyteller 即可解锁）。",
+      "npcL3TierRequiredGeneric": "NPC 内心戏需要 Storyteller 订阅。",
+      "saveFailed": "保存失败，请稍后再试。"
+    },
+    "settings": {
+      "adultRequiresKyc": "需要先完成身份验证 — Phase 6 money tier 即将上线。",
+      "adultTierRequiresMode": "Adult tier 需要先开启成人模式 + 完成身份验证。",
+      "tierSubscriptionGate": "{tier} tier 需要 {required} 订阅 — 你现在是 {current}"
+    },
+    "community": {
+      "cannotRateOwnStory": "不可以为自己的故事评分。",
+      "moderationConfigError": "内容审核系统配置问题，请稍后再试。",
+      "alreadyReported": "你之前已经举报过这个内容了。Moderation team 会 review。"
+    },
+    "auth": {
+      "guestSigninFailed": "Guest 登入失败，请重试。",
+      "emailRequired": "请输入 email。",
+      "otpFailed": "Magic link 发送失败，请稍后再试。",
+      "callbackFailed": "登入回调失败，请重新登入。",
+      "missingCode": "登入链接不正确或已过期。",
+      "googleUnavailable": "Google 登入暂未启用，请用 email magic link。"
     }
   }
 }

@@ -1,4 +1,7 @@
-import { GENRE, RATING_LABEL, type GenreKey, type ContentRating } from "./genre";
+"use client";
+
+import { useTranslations } from "next-intl";
+import { GENRE, type GenreKey, type ContentRating } from "./genre";
 import { Heart, Swords, GraduationCap, Sparkles, Trophy, Search, BookOpen, Flame } from "lucide-react";
 
 const ICONS: Record<string, React.ComponentType<{ className?: string; size?: number }>> = {
@@ -6,8 +9,11 @@ const ICONS: Record<string, React.ComponentType<{ className?: string; size?: num
 };
 
 /**
- * Genre chip — small CJK label + icon · color-tinted by genre hue.
+ * Genre chip — small label + icon · color-tinted by genre hue.
  * Used on Story Card overlay, Story Detail hero, Library filter rail.
+ *
+ * Wave 2 i18n migration (2026-05-27): label resolves from `genres.*` catalog
+ * (was hardcoded 繁中 in GENRE.label). Unknown genres render the raw string.
  */
 export function GenreChip({
   genre,
@@ -16,41 +22,44 @@ export function GenreChip({
   genre: GenreKey | string;
   size?: "sm" | "md";
 }) {
-  const g = (GENRE as Record<string, { label: string; icon: string; hue: number }>)[genre] ?? {
-    label: genre,
-    icon: "BookOpen",
-    hue: 240,
-  };
-  const Ico = ICONS[g.icon] ?? BookOpen;
+  const tGenres = useTranslations("genres");
+  const meta = (GENRE as Record<string, { label: string; icon: string; hue: number }>)[genre];
+  const isKnownGenre = !!meta;
+  const hue = meta?.hue ?? 240;
+  const Ico = ICONS[meta?.icon ?? "BookOpen"] ?? BookOpen;
+  const label = isKnownGenre ? tGenres(genre as GenreKey) : genre;
   return (
     <span
       className="inline-flex items-center gap-1.5 rounded-full whitespace-nowrap se-cjk"
       style={{
         fontSize: size === "sm" ? 11 : 12,
         padding: size === "sm" ? "3px 9px" : "4px 11px",
-        background: `oklch(0.94 0.04 ${g.hue} / 0.55)`,
-        color: `oklch(0.30 0.13 ${g.hue})`,
-        border: `1px solid oklch(0.55 0.10 ${g.hue} / 0.25)`,
+        background: `oklch(0.94 0.04 ${hue} / 0.55)`,
+        color: `oklch(0.30 0.13 ${hue})`,
+        border: `1px solid oklch(0.55 0.10 ${hue} / 0.25)`,
       }}
     >
       <Ico size={size === "sm" ? 10 : 11} />
-      {g.label}
+      {label}
     </span>
   );
 }
 
 /**
  * Content rating badge — mono uppercase · semantic-colored.
+ * Wave 2 i18n migration: label resolves from `ratings.*` catalog (was 繁中).
  */
 export function RatingBadge({ rating }: { rating: ContentRating | string }) {
-  const cfg = (
-    {
-      general: { label: "一般", fg: "var(--se-fg-muted)", bg: "var(--se-surface-2)" },
-      pg13: { label: "PG-13", fg: "var(--se-fg-muted)", bg: "var(--se-surface-2)" },
-      mature: { label: "成熟", fg: "var(--se-warn)", bg: "var(--se-warn-bg)" },
-      adult: { label: "18+", fg: "var(--se-danger)", bg: "var(--se-danger-bg)" },
-    } as Record<string, { label: string; fg: string; bg: string }>
-  )[rating] ?? { label: rating, fg: "var(--se-fg-muted)", bg: "var(--se-surface-2)" };
+  const tRatings = useTranslations("ratings");
+  const styleByRating: Record<string, { fg: string; bg: string }> = {
+    general: { fg: "var(--se-fg-muted)", bg: "var(--se-surface-2)" },
+    pg13: { fg: "var(--se-fg-muted)", bg: "var(--se-surface-2)" },
+    mature: { fg: "var(--se-warn)", bg: "var(--se-warn-bg)" },
+    adult: { fg: "var(--se-danger)", bg: "var(--se-danger-bg)" },
+  };
+  const known = rating in styleByRating;
+  const cfg = styleByRating[rating] ?? { fg: "var(--se-fg-muted)", bg: "var(--se-surface-2)" };
+  const label = known ? tRatings(rating as ContentRating) : rating;
   return (
     <span
       className="inline-flex items-center se-mono"
@@ -63,7 +72,7 @@ export function RatingBadge({ rating }: { rating: ContentRating | string }) {
         color: cfg.fg,
       }}
     >
-      {cfg.label}
+      {label}
     </span>
   );
 }

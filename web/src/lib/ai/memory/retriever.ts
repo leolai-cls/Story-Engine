@@ -350,13 +350,32 @@ export async function refineLorebookByHints(params: {
  * Phase 1 — re-build the memory context string given a swapped lorebook set.
  * Exposed for turn route to call after refineLorebookByHints.
  */
+/**
+ * Phase 1 — re-build the memory context string given a swapped lorebook set.
+ * Exposed for turn route to call after refineLorebookByHints.
+ *
+ * Wave 1 audit C-03 fix (2026-05-27): accepts `language` so the LTM block
+ * headers + anti-quote preamble appear in the story's language. Previously
+ * hardcoded 繁中 → EN / zh-Hans stories had a 200+ char Cantonese system
+ * preamble + Cantonese section headers injected into Narrator + Director
+ * context every turn → code-switching risk + token waste.
+ */
+type LtmLanguage = "zh-Hant" | "zh-Hans" | "en";
+
 export function rebuildContextString(parts: {
   alwaysOnLorebook: LorebookEntry[];
   matchedLorebook: LorebookEntry[];
   summaries: SummaryMatch[];
   ragTurns: TurnMatch[];
+  language?: LtmLanguage;
 }): string {
-  return buildContextString(parts);
+  return buildContextString({
+    alwaysOnLorebook: parts.alwaysOnLorebook,
+    matchedLorebook: parts.matchedLorebook,
+    summaries: parts.summaries,
+    ragTurns: parts.ragTurns,
+    language: parts.language,
+  });
 }
 
 // ─── Main retriever ─────────────────────────────────────────────────────────
@@ -376,9 +395,15 @@ export async function retrieveMemory(params: {
    * Empty arrays = unconstrained (semantic top-K · default behavior).
    */
   memoryHints?: RetrieverMemoryHints;
+  /**
+   * Wave 1 audit C-03 fix (2026-05-27): story language for locale-aware LTM
+   * block headers + anti-quote preamble. Defaults to "zh-Hant" for callers
+   * who haven't been updated yet (legacy preserves original 繁中 behavior).
+   */
+  language?: LtmLanguage;
 }): Promise<MemoryRetrievalResult> {
   const cfg = { ...DEFAULT_CONFIG, ...params.config };
-  const { supabase, playthroughId, userAction, recentTurns, memoryHints } = params;
+  const { supabase, playthroughId, userAction, recentTurns, memoryHints, language } = params;
 
   // Pre-tokenize user action ONCE · reused across hybrid scoring loops.
   const userTokenSet = new Set(extractTokens(userAction));
@@ -535,6 +560,7 @@ export async function retrieveMemory(params: {
     matchedLorebook,
     summaries: filteredSummaries,
     ragTurns: ragTurnsRaw,
+    language,
   });
 
   return {
@@ -577,18 +603,65 @@ function parseIntRange(s: string): { lower: number; upper: number } | null {
   return { lower: parseInt(m[1], 10), upper: parseInt(m[2], 10) };
 }
 
+/**
+ * Locale-aware copy for the LTM block. Wave 1 audit C-03 fix (2026-05-27).
+ * Previously all hardcoded 繁中 — non-繁中 stories got a Cantonese system
+ * preamble + Cantonese section headers every turn → code-switching risk and
+ * token waste. Now branched per story language.
+ */
+function ltmCopy(language: LtmLanguage) {
+  if (language === "en") {
+    return {
+      alwaysOnHeader: "### Core story facts (always-on)",
+      matchedHeader: "### Relevant characters / places / items (this turn)",
+      summariesHeader: "### Past story arcs (rolling summaries)",
+      ragHeader: "### Past specific scenes (recalled by similarity)",
+      playerLabel: "Player",
+      aiLabel: "AI",
+      antiQuotePreamble:
+        "## Long-Term Memory ⚠️ INTERNAL FACTS ONLY — NEVER quote or paraphrase verbatim into narrative\n\nThis text is private system reference for you. **Strictly forbidden** to copy any sentence here verbatim into your narrative — use your own prose to express callbacks / continuity. Verbatim quotes break immersion.",
+    } as const;
+  }
+  if (language === "zh-Hans") {
+    return {
+      alwaysOnHeader: "### 故事核心设定 (always-on)",
+      matchedHeader: "### 相关角色 / 地点 / 物件 (此 turn 相关)",
+      summariesHeader: "### 过去故事大纲 (rolling summaries)",
+      ragHeader: "### 过去具体场景 (recalled by similarity)",
+      playerLabel: "玩家",
+      aiLabel: "AI",
+      antiQuotePreamble:
+        "## Long-Term Memory ⚠️ INTERNAL FACTS ONLY — NEVER quote or paraphrase verbatim into narrative\n\n这里的文字是 system 私底下给你看的 facts / reference。**绝对禁止**将这里任何句子原文搬入你的叙事 — 用你自己的 prose 表达 callback / continuity。Verbatim quote 会打破 immersion。",
+    } as const;
+  }
+  // Default: zh-Hant (HK Cantonese — original founder voice)
+  return {
+    alwaysOnHeader: "### 故事核心設定 (always-on)",
+    matchedHeader: "### 相關角色 / 地點 / 物件 (此 turn 相關)",
+    summariesHeader: "### 過去故事大綱 (rolling summaries)",
+    ragHeader: "### 過去具體場景 (recalled by similarity)",
+    playerLabel: "玩家",
+    aiLabel: "AI",
+    antiQuotePreamble:
+      "## Long-Term Memory ⚠️ INTERNAL FACTS ONLY — NEVER quote or paraphrase verbatim into narrative\n\n呢度嘅文字係 system 私底下俾你睇嘅 facts / reference。**絕對禁止**將呢度任何句子原文搬入你嘅敘事入面 — 用你自己嘅 prose 表達 callback / continuity。Verbatim quote 會打破 immersion。",
+  } as const;
+}
+
 function buildContextString(parts: {
   alwaysOnLorebook: LorebookEntry[];
   matchedLorebook: LorebookEntry[];
   summaries: SummaryMatch[];
   ragTurns: TurnMatch[];
+  /** Wave 1 audit C-03 fix · default zh-Hant for backward compat with legacy callers */
+  language?: LtmLanguage;
 }): string {
+  const copy = ltmCopy(parts.language ?? "zh-Hant");
   const sections: string[] = [];
 
   // Always-on lorebook (story-critical facts)
   if (parts.alwaysOnLorebook.length > 0) {
     sections.push(
-      `### 故事核心設定 (always-on)\n${parts.alwaysOnLorebook
+      `${copy.alwaysOnHeader}\n${parts.alwaysOnLorebook
         .map((e) => `- (${e.entity_type}) **${e.name}** — ${e.description}`)
         .join("\n")}`,
     );
@@ -597,7 +670,7 @@ function buildContextString(parts: {
   // Matched lorebook by similarity to current action
   if (parts.matchedLorebook.length > 0) {
     sections.push(
-      `### 相關角色 / 地點 / 物件 (此 turn 相關)\n${parts.matchedLorebook
+      `${copy.matchedHeader}\n${parts.matchedLorebook
         .map((e) => `- (${e.entity_type}) **${e.name}** — ${e.description}`)
         .join("\n")}`,
     );
@@ -606,7 +679,7 @@ function buildContextString(parts: {
   // Rolling summaries
   if (parts.summaries.length > 0) {
     sections.push(
-      `### 過去故事大綱 (rolling summaries)\n${parts.summaries
+      `${copy.summariesHeader}\n${parts.summaries
         .map((s) => {
           const range = parseIntRange(s.turn_range);
           const label = range ? `[Turns ${range.lower}-${range.upper - 1}]` : `[${s.turn_range}]`;
@@ -619,10 +692,10 @@ function buildContextString(parts: {
   // RAG over individual past turns
   if (parts.ragTurns.length > 0) {
     sections.push(
-      `### 過去具體場景 (recalled by similarity)\n${parts.ragTurns
+      `${copy.ragHeader}\n${parts.ragTurns
         .map(
           (t) =>
-            `[Turn ${t.turn_index} — ${t.role === "user" ? "玩家" : "AI"}]: ${truncateToSentence(t.text, 320)}`,
+            `[Turn ${t.turn_index} — ${t.role === "user" ? copy.playerLabel : copy.aiLabel}]: ${truncateToSentence(t.text, 320)}`,
         )
         .join("\n")}`,
     );
@@ -634,7 +707,7 @@ function buildContextString(parts: {
   // 0.85 occasionally parrots prose from system context — the original
   // "唔好直接引用" hint is too weak. Belt-and-braces wording below + matching
   // line in NARRATOR_RULES.
-  return `## Long-Term Memory ⚠️ INTERNAL FACTS ONLY — NEVER quote or paraphrase verbatim into narrative\n\n呢度嘅文字係 system 私底下俾你睇嘅 facts / reference。**絕對禁止**將呢度任何句子原文搬入你嘅敘事入面 — 用你自己嘅 prose 表達 callback / continuity。Verbatim quote 會打破 immersion。\n\n${sections.join("\n\n")}`;
+  return `${copy.antiQuotePreamble}\n\n${sections.join("\n\n")}`;
 }
 
 /**

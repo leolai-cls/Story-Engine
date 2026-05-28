@@ -4,16 +4,30 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "@/i18n/navigation";
 import { redirect as nextRedirect } from "next/navigation";
 import { getLocale } from "next-intl/server";
+import { getAppOrigin } from "@/lib/urls";
 
 /**
- * Magic link redirect base. AUDIT FIX (SEC-M-01): Previously fell back to
- * `headers().get("origin")` which is browser-controlled — a phishing page
- * could trigger a magic link sent to attacker.com/auth/callback. We now use
- * ONLY the server-side env var (NEXT_PUBLIC_SITE_URL); local dev defaults
- * to localhost:3001.
+ * Magic link / OAuth redirect base.
+ *
+ * AUDIT FIX (SEC-M-01): Previously fell back to `headers().get("origin")`
+ * which is browser-controlled — a phishing page could trigger a magic link
+ * sent to attacker.com/auth/callback. Always server-side env-based.
+ *
+ * 2026-05-28 fix: must point at the APP subdomain (app.kieio.com), NOT the
+ * marketing root (kieio.com). Reason: subdomain split (per CLAUDE.md +
+ * middleware.ts hard rule).
+ *   - /auth/callback lives on app.kieio.com
+ *   - Supabase auth cookies set on the callback host
+ *   - If callback lands on kieio.com → cookie set on kieio.com →
+ *     subsequent /library redirect to app.kieio.com sees NO cookie →
+ *     user appears not logged in despite Supabase confirming Google login
+ *
+ * Was using `NEXT_PUBLIC_SITE_URL` which on prod = kieio.com (marketing).
+ * Now uses `getAppOrigin()` which returns NEXT_PUBLIC_APP_URL = app.kieio.com
+ * (or falls back to NEXT_PUBLIC_SITE_URL / localhost for non-split envs).
  */
 function authRedirectBase(): string {
-  return process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3001";
+  return getAppOrigin();
 }
 
 /**
@@ -164,8 +178,12 @@ export async function signInAsGuest(formData: FormData) {
 
   const { error } = await supabase.auth.signInAnonymously();
   if (error) {
+    // Wave 1 audit H-02 fix (2026-05-27): pass error code instead of raw 繁中
+    // string. Login page resolves to localized copy via t("errors.auth.guestSigninFailed").
+    // Also avoids leaking raw provider error message (SEC-L-01).
+    console.error("[signInAsGuest] anonymous sign-in failed:", error.message);
     redirect({
-      href: `/login?error=${encodeURIComponent("Guest 登入失敗: " + error.message)}`,
+      href: `/login?error=guest_signin_failed`,
       locale,
     });
   }

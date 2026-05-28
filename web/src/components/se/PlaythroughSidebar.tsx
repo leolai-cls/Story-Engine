@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Cover } from "./Cover";
 import { X, Plus, ArrowRight, Sparkles } from "lucide-react";
 import type { GenreKey } from "./genre";
@@ -74,11 +75,7 @@ export function PlaythroughSidebar({
           role="dialog"
           aria-modal="true"
         >
-          <div
-            className="flex-1 bg-black/40"
-            onClick={() => onOpenChange(false)}
-            aria-label="關閉清單"
-          />
+          <SidebarBackdrop onClose={() => onOpenChange(false)} />
           <aside
             className="flex flex-col w-[280px] max-w-[80vw]"
             style={{
@@ -102,6 +99,17 @@ export function PlaythroughSidebar({
   );
 }
 
+function SidebarBackdrop({ onClose }: { onClose: () => void }) {
+  const t = useTranslations("playthroughSidebar");
+  return (
+    <div
+      className="flex-1 bg-black/40"
+      onClick={onClose}
+      aria-label={t("ariaCloseList")}
+    />
+  );
+}
+
 function SidebarBody({
   locale,
   currentPlaythroughId,
@@ -119,6 +127,8 @@ function SidebarBody({
   showMobileClose: boolean;
   onMobileClose: () => void;
 }) {
+  // Wave 2 i18n migration (2026-05-27): all strings localized.
+  const t = useTranslations("playthroughSidebar");
   return (
     <>
       {/* Header */}
@@ -133,7 +143,7 @@ function SidebarBody({
             letterSpacing: "0.08em",
           }}
         >
-          MY GAMES
+          {t("header")}
         </span>
         {showMobileClose ? (
           <button
@@ -141,7 +151,7 @@ function SidebarBody({
             onClick={onMobileClose}
             className="p-1 rounded"
             style={{ color: "var(--se-fg-muted)" }}
-            aria-label="關閉"
+            aria-label={t("ariaClose")}
           >
             <X size={14} />
           </button>
@@ -155,7 +165,7 @@ function SidebarBody({
               letterSpacing: "0.04em",
             }}
           >
-            全部 ({totalCount})
+            {t("allCount", { count: totalCount })}
           </Link>
         )}
       </div>
@@ -174,7 +184,7 @@ function SidebarBody({
         }}
       >
         <Plus size={13} />
-        <span className="se-cjk">開新故事</span>
+        <span className="se-cjk">{t("newStory")}</span>
       </Link>
 
       {/* List (scrollable) */}
@@ -184,7 +194,7 @@ function SidebarBody({
             className="px-3 py-4 text-center text-xs se-cjk"
             style={{ color: "var(--se-fg-dim)" }}
           >
-            冇其他 playthrough
+            {t("emptyList")}
           </div>
         ) : (
           playthroughs.map((p) => (
@@ -210,7 +220,7 @@ function SidebarBody({
             color: "var(--se-fg-muted)",
           }}
         >
-          <span className="se-cjk">查看全部 {totalCount} 個</span>
+          <span className="se-cjk">{t("seeAll", { count: totalCount })}</span>
           <ArrowRight size={12} />
         </Link>
       )}

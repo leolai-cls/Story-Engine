@@ -1,6 +1,7 @@
 "use client";
 
 import { z } from "zod";
+import { useTranslations } from "next-intl";
 import type {
   InventoryListFieldSchema,
   InventoryItemSchema,
@@ -16,6 +17,8 @@ export function InventoryListRenderer({
   field: Field;
   value: Item[];
 }) {
+  // Wave 2 i18n migration (2026-05-28): "空" localized.
+  const t = useTranslations("statePanel.inventory");
   const items = Array.isArray(value) ? value : [];
 
   return (
@@ -29,7 +32,7 @@ export function InventoryListRenderer({
         </span>
       </div>
       {items.length === 0 ? (
-        <div className="text-xs text-muted-foreground italic py-1.5">空</div>
+        <div className="text-xs text-muted-foreground italic py-1.5">{t("empty")}</div>
       ) : (
         <div className="grid grid-cols-1 gap-1">
           {items.map((item, i) => (
