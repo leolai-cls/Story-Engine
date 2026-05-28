@@ -185,24 +185,55 @@
     <p><strong>Source</strong>: 用 <a href="https://github.com/twri/sdxl_prompt_styler" target="_blank"><code>twri/sdxl_prompt_styler</code></a> (Stability AI 出 · MIT-licensed · 850+ tested style prompts) 做 base · 我哋 curate 12 個最配 Kieio launch genres (戀愛 / 古惑仔 / 玄幻 / D&D / NBA / 校園 / 武俠 等) 嘅 style。Built-in style preset · 加 ~3 個自製 Kieio-specific style。</p>
   </div>
 
-  <h3>Kieio Style Library · launch 12 個 preset</h3>
+  <h3>Kieio Style Library · 按文化/地域分 (founder UX simplification · 2026-05-28)</h3>
+  <p style="font-size: 14px; color: var(--ink-soft); margin-bottom: 12px;">
+    Founder feedback: 「最好係簡單啲 · 港式漫畫風 / 日本漫畫風 / 美國漫畫風 / 韓國漫畫風」— 用戶 mental model 跟<strong>文化/地域</strong>分 · 唔係 technical art-style 術語 (anime / cinematic / photographic 等)。每個 style 內部仍然用 SDXL-tested prompt 做 base · UI 層 surface region label 易理解。
+  </p>
+
+  <h4>Launch 8 個 region-based styles (universal recognition)</h4>
   <table class="table">
-    <thead><tr><th>Style key</th><th>Display name</th><th>Source</th><th>適合 genre</th><th>Prompt template (簡)</th></tr></thead>
+    <thead><tr><th>Style key</th><th>Display name</th><th>Vibe · representative works</th><th>適合 genre</th><th>Prompt anchors</th></tr></thead>
     <tbody>
-      <tr><td><code>cinematic</code></td><td>🎬 電影感</td><td>sai-cinematic</td><td>古惑仔 · 武俠 · 都市</td><td>cinematic film still · shallow DOF · vignette</td></tr>
-      <tr><td><code>anime</code></td><td>🌸 動漫</td><td>sai-anime</td><td>戀愛校園 · 異世界</td><td>anime artwork · vibrant · studio anime</td></tr>
-      <tr><td><code>fantasy-art</code></td><td>🐉 奇幻插畫</td><td>sai-fantasy art</td><td>D&D · 玄幻 · 異世界</td><td>ethereal fantasy concept art · magnificent · celestial</td></tr>
-      <tr><td><code>neonpunk</code></td><td>🌃 賽博朋克</td><td>sai-neonpunk</td><td>未來都市 · 反烏托邦</td><td>neonpunk · cyberpunk · vaporwave · vibrant</td></tr>
-      <tr><td><code>analog-film</code></td><td>📽 復古菲林</td><td>sai-analog film</td><td>1980s HK · 民國 · 紀錄</td><td>analog film photo · faded · vintage · grainy</td></tr>
-      <tr><td><code>photographic</code></td><td>📷 寫實攝影</td><td>sai-photographic</td><td>NBA · 都市現代</td><td>cinematic photo · 35mm · professional</td></tr>
-      <tr><td><code>digital-painting</code></td><td>🎨 數碼繪畫</td><td>sai-digital art</td><td>通用 · 高細節</td><td>concept art · digital artwork · painterly</td></tr>
-      <tr><td><code>comic-book</code></td><td>📖 漫畫風</td><td>sai-comic book</td><td>港漫 · 美漫 · 動作</td><td>comic · graphic illustration · vibrant</td></tr>
-      <tr><td><code>line-art</code></td><td>✏️ 線稿</td><td>sai-line art</td><td>素描風 · 漫畫面板</td><td>line art drawing · sleek · minimalist</td></tr>
-      <tr><td><code>pixel-art</code></td><td>👾 像素風</td><td>sai-pixel art</td><td>復古 RPG · 8-bit feel</td><td>pixel-art · 8-bit graphics · blocky</td></tr>
-      <tr><td><code>hk-manhua</code> 🆕</td><td>🥋 港式漫畫</td><td>Kieio-curated</td><td>武俠 · 古惑仔 · 王家禧馬榮成風</td><td>Hong Kong manhua style · dynamic action lines · 90s comic style · dramatic ink shadows</td></tr>
-      <tr><td><code>ink-wash</code> 🆕</td><td>🌿 水墨國風</td><td>Kieio-curated</td><td>古風 · 武俠 · 仙俠</td><td>Chinese ink wash painting · 水墨 · misty mountains · calligraphy · Song dynasty aesthetic</td></tr>
+      <tr><td><code>hk-manhua</code></td><td>🇭🇰 港式漫畫風</td><td>馬榮成 + 王家禧時代港漫 · dynamic ink lines · 90s era</td><td>武俠 · 古惑仔 · 都市英雄</td><td>Hong Kong manhua · dynamic action lines · bold ink shadows · 90s comic era</td></tr>
+      <tr><td><code>jp-manga</code></td><td>🇯🇵 日本漫畫風</td><td>少年/少女漫畫 · 黑白 + screentone · 強烈線條</td><td>少年熱血 · 推理 · 校園</td><td>Japanese manga · black and white · screentone shading · dynamic panel composition</td></tr>
+      <tr><td><code>jp-anime</code></td><td>🌸 日系動漫</td><td>Studio Ghibli / 京阿尼 · 彩色 · 柔和光</td><td>戀愛校園 · 異世界 · 治癒</td><td>Japanese anime · vibrant colors · soft lighting · cel-shaded · Studio Ghibli inspired</td></tr>
+      <tr><td><code>kr-webtoon</code></td><td>🇰🇷 韓式 Webtoon</td><td>韓漫 · 垂直滾動 · soft digital watercolor · pastel</td><td>都市戀愛 · 修真重生 · 都市異能</td><td>Korean webtoon · soft digital painting · pastel colors · vertical composition · cleanly outlined</td></tr>
+      <tr><td><code>us-comic</code></td><td>🇺🇸 美漫風</td><td>Marvel / DC · bold color · thick outline · superhero pose</td><td>超能力 · 反英雄 · 動作</td><td>American superhero comic · bold inks · saturated colors · halftone dots · dynamic poses</td></tr>
+      <tr><td><code>cn-ink</code></td><td>🇨🇳 國風水墨</td><td>水墨畫 + 工筆 · 宋朝山水美學</td><td>仙俠 · 古風 · 武俠</td><td>Chinese ink wash painting · 水墨 · misty mountains · calligraphy · Song dynasty aesthetic</td></tr>
+      <tr><td><code>cinematic</code></td><td>🎬 電影感</td><td>王家衛 + Christopher Doyle · live-action film still</td><td>都市現代 · 黑幫 · 文藝</td><td>cinematic film still · shallow depth of field · vignette · moody atmospheric lighting</td></tr>
+      <tr><td><code>photographic</code></td><td>📷 寫實攝影</td><td>新聞紀實 / sports / documentary · 高細節</td><td>NBA · 體育 · 紀錄</td><td>cinematic photo · 35mm · professional · highly detailed · realistic</td></tr>
     </tbody>
   </table>
+
+  <h4>Launch +2 兜底 universal styles (culture-neutral)</h4>
+  <table class="table">
+    <thead><tr><th>Style key</th><th>Display name</th><th>Vibe</th><th>適合 genre</th></tr></thead>
+    <tbody>
+      <tr><td><code>cyberpunk</code></td><td>🌃 賽博朋克</td><td>霓虹 + 蒸氣波 · 高反差 · 未來都市</td><td>反烏托邦 · 黑客 · 末世</td></tr>
+      <tr><td><code>fantasy-art</code></td><td>🐉 奇幻插畫</td><td>concept art · ethereal · magical</td><td>D&D · 玄幻 · 異世界</td></tr>
+    </tbody>
+  </table>
+
+  <p style="font-size: 14px; color: var(--ink-soft); margin-top: 8px;">
+    <strong>Total launch: 10 styles</strong> · 8 個 culturally-anchored + 2 個 culturally-neutral · cover 整個 Kieio launch 嘅 genre 矩陣 (戀愛 / 古惑仔 / 玄幻 / 都市 / 武俠 / 校園 / NBA / 末世 / etc.)。
+  </p>
+
+  <h4>v1.1+ Pro tier · 「作者風格」add-on (founder hint · individual artist styles)</h4>
+  <div class="card">
+    <p>Founder 提到 「maybe include 唔同嘅作者風格之類」。Artist-specific styles 喺 v1.1+ 作為 Pro tier exclusive 加入。考慮 5-8 個 well-known artist signatures · 每個係 region style 嘅 finer-grained sub-preset:</p>
+    <ul class="bullets" style="margin-top: 6px;">
+      <li><strong>🇭🇰 港式漫畫風 → 馬榮成風</strong> (《天下畫集》風) · sharper ink · 90s movement style</li>
+      <li><strong>🇭🇰 港式漫畫風 → 王家禧風</strong> (《老夫子》風) · simpler line · humor-leaning</li>
+      <li><strong>🌸 日系動漫 → 宮崎駿風</strong> (Studio Ghibli) · soft pastel · 自然光重</li>
+      <li><strong>🌸 日系動漫 → 新海誠風</strong> · realism-heavy anime · 光線粒子細膩</li>
+      <li><strong>🎬 電影感 → 王家衛風</strong> (Christopher Doyle 攝影) · 1990s HK noir · neon-lit</li>
+      <li><strong>🇺🇸 美漫風 → Frank Miller 風</strong> · stark noir · high-contrast B&W · 紅色 accent</li>
+      <li><strong>🎬 電影感 → 黑澤明風</strong> · Akira Kurosawa · 武士 · wide shots · monochrome epic</li>
+    </ul>
+    <p style="margin-top: 8px; font-size: 13px; color: var(--ink-soft);">
+      <strong>⚠ IP 注意</strong>: Living artists (新海誠 · 馬榮成等) 喺主流 image gen provider 嘅 policy 上有不同處理 — OpenAI explicit ban · Google Gemini 有 partial filter · Grok 較寬鬆。Mitigation: <strong>prompt 唔直接 name artist · 用 stylistic descriptors 表達 essence</strong> (e.g., "1990s HK manhua style with sharp ink dynamic action lines, era of Storm Riders" 比直接「Ma Wing-shing style」安全)。Deceased artists (黑澤明 · Frank Miller 仍在但其風格已成 genre 標準) 較安全。v1.1+ ship 之前要做 IP review。
+    </p>
+  </div>
 
   <div class="card">
     <h4>JSON shape (commit 入 repo · 唔需要 DB)</h4>
@@ -243,8 +274,8 @@ suggested = matchStyles(genre, era)
 
   <h3>Pre-generate style preview thumbnails (one-time)</h3>
   <ul class="bullets">
-    <li>For each of 12 styles · gen ONE sample image (e.g., "a samurai standing in rain") · 1024×1024</li>
-    <li>One-time cost: ~$0.50 (12 × $0.04 Gemini)</li>
+    <li>For each of 10 region-based styles · gen ONE sample image (e.g., "a samurai standing in rain") · 1024×1024</li>
+    <li>One-time cost: ~$0.40 (10 × $0.04 Gemini)</li>
     <li>Store喺 Supabase Storage <code>style-previews/</code> bucket</li>
     <li>Picker UI 顯示 thumbnail grid (12 cards) · user 一眼睇到每個 style 嘅 vibe</li>
     <li>Commit thumbnails 入 repo 做 fallback · CDN cache via Vercel</li>
@@ -683,7 +714,7 @@ create index scene_images_user_idx on scene_images(user_id, created_at desc);</p
     <tbody>
       <tr><td><strong>1. Verify OpenRouter image gen coverage</strong></td><td>~10 min</td><td>curl 3 個 model_id 測試: <code>google/gemini-2.5-flash-image</code> · <code>openai/gpt-image-1</code> · <code>x-ai/grok-2-image</code>. 如果有缺 · 對應 fallback (e.g., direct OpenAI for GPT Image 已經有 <code>OPENAI_API_KEY</code>)</td></tr>
       <tr><td><strong>2. OpenRouter credit top-up</strong></td><td>~5 min</td><td>Estimate $20-50 buffer for 5 stories test gen + initial launch traffic. Existing <code>OPENROUTER_API_KEY</code> reuse · just deposit credits</td></tr>
-      <tr><td><strong>3. Style library curation (already done in plan)</strong></td><td>~5 min review</td><td>12 styles curated from <code>twri/sdxl_prompt_styler</code> (Stability AI MIT-licensed) + 2 Kieio-specific (港式漫畫 · 水墨國風). Founder review names + emoji + best-for-genre mapping. 用戶喺 story creation OR per-image-gen 揀。冇 single hardcoded default — AI suggest top 3 from user's seed prompt</td></tr>
+      <tr><td><strong>3. Style library curation (already done in plan)</strong></td><td>~5 min review</td><td>10 region-based styles · 8 culturally-anchored (🇭🇰 港式漫畫 · 🇯🇵 日本漫畫 · 🇯🇵 日系動漫 · 🇰🇷 韓式 Webtoon · 🇺🇸 美漫 · 🇨🇳 國風水墨 · 🎬 電影感 · 📷 寫實攝影) + 2 culturally-neutral (🌃 賽博朋克 · 🐉 奇幻插畫). Prompt anchors based on <code>twri/sdxl_prompt_styler</code> MIT-licensed library. v1.1 Pro tier 加 5-8 個「作者風格」add-ons (馬榮成 · 新海誠 · 王家衛 · Frank Miller etc.). AI suggest top 3 from user's seed prompt</td></tr>
       <tr><td><strong>4. Stripe Price IDs (optional)</strong></td><td>~10 min</td><td>If wanting credit-pack「Visualizer」add-on bundle separate from base subscription · create new Stripe Product (e.g., 「Visualizer Bundle · $4.99 for 1000 image-credits」)</td></tr>
     </tbody>
   </table>
@@ -705,7 +736,7 @@ create index scene_images_user_idx on scene_images(user_id, created_at desc);</p
     <ul class="bullets">
       <li><strong>UX</strong>: per-turn single「Generate scene」button → modal (3 image types · style picker · prompt source toggle) → result modal with download + share</li>
       <li><strong>Provider routing</strong>: All via OpenRouter aggregator (existing <code>OPENROUTER_API_KEY</code> reuse · 0 new env vars). Models: SFW illustration/wallpaper → <code>google/gemini-2.5-flash-image</code> · SFW comic → <code>openai/gpt-image-1</code> · Adult → <code>x-ai/grok-2-image</code></li>
-      <li><strong>Style library</strong>: 12 curated presets (10 from <code>twri/sdxl_prompt_styler</code> MIT-licensed Stability AI repo + 2 Kieio-curated: 港式漫畫 · 水墨國風). User picks at story creation · can override per-image-gen. AI suggest top 3 based on seed prompt</li>
+      <li><strong>Style library</strong>: 10 region-based styles (8 cultural + 2 universal) · prompt anchors from MIT-licensed <code>twri/sdxl_prompt_styler</code>. User picks at story creation · can override per-image-gen. AI suggest top 3 based on seed prompt. v1.1 Pro add-on: 5-8 個 individual artist signatures (馬榮成 · 新海誠 · 王家衛 · Frank Miller · 黑澤明 etc.) gated behind IP review</li>
       <li><strong>Consistency</strong>: lazy character portraits (1-time per character on first scene gen · stored in Supabase Storage) · provider-native subject reference per gen · story-wide style key + character visual_description re-injected</li>
       <li><strong>Characters in scene</strong>: detected from turn context (NPC names + dialogue speakers from turn text · not solo protagonist default)</li>
       <li><strong>Prompt control</strong>: AI auto-prompt (default) OR user writes own (500-char limit) · style applies regardless</li>
