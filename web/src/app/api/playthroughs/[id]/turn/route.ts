@@ -1291,6 +1291,22 @@ export async function POST(
               console.log(
                 `[turn] charged ${totalCredits} credits (narrator=${narratorCredits}, director=${directorCredits}, background_reserve=${backgroundCredits}) — new balance: ${chargeResult.newBalance}`,
               );
+              // Session 16 PM Review #2 (P-02): fire first_turn_played event
+              // for activation funnel. pt.turn_count was read at request start —
+              // if it was 0, this was the user's very first turn ever.
+              if (pt.turn_count === 0) {
+                try {
+                  const { captureServerEvent } = await import("@/lib/posthog/server");
+                  await captureServerEvent(user.id, "first_turn_played", {
+                    playthrough_id: playthroughId,
+                    story_id: pt.story_id,
+                    model: playthroughModel,
+                    credits_charged: totalCredits,
+                  });
+                } catch (e) {
+                  console.warn("[turn] PostHog first_turn event failed:", e);
+                }
+              }
             } else if (chargeResult.error === "insufficient_credits") {
               // Should NOT happen because pre-check passed, but defensive log.
               // Phase 3 Wave 2 will add refund saga; for now flag for admin review.

@@ -240,6 +240,22 @@ async function dispatch(
       if (!result.ok) {
         throw new Error(`grantMonthlyCredits: ${result.reason}`);
       }
+      // Session 16 PM Review #2 (P-02): fire subscribe_success on FIRST grant
+      // (subscription_create) only · skip on subscription_cycle (monthly renewal
+      // is retention not acquisition). billingReason was validated above.
+      if (billingReason === "subscription_create") {
+        try {
+          const { captureServerEvent } = await import("@/lib/posthog/server");
+          await captureServerEvent(userId, "subscribe_success", {
+            tier,
+            invoice_id: invoice.id,
+            amount_paid_cents: invoice.amount_paid,
+            currency: invoice.currency,
+          });
+        } catch (e) {
+          console.warn("[webhook] PostHog subscribe_success event failed:", e);
+        }
+      }
       return;
     }
 

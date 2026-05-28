@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getLandingPath } from "@/lib/auth/landing";
 import { safeRelativeNext, resolveLocale, localizePath } from "@/lib/auth/safe-next";
+import { captureServerEvent } from "@/lib/posthog/server";
 import { NextResponse, type NextRequest } from "next/server";
 
 /**
@@ -64,6 +65,29 @@ export async function GET(request: NextRequest) {
   } = await supabase.auth.getUser();
   if (!user) {
     return localizedRedirect("/library");
+  }
+
+  // Session 16 PM Review #2 (P-02): fire signup event if this is the user's
+  // FIRST authenticated session ever. Heuristic: profile.created_at within
+  // last 60s = brand new (handle_new_user trigger fired just before us).
+  // Cheap: 1 row read, server-side only · no client roundtrip impact.
+  try {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("created_at")
+      .eq("id", user.id)
+      .maybeSingle();
+    const createdAt = profile?.created_at ? new Date(profile.created_at as string).getTime() : 0;
+    const isNewSignup = createdAt > 0 && Date.now() - createdAt < 60_000;
+    if (isNewSignup) {
+      await captureServerEvent(user.id, "signup", {
+        provider: user.app_metadata?.provider ?? "unknown",
+        locale,
+        is_anonymous: user.is_anonymous ?? false,
+      });
+    }
+  } catch (e) {
+    console.warn("[auth/callback] PostHog signup event failed:", e);
   }
 
   const landingPath = await getLandingPath(supabase, user.id);
