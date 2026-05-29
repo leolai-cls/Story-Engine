@@ -962,13 +962,15 @@ export function PlayClient({
             />
           </div>
 
-          {/* Input */}
+          {/* Input · w-full + min-w-0 on the field so the flex row never
+              exceeds the viewport (founder 2026-05-29: bottom row overflowed
+              → page scrolled left-right on mobile). Send button stays fixed. */}
           <form
             onSubmit={(e) => {
               e.preventDefault();
               sendAction(input);
             }}
-            className="flex gap-2"
+            className="flex gap-2 w-full"
           >
             <input
               type="text"
@@ -977,9 +979,9 @@ export function PlayClient({
               placeholder={tPlay("input.placeholder")}
               disabled={streaming}
               maxLength={2000}
-              className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
+              className="flex-1 min-w-0 rounded-md border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
             />
-            <Button type="submit" disabled={streaming || !input.trim()}>
+            <Button type="submit" className="flex-none" disabled={streaming || !input.trim()}>
               {streaming ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (

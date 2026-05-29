@@ -193,9 +193,17 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* Founder 2026-05-29: kill left-right scroll on mobile. A stray wide flex
+       child (e.g. the chat input row) could push the page past the viewport,
+       letting it pan sideways — wrong for a mobile app. `clip` blocks that
+       WITHOUT making body a scroll container, so the sticky play header keeps
+       working (unlike overflow-x: hidden). The real overflow sources are also
+       fixed at the source (min-w-0 on flex children); this is the backstop. */
+    overflow-x: clip;
   }
   html {
     @apply font-sans;
+    overflow-x: clip;
   }
 
   /* Story Engine utility — mono inline-label */
