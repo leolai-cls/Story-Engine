@@ -41,26 +41,13 @@ export async function setAdultMode(
     return { ok: false, error: "unauthorized" };
   }
 
-  // Load profile state once · need is_age_verified for enable path + current
-  // default_model + default_tier to detect NSFW model/tier that needs auto-
-  // reset on disable.
+  // ADR-023 (2026-05-29): self-attest 18+ · NO KYC. 移除 is_age_verified gate.
+  // 用戶自己 tick checkbox 確認 18 歲就解鎖 adult mode.
   const { data: profile } = await supabase
     .from("profiles")
-    .select("is_age_verified, default_model, default_tier")
+    .select("default_model, default_tier")
     .eq("id", user.id)
     .single();
-
-  // If enabling, verify user is age-verified
-  if (enabled) {
-    if (!profile?.is_age_verified) {
-      return {
-        ok: false,
-        // Wave 1 audit fix: i18n error code (was hardcoded 繁中).
-        error: "adult_requires_kyc",
-        errorCode: "settings.adultRequiresKyc",
-      };
-    }
-  }
 
   // P6-UX-M-02 audit fix: if disabling adult mode AND current default_model
   // is NSFW (allows_nsfw=true) → also reset default_model to DEFAULT_NARRATOR.

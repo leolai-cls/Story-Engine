@@ -46,7 +46,11 @@ export function AdultModeToggle({
   const [consentChecked, setConsentChecked] = useState(false);
   const [verifyPending, setVerifyPending] = useState(false);
 
-  const canToggle = isAgeVerified;
+  // ADR-023 (2026-05-29 founder rule): self-attest 18+ · NO KYC.
+  // 永遠俾用戶 flip toggle · 用 confirm dialog 嘅 checkbox 做 self-attest.
+  const canToggle = true;
+  // Read prop to satisfy lint · 但功能上唔再用 (KYC deprecated).
+  void isAgeVerified;
 
   function handleStartVerification() {
     setError(null);
