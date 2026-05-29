@@ -1,6 +1,9 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { getActiveTier } from "@/lib/billing/credits";
+import { MODELS, TIER_GATE, type ModelTier } from "@/lib/ai/models";
 import { revalidatePath } from "next/cache";
 
 /**
@@ -112,4 +115,95 @@ export async function setNpcL3Enabled(
   revalidatePath(`/play/${playthroughId}/memory`);
 
   return { ok: true, enabled };
+}
+
+/**
+ * 2026-05-29 (founder rule): allow mid-story model switching (ChatGPT-style).
+ *
+ * Previously llm_model was locked at playthrough creation (Migration 0022
+ * trigger `protect_playthrough_llm_model`). Founder wants users to switch
+ * model mid-story from the chat UI. We keep the trigger (blocks direct
+ * client tampering) and do the validated update via service-role here.
+ *
+ * Validation:
+ *   1. auth + owner check
+ *   2. modelId must be a known narrator model
+ *   3. user's ACTIVE tier (subscriptions.status active/trialing) must unlock
+ *      the model's tier_pool (TIER_GATE)
+ *
+ * NSFW models (allows_nsfw) can be selected for SFW play too (ADR-022) — no
+ * adult-mode gate on selection. The adult-rated *story* gate stays in the
+ * turn route (content_rating='adult' requires adult_mode_enabled).
+ *
+ * Cost: per-turn credit charge auto-adjusts (turn route reads pt.llm_model
+ * at turn time). Switching Gemini→Sonnet→GPT changes cost per turn — the
+ * chat UI shows a live estimate.
+ */
+export type SetPlaythroughModelResult =
+  | { ok: true; modelId: string }
+  | { ok: false; errorCode?: string; errorParams?: Record<string, string | number>; code?: string };
+
+export async function setPlaythroughModel(
+  playthroughId: string,
+  modelId: string,
+): Promise<SetPlaythroughModelResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, errorCode: "common.notLoggedIn", code: "unauthorized" };
+  }
+
+  // Validate model exists + is a narrator (not Director / internal)
+  const model = MODELS[modelId];
+  if (!model || model.role !== "narrator" || !model.tier_pool) {
+    return { ok: false, errorCode: "play.saveFailed", code: "unknown_model" };
+  }
+
+  // Owner check
+  const { data: playthrough, error: ptErr } = await supabase
+    .from("playthroughs")
+    .select("id, user_id, llm_model")
+    .eq("id", playthroughId)
+    .single();
+  if (ptErr || !playthrough) {
+    return { ok: false, errorCode: "play.playthroughNotFound", code: "not_found" };
+  }
+  if (playthrough.user_id !== user.id) {
+    return { ok: false, errorCode: "play.playthroughNotOwner", code: "forbidden" };
+  }
+
+  // No-op early exit
+  if (playthrough.llm_model === modelId) {
+    return { ok: true, modelId };
+  }
+
+  // Tier gate · active tier must unlock the model's pool
+  const activeTier = await getActiveTier(supabase, user.id);
+  const requiredSub = TIER_GATE[model.tier_pool as ModelTier];
+  const order = ["free", "adventurer", "storyteller", "legend"] as const;
+  if (order.indexOf(activeTier) < order.indexOf(requiredSub)) {
+    return {
+      ok: false,
+      errorCode: "play.modelTierRequired",
+      errorParams: { model: model.display_name },
+      code: "tier_required",
+    };
+  }
+
+  // Update via service-role (bypasses protect_playthrough_llm_model trigger ·
+  // app-level validation above is the gate). Set both model + provider.
+  const service = createServiceRoleClient();
+  const { error: updErr } = await service
+    .from("playthroughs")
+    .update({ llm_model: modelId, llm_provider: model.provider })
+    .eq("id", playthroughId);
+  if (updErr) {
+    console.error("[setPlaythroughModel] update failed:", updErr.message);
+    return { ok: false, errorCode: "play.saveFailed", code: "db_error" };
+  }
+
+  revalidatePath(`/play/${playthroughId}`);
+  return { ok: true, modelId };
 }

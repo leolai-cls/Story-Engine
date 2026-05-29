@@ -490,6 +490,17 @@
       "costEstimate": "≈ {credits} credits / turn",
       "l3Note": "+ NPC 内心戏"
     },
+    "chatControls": {
+      "modelLabel": "叙事 AI Model",
+      "modelDefault": "选 model",
+      "poolStandard": "Standard · 快 · 便宜",
+      "poolPro": "Pro · 最深层叙事",
+      "nsfwCapable": "可成人",
+      "modelLocked": "升级 tier 才能用这个 model",
+      "agentMode": "NPC 内心戏",
+      "agentTooltip": "这个 turn 每个 NPC 有自己 POV + 内心独白（Storyteller tier · 每个 NPC ~6 credits）",
+      "agentTierRequired": "NPC 内心戏需要 Storyteller tier — 升级才解锁"
+    },
     "rail": {
       "npcCount": "NPC · {count}",
       "stateTitle": "{protagonist} 的状态"
@@ -964,6 +975,7 @@
       "playthroughNotOwner": "你不是这个 playthrough 的主人。",
       "npcL3TierRequired": "NPC 内心戏是 Storyteller 订阅独享（你现在是 {tier} tier · 升级至 Storyteller 即可解锁）。",
       "npcL3TierRequiredGeneric": "NPC 内心戏需要 Storyteller 订阅。",
+      "modelTierRequired": "{model} 需要更高 tier — 升级才能用。",
       "saveFailed": "保存失败，请稍后再试。"
     },
     "settings": {
