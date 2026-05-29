@@ -14,30 +14,33 @@ import { InventoryItemSchema, type StateSchema, type Field } from "./state-schem
  * apply to that field's value as an array.
  */
 
-export const StateOpSchema = z.discriminatedUnion("op", [
-  z.object({
-    op: z.literal("set"),
-    key: z.string().min(1),
-    value: z.unknown(),
-  }),
-  z.object({
-    op: z.literal("inc"),
-    key: z.string().min(1),
-    by: z.number(),
-  }),
-  z.object({
-    op: z.literal("push"),
-    key: z.string().min(1),
-    value: z.unknown(),
-  }),
-  z.object({
-    op: z.literal("remove"),
-    key: z.string().min(1),
-    /** Index in array, OR matching object identity for simple removal */
-    index: z.number().int().nonnegative().optional(),
-    match: z.record(z.string(), z.unknown()).optional(),
-  }),
-]);
+/**
+ * FLAT op schema (2026-05-29) — Gemini-compatible function-calling shape.
+ *
+ * Previously a `z.discriminatedUnion` of 4 variants with `z.unknown()` values
+ * and a `z.record()` match map. That compiles to `anyOf` + `const` + untyped
+ * `{}` + open `additionalProperties:{}`, which CrazyRouter→Gemini rejects with
+ * a 400 "invalid_request / tool schema" (verified 2026-05-29) — so the Narrator
+ * produced ZERO output on every Standard-tier turn (Anthropic/Claude tolerated
+ * it, which is why Pro worked). Flattened to a single object using only the
+ * primitives Gemini accepts: enum string, plain string, number.
+ *
+ *   - `value` is a STRING (set/push). applyDelta coerces it: numeric fields
+ *     parse the string to a number; a bare push string becomes a minimal item.
+ *     (Loses the rare ability to `set` a whole array/object — acceptable.)
+ *   - `by` is the inc amount. `index` is the remove index.
+ *   - the old `match` (object map) removal path is dropped — `index` covers it.
+ */
+export const StateOpSchema = z.object({
+  op: z.enum(["set", "inc", "push", "remove"]),
+  key: z.string().min(1),
+  /** set / push value · always a string from the LLM · coerced at apply time. */
+  value: z.string().optional(),
+  /** inc amount (numeric fields only). */
+  by: z.number().optional(),
+  /** remove: array index to splice out. */
+  index: z.number().optional(),
+});
 
 export type StateOp = z.infer<typeof StateOpSchema>;
 
@@ -125,18 +128,10 @@ export function applyDelta(
             throw new Error(`remove only valid for inventory_list`);
           }
           const arr = Array.isArray(next[op.key]) ? [...(next[op.key] as unknown[])] : [];
-          if (op.index !== undefined && op.index < arr.length) {
+          // Flat schema (2026-05-29): index-based removal only (the old
+          // object-match path was dropped — it needed a Gemini-incompatible map).
+          if (op.index !== undefined && op.index >= 0 && op.index < arr.length) {
             arr.splice(op.index, 1);
-          } else if (op.match) {
-            const idx = arr.findIndex(
-              (item) =>
-                item !== null &&
-                typeof item === "object" &&
-                Object.entries(op.match!).every(
-                  ([k, v]) => (item as Record<string, unknown>)[k] === v,
-                ),
-            );
-            if (idx >= 0) arr.splice(idx, 1);
           }
           next[op.key] = arr;
           break;
