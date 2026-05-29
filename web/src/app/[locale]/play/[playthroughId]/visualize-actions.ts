@@ -135,19 +135,17 @@ export async function generateScene(
   if (!story) return { ok: false, error: "playthrough_not_found" };
 
   // ─── Adult mode + tier gating (Wave 3 fix · founder 2026-05-28) ───────
-  // Single profile fetch (was 2 separate queries → DF-HIGH-03 fix).
+  // ADR-023 (2026-05-29 founder rule): adult mode = self-attest 18+ · NO KYC.
   // - 'sfw' rating: anyone (tier check below)
-  // - 'soft' rating: self-attest 18+ via adult_mode_enabled (NO KYC required)
-  // - 'adult' rating: adult_mode_enabled + is_age_verified (Stripe Identity KYC)
+  // - 'soft' rating: adult_mode_enabled (self-attest)
+  // - 'adult' rating: adult_mode_enabled (self-attest · NO is_age_verified)
   const contentRating = (story.content_rating ?? "sfw") as "sfw" | "soft" | "adult";
   const { data: profile } = await supabase
     .from("profiles")
-    .select("adult_mode_enabled, is_age_verified")
+    .select("adult_mode_enabled")
     .eq("id", user.id)
     .single();
   // CR-HIGH-02 fix: use getActiveTier (checks subscription.status='active'/'trialing').
-  // Canceled Pro users now correctly get gated even if profile.subscription_tier
-  // still says 'storyteller' due to sync lag.
   const tier = await getActiveTier(supabase, user.id);
 
   // Free-tier gate FIRST (SEC-MED-02 fix · short-circuit before adult check)
@@ -159,7 +157,7 @@ export async function generateScene(
     return { ok: false, error: "adult_mode_required" };
   }
   if (contentRating === "adult") {
-    if (!profile?.adult_mode_enabled || !profile?.is_age_verified) {
+    if (!profile?.adult_mode_enabled) {
       return { ok: false, error: "adult_mode_required" };
     }
     // CR-HIGH-01 fix: tier matrix · only Storyteller+ can charge NSFW credits

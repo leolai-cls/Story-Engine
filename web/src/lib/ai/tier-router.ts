@@ -7,7 +7,7 @@
  *
  * Routing inputs:
  *   1. tier ("standard" | "pro")
- *   2. adultMode boolean (`adult_mode_enabled && is_age_verified` · 任何訂閱都可以開)
+ *   2. adultMode boolean (`adult_mode_enabled` self-attest 18+ · ADR-023 · NO KYC · 任何訂閱都可以開)
  *   3. context text (用嚟做 language detection)
  *
  * Decision:
