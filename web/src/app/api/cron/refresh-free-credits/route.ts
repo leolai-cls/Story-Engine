@@ -7,14 +7,13 @@ import { createClient as createServiceClient } from "@supabase/supabase-js";
  * Schedule: 0 0 * * * (UTC midnight) via vercel.json.
  *
  * Auth: Vercel cron sends `Authorization: Bearer $CRON_SECRET` header.
- * We verify against CRON_SECRET env var. Phase 4 audit fix
- * (P3-BILL-H-11): mechanism for the "50 credits 每日" claim that the
- * pricing page advertised but didn't actually exist.
+ * We verify against CRON_SECRET env var.
  *
- * Behavior: tops every `subscription_tier='free'` user UP TO 50 credits.
- * Doesn't accumulate (50 is the floor, not the addition). Users with
- * credit_balance >= 50 are no-op. Each top-up writes a ledger row with
- * reason='free_tier_refresh'.
+ * Behavior (Migration 0037 · additive): grants +100 credits/day to every
+ * `subscription_tier='free'` user, capped at the 1,000 free-wallet ceiling
+ * (grant = min(100, 1000 - balance)). 2026-05-29 founder bumped 50→100/day so
+ * a free user can play ~2 turns/day. Idempotent via 23h ledger window. Each
+ * grant writes a ledger row reason='free_tier_refresh'.
  */
 
 export const runtime = "nodejs";
@@ -43,7 +42,9 @@ export async function GET(req: NextRequest) {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  const targetBalance = 50;
+  // Daily additive increment (Migration 0037 interprets this as +N/day, capped
+  // at the 1,000 free-wallet ceiling). 2026-05-29: 50 → 100/day (founder).
+  const targetBalance = 100;
   const { data, error } = await supabase.rpc("refresh_free_tier_credits", {
     p_target_balance: targetBalance,
   });
