@@ -26,20 +26,22 @@ import { NPC_L3_CREDITS_PER_NPC } from "@/schemas/npc-agent";
  *   internally route to one of the pool models. Credit charge is computed
  *   from actual usage so internal model swaps are transparent in billing.
  *
- *     Haiku 4.5 (Director · internal)     $0.024 → 48 credits
- *     Gemini 3.5 Flash (Standard pool)    $0.038 → 76 credits
- *     GLM-5.1 (Standard pool)             $0.024 → 48 credits ⭐ NEW
- *     Claude Sonnet 4.6 (Pro pool · 中文)  $0.060 → 120 credits
- *     GPT-5.4 Pro (Pro pool · 英文)        $0.058 → 116 credits ⭐ NEW
- *     Claude Opus 4.7 (Pro Max)           $0.096 → 192 credits
- *     Llama 3.1 405B (Adult NSFW)         $0.031 → 62 credits
+ *   FULL-TURN cost (narrator + Director + lorebook + summarizer + embed),
+ *   rates verified 2026-05-29 via CrazyRouter /api/pricing + Anthropic direct:
+ *     Standard turn (GLM-5.1)              $0.026 → ~54 credits
+ *     Pro turn (Claude Sonnet 4.6)         $0.037 → ~76 credits
+ *     + deep-thinking ON: ~1.4-2× the above (reasoning tokens billed)
  *
- *   Tier credit allocations (v3 final · founder priced 2026-05-25):
- *     Free        1,000 cr  · ~25 Standard turns
- *     Story       12,000 cr · ~250 Standard or ~100 Pro turns
- *     Legend      30,000 cr · ~600 Standard / ~250 Pro / ~156 Pro Max turns
+ *   Tier allocations (2-tier · ADR-022 · lib/stripe/products.ts):
+ *     Free        1,000 signup + 50/day (~1,500/mo) · ~27 turns/mo
+ *     Standard    $9.99/mo · 2,000 cr · ~37 GLM turns/mo
+ *     Pro         $19.99/mo · 4,000 cr · ~52 Sonnet turns/mo
  *
- *   Annual plans (~17% discount · 2 months free): $99 / $199.
+ *   Margin (2026-05-29 · worst case user burns ALL credits): the credit
+ *   allocation HARD-CAPS our model cost per user — max ~$1 (Standard) / ~$2
+ *   (Pro) of model cost vs $9.99 / $19.99 revenue → ~84-86% gross margin
+ *   after Stripe. We do NOT lose money; if anything the allocations are
+ *   conservative (room to grant more turns to stay competitive).
  *
  * All balance changes route through `apply_credit_charge` Postgres RPC —
  * RLS blocks direct INSERT on `credit_ledger`, so this is the ONLY entry
@@ -134,17 +136,23 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
   },
   // ─── NEW Session 10 (verified via OpenRouter pricing pages 2026-05-25) ─
   "glm-5-1": {
-    // GLM-5.1 (Z.ai · released 2026-04-07) · "Best for roleplay & creative
-    // writing" per BenchLM · 中文 leaderboard #3 · 754B MoE · 203K context.
-    // Slug at OpenRouter: z-ai/glm-5.1
-    inputPerMillion: 0.98,
-    outputPerMillion: 3.08,
+    // GLM-5.1 (Z.ai) · Standard 中文/roleplay + adult-mode model.
+    // RATE FIX 2026-05-29: verified via CrazyRouter /api/pricing (model_ratio
+    // 0.70 → $1.40/1M in · completion_ratio ~3.14 → $4.40/1M out · discount 1.0
+    // = no promo). Was $0.98/$3.08 (stale OpenRouter z-ai/glm-5.1 rate) which
+    // UNDER-charged ~43% → effective markup had dropped to ~1.4×. This is our
+    // most-used Standard model, so the fix matters most here.
+    inputPerMillion: 1.4,
+    outputPerMillion: 4.4,
   },
   "gpt-5-4-pro": {
-    // GPT-5.4 Pro (OpenAI · current flagship 2026) · English narrative + tool
-    // calling strength · slug at OpenRouter: openai/gpt-5.4-pro
-    inputPerMillion: 2.5,
-    outputPerMillion: 15.0,
+    // GPT-5.4 (Pro pool · English alt). CrazyRouter slug `gpt-5.4`.
+    // RATE FIX 2026-05-29: CrazyRouter base $1.75/$14 (model_ratio 0.875 ·
+    // completion_ratio 8); a 0.65 promo discount currently nets ~$1.14/$9.10,
+    // but we price at the UN-discounted base so margin survives if the promo
+    // ends (conservative · still below the old $2.50/$15).
+    inputPerMillion: 1.75,
+    outputPerMillion: 14.0,
   },
   // ─── OpenRouter NSFW (Phase 6 adult mode · Hard rule #5 LLM isolation) ─
   // Llama 3.1 405B · only NSFW-allowed narrator · uncensored variant.
