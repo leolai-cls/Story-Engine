@@ -281,6 +281,11 @@ export async function redirectToLoginForCheckout() {
   redirect({ href: { pathname: "/login", query: { next: "/pricing" } }, locale });
 }
 
-// Silence unused-import lint when checkout helpers are imported for type only.
-export type { PaidTier, TopUpPack };
-void getStripe; // type-only re-anchor (helps tree-shaking detect import is intentional)
+// NOTE (2026-05-29 root-cause fix): a "use server" module MUST NOT
+// `export type { ... }` re-export. Turbopack's server-action codegen
+// enumerates every export to register actions; an erased type re-export
+// leaves a dangling value reference → "ReferenceError: PaidTier is not
+// defined at module evaluation" → ALL server-action POSTs to any route
+// that loads this module 500 (e.g. setAdultMode on /settings). PaidTier /
+// TopUpPack are imported directly from "@/lib/stripe/products" by consumers;
+// they do NOT need to be re-exported here.
