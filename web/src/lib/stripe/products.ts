@@ -2,9 +2,13 @@
  * Tier ↔ Stripe Price ID mapping · single source of truth.
  *
  * The product surfaces 3 tiers per locked Pricing v3 (founder · 2026-05-26):
- *   - Free                       no Stripe charge · daily 50 refresh
- *   - Standard  $9.99/mo         2,000 monthly credits · 80 NPC-L3 cap
- *   - Pro       $19.99/mo        4,000 monthly credits · full L3 · adult mode
+ *   - Free                       no Stripe charge · 1,000 signup + 100/day
+ *   - Standard  $9.99/mo         8,000 monthly credits (~150 turns)
+ *   - Pro       $19.99/mo        18,000 monthly credits (~235 turns) · adult mode
+ *
+ * 2026-05-29 founder re-balance: Standard 2,000→8,000 · Pro 4,000→18,000 ·
+ * free daily 50→100. Old gap (free ~1.5k/mo vs paid 2k) was too weak to
+ * justify upgrading. Margin stays ~51-54% after the bump (see credits.ts).
  *
  * Internal DB uses legacy 4-tier names (free / adventurer / storyteller /
  * legend) — too many call sites to refactor today. We map:
@@ -80,7 +84,7 @@ export const TIER_DISPLAY: Record<
     monthlyCredits: 0,
     bullets: [
       { en: "1,000 credits on signup", zh: "註冊送 1,000 credits" },
-      { en: "50 credits daily refresh", zh: "每日補返 50 credits" },
+      { en: "100 credits daily refresh", zh: "每日補返 100 credits" },
       { en: "Standard AI tier · CJK-tuned", zh: "Standard 模型 · 中文優化" },
       { en: "Memory + NPC + Skill Check", zh: "記憶 + NPC + 擲骰系統" },
     ],
@@ -89,11 +93,11 @@ export const TIER_DISPLAY: Record<
     publicName: "Standard",
     publicNameZh: "Standard",
     priceUsd: 9.99,
-    monthlyCredits: 2000,
+    monthlyCredits: 8000,
     bullets: [
       // ADR-022: 2-tier model · Standard 用戶可以用 Standard + Pro 兩個 model pool ·
-      // 都可以開成人模式 (KYC 後 · 路由 GLM 5 NSFW). Drop legacy「Pro Max」+「80 L3」claim.
-      { en: "2,000 credits / month", zh: "每月 2,000 credits" },
+      // 都可以開成人模式 (self-attest 18+). 2026-05-29: 2,000→8,000 credits.
+      { en: "8,000 credits / month (~150 turns)", zh: "每月 8,000 credits (~150 回合)" },
       { en: "No turn cap · play as long as you want", zh: "無回合上限 · 玩到夠" },
       { en: "Standard + Pro AI models (Gemini Flash + Claude Sonnet)", zh: "Standard + Pro AI 模型 (Gemini Flash + Claude Sonnet)" },
       { en: "Adult mode (after age verification)", zh: "成人模式 (KYC 後解鎖)" },
@@ -104,10 +108,10 @@ export const TIER_DISPLAY: Record<
     publicName: "Pro",
     publicNameZh: "Pro",
     priceUsd: 19.99,
-    monthlyCredits: 4000,
+    monthlyCredits: 18000,
     bullets: [
-      { en: "4,000 credits / month", zh: "每月 4,000 credits" },
-      { en: "Same AI models as Standard · twice the credits", zh: "同 Standard 一樣 AI 模型 · credits 多一倍" },
+      { en: "18,000 credits / month (~235 turns)", zh: "每月 18,000 credits (~235 回合)" },
+      { en: "Same AI models as Standard · 2.25× the credits", zh: "同 Standard 一樣 AI 模型 · credits 多 2.25 倍" },
       { en: "Unlimited NPC Inner Voices", zh: "NPC 內心戲無限" },
       { en: "Adult mode (after age verification)", zh: "成人模式 (KYC 後解鎖)" },
     ],
@@ -119,8 +123,8 @@ export const TIER_DISPLAY: Record<
  * renews. Matches TIER_DISPLAY but extracted for type-safe lookups in code.
  */
 export const TIER_MONTHLY_CREDITS: Record<PaidTier, number> = {
-  adventurer: 2000,
-  storyteller: 4000,
+  adventurer: 8000,
+  storyteller: 18000,
 };
 
 // ─── One-time top-up packs ──────────────────────────────────────────

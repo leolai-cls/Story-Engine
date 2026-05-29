@@ -32,16 +32,17 @@ import { NPC_L3_CREDITS_PER_NPC } from "@/schemas/npc-agent";
  *     Pro turn (Claude Sonnet 4.6)         $0.037 → ~76 credits
  *     + deep-thinking ON: ~1.4-2× the above (reasoning tokens billed)
  *
- *   Tier allocations (2-tier · ADR-022 · lib/stripe/products.ts):
- *     Free        1,000 signup + 50/day (~1,500/mo) · ~27 turns/mo
- *     Standard    $9.99/mo · 2,000 cr · ~37 GLM turns/mo
- *     Pro         $19.99/mo · 4,000 cr · ~52 Sonnet turns/mo
+ *   Tier allocations (2-tier · ADR-022 · 2026-05-29 founder re-balance ·
+ *   source of truth lib/stripe/products.ts):
+ *     Free        1,000 signup + 100/day (cap 1,000 wallet) · ~2 turns/day
+ *     Standard    $9.99/mo · 8,000 cr · ~150 GLM turns/mo (5× free)
+ *     Pro         $19.99/mo · 18,000 cr · ~235 Sonnet turns/mo
  *
- *   Margin (2026-05-29 · worst case user burns ALL credits): the credit
- *   allocation HARD-CAPS our model cost per user — max ~$1 (Standard) / ~$2
- *   (Pro) of model cost vs $9.99 / $19.99 revenue → ~84-86% gross margin
- *   after Stripe. We do NOT lose money; if anything the allocations are
- *   conservative (room to grant more turns to stay competitive).
+ *   Margin (worst case user burns ALL credits): the credit allocation
+ *   HARD-CAPS our model cost per user — max ~$4 (Standard) / ~$9 (Pro) of
+ *   model cost vs $9.99 / $19.99 revenue → ~54% / ~51% gross margin after
+ *   Stripe. We do NOT lose money. (Was 2,000/4,000 cr · bumped so paying
+ *   clearly beats free, which is 1k + 100/day · founder 2026-05-29.)
  *
  * All balance changes route through `apply_credit_charge` Postgres RPC —
  * RLS blocks direct INSERT on `credit_ledger`, so this is the ONLY entry
@@ -643,8 +644,8 @@ export const TIER_CONFIG: Record<
     label: "Free",
     priceUsd: 0,
     monthlyCredits: 0,
-    dailyCredits: 50,
-    description: "50 credits 每日 · 限基礎 model",
+    dailyCredits: 100,
+    description: "100 credits 每日 · 限基礎 model",
     allowsNsfw: false,
   },
   // Pricing v3 locked (2026-05-26 · superseded earlier 5k/15k/50k draft).
@@ -653,21 +654,21 @@ export const TIER_CONFIG: Record<
   adventurer: {
     label: "Standard",
     priceUsd: 9.99,
-    monthlyCredits: 2000,
-    description: "2,000 credits 每月 · 無 turn 上限 · Standard + Pro AI model · 成人模式 (KYC 後)",
+    monthlyCredits: 8000,
+    description: "8,000 credits 每月 · 無 turn 上限 · Standard + Pro AI model · 成人模式",
     allowsNsfw: true,
   },
   storyteller: {
     label: "Pro",
     priceUsd: 19.99,
-    monthlyCredits: 4000,
-    description: "4,000 credits 每月 · 全部功能 · NPC 內心戲無限 · 成人模式",
+    monthlyCredits: 18000,
+    description: "18,000 credits 每月 · 全部功能 · NPC 內心戲無限 · 成人模式",
     allowsNsfw: true,
   },
   legend: {
     label: "Legend (deprecated)",
     priceUsd: 49.99,
-    monthlyCredits: 4000,
+    monthlyCredits: 18000,
     description: "已下架 · 同 Pro 一樣",
     allowsNsfw: true,
   },
