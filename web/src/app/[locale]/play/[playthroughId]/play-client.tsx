@@ -393,20 +393,6 @@ export function PlayClient({
     );
   }, [turns, npcs]);
 
-  // 2026-05-29 (founder #3): NPC rail used to dump ALL story characters at
-  // turn 1 — including ones the Story Bible plans for later acts. Only show
-  // characters whose name actually appears in the narrative so far (reactive
-  // to `turns`). They populate the rail as they get introduced.
-  const appearedNpcs = useMemo(() => {
-    const allText = turns.map((t) => t.text).join("\n");
-    return npcs.filter(
-      (n) =>
-        typeof n.name === "string" &&
-        n.name.trim().length >= 2 &&
-        allText.includes(n.name.trim()),
-    );
-  }, [turns, npcs]);
-
   // Phase 8 · Visualize Scene modal state · which turn is being visualized
   const [visualizeTurnIndex, setVisualizeTurnIndex] = useState<number | null>(null);
   const [sceneImages, setSceneImages] =
