@@ -154,19 +154,20 @@ export function verdictToNarratorInstruction(v: Verdict): string {
 Director 允許呢個 action。正常 narrate 後果。`;
 
     case "reject": {
-      const who = v.affected_character.trim() || "故事規則";
-      const pushback = v.affected_character.trim()
-        ? `**你必須**寫 in-fiction pushback — ${who} 拒絕、反抗、或離開。`
-        : `**你必須**寫 in-fiction pushback — 環境 / 物理 / 場景強制阻止玩家。`;
+      const who = v.affected_character.trim() || "在場角色 / 環境";
       return `[INTERNAL CONTEXT — DO NOT QUOTE OR PARAPHRASE IN YOUR NARRATIVE]
-## Director Verdict — REJECT (你必須遵守)
-玩家行動違反咗${v.affected_character.trim() ? ` ${who} 嘅紅線 / ` : ""}Bible 限制。
-原因：${v.reasoning}
+## GM 裁定 — 呢個行動喺故事世界唔成立 (方向指引 · 唔係台詞)
+玩家嘗試嘅嘢違反咗${v.affected_character.trim() ? ` ${who} 嘅紅線 / ` : ""}故事世界規則。
+內部原因（唔好出喺敘事）：${v.reasoning}
+世界點回應（in-fiction 方向）：${v.in_fiction_pushback_hint}
 
-${pushback}
-Pushback hint: ${v.in_fiction_pushback_hint}
+你要寫一段完整、生動嘅故事文字（最少 2-3 句 · 絕對唔可以空白 · 唔可以系統訊息 · 唔可以出「動作被拒絕 / action rejected」呢類字眼），喺故事世界入面自然咁體現「呢個嘗試失敗咗」：
 
-⚠️ 唔好 narrate 玩家 action 成功 — 必須 narrate 失敗或 NPC / 環境 反抗。`;
+- **在場每個角色按返佢自己嘅性格、講嘢風格(voice)、當下心情、同主角嘅關係去反應** —— 上面只係方向，**唔係台詞**。同一件荒謬嘅事：一個威嚴武將、一個膽小村民、一個曖昧對象嘅反應應該**完全唔同**；同一個角色喺緊張 / 放鬆 / 嬲 嘅時候反應都唔同。**唔好每次都用同一句**（例如次次都「你傻咗呀？」就係寫死咗，失敗）。由角色本身嘅人設去決定佢點反應。
+- 玩家嘅嘗試喺世界入面具體咁失敗 —— 冇任何超自然 / 違反規則嘅嘢發生，現實照舊運作。點樣失敗都可以有變化（默默冇反應 / 旁人側目 / 自己都覺得尷尬…）。
+- 最後 1-2 句反應式結尾，等玩家接落去。
+
+⚠️ 當呢個係故事入面一個真實、有血有肉、會隨角色同情境變化嘅場面去寫，唔係一個系統判定。唔好 narrate 行動成功。`;
     }
 
     case "allow_with_constraint":

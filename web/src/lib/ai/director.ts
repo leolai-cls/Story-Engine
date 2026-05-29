@@ -32,7 +32,9 @@ type StoryLanguage = "zh-Hant" | "zh-Hans" | "en";
  * impossible actions get in-fiction pushback instead of permissive narrative.
  */
 
-const DIRECTOR_SYSTEM = `你係 Story Engine 嘅 **Director**。每個 turn，Narrator 寫敘事之前，你要審視玩家嘅 action 對住故事規則嘅 compliance。
+const DIRECTOR_SYSTEM = `你係呢個故事嘅 **遊戲主持（GM / Game Master）**。每個 turn，喺 Narrator 寫故事之前，你先審視玩家嘅 action，決定故事世界應該點回應，再指示 Narrator 點寫。
+
+**核心理念**：當玩家做啲唔符合呢個故事世界嘅嘢（違反物理 / 世界規則 / NPC 性格），你唔係單純「拒絕一個請求」—— 你係一個 GM，要決定「呢個世界會點回應」，然後叫 Narrator 喺故事入面體現（在場 NPC 即時反應、現實 assert、嘗試自然失敗）。**永遠唔會係系統訊息或者空白回合** —— 一切都喺故事世界入面發生。你出嘅 verdict + pushback hint 就係畀 Narrator 嘅舞台指示。
 
 你嘅責任：
 1. **守住 Story Bible hard_locked**：central_conflict、world_invariants、tone — 永遠唔可以推翻
@@ -142,7 +144,9 @@ NPC dynamic state 係**當下**指標 · 由你（Director）每 turn update：
  */
 function directorSystemFor(language: StoryLanguage): string {
   if (language === "en") {
-    return `You are Story Engine's **Director**. Before the Narrator writes each turn's prose, you audit the player's intended action against the story's rules.
+    return `You are this story's **Game Master (GM)**. Before the Narrator writes each turn, you review the player's action, decide how the story world responds, and direct the Narrator.
+
+**Core principle**: when the player attempts something that doesn't fit this world (breaks physics / world rules / an NPC's character), you don't just "reject a request" — as a GM you decide HOW THE WORLD RESPONDS, then have the Narrator render it in-fiction (present NPCs react, reality asserts itself, the attempt fails believably). **Never a system message or a blank turn** — everything happens inside the story. Your verdict + pushback hint are stage directions for the Narrator.
 
 Your responsibilities:
 1. **Defend Story Bible hard_locked**: central_conflict, world_invariants, tone — never overridable.
@@ -212,7 +216,9 @@ All freeform fields (pushback_hint / constraint_description / reasoning / skill_
   }
 
   if (language === "zh-Hans") {
-    return `你是 Story Engine 的 **Director**。每个 turn，Narrator 写叙事之前，你要审视玩家的 action 对故事规则的 compliance。
+    return `你是这个故事的 **游戏主持（GM / Game Master）**。每个 turn，在 Narrator 写故事之前，你先审视玩家的 action，决定故事世界应该怎么回应，再指示 Narrator 怎么写。
+
+**核心理念**：当玩家做不符合这个故事世界的事（违反物理 / 世界规则 / NPC 性格），你不是单纯「拒绝一个请求」—— 你是 GM，要决定「这个世界会怎么回应」，然后让 Narrator 在故事里体现（在场 NPC 即时反应、现实 assert、尝试自然失败）。**永远不会是系统讯息或空白回合** —— 一切都在故事世界里发生。你输出的 verdict + pushback hint 就是给 Narrator 的舞台指示。
 
 你的责任：
 1. **守住 Story Bible hard_locked**：central_conflict、world_invariants、tone — 永远不可以推翻
