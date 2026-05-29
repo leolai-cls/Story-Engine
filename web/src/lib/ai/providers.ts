@@ -26,6 +26,52 @@ export const anthropicProvider = createAnthropic({
  * which would 404 because OpenRouter's wire format is OpenAI-compatible, not
  * Anthropic-compatible. Switched to `createOpenAI` with the OpenRouter base URL.
  */
+/**
+ * W5 · 2026-05-28: custom fetch interceptor.
+ *
+ * Why: Gemini predefault safety filter rejects fiction 黑道 / 武俠 / 暴力 /
+ * 校園衝突 等正常題材. Verified via OpenRouter Chat playground · gemini-3.5-flash
+ * + 1980 九龍城寨 prompt = "provider Terms Of Service" error.
+ *
+ * OpenRouter docs (https://openrouter.ai/docs/api-reference/parameters) confirm:
+ *   "You may send any parameters from the following list, as well as others"
+ *   "We will also transmit some provider-specific parameters, such as
+ *    safe_prompt for Mistral or raw_mode for Hyperbolic directly to the
+ *    respective providers if specified."
+ *
+ * For Gemini: pass `safety_settings: [{category, threshold}]` 落 body ·
+ * OpenRouter pass through 落 Google · 等 fiction 黑道 / 武俠 etc 唔再 reject.
+ *
+ * @ai-sdk/openai `providerOptions.openai` 唔 forward arbitrary params · 所以
+ * 用 fetch interceptor: 攔截 chat completion 出去 OpenRouter 之前 · 如果係
+ * Gemini route · inject `safety_settings: BLOCK_NONE` 落 body.
+ */
+const openrouterFetch: typeof fetch = async (input, init) => {
+  // Only intercept POST /chat/completions · 唔影響其他 endpoint
+  const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+  const isChatCompletion = url?.includes("/chat/completions");
+  if (!isChatCompletion || !init?.body || typeof init.body !== "string") {
+    return fetch(input, init);
+  }
+  try {
+    const body = JSON.parse(init.body) as Record<string, unknown>;
+    const model = body.model as string | undefined;
+    if (model && model.includes("google/gemini") && !body.safety_settings) {
+      body.safety_settings = [
+        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+      ];
+      const newInit = { ...init, body: JSON.stringify(body) };
+      return fetch(input, newInit);
+    }
+  } catch {
+    // body 唔係 JSON · pass through 原本嘅 init
+  }
+  return fetch(input, init);
+};
+
 export const openrouterProvider = createOpenAI({
   apiKey: process.env.OPENROUTER_API_KEY,
   baseURL: "https://openrouter.ai/api/v1",
@@ -36,6 +82,7 @@ export const openrouterProvider = createOpenAI({
     "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL ?? "https://app.kieio.com",
     "X-Title": "Kieio",
   },
+  fetch: openrouterFetch,
 });
 
 /**

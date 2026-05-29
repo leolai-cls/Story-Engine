@@ -153,24 +153,10 @@ export async function setDefaultModel(
     };
   }
 
-  // Phase 6 non-money function: adult mode gate.
-  // CLAUDE.md hard rule #5: NSFW traffic must NOT hit Anthropic / OpenAI direct
-  // providers — only OpenRouter-routed models (allows_nsfw=true). Setting an
-  // NSFW model without adult mode = potentially routing NSFW intent to the
-  // wrong provider. Block at action layer in addition to UI hiding.
-  if (model.allows_nsfw) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("adult_mode_enabled")
-      .eq("id", user.id)
-      .single();
-    if (!profile?.adult_mode_enabled) {
-      return {
-        ok: false,
-        error: "adult_mode_required",
-      };
-    }
-  }
+  // W4 fix · 2026-05-28 (ADR-022 follow-up): drop model-level allows_nsfw gate.
+  // `allows_nsfw=true` 而家代表 "呢個 model 識做 NSFW" 唔係 "ONLY NSFW".
+  // GLM-5.1 同時做 SFW Standard pool 默認 + NSFW cross-tier · 都應該俾 default.
+  // 真正 NSFW gate 喺 story.content_rating='adult' check 度做 (turn route).
 
   const { error } = await supabase
     .from("profiles")
