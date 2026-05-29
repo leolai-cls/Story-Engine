@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -56,6 +56,23 @@ export function CreationForm({
   const [rating, setRating] = useState<"sfw" | "soft" | "adult">("sfw");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  // 2026-05-29 (founder mobile test): story creation takes ~30-70s (4 parallel
+  // Sonnet calls). Elapsed-time counter so the user knows it's working through
+  // the long mobile wait · not stuck.
+  const [elapsed, setElapsed] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  useEffect(() => {
+    if (isPending) {
+      setElapsed(0);
+      timerRef.current = setInterval(() => setElapsed((s) => s + 1), 1000);
+    } else if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [isPending]);
 
   function submit(formData: FormData) {
     setError(null);
@@ -255,8 +272,10 @@ export function CreationForm({
                   <Loader2 className="h-3 w-3 animate-spin" />
                   {tForm("generatingHeader")}
                 </span>
+                {/* 2026-05-29: live elapsed counter so mobile users see it's
+                    working through the ~35-50s generation. */}
                 <span className="se-mono" style={{ color: "var(--se-fg-dim)" }}>
-                  {tForm("generatingHint")}
+                  {elapsed}s · {tForm("generatingHint")}
                 </span>
               </div>
               <div className="flex flex-col gap-2">

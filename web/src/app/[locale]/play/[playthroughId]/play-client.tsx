@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Link } from "@/i18n/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
@@ -370,6 +370,20 @@ export function PlayClient({
   const [activeModel, setActiveModel] = useState<string | null>(playthroughModel);
   const [activeNpcL3, setActiveNpcL3] = useState<boolean>(npcL3Enabled);
 
+  // 2026-05-29 (founder #3): NPC rail used to dump ALL story characters at
+  // turn 1 — including ones the Story Bible plans for later acts. Only show
+  // characters whose name actually appears in the narrative so far (reactive
+  // to `turns`). They populate the rail as they get introduced.
+  const appearedNpcs = useMemo(() => {
+    const allText = turns.map((t) => t.text).join("\n");
+    return npcs.filter(
+      (n) =>
+        typeof n.name === "string" &&
+        n.name.trim().length >= 2 &&
+        allText.includes(n.name.trim()),
+    );
+  }, [turns, npcs]);
+
   // Phase 8 · Visualize Scene modal state · which turn is being visualized
   const [visualizeTurnIndex, setVisualizeTurnIndex] = useState<number | null>(null);
   const [sceneImages, setSceneImages] =
@@ -669,7 +683,7 @@ export function PlayClient({
         {(
           [
             { id: "narrative", label: tPlay("tabs.narrative") },
-            { id: "npc", label: tPlay("tabs.npc", { count: npcs.length }) },
+            { id: "npc", label: tPlay("tabs.npc", { count: appearedNpcs.length }) },
             { id: "state", label: tPlay("tabs.state") },
           ] as const
         ).map((t) => {
@@ -940,8 +954,11 @@ export function PlayClient({
         <div
           className={`lg:sticky lg:top-16 lg:self-start lg:flex lg:flex-col gap-4 lg:max-h-[calc(100vh-5rem)] lg:overflow-y-auto ${mobileTab !== "narrative" ? "block" : "hidden lg:flex"}`}
         >
-          {/* NPC cards — Hard rule #6: 4-axis disposition visible per NPC · mobile: tab="npc" */}
-          {npcs.length > 0 && (
+          {/* NPC cards — Hard rule #6: 4-axis disposition visible per NPC · mobile: tab="npc"
+              2026-05-29 (founder #3): only show characters who've appeared in
+              the narrative so far (appearedNpcs · reactive) · not all future-act
+              characters at turn 1. */}
+          {appearedNpcs.length > 0 && (
             <div
               className={`flex-col gap-2.5 ${mobileTab === "npc" ? "flex" : "hidden lg:flex"}`}
             >
@@ -949,12 +966,12 @@ export function PlayClient({
                 className="se-mono uppercase flex items-center gap-1.5"
                 style={{ fontSize: 10, color: "var(--se-fg-dim)", letterSpacing: "0.08em" }}
               >
-                {tPlay("rail.npcCount", { count: npcs.length })}
+                {tPlay("rail.npcCount", { count: appearedNpcs.length })}
               </div>
               {/* 2026-05-29 · NPC L3 toggle moved to inline ChatControls
                   (above chat input · ChatGPT-style · founder rule). Rail now
                   shows just the NPC disposition cards. */}
-              {npcs.map((npc) => (
+              {appearedNpcs.map((npc) => (
                 <NpcCard
                   key={npc.name}
                   name={npc.name}
