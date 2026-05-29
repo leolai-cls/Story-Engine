@@ -4,9 +4,8 @@ import { useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ShieldAlert, Lock, AlertCircle, TriangleAlert, X, ShieldCheck } from "lucide-react";
+import { ShieldAlert, AlertCircle, TriangleAlert, X } from "lucide-react";
 import { setAdultMode } from "@/app/[locale]/settings/actions";
-import { startAgeVerification } from "@/app/[locale]/pricing/actions";
 
 /**
  * Adult mode toggle — Phase 6 non-money function tier.
@@ -44,41 +43,12 @@ export function AdultModeToggle({
   // (low-friction off · safer default).
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [consentChecked, setConsentChecked] = useState(false);
-  const [verifyPending, setVerifyPending] = useState(false);
 
   // ADR-023 (2026-05-29 founder rule): self-attest 18+ · NO KYC.
-  // 永遠俾用戶 flip toggle · 用 confirm dialog 嘅 checkbox 做 self-attest.
-  const canToggle = true;
-  // Read prop to satisfy lint · 但功能上唔再用 (KYC deprecated).
+  // isAgeVerified prop kept for back-compat but唔再用做 gate.
   void isAgeVerified;
 
-  function handleStartVerification() {
-    setError(null);
-    setVerifyPending(true);
-    startTransition(async () => {
-      const res = await startAgeVerification();
-      if (res.ok) {
-        window.location.href = res.url;
-        // Don't reset pending — page is navigating away
-        return;
-      }
-      setVerifyPending(false);
-      // Session 16 PM Review #2 sweep: was interpolating raw error code
-      // ("stripe_error") into `{error}` placeholder. Catalog template
-      // updated to drop placeholder · generic localized fallback for any
-      // non-explicit code (auth_required + already_verified handled above).
-      setError(
-        res.error === "already_verified"
-          ? t("alreadyVerified")
-          : res.error === "auth_required"
-            ? t("authRequired")
-            : t("verifyInitError"),
-      );
-    });
-  }
-
   function handleToggleClick() {
-    if (!canToggle) return;
     if (!enabled) {
       // Enabling → open consent dialog first
       setConsentChecked(false);
@@ -135,60 +105,34 @@ export function AdultModeToggle({
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        {/* State 1: age not verified — show verification CTA */}
-        {!isAgeVerified && (
-          <div className="rounded-md border border-muted bg-muted/30 p-3 space-y-3">
-            <div className="flex items-start gap-3">
-              <Lock className="h-4 w-4 flex-shrink-0 text-muted-foreground mt-0.5" />
-              <div className="flex-1 text-xs space-y-2">
-                <p className="font-semibold text-foreground">{t("requiresVerificationTitle")}</p>
-                <p className="text-muted-foreground">{t("verificationBody")}</p>
-                <p className="text-muted-foreground text-[10.5px]">
-                  {t("stripePrivacyNote")}
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={handleStartVerification}
-              disabled={pending || verifyPending}
-              className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium border border-rose-300 bg-rose-50 text-rose-700 hover:bg-rose-100 disabled:opacity-60 disabled:cursor-not-allowed dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300 dark:hover:bg-rose-950/60"
-            >
-              <ShieldCheck className="h-4 w-4" />
-              {verifyPending ? t("verifyPending") : t("verifyCta")}
-            </button>
+        {/* ADR-023 (2026-05-29 founder rule): self-attest 18+ · NO KYC.
+            Toggle 永遠可見 · confirm dialog 入面 checkbox 做 self-attest. */}
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex-1 text-sm">
+            <p className="font-medium">
+              {enabled ? t("stateOn") : t("stateOff")}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {enabled ? t("enabledExplainer") : t("disabledExplainer")}
+            </p>
           </div>
-        )}
-
-        {/* State 2/3: age verified — actual toggle */}
-        {isAgeVerified && (
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex-1 text-sm">
-              <p className="font-medium">
-                {enabled ? t("stateOn") : t("stateOff")}
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {enabled ? t("enabledExplainer") : t("disabledExplainer")}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={handleToggleClick}
-              disabled={pending}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                enabled ? "bg-rose-600" : "bg-input"
-              } ${pending ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
-              aria-checked={enabled}
-              role="switch"
-            >
-              <span
-                className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
-                  enabled ? "translate-x-6" : "translate-x-1"
-                }`}
-              />
-            </button>
-          </div>
-        )}
+          <button
+            type="button"
+            onClick={handleToggleClick}
+            disabled={pending}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+              enabled ? "bg-rose-600" : "bg-input"
+            } ${pending ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+            aria-checked={enabled}
+            role="switch"
+          >
+            <span
+              className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                enabled ? "translate-x-6" : "translate-x-1"
+              }`}
+            />
+          </button>
+        </div>
 
         {error && (
           <div className="rounded-md border border-rose-200 bg-rose-50 p-2 text-xs text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300">
