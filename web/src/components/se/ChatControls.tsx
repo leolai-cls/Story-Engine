@@ -2,10 +2,11 @@
 
 import { useState, useTransition, useRef, useEffect } from "react";
 import { useTranslations } from "next-intl";
-import { ChevronDown, Lock, Check, Drama, Loader2 } from "lucide-react";
+import { ChevronDown, Lock, Check, Drama, Loader2, Brain } from "lucide-react";
 import {
   setPlaythroughModel,
   setNpcL3Enabled,
+  setThinkingMode,
 } from "@/app/[locale]/play/[playthroughId]/actions";
 import { MODELS, TIER_GATE, type ModelTier } from "@/lib/ai/models";
 
@@ -37,25 +38,31 @@ export function ChatControls({
   currentModel,
   subscriptionTier,
   npcL3Enabled: initialNpcL3,
+  thinkingEnabled: initialThinking,
   onModelChange,
   onNpcL3Change,
+  onThinkingChange,
 }: {
   playthroughId: string;
   currentModel: string | null;
   subscriptionTier: SubTier;
   npcL3Enabled: boolean;
+  thinkingEnabled: boolean;
   /** Parent updates its cost-estimate when model changes. */
   onModelChange?: (modelId: string) => void;
   onNpcL3Change?: (enabled: boolean) => void;
+  onThinkingChange?: (enabled: boolean) => void;
 }) {
   const t = useTranslations("play.chatControls");
   const tErrors = useTranslations("errors");
 
   const [model, setModel] = useState<string | null>(currentModel);
   const [npcL3, setNpcL3] = useState(initialNpcL3);
+  const [thinking, setThinking] = useState(initialThinking);
   const [menuOpen, setMenuOpen] = useState(false);
   const [modelPending, startModelTransition] = useTransition();
   const [npcPending, startNpcTransition] = useTransition();
+  const [thinkingPending, startThinkingTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -130,6 +137,27 @@ export function ChatControls({
                 res.errorCode as Parameters<typeof tErrors>[0],
                 res.errorParams ?? {},
               )
+            : tErrors("common.tryAgainLater"),
+        );
+      }
+    });
+  }
+
+  // Deep-thinking toggle (founder 2026-05-29): NO tier gate · 人人可開.
+  // ON = narrator reasons before writing (richer · more credits · slower).
+  function toggleThinking() {
+    setError(null);
+    const next = !thinking;
+    setThinking(next); // optimistic
+    onThinkingChange?.(next);
+    startThinkingTransition(async () => {
+      const res = await setThinkingMode(playthroughId, next);
+      if (!res.ok) {
+        setThinking(!next); // rollback
+        onThinkingChange?.(!next);
+        setError(
+          res.errorCode
+            ? tErrors(res.errorCode as Parameters<typeof tErrors>[0], {})
             : tErrors("common.tryAgainLater"),
         );
       }
@@ -234,6 +262,34 @@ export function ChatControls({
           }`}
         >
           {npcL3 ? "ON" : "OFF"}
+        </span>
+      </button>
+
+      {/* ─── Deep thinking toggle (no tier gate · costs more credits) ─── */}
+      <button
+        type="button"
+        onClick={toggleThinking}
+        disabled={thinkingPending}
+        aria-pressed={thinking}
+        title={t("thinkingTooltip")}
+        className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs transition-colors disabled:opacity-60 ${
+          thinking
+            ? "border-primary bg-primary/10 text-foreground"
+            : "border-border/70 bg-card text-muted-foreground hover:border-foreground/40"
+        }`}
+      >
+        {thinkingPending ? (
+          <Loader2 className="h-3 w-3 animate-spin" />
+        ) : (
+          <Brain className="h-3.5 w-3.5" />
+        )}
+        <span className="se-cjk font-medium">{t("thinkingMode")}</span>
+        <span
+          className={`text-[10px] font-bold uppercase ${
+            thinking ? "text-primary" : "text-muted-foreground/60"
+          }`}
+        >
+          {thinking ? "ON" : "OFF"}
         </span>
       </button>
 

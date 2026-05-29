@@ -503,10 +503,11 @@ export async function forkStoryToPlaythrough(params: {
   }
 
   // P6-HIGH-01: derive llm_provider from MODELS · pass to RPC (Migration 0016
-  // added p_llm_provider param). Fixes mis-attribution where Llama (openrouter)
+  // added p_llm_provider param). Fixes mis-attribution where aggregator-routed
   // forked stories were stamped as anthropic. MODELS[unknown] is now
-  // guaranteed defined post-tier-gate · so the fallback is defensive only.
-  const resolvedProvider = MODELS[resolvedModel]?.provider ?? "openrouter";
+  // guaranteed defined post-tier-gate · so the fallback is defensive only
+  // (default to anthropic · the safest/most-available provider).
+  const resolvedProvider = MODELS[resolvedModel]?.provider ?? "anthropic";
   const { data, error } = await supabase.rpc("fork_story_to_playthrough", {
     p_story_id: params.storyId,
     p_character_name: params.characterName ?? null,

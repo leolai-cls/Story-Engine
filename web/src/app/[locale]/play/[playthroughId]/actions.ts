@@ -207,3 +207,66 @@ export async function setPlaythroughModel(
   revalidatePath(`/play/${playthroughId}`);
   return { ok: true, modelId };
 }
+
+/**
+ * 2026-05-29 (founder product decision): per-playthrough "deep thinking" toggle.
+ *
+ * Lets users opt the narrator into a reasoning/thinking pass for richer
+ * story-telling (ChatGPT-style). Founder rules:
+ *   - Default OFF · 人人可手動開 (NO tier gate · unlike npc_l3).
+ *   - ON costs more credits (billed on actual token usage · incl. reasoning)
+ *     and is a few seconds slower → the turn route reads pt.thinking_mode_enabled
+ *     and routes Gemini through the thinking-enabled CrazyRouter instance /
+ *     enables Anthropic extended thinking, with a larger output budget.
+ *
+ * Plain owner-gated write (Migration 0046 · no DB trigger on this column ·
+ * RLS playthroughs_own_update enforces owner). thinking_mode_enabled is not in
+ * the generated Supabase types yet, so we cast — same pattern as npc_l3_enabled.
+ */
+export type SetThinkingModeResult =
+  | { ok: true; enabled: boolean }
+  | { ok: false; errorCode?: string; code?: string };
+
+export async function setThinkingMode(
+  playthroughId: string,
+  enabled: boolean,
+): Promise<SetThinkingModeResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, errorCode: "common.notLoggedIn", code: "unauthorized" };
+  }
+
+  // Owner check
+  const { data: playthrough, error: ptErr } = await supabase
+    .from("playthroughs")
+    .select("id, user_id, thinking_mode_enabled")
+    .eq("id", playthroughId)
+    .single();
+  if (ptErr || !playthrough) {
+    return { ok: false, errorCode: "play.playthroughNotFound", code: "not_found" };
+  }
+  if (playthrough.user_id !== user.id) {
+    return { ok: false, errorCode: "play.playthroughNotOwner", code: "forbidden" };
+  }
+
+  // No-op early exit (same state · skip DB roundtrip)
+  if ((playthrough as { thinking_mode_enabled?: boolean }).thinking_mode_enabled === enabled) {
+    return { ok: true, enabled };
+  }
+
+  // Write · authenticated client (owner check via RLS · no tier gate)
+  const { error: updErr } = await supabase
+    .from("playthroughs")
+    .update({ thinking_mode_enabled: enabled })
+    .eq("id", playthroughId);
+  if (updErr) {
+    console.error("[setThinkingMode] update failed:", updErr.message);
+    return { ok: false, errorCode: "play.saveFailed", code: "db_error" };
+  }
+
+  revalidatePath(`/play/${playthroughId}`);
+  return { ok: true, enabled };
+}

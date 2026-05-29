@@ -1,22 +1,22 @@
 /**
- * Phase 8 · Image generation client · OpenRouter aggregator.
+ * Phase 8 · Image generation client · CrazyRouter aggregator.
  *
- * Wave 3 audit (2026-05-28) verified OpenRouter model availability:
- *   - SFW illustration / wallpaper → google/gemini-2.5-flash-image (token-priced
- *     ~$0.005/image · 50-80 credits margin 90%+)
- *   - SFW / SFW Pro comic → openai/gpt-5.4-image-2 (token-priced ~$0.024/image ·
- *     latest OpenAI multimodal · native CJK rendering · replaces unavailable
- *     gpt-image-1)
- *   - Adult-rated story → x-ai/grok-imagine-image-quality ($0.05/image ·
- *     replaces unavailable grok-2-image · NSFW support pending founder test)
+ * ⚠️ DEFERRED (2026-05-29): founder is handling image gen separately ("圖之後再傾").
+ * This file was repointed from OpenRouter → CrazyRouter for env/base/slug
+ * consistency, but the CrazyRouter images API (request/response shape, whether
+ * /v1/images/generations behaves identically, NSFW behaviour on grok-4-image)
+ * is NOT yet verified end-to-end. Verify before re-enabling scene visualization.
  *
- * All routed through OpenRouter (existing OPENROUTER_API_KEY reuse · 0 new
- * env vars). Provider abstraction mirrors lib/ai/providers.ts pattern.
+ * CrazyRouter image slugs (from /v1/models · 2026-05-29):
+ *   - SFW illustration / wallpaper → nano-banana (Gemini Flash Image)
+ *   - SFW / SFW Pro comic → gpt-image-2 (native CJK rendering)
+ *   - Adult-rated story → grok-4-image (most permissive available · NSFW pending test)
+ *     NOTE: CrazyRouter has NO dedicated uncensored diffusion model (no Flux/Pony/SDXL);
+ *     真·露骨 adult imagery may need a separate specialist provider — founder decision.
  *
- * Why generic fetch (not @ai-sdk/openai images): OpenRouter image gen
- * endpoint is /api/v1/images/generations (OpenAI-compatible) but the
- * provider SDK doesn't expose `.images.generate` directly with our header
- * stack (HTTP-Referer + X-Title required for OR billing routing).
+ * Routed through CrazyRouter (CRAZYROUTER_API_KEY). Generic fetch (not
+ * @ai-sdk/openai images) keeps full control over the OpenAI-compatible
+ * /v1/images/generations body + reference-image fields.
  */
 
 import type { StyleKey } from "./image-styles";
@@ -81,12 +81,12 @@ export function pickImageModel(
   imageType: ImageType,
 ): string {
   if (contentRating === "adult") {
-    // Adult + comic: route GPT Image 2 anyway (CJK text > NSFW for comic UX)
-    if (imageType === "comic") return "openai/gpt-5.4-image-2";
-    return "x-ai/grok-imagine-image-quality";
+    // Adult + comic: route gpt-image-2 anyway (CJK text > NSFW for comic UX)
+    if (imageType === "comic") return "gpt-image-2";
+    return "grok-4-image";
   }
-  if (imageType === "comic") return "openai/gpt-5.4-image-2";
-  return "google/gemini-2.5-flash-image";
+  if (imageType === "comic") return "gpt-image-2";
+  return "nano-banana";
 }
 
 /**
@@ -99,20 +99,20 @@ export function pickImageModel(
 export async function generateSceneImage(
   req: ImageGenRequest,
 ): Promise<ImageGenResult> {
-  const apiKey = process.env.OPENROUTER_API_KEY;
+  const apiKey = process.env.CRAZYROUTER_API_KEY;
   if (!apiKey) {
     return {
       ok: false,
       reason: "config_error",
-      message: "OPENROUTER_API_KEY not set",
+      message: "CRAZYROUTER_API_KEY not set",
     };
   }
 
   const modelId = pickImageModel(req.contentRating, req.imageType);
-  const provider = `openrouter:${modelId}`;
+  const provider = `crazyrouter:${modelId}`;
 
-  // OpenRouter image gen body shape · OpenAI-compatible
-  // (see https://openrouter.ai/docs/api-reference/image-generation)
+  // CrazyRouter image gen body shape · OpenAI-compatible /v1/images/generations.
+  // ⚠️ DEFERRED: exact body/response shape on CrazyRouter not yet verified.
   const body: Record<string, unknown> = {
     model: modelId,
     prompt: req.prompt,
@@ -142,15 +142,11 @@ export async function generateSceneImage(
 
   let response: Response;
   try {
-    response = await fetch("https://openrouter.ai/api/v1/images/generations", {
+    response = await fetch("https://crazyrouter.com/v1/images/generations", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
-        // Wave 3 fix SEC-MED-04: drop NEXT_PUBLIC_SITE_URL fallback (deprecated
-        // post hard-subdomain-split per hard rule #35). Use app origin only.
-        "HTTP-Referer":
-          process.env.NEXT_PUBLIC_APP_URL ?? "https://app.kieio.com",
         "X-Title": "Kieio",
       },
       body: JSON.stringify(body),

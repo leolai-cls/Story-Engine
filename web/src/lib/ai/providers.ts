@@ -4,7 +4,8 @@ import { getModel, type ModelEntry } from "./models";
 import type { LanguageModel } from "ai";
 
 /**
- * Provider registry — ADR-003 (multi-LLM) + ADR-015 (Orchestrator Pattern).
+ * Provider registry — ADR-003 (multi-LLM) + ADR-015 (Orchestrator Pattern)
+ * + ADR-021 (HK founder · CrazyRouter + Anthropic direct only).
  *
  * IMPORTANT: We use `createAnthropic({ baseURL })` instead of the default
  * `anthropic` import because @ai-sdk/anthropic v3.0.78 ships with a baseURL
@@ -19,83 +20,86 @@ export const anthropicProvider = createAnthropic({
 });
 
 /**
- * OpenRouter — OpenAI-compatible endpoint for adult-mode-friendly open-source
- * models per ADR-004 (Phase 6).
+ * CrazyRouter — OpenAI-compatible aggregator. ADR-021 (2026-05-29) replaces
+ * OpenRouter, which blocked HK-flagged accounts from US-trio models
+ * (Gemini / GPT / Claude → "provider Terms of Service" 403). CrazyRouter has a
+ * Hong Kong edge node + CN mirror, does NOT geo-block US-trio, permits adult
+ * content, and exposes embeddings. Base URL https://crazyrouter.com/v1, bare
+ * model slugs (no provider/ prefix), Chat Completions only (no Responses API).
  *
- * AUDIT FIX (AI-H-01): Previously used `createAnthropic({baseURL: openrouter})`
- * which would 404 because OpenRouter's wire format is OpenAI-compatible, not
- * Anthropic-compatible. Switched to `createOpenAI` with the OpenRouter base URL.
+ * ── Gemini "thinking" footgun (verified 2026-05-29) ───────────────────────
+ * Gemini on CrazyRouter defaults to a reasoning/thinking pass. With a normal
+ * max_tokens budget it spends the ENTIRE budget on reasoning and returns EMPTY
+ * prose (finish_reason="length", 0 text tokens). The fix is to disable thinking
+ * via Gemini's native `thinking_config.thinking_budget=0`, passed through
+ * CrazyRouter's OpenAI-compatible `extra_body` field (proven: with budget=0 the
+ * model emits prose immediately, reasoning_tokens=0).
+ *
+ * Since thinking is now a user-facing toggle (default OFF · richer narration
+ * when ON · costs more credits), we expose TWO provider instances:
+ *   - crazyrouterNoThink: injects thinking_budget=0 for Gemini → fast/cheap/prose-only
+ *   - crazyrouterThink:   leaves thinking on → deeper narration (opt-in)
+ * GLM/GPT write prose directly for normal prompts, so the interceptor only
+ * needs to special-case Gemini. Anthropic "extended thinking" is controlled
+ * separately at the call site via providerOptions.anthropic.thinking.
  */
-/**
- * W5 · 2026-05-28: custom fetch interceptor.
- *
- * Why: Gemini predefault safety filter rejects fiction 黑道 / 武俠 / 暴力 /
- * 校園衝突 等正常題材. Verified via OpenRouter Chat playground · gemini-3.5-flash
- * + 1980 九龍城寨 prompt = "provider Terms Of Service" error.
- *
- * OpenRouter docs (https://openrouter.ai/docs/api-reference/parameters) confirm:
- *   "You may send any parameters from the following list, as well as others"
- *   "We will also transmit some provider-specific parameters, such as
- *    safe_prompt for Mistral or raw_mode for Hyperbolic directly to the
- *    respective providers if specified."
- *
- * For Gemini: pass `safety_settings: [{category, threshold}]` 落 body ·
- * OpenRouter pass through 落 Google · 等 fiction 黑道 / 武俠 etc 唔再 reject.
- *
- * @ai-sdk/openai `providerOptions.openai` 唔 forward arbitrary params · 所以
- * 用 fetch interceptor: 攔截 chat completion 出去 OpenRouter 之前 · 如果係
- * Gemini route · inject `safety_settings: BLOCK_NONE` 落 body.
- */
-const openrouterFetch: typeof fetch = async (input, init) => {
-  // Only intercept POST /chat/completions · 唔影響其他 endpoint
-  const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
-  const isChatCompletion = url?.includes("/chat/completions");
-  if (!isChatCompletion || !init?.body || typeof init.body !== "string") {
-    return fetch(input, init);
-  }
-  try {
-    const body = JSON.parse(init.body) as Record<string, unknown>;
-    const model = body.model as string | undefined;
-    if (model && model.includes("google/gemini") && !body.safety_settings) {
-      body.safety_settings = [
-        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
-      ];
-      const newInit = { ...init, body: JSON.stringify(body) };
-      return fetch(input, newInit);
+function makeCrazyrouterFetch(enableThinking: boolean): typeof fetch {
+  return async (input, init) => {
+    const url =
+      typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+    const isChatCompletion = url?.includes("/chat/completions");
+    if (!isChatCompletion || !init?.body || typeof init.body !== "string") {
+      return fetch(input, init);
     }
-  } catch {
-    // body 唔係 JSON · pass through 原本嘅 init
-  }
-  return fetch(input, init);
-};
+    try {
+      const body = JSON.parse(init.body) as Record<string, unknown>;
+      const model = (body.model as string | undefined) ?? "";
+      // Gemini: disable thinking unless the user opted in, else prose comes back empty.
+      if (model.includes("gemini") && !enableThinking) {
+        const existingExtra = (body.extra_body as Record<string, unknown> | undefined) ?? {};
+        body.extra_body = {
+          ...existingExtra,
+          google: { thinking_config: { thinking_budget: 0 } },
+        };
+        return fetch(input, { ...init, body: JSON.stringify(body) });
+      }
+    } catch {
+      // body 唔係 JSON · pass through 原本嘅 init
+    }
+    return fetch(input, init);
+  };
+}
 
-export const openrouterProvider = createOpenAI({
-  apiKey: process.env.OPENROUTER_API_KEY,
-  baseURL: "https://openrouter.ai/api/v1",
-  // OpenRouter requires HTTP-Referer + X-Title headers for usage routing /
-  // analytics. Hard rule #35 (post-subdomain split): app origin preferred ·
-  // marketing host deprecated as referrer source.
-  headers: {
-    "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL ?? "https://app.kieio.com",
-    "X-Title": "Kieio",
-  },
-  fetch: openrouterFetch,
-});
+function makeCrazyrouter(enableThinking: boolean) {
+  return createOpenAI({
+    apiKey: process.env.CRAZYROUTER_API_KEY,
+    baseURL: "https://crazyrouter.com/v1",
+    // Identify our traffic in the CrazyRouter dashboard (optional · harmless).
+    headers: { "X-Title": "Kieio" },
+    fetch: makeCrazyrouterFetch(enableThinking),
+  });
+}
+
+const crazyrouterNoThink = makeCrazyrouter(false);
+const crazyrouterThink = makeCrazyrouter(true);
 
 /**
  * Provider dispatcher — picks the right provider client for a given model id.
  *
  * AUDIT FIX (AI-H-09): turn route was hard-coding `anthropicProvider(pt.llm_model)`
- * even when llm_provider was openrouter/openai/etc → every non-Anthropic model
- * 404'd silently. Now: lookup model registry, dispatch by `.provider`, pass the
+ * even when llm_provider was non-Anthropic → every aggregator model 404'd
+ * silently. Now: lookup model registry, dispatch by `.provider`, pass the
  * provider's actual `model_id` (not the internal Story Engine id).
+ *
+ * @param opts.thinking — when true, route CrazyRouter calls through the
+ *   thinking-enabled instance (Gemini reasoning left on). Default false.
  *
  * Returns a LanguageModel ready to pass to generateText / streamText / generateObject.
  */
-export function getProviderModel(internalModelId: string): LanguageModel {
+export function getProviderModel(
+  internalModelId: string,
+  opts?: { thinking?: boolean },
+): LanguageModel {
   let entry: ModelEntry;
   try {
     entry = getModel(internalModelId);
@@ -106,17 +110,16 @@ export function getProviderModel(internalModelId: string): LanguageModel {
     entry = getModel("claude-sonnet-4-6");
   }
 
-  // ADR-021: 只支援 anthropic direct + openrouter aggregator · 唔加任何其他 vendor.
+  // ADR-021: 只支援 anthropic direct + crazyrouter aggregator · 唔加任何其他 vendor.
   switch (entry.provider) {
     case "anthropic":
+      // Anthropic extended thinking is controlled at the call site via
+      // providerOptions.anthropic.thinking (not the provider instance).
       return anthropicProvider(entry.model_id);
-    case "openrouter":
-      // W4 fix · 2026-05-28 (PR #4 retest root cause):
-      // @ai-sdk/openai v3+ default route 用 OpenAI 新 Responses API endpoint
-      // (`/v1/responses`) · OpenRouter 只支援舊 Chat Completions API
-      // (`/v1/chat/completions`) · 用 `provider(modelId)` 會出
-      // "Invalid Responses API request" SSE error · narrator silent fail.
-      // 顯式 call `.chat(modelId)` 強制走 chat completions endpoint.
-      return openrouterProvider.chat(entry.model_id);
+    case "crazyrouter":
+      // @ai-sdk/openai v3+ defaults to the OpenAI Responses API (`/v1/responses`),
+      // which CrazyRouter (Chat Completions only) does not support → would emit
+      // "Invalid Responses API request". `.chat(modelId)` forces /chat/completions.
+      return (opts?.thinking ? crazyrouterThink : crazyrouterNoThink).chat(entry.model_id);
   }
 }

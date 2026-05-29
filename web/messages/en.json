@@ -480,6 +480,8 @@
       "userBadge": "→ {protagonist}",
       "aiBadge": "↳ Narrative",
       "aiPending": "↳ Narrative (writing...)",
+      "thinkingLabel": "Thinking",
+      "thinkingLive": "AI is thinking…",
       "aiThinking": "AI thinking...",
       "moderationPending": "Moderation + AI thinking…",
       "directorSoftTooltip": "NPC reaction differed from your expectation"
@@ -499,7 +501,9 @@
       "modelLocked": "Upgrade your tier to use this model",
       "agentMode": "NPC Inner Voices",
       "agentTooltip": "Each NPC gets its own POV + inner monologue this turn (Storyteller tier · ~6 credits/NPC)",
-      "agentTierRequired": "NPC Inner Voices need Storyteller tier — upgrade to unlock"
+      "agentTierRequired": "NPC Inner Voices need Storyteller tier — upgrade to unlock",
+      "thinkingMode": "Deep Thinking",
+      "thinkingTooltip": "The AI reasons through plot + characters before writing — richer narration · costs more credits, a few seconds slower (billed on actual usage)"
     },
     "rail": {
       "npcCount": "NPCs · {count}",

@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Link } from "@/i18n/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Send, Loader2, ArrowLeft, Coins, Lock, Shield, NotebookPen, Menu, Image as ImageIcon } from "lucide-react";
+import { Sparkles, Send, Loader2, ArrowLeft, Coins, Lock, Shield, NotebookPen, Menu, Image as ImageIcon, Brain } from "lucide-react";
 import { DynamicStatePanel } from "@/components/state-panel";
 import type { StateSchema } from "@/schemas/state-schema";
 import { NpcCard } from "@/components/se/DispositionAxis";
@@ -289,6 +289,9 @@ export type Turn = {
   skillCheck?: SkillCheckSnapshot | null;
   /** Verdict that drove this AI turn · used to render Director amber side-border. */
   directorVerdict?: DirectorVerdictSnapshot | null;
+  /** 2026-05-29: narrator reasoning (deep-thinking mode) · collapsible panel.
+   *  Only populated for the in-session turn (not persisted to DB yet). */
+  reasoning?: string;
 };
 
 /** Phase 8 · cached scene image displayed inline under its turn. */
@@ -313,6 +316,7 @@ export function PlayClient({
   sidebarPlaythroughs = [],
   sidebarTotalCount = 0,
   npcL3Enabled = false,
+  thinkingModeEnabled = false,
   subscriptionTier = "free",
   playthroughModel = null,
   storyContentRating = "sfw",
@@ -334,6 +338,8 @@ export function PlayClient({
   sidebarTotalCount?: number;
   /** Session 14: NPC L3 Agents opt-in flag (Storyteller tier exclusive). */
   npcL3Enabled?: boolean;
+  /** 2026-05-29: deep-thinking opt-in flag (no tier gate · founder rule). */
+  thinkingModeEnabled?: boolean;
   /** Session 14: user's subscription tier · controls toggle visibility. */
   subscriptionTier?: "free" | "adventurer" | "storyteller" | "legend";
   /** Session 16 P-07: playthrough's locked LLM model · drives per-turn cost preview. */
@@ -369,6 +375,9 @@ export function PlayClient({
   // live when the user switches mid-story via ChatControls.
   const [activeModel, setActiveModel] = useState<string | null>(playthroughModel);
   const [activeNpcL3, setActiveNpcL3] = useState<boolean>(npcL3Enabled);
+  const [activeThinking, setActiveThinking] = useState<boolean>(thinkingModeEnabled);
+  // Live narrator reasoning while streaming (deep-thinking mode · collapsible panel).
+  const [streamReasoning, setStreamReasoning] = useState("");
 
   // 2026-05-29 (founder #3): NPC rail used to dump ALL story characters at
   // turn 1 — including ones the Story Bible plans for later acts. Only show
@@ -444,6 +453,7 @@ export function PlayClient({
       setError(null);
       setStreaming(true);
       setStreamText("");
+      setStreamReasoning("");
 
       // Optimistically append user turn
       const tempUserTurn: Turn = {
@@ -538,6 +548,9 @@ export function PlayClient({
         const decoder = new TextDecoder();
         let buffer = "";
         let accumulated = "";
+        // Deep-thinking mode: narrator reasoning streamed as reasoning-* frames
+        // (route sets sendReasoning when thinking is on). Shown in a collapsible panel.
+        let reasoningAccumulated = "";
         // W4 fix 2026-05-28 (agent retest post-PR-#5): SSE stream 可能包
         // {"type":"error","errorText":"..."} frame (e.g. OpenRouter upstream
         // TOS violation · Gemini safety filter rejection). 之前嘅 code 只認
@@ -566,6 +579,15 @@ export function PlayClient({
               if (event.type === "text-delta" && typeof event.delta === "string") {
                 accumulated += event.delta;
                 setStreamText(accumulated);
+              } else if (
+                event.type === "reasoning-delta" &&
+                typeof event.delta === "string"
+              ) {
+                // Deep-thinking narration · accumulate the model's reasoning for
+                // the collapsible "AI 思考過程" panel (GLM / Claude expose it;
+                // Gemini usually hides its chain-of-thought → stays empty).
+                reasoningAccumulated += event.delta;
+                setStreamReasoning(reasoningAccumulated);
               } else if (event.type === "error") {
                 // Capture error · render below outside loop (don't break stream
                 // mid-iteration · let SSE finish so we got [DONE]).
@@ -595,15 +617,18 @@ export function PlayClient({
           role: "ai",
           text: accumulated,
           index: tempUserTurn.index + 1,
+          reasoning: reasoningAccumulated.trim() || undefined,
         };
         setTurns((t) => [...t, aiTurn]);
         setStreamText("");
+        setStreamReasoning("");
 
         // Refresh state from server (delta was applied server-side)
         await refreshState();
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
         setStreamText("");
+        setStreamReasoning("");
         // Roll back optimistic user turn
         setTurns((t) => t.filter((x) => x !== tempUserTurn));
       } finally {
@@ -767,6 +792,23 @@ export function PlayClient({
                       ? tPlay("turn.userBadge", { protagonist: characterName })
                       : tPlay("turn.aiBadge")}
                   </div>
+                  {/* Deep-thinking · collapsible reasoning panel (founder 2026-05-29).
+                      Session-only (not persisted) · shows for GLM/Claude that
+                      expose their reasoning. Collapsed by default for history. */}
+                  {turn.role === "ai" && turn.reasoning && (
+                    <details className="mb-2 rounded-md border border-border/50 bg-muted/30">
+                      <summary className="cursor-pointer select-none px-2.5 py-1.5 text-[11px] se-cjk text-muted-foreground hover:text-foreground flex items-center gap-1.5">
+                        <Brain className="h-3 w-3 flex-none" />
+                        {tPlay("turn.thinkingLabel")}
+                      </summary>
+                      <div
+                        className="px-2.5 pb-2.5 pt-0.5 text-xs whitespace-pre-wrap se-cjk"
+                        style={{ color: "var(--se-fg-dim)", lineHeight: 1.6 }}
+                      >
+                        {turn.reasoning}
+                      </div>
+                    </details>
+                  )}
                   <div className="text-sm whitespace-pre-wrap">{turn.text}</div>
                   {/* C5a-d audit fix · Skill check 4 outcomes inline badge.
                       Backend rolls + stores on turns.skill_check. Hard rule #5:
@@ -835,6 +877,23 @@ export function PlayClient({
               );
             })}
 
+            {/* Live deep-thinking reasoning · open while the model thinks
+                (often before any prose streams). Founder 2026-05-29. */}
+            {streaming && streamReasoning && (
+              <details open className="rounded-md border border-primary/30 bg-muted/30">
+                <summary className="cursor-pointer select-none px-2.5 py-1.5 text-[11px] se-cjk text-primary flex items-center gap-1.5">
+                  <Brain className="h-3 w-3 flex-none animate-pulse" />
+                  {tPlay("turn.thinkingLive")}
+                </summary>
+                <div
+                  className="px-2.5 pb-2.5 pt-0.5 text-xs whitespace-pre-wrap se-cjk"
+                  style={{ color: "var(--se-fg-dim)", lineHeight: 1.6 }}
+                >
+                  {streamReasoning}
+                </div>
+              </details>
+            )}
+
             {streaming && streamText && (
               <div className="rounded-lg bg-card border border-primary/30 p-4 leading-relaxed">
                 <div className="text-[10px] font-bold uppercase tracking-wider text-primary mb-1.5">
@@ -896,8 +955,10 @@ export function PlayClient({
               currentModel={activeModel}
               subscriptionTier={subscriptionTier}
               npcL3Enabled={activeNpcL3}
+              thinkingEnabled={activeThinking}
               onModelChange={setActiveModel}
               onNpcL3Change={setActiveNpcL3}
+              onThinkingChange={setActiveThinking}
             />
           </div>
 

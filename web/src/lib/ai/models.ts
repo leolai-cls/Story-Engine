@@ -7,8 +7,13 @@
  *   - DROPPED: Pro Max (Opus 4.7) · Llama 3.1 405B
  *   - 訂閱 tier 仍維持 3 個 (Free + Standard $9.99 + Pro $19.99) · Standard 都可以開 adult
  *
- * ADR-021 (2026-05-28) HK founder constraint:
- *   - 只可以用 OpenRouter + Anthropic direct (founder 攞唔到 OpenAI API key)
+ * ADR-021 (2026-05-29) HK founder constraint + provider switch:
+ *   - 只可以用 CrazyRouter (aggregator) + Anthropic direct (founder 喺香港攞唔到 OpenAI key)
+ *   - CrazyRouter 取代 OpenRouter (2026-05-29)：OpenRouter 封香港帳號用 US-trio
+ *     (Gemini/GPT/Claude) → "provider Terms of Service" 403。CrazyRouter 有香港節點 ·
+ *     CN 鏡像 · 唔 block US-trio · 容許成人內容 · 有 embedding。
+ *   - Gemini / GLM / GPT / embedding 全部行 CrazyRouter (短 slug · 冇 provider/ prefix)
+ *   - Claude Sonnet / Haiku 留 Anthropic 直駁 (prompt cache 慳錢 · 最信得過 · 做後備)
  *   - 任何直駁 OpenAI / Google / xAI / Vertex 嘅 code = bug
  *
  * Architecture:
@@ -19,8 +24,8 @@
  */
 
 export type ModelRole = "director" | "narrator" | "general";
-/** Per ADR-021: 只可以係 anthropic (direct) 或者 openrouter (aggregator). */
-export type ModelProvider = "anthropic" | "openrouter";
+/** Per ADR-021 (2026-05-29): 只可以係 anthropic (direct) 或者 crazyrouter (aggregator). */
+export type ModelProvider = "anthropic" | "crazyrouter";
 
 /**
  * User-facing tier names (what they pick in the UI). Per ADR-022: 2 tier only.
@@ -71,29 +76,30 @@ export const MODELS: Record<string, ModelEntry> = {
     tier_pool: "pro",
   },
 
-  // ─── OpenRouter · Pro pool English alternative ──────────────────────
+  // ─── CrazyRouter · Pro pool English alternative ─────────────────────
+  // Slug at CrazyRouter is the bare `gpt-5.4` (no provider/ prefix · no -pro variant).
   "gpt-5-4-pro": {
     id: "gpt-5-4-pro",
-    provider: "openrouter",
-    model_id: "openai/gpt-5.4-pro",
-    display_name: "GPT-5.4 Pro",
+    provider: "crazyrouter",
+    model_id: "gpt-5.4",
+    display_name: "GPT-5.4",
     role: "narrator",
     credit_multiplier: 2.5,
     allows_nsfw: false,
     min_tier: "adventurer",
-    description: "Pro tier · 英文敘事強 · 經 OpenRouter 路由。",
+    description: "Pro tier · 英文敘事強 · 經 CrazyRouter 路由。",
     tier_pool: "pro",
   },
 
-  // ─── OpenRouter · Standard pool · free tier value ───────────────────
+  // ─── CrazyRouter · Standard pool · free tier value ──────────────────
   // Founder explicit (2026-05-28): use Gemini 3.5 Flash · 唔好換做 2.5 Flash.
-  // Real root cause of silent fail 唔關 model version 事 · 係 @ai-sdk/openai
-  // default 用 Responses API endpoint · OpenRouter 只支援 Chat Completions.
-  // 修正 喺 providers.ts dispatcher (`.chat()` factory) · 唔需要換 model.
+  // CrazyRouter slug = bare `gemini-3.5-flash`. NOTE: Gemini on CrazyRouter
+  // defaults to a thinking pass that eats the whole token budget → empty prose;
+  // providers.ts injects thinking_budget=0 (unless the user opts into thinking).
   "gemini-3-5-flash": {
     id: "gemini-3-5-flash",
-    provider: "openrouter",
-    model_id: "google/gemini-3.5-flash",
+    provider: "crazyrouter",
+    model_id: "gemini-3.5-flash",
     display_name: "Gemini 3.5 Flash",
     role: "narrator",
     credit_multiplier: 1.5,
@@ -103,13 +109,14 @@ export const MODELS: Record<string, ModelEntry> = {
     tier_pool: "standard",
   },
 
-  // ─── OpenRouter · Standard pool 中文 roleplay + NSFW model ──────────
+  // ─── CrazyRouter · Standard pool 中文 roleplay + NSFW model ──────────
   // ADR-022: GLM 5.1 同時係 (a) Standard pool 中文/roleplay 模型 (b) Adult mode
-  // 統一 model · adult_mode_enabled + KYC user 路由去呢個 model with allows_nsfw=true
+  // 統一 model · adult_mode_enabled user 路由去呢個 model with allows_nsfw=true.
+  // CrazyRouter slug = bare `glm-5.1`.
   "glm-5-1": {
     id: "glm-5-1",
-    provider: "openrouter",
-    model_id: "z-ai/glm-5.1",
+    provider: "crazyrouter",
+    model_id: "glm-5.1",
     display_name: "GLM-5.1",
     role: "narrator",
     credit_multiplier: 1.0,

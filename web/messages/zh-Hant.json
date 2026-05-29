@@ -496,6 +496,8 @@
       "userBadge": "→ {protagonist}",
       "aiBadge": "↳ 敘事",
       "aiPending": "↳ 敘事 (打緊...)",
+      "thinkingLabel": "思考過程",
+      "thinkingLive": "AI 思考緊…",
       "aiThinking": "AI 諗緊...",
       "moderationPending": "內容審核 + AI 思考中…",
       "directorSoftTooltip": "NPC 反應與你預期不同"
@@ -515,7 +517,9 @@
       "modelLocked": "升級 tier 先用到呢個 model",
       "agentMode": "NPC 內心戲",
       "agentTooltip": "今個 turn 每個 NPC 有自己 POV + 內心獨白（Storyteller tier · 每個 NPC ~6 credits）",
-      "agentTierRequired": "NPC 內心戲需要 Storyteller tier — 升級先解鎖"
+      "agentTierRequired": "NPC 內心戲需要 Storyteller tier — 升級先解鎖",
+      "thinkingMode": "深度思考",
+      "thinkingTooltip": "AI 諗清楚劇情同人物先落筆 · 敘事更深 · 會多燒 credits、慢幾秒（按實際用量計）"
     },
     "rail": {
       "npcCount": "NPC · {count}",
