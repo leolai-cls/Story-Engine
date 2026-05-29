@@ -311,12 +311,18 @@ export function computeTurnCredits(usage: TurnUsage): number {
 export function estimateTurnCredits(
   narratorModelId: string,
   npcL3ExpectedAgents: number = 0,
+  thinkingEnabled: boolean = false,
 ): number {
   return computeTurnCredits({
     narrator: {
       modelId: narratorModelId,
       inputTokens: 3000,
-      outputTokens: 800,
+      // 2026-05-29: deep-thinking mode runs a reasoning pass before the story
+      // text, so the turn route bumps maxOutputTokens 1500→4000. The pre-charge
+      // estimate must reserve more or a low-balance user passes the gate then
+      // hits post-stream insufficient_credits (free turn + reconciliation debt).
+      // Over-estimate on purpose (same rationale as the L3 add-on projection).
+      outputTokens: thinkingEnabled ? 3500 : 800,
       cachedInputTokens: 2000, // assume 67% cache hit in steady state
     },
     director: {
