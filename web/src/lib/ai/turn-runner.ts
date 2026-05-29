@@ -376,10 +376,21 @@ export function buildStableSystemPrompt(ctx: TurnContext): string {
         ? // Wave 1 audit H-1 fix: was Cantonese particles (喺 / 入面) — should be Mandarin.
           "## State Schema Fields (这些字段可以在 update_state 中引用)"
         : "## State Schema Fields (呢啲 fields 可以喺 update_state 入面 reference)";
+  // 2026-05-29: surface enum_chip allowed values to the Narrator. Without this
+  // the model guessed out-of-enum values (e.g. status="混亂" when only
+  // [平靜/警戒/受傷/疲憊/激昂/恐懼] are valid) → applyDelta skipped the op +
+  // the field never updated. Showing the options keeps set ops in-range.
+  const fieldLine = (f: StateSchema["fields"][number]): string => {
+    const base = `- \`${f.key}\` (${f.render_hint}): ${f.label}`;
+    if (f.render_hint === "enum_chip" && Array.isArray(f.options) && f.options.length > 0) {
+      const onlyLabel =
+        lang === "en" ? "set only to" : lang === "zh-Hans" ? "只可设为" : "只可設定為";
+      return `${base} · ${onlyLabel}: [${f.options.join(" / ")}]`;
+    }
+    return base;
+  };
   const schemaFields = `${schemaFieldsHeader}
-${ctx.story.state_schema.fields
-  .map((f) => `- \`${f.key}\` (${f.render_hint}): ${f.label}`)
-  .join("\n")}`;
+${ctx.story.state_schema.fields.map(fieldLine).join("\n")}`;
   const protagonistLabel =
     lang === "en"
       ? "Player plays as:"

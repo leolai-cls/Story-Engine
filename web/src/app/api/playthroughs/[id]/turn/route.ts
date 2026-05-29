@@ -931,17 +931,30 @@ export async function POST(
         // AUDIT FIX (AI-M-07): pass story language so fallback matches locale
         // instead of forcing 繁中 on 簡中 / EN stories.
         const isRefusal = isLLMRefusal(text);
+        // 2026-05-29: NEVER save a blank turn. Some models (e.g. Gemini via
+        // CrazyRouter on a Director-reject turn, or thinking-mode variance)
+        // occasionally return a tool call with EMPTY prose → the player saw no
+        // reply + embedText got "empty input". Treat empty prose like a refusal
+        // and substitute the in-fiction fallback so there is ALWAYS a narrative.
+        const isEmptyProse = !text || !text.trim();
         const storyLanguage = ctx.story.story_bible.hard_locked.language;
-        const finalText = isRefusal
-          ? refusalFallbackNarrative(storyLanguage)
-          : text;
-        if (isRefusal) {
-          console.warn("[turn] LLM refused — replaced with in-fiction fallback. Original:", text.slice(0, 200));
+        const finalText =
+          isRefusal || isEmptyProse
+            ? refusalFallbackNarrative(storyLanguage)
+            : text;
+        if (isRefusal || isEmptyProse) {
+          console.warn(
+            `[turn] narrator ${isRefusal ? "refused" : "returned empty prose"} — substituted in-fiction fallback. Original head:`,
+            (text ?? "").slice(0, 200),
+          );
         }
 
         const delta = extractStateDelta(toolCalls);
         let newState = currentState;
-        if (delta && delta.ops.length > 0 && !isRefusal) {
+        // Skip state mutations on refusal OR empty-prose fallback — the
+        // substituted "nothing really happened" narrative must not be
+        // contradicted by silent state changes.
+        if (delta && delta.ops.length > 0 && !isRefusal && !isEmptyProse) {
           const applied = applyDelta(currentState, delta, stateSchema);
           newState = applied.state;
           if (applied.skipped.length > 0) {
@@ -953,10 +966,10 @@ export async function POST(
         }
 
         // ─── Phase 1.5.3: extract Narrator's disposition + flag tool calls ───
-        const dispositionChanges = isRefusal
-          ? []
-          : extractDispositionChanges(toolCalls);
-        const permanentFlags = isRefusal ? [] : extractPermanentFlags(toolCalls);
+        const dispositionChanges =
+          isRefusal || isEmptyProse ? [] : extractDispositionChanges(toolCalls);
+        const permanentFlags =
+          isRefusal || isEmptyProse ? [] : extractPermanentFlags(toolCalls);
 
         // Phase 1.5/2 polish (M-02) — NPC name fuzzy match.
         // Narrator may refer to NPCs by short form ("阿明") while DB has full
