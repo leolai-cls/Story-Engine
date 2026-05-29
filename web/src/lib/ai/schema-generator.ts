@@ -36,7 +36,12 @@ import { CharacterCardSchema } from "@/schemas/character";
  * Phase 1.5+ can add a consistency-pass to align references.
  */
 
-const MODEL = "claude-sonnet-4-6";
+// 2026-05-29 (founder): switched Sonnet → Haiku 4.5 for story creation.
+// Sonnet structured-output of the 4 creation calls took ~70s; Haiku is ~2×
+// faster (~30-40s) and plenty capable for the creation scaffolding (bible /
+// characters / schema / opening). Still Anthropic-direct (reliable). Revert to
+// "claude-sonnet-4-6" if creation quality regresses.
+const MODEL = "claude-haiku-4-5";
 
 // ─── Per-call schemas (each individually fits the grammar ceiling) ──────
 

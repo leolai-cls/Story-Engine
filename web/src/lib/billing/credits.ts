@@ -352,12 +352,13 @@ export function estimateTurnCredits(
  * Used for pre-creation balance check + UI display.
  */
 export function estimateStoryCreationCredits(): number {
-  // 4 parallel Sonnet 4.6 calls: meta+opening / state_schema / bible / characters
+  // 4 parallel Claude Haiku 4.5 calls (2026-05-29 · switched from Sonnet for
+  // ~2× faster creation): meta+opening / state_schema / bible / characters.
   // Typical: ~1500 input + 1500 output per call.
   return (
     4 *
     computeCredits({
-      modelId: "claude-sonnet-4-6",
+      modelId: "claude-haiku-4-5",
       inputTokens: 1500,
       outputTokens: 1500,
     })
