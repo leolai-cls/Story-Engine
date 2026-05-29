@@ -8,13 +8,13 @@ import { Sparkles, Send, Loader2, ArrowLeft, Coins, Lock, Shield, NotebookPen, M
 import { DynamicStatePanel } from "@/components/state-panel";
 import type { StateSchema } from "@/schemas/state-schema";
 import { NpcCard } from "@/components/se/DispositionAxis";
-import { NpcL3Toggle } from "@/components/se/NpcL3Toggle";
 import { estimateTurnCredits } from "@/lib/billing/credits";
 import {
   PlaythroughSidebar,
   type SidebarPlaythrough,
 } from "@/components/se/PlaythroughSidebar";
 import { VisualizeSceneModal } from "@/components/se/VisualizeSceneModal";
+import { ChatControls } from "@/components/se/ChatControls";
 import type { StyleKey } from "@/lib/ai/image-styles";
 
 /**
@@ -363,6 +363,12 @@ export function PlayClient({
   // Sidebar mobile drawer state (desktop rail always visible)
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // 2026-05-29 · inline chat controls (ChatGPT-style): model + agent mode are
+  // now reactive state (seeded from props) so the cost estimate + UI update
+  // live when the user switches mid-story via ChatControls.
+  const [activeModel, setActiveModel] = useState<string | null>(playthroughModel);
+  const [activeNpcL3, setActiveNpcL3] = useState<boolean>(npcL3Enabled);
 
   // Phase 8 · Visualize Scene modal state · which turn is being visualized
   const [visualizeTurnIndex, setVisualizeTurnIndex] = useState<number | null>(null);
@@ -868,13 +874,26 @@ export function PlayClient({
             )}
           </div>
 
+          {/* 2026-05-29 · inline chat controls (model picker + agent toggle) ·
+              ChatGPT-style · mobile + desktop · sits above the input. */}
+          <div className="mt-3">
+            <ChatControls
+              playthroughId={playthroughId}
+              currentModel={activeModel}
+              subscriptionTier={subscriptionTier}
+              npcL3Enabled={activeNpcL3}
+              onModelChange={setActiveModel}
+              onNpcL3Change={setActiveNpcL3}
+            />
+          </div>
+
           {/* Input */}
           <form
             onSubmit={(e) => {
               e.preventDefault();
               sendAction(input);
             }}
-            className="mt-3 flex gap-2"
+            className="flex gap-2"
           >
             <input
               type="text"
@@ -900,15 +919,15 @@ export function PlayClient({
               input. Reactive to NPC L3 enabled state · L3 adds ~6 credits per
               active NPC (max 3 → +18 credits). Free user with 60 credits left
               can now tell whether they have 1 turn or 3 turns remaining. */}
-          {playthroughModel && (
+          {activeModel && (
             <div
               className="mt-2 se-mono"
               style={{ fontSize: 11, color: "var(--se-fg-dim)", letterSpacing: "0.04em" }}
             >
               {tPlay("input.costEstimate", {
-                credits: estimateTurnCredits(playthroughModel, npcL3Enabled ? 3 : 0),
+                credits: estimateTurnCredits(activeModel, activeNpcL3 ? 3 : 0),
               })}
-              {npcL3Enabled ? (
+              {activeNpcL3 ? (
                 <span style={{ marginLeft: 8, color: "var(--se-accent)" }}>
                   {tPlay("input.l3Note")}
                 </span>
@@ -932,12 +951,9 @@ export function PlayClient({
               >
                 {tPlay("rail.npcCount", { count: npcs.length })}
               </div>
-              {/* Session 14 · NPC L3 opt-in toggle (Storyteller tier only · button-click per founder Q4) */}
-              <NpcL3Toggle
-                playthroughId={playthroughId}
-                initialEnabled={npcL3Enabled}
-                subscriptionTier={subscriptionTier}
-              />
+              {/* 2026-05-29 · NPC L3 toggle moved to inline ChatControls
+                  (above chat input · ChatGPT-style · founder rule). Rail now
+                  shows just the NPC disposition cards. */}
               {npcs.map((npc) => (
                 <NpcCard
                   key={npc.name}
