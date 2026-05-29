@@ -208,19 +208,13 @@ export async function POST(
       : null;
   const sufficient = balance === null ? true : balance >= estimatedTurnCost;
 
-  if (modelEntry?.allows_nsfw && !userAdultMode) {
-    // Wave 2 i18n cycle-3 fix (2026-05-28): error code + structured data
-    // instead of hardcoded 繁中 message. play-client renders localized body
-    // via play.errors.adultModeRequired{Title,Body,Cta} per user locale.
-    return NextResponse.json(
-      {
-        error: "adult_mode_required",
-        reason: "nsfw_model",
-        modelName: modelEntry.display_name,
-      },
-      { status: 403 },
-    );
-  }
+  // W4 fix · 2026-05-28 (ADR-022 follow-up): drop model-level allows_nsfw gate.
+  // 之前邏輯: model.allows_nsfw=true + !adult_mode → 403. 但 ADR-022 之後
+  // GLM-5.1 同時做 (a) Standard pool SFW model 出 fiction · (b) cross-tier
+  // NSFW model (when adult mode opted in). `allows_nsfw=true` 變咗代表
+  // "呢個 model 識做 NSFW" 唔係 "呢個 model 只可以做 NSFW".
+  // 真正 NSFW gate 喺 story.content_rating='adult' check 度做 (下面).
+  void modelEntry;
 
   if (!sufficient) {
     // Wave 2 i18n cycle-3 fix (2026-05-28): drop hardcoded 繁中 `message`.
@@ -845,6 +839,8 @@ export async function POST(
     }
   }
 
+  // W5 · 2026-05-28: Gemini safety_settings injection 由 lib/ai/providers.ts
+  // 嘅 fetch interceptor 處理 · 唔需要喺呢度傳 providerOptions.
   const result = streamText({
     // AUDIT FIX (AI-H-09): use provider dispatcher so non-Anthropic models
     // (OpenRouter for adult mode, etc.) route to the right SDK rather than
