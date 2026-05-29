@@ -11,12 +11,7 @@ import {
   buildStableSystemPrompt,
   buildDynamicSystemPrompt,
   buildMessages,
-  extractStateDelta,
-  extractDispositionChanges,
-  extractPermanentFlags,
-  updateStateTool,
-  updateCharacterDispositionTool,
-  setPermanentFlagTool,
+  extractTurnState,
   isLLMRefusal,
   refusalFallbackNarrative,
   type TurnContext,
@@ -877,11 +872,11 @@ export async function POST(
       },
       ...messages,
     ],
-    tools: {
-      update_state: updateStateTool,
-      update_character_disposition: updateCharacterDispositionTool,
-      set_permanent_flag: setPermanentFlagTool,
-    },
+    // 2026-05-29: NO tools on the Narrator. Gemini/GLM via CrazyRouter often
+    // returned finish_reason=tool_calls with EMPTY prose (escaping into the
+    // tool instead of writing) → blank turns. Narrator now writes PROSE ONLY;
+    // state changes are extracted afterwards by a separate Haiku call
+    // (extractTurnState) which does structured output reliably.
     // Anthropic extended thinking forces temperature internally — passing a
     // value makes the SDK strip it + warn every turn (log noise). Omit it on
     // that path; otherwise keep 0.85.
@@ -925,7 +920,7 @@ export async function POST(
         // ignore
       }
     },
-    onFinish: async ({ text, toolCalls, usage }) => {
+    onFinish: async ({ text, usage }) => {
       try {
         // L-08 fix: detect LLM refusal + substitute in-fiction fallback.
         // AUDIT FIX (AI-M-07): pass story language so fallback matches locale
@@ -949,12 +944,27 @@ export async function POST(
           );
         }
 
-        const delta = extractStateDelta(toolCalls);
+        // 2026-05-29: state changes now come from a SEPARATE Haiku extraction
+        // of the finished prose (the Narrator no longer uses tools — see the
+        // streamText note). Skip on refusal / empty-prose fallback (nothing
+        // really happened). Extractor failure is non-fatal — prose still saves.
+        const extraction =
+          !isRefusal && !isEmptyProse
+            ? await extractTurnState(ctx, finalText).catch((e) => {
+                console.warn(
+                  "[turn] state extraction failed (continuing):",
+                  e instanceof Error ? e.message : e,
+                );
+                return null;
+              })
+            : null;
+        const delta = extraction?.delta ?? null;
+        const dispositionChanges = extraction?.dispositionChanges ?? [];
+        const permanentFlags = extraction?.flags ?? [];
+        const extractorUsage = extraction?.usage ?? {};
+
         let newState = currentState;
-        // Skip state mutations on refusal OR empty-prose fallback — the
-        // substituted "nothing really happened" narrative must not be
-        // contradicted by silent state changes.
-        if (delta && delta.ops.length > 0 && !isRefusal && !isEmptyProse) {
+        if (delta && delta.ops.length > 0) {
           const applied = applyDelta(currentState, delta, stateSchema);
           newState = applied.state;
           if (applied.skipped.length > 0) {
@@ -964,12 +974,6 @@ export async function POST(
             );
           }
         }
-
-        // ─── Phase 1.5.3: extract Narrator's disposition + flag tool calls ───
-        const dispositionChanges =
-          isRefusal || isEmptyProse ? [] : extractDispositionChanges(toolCalls);
-        const permanentFlags =
-          isRefusal || isEmptyProse ? [] : extractPermanentFlags(toolCalls);
 
         // Phase 1.5/2 polish (M-02) — NPC name fuzzy match.
         // Narrator may refer to NPCs by short form ("阿明") while DB has full
@@ -1303,10 +1307,14 @@ export async function POST(
                 cachedInputTokens: usage?.cachedInputTokens,
               },
               director: {
+                // Director + state-extractor are both Haiku calls — combine
+                // their tokens here so the per-turn charge stays accurate
+                // (2026-05-29: extractor is the new prose→state pass).
                 modelId: "claude-haiku-4-5",
-                inputTokens: directorUsage.inputTokens ?? 0,
-                outputTokens: directorUsage.outputTokens ?? 0,
-                cachedInputTokens: directorUsage.cachedInputTokens,
+                inputTokens: (directorUsage.inputTokens ?? 0) + (extractorUsage.inputTokens ?? 0),
+                outputTokens: (directorUsage.outputTokens ?? 0) + (extractorUsage.outputTokens ?? 0),
+                cachedInputTokens:
+                  (directorUsage.cachedInputTokens ?? 0) + (extractorUsage.cachedInputTokens ?? 0),
               },
               // Estimated background work — these run via after() shortly
               // after charge. Variance absorbed by 2× markup buffer.
