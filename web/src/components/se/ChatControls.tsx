@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useRef, useEffect } from "react";
 import { useTranslations } from "next-intl";
-import { ChevronDown, Lock, Check, Drama, Loader2, Brain } from "lucide-react";
+import { ChevronDown, Lock, Check, Drama, Brain } from "lucide-react";
 import {
   setPlaythroughModel,
   setNpcL3Enabled,
@@ -60,9 +60,12 @@ export function ChatControls({
   const [npcL3, setNpcL3] = useState(initialNpcL3);
   const [thinking, setThinking] = useState(initialThinking);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [modelPending, startModelTransition] = useTransition();
-  const [npcPending, startNpcTransition] = useTransition();
-  const [thinkingPending, startThinkingTransition] = useTransition();
+  // ChatGPT-style instant toggles: optimistic flip + background write (no
+  // spinner · no disable · no revalidate). We don't read isPending — the
+  // ON/OFF flip IS the feedback. (founder 2026-05-29: toggles felt like a reload.)
+  const [, startModelTransition] = useTransition();
+  const [, startNpcTransition] = useTransition();
+  const [, startThinkingTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -174,16 +177,11 @@ export function ChatControls({
         <button
           type="button"
           onClick={() => setMenuOpen((o) => !o)}
-          disabled={modelPending}
           aria-haspopup="listbox"
           aria-expanded={menuOpen}
-          className="inline-flex items-center gap-1.5 rounded-md border border-border/70 bg-card px-2.5 py-1.5 text-xs hover:border-foreground/40 transition-colors disabled:opacity-60"
+          className="inline-flex items-center gap-1.5 rounded-md border border-border/70 bg-card px-2.5 py-1.5 text-xs hover:border-foreground/40 transition-colors"
         >
-          {modelPending ? (
-            <Loader2 className="h-3 w-3 animate-spin" />
-          ) : (
-            <span className="text-[13px]">🤖</span>
-          )}
+          <span className="text-[13px]">🤖</span>
           <span className="se-cjk font-medium max-w-[140px] truncate">
             {currentModelName}
           </span>
@@ -241,20 +239,15 @@ export function ChatControls({
       <button
         type="button"
         onClick={toggleNpcL3}
-        disabled={npcPending}
         aria-pressed={npcL3}
         title={t("agentTooltip")}
-        className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs transition-colors disabled:opacity-60 ${
+        className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs transition-colors ${
           npcL3
             ? "border-primary bg-primary/10 text-foreground"
             : "border-border/70 bg-card text-muted-foreground hover:border-foreground/40"
         }`}
       >
-        {npcPending ? (
-          <Loader2 className="h-3 w-3 animate-spin" />
-        ) : (
-          <Drama className="h-3.5 w-3.5" />
-        )}
+        <Drama className="h-3.5 w-3.5" />
         <span className="se-cjk font-medium">{t("agentMode")}</span>
         <span
           className={`text-[10px] font-bold uppercase ${
@@ -269,20 +262,15 @@ export function ChatControls({
       <button
         type="button"
         onClick={toggleThinking}
-        disabled={thinkingPending}
         aria-pressed={thinking}
         title={t("thinkingTooltip")}
-        className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs transition-colors disabled:opacity-60 ${
+        className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs transition-colors ${
           thinking
             ? "border-primary bg-primary/10 text-foreground"
             : "border-border/70 bg-card text-muted-foreground hover:border-foreground/40"
         }`}
       >
-        {thinkingPending ? (
-          <Loader2 className="h-3 w-3 animate-spin" />
-        ) : (
-          <Brain className="h-3.5 w-3.5" />
-        )}
+        <Brain className="h-3.5 w-3.5" />
         <span className="se-cjk font-medium">{t("thinkingMode")}</span>
         <span
           className={`text-[10px] font-bold uppercase ${

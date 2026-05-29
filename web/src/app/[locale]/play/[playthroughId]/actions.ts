@@ -4,7 +4,6 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { getActiveTier } from "@/lib/billing/credits";
 import { MODELS, TIER_GATE, type ModelTier } from "@/lib/ai/models";
-import { revalidatePath } from "next/cache";
 
 /**
  * Session 14 · Server action for NPC L3 opt-in toggle (founder Q4 sign-off).
@@ -110,10 +109,9 @@ export async function setNpcL3Enabled(
     return { ok: false, errorCode: "play.saveFailed", code: "db_error" };
   }
 
-  // Revalidate play page so UI sees new state on next render
-  revalidatePath(`/play/${playthroughId}`);
-  revalidatePath(`/play/${playthroughId}/memory`);
-
+  // No revalidatePath: the toggle is reflected by optimistic client state +
+  // read fresh from DB on the next turn. Revalidating re-renders the whole
+  // play page → felt like a reload on mobile (founder 2026-05-29).
   return { ok: true, enabled };
 }
 
@@ -204,7 +202,8 @@ export async function setPlaythroughModel(
     return { ok: false, errorCode: "play.saveFailed", code: "db_error" };
   }
 
-  revalidatePath(`/play/${playthroughId}`);
+  // No revalidatePath (ChatGPT-style instant switch · optimistic client state ·
+  // turn route reads pt.llm_model fresh next turn). Avoids full-page reload.
   return { ok: true, modelId };
 }
 
@@ -267,6 +266,7 @@ export async function setThinkingMode(
     return { ok: false, errorCode: "play.saveFailed", code: "db_error" };
   }
 
-  revalidatePath(`/play/${playthroughId}`);
+  // No revalidatePath (instant toggle · optimistic client state · turn route
+  // reads thinking_mode_enabled fresh next turn). Avoids full-page reload.
   return { ok: true, enabled };
 }
