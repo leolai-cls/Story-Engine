@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useRef, useEffect } from "react";
 import { useTranslations } from "next-intl";
-import { ChevronDown, Lock, Check, Drama, Brain } from "lucide-react";
+import { ChevronDown, Lock, Check, Drama, Brain, Bot } from "lucide-react";
 import {
   setPlaythroughModel,
   setNpcL3Enabled,
@@ -184,7 +184,7 @@ export function ChatControls({
           aria-expanded={menuOpen}
           className="inline-flex items-center gap-1 rounded-md border border-border/70 bg-card px-2 py-1.5 text-xs hover:border-foreground/40 transition-colors"
         >
-          <span className="text-[13px]">🤖</span>
+          <Bot className="h-3.5 w-3.5 text-muted-foreground flex-none" />
           <span className="se-cjk font-medium max-w-[84px] sm:max-w-[150px] truncate">
             {currentModelName}
           </span>

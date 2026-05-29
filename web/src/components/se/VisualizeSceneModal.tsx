@@ -407,8 +407,9 @@ export function VisualizeSceneModal({
               {styleMode === "preset" && (
                 <div className="space-y-2">
                   {suggestedKeys.length > 0 && (
-                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground se-cjk">
-                      ✨ {t("styleSuggestion")}
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground se-cjk inline-flex items-center gap-1">
+                      <Wand2 className="h-3 w-3" />
+                      {t("styleSuggestion")}
                     </div>
                   )}
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-72 overflow-y-auto">

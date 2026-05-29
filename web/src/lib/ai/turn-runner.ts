@@ -240,11 +240,9 @@ One entry per (character × axis) change. Common axes: trust, romance, respect, 
 
 export const PermanentFlagSchema = z.object({
   character_name: z.string().min(1).max(40),
-  flag: z
-    .string()
-    .min(3)
-    .max(60)
-    .regex(/^[a-z][a-z0-9_]*$/, "Use snake_case for flag names"),
+  // snake_case requested in the description (not enforced via regex): a `pattern`
+  // keyword in the tool schema is rejected by CrazyRouter→Gemini (2026-05-29).
+  flag: z.string().min(3).max(60),
   reason: z.string().min(10).max(140),
 });
 
