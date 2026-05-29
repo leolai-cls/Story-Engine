@@ -1,5 +1,7 @@
 import { z } from "zod";
-import { tool } from "ai";
+import { tool, generateObject } from "ai";
+import { anthropicProvider } from "./providers";
+import { DEFAULT_DIRECTOR } from "./models";
 import { bibleToSystemPrompt, type StoryBible } from "@/schemas/bible";
 import {
   allCharactersStaticTemplate,
@@ -8,7 +10,7 @@ import {
   type Disposition,
   type NpcDynamicState,
 } from "@/schemas/character";
-import { StateDeltaSchema, type StateDelta } from "@/schemas/state-delta";
+import { StateDeltaSchema, StateOpSchema, type StateDelta } from "@/schemas/state-delta";
 import { INTERNAL_STATE_KEY_PREFIX, type StateSchema } from "@/schemas/state-schema";
 
 /**
@@ -541,6 +543,98 @@ export function extractStateDelta(
   if (!call) return null;
   const parsed = StateDeltaSchema.safeParse(call.input);
   return parsed.success ? parsed.data : null;
+}
+
+/**
+ * Turn state extraction (2026-05-29) — DECOUPLED from the Narrator.
+ *
+ * Why: the Narrator must reliably produce PROSE, but giving it `update_state`
+ * tools made non-Claude models (Gemini/GLM via CrazyRouter) often return
+ * finish_reason=tool_calls with EMPTY prose — they "answer" via the tool call
+ * instead of writing → blank turns (founder-reported showstopper). So the
+ * Narrator now writes prose ONLY (no tools), and THIS cheap Haiku call reads
+ * that prose + current state and emits the structured delta / disposition /
+ * flags. Haiku (Anthropic-direct) does structured output reliably regardless
+ * of the narrator's model.
+ */
+export const TurnExtractionSchema = z.object({
+  ops: z.array(StateOpSchema).max(10),
+  disposition_changes: z.array(DispositionChangeSchema).max(8),
+  flags: z.array(PermanentFlagSchema).max(3),
+});
+
+export async function extractTurnState(
+  ctx: TurnContext,
+  narrative: string,
+): Promise<{
+  delta: StateDelta | null;
+  dispositionChanges: DispositionChange[];
+  flags: PermanentFlagToSet[];
+  usage: { inputTokens?: number; outputTokens?: number; cachedInputTokens?: number };
+}> {
+  const fields = ctx.story.state_schema.fields
+    .map((f) => {
+      const opts =
+        f.render_hint === "enum_chip" && Array.isArray(f.options) && f.options.length > 0
+          ? ` · only: [${f.options.join(" / ")}]`
+          : "";
+      const range =
+        f.render_hint === "bar" || f.render_hint === "meter_with_label"
+          ? ` · 0..${f.max}`
+          : f.render_hint === "progress_ring"
+            ? " · 0..100"
+            : "";
+      return `- \`${f.key}\` (${f.render_hint})${opts}${range}: ${f.label}`;
+    })
+    .join("\n");
+  const charNames = ctx.characters.map((c) => c.card.name).join(", ") || "(none)";
+  const visibleState = stripInternalKeys(ctx.current_state);
+
+  const system = `You convert a story turn's narrative into structured STATE CHANGES. Read the narrative + the current state, then output ONLY the changes the narrative actually implies.
+
+## Ops (ops[])
+- \`inc\`: numeric field +/- via \`by\` — HP loss, affection +, money -, score +
+- \`set\`: set a field's value via \`value\` (always a STRING) — enum_chip status, note text, a number written as text
+- \`push\`: add an item to an inventory_list field via \`value\` (item name)
+- \`remove\`: remove an item from an inventory_list field by \`index\`
+ONLY use field keys listed below. For enum_chip, \`value\` MUST be one of the listed options. Numeric values are auto-clamped.
+
+## State fields
+${fields}
+
+## Current state
+\`\`\`json
+${JSON.stringify(visibleState)}
+\`\`\`
+
+## NPC disposition (disposition_changes[])
+Characters present: ${charNames}
+If the narrative changes how an NPC feels toward the player, emit one change: character_name (must match a name above), axis (trust / romance / respect / fear, or a story-specific axis), delta (-30..30), reason.
+
+## Permanent flags (flags[]) — RARE
+Only for story-defining moments (rescue / betrayal / vow / sacrifice). Most turns: empty.
+
+Return empty arrays for anything that did not change. Do NOT invent changes the narrative does not support.`;
+
+  const result = await generateObject({
+    model: anthropicProvider(DEFAULT_DIRECTOR),
+    schema: TurnExtractionSchema,
+    system,
+    prompt: `Narrative of this turn:\n\n${narrative}\n\nExtract the state changes.`,
+    temperature: 0.2,
+    maxOutputTokens: 900,
+  });
+  const obj = result.object;
+  return {
+    delta: obj.ops.length > 0 ? { ops: obj.ops } : null,
+    dispositionChanges: obj.disposition_changes,
+    flags: obj.flags,
+    usage: {
+      inputTokens: result.usage?.inputTokens,
+      outputTokens: result.usage?.outputTokens,
+      cachedInputTokens: result.usage?.cachedInputTokens,
+    },
+  };
 }
 
 // Re-export Zod for callers
