@@ -906,39 +906,15 @@ export function PlayClient({
               </div>
             )}
 
+            {/* 2026-05-29 (founder): loading shows INLINE in the chat flow (like
+                ChatGPT) — no floating popup. Same line whether we're moderating
+                or the model is thinking; text just swaps after the 600ms hint. */}
             {streaming && !streamText && (
               <div className="flex items-center gap-2 text-xs text-muted-foreground py-3">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                {!showSafetyHint && tPlay("turn.aiThinking")}
-              </div>
-            )}
-            {/* C3 audit fix · floating moderation pill chip after 600ms safety hint */}
-            {streaming && !streamText && showSafetyHint && (
-              <div
-                className="fixed left-1/2 -translate-x-1/2 z-30 flex items-center gap-3"
-                style={{
-                  bottom: 120,
-                  padding: "12px 18px",
-                  borderRadius: 999,
-                  background: "var(--se-surface)",
-                  border: "1px solid var(--se-border-strong)",
-                  boxShadow: "var(--se-shadow-pop)",
-                  fontSize: 13,
-                  color: "var(--se-fg-2)",
-                }}
-              >
-                <span
-                  className="inline-flex items-center justify-center"
-                  style={{
-                    width: 22,
-                    height: 22,
-                    borderRadius: 11,
-                    background: "var(--se-ok-bg)",
-                  }}
-                >
-                  <Shield size={12} color="var(--se-ok)" />
+                <span className="se-cjk">
+                  {showSafetyHint ? tPlay("turn.moderationPending") : tPlay("turn.aiThinking")}
                 </span>
-                <span className="se-cjk">{tPlay("turn.moderationPending")}</span>
               </div>
             )}
 
