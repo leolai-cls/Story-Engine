@@ -4,29 +4,25 @@ import { createOpenAI } from "@ai-sdk/openai";
 /**
  * Embedding wrapper — Phase 2 memory layer foundation.
  *
- * ADR-021 (2026-05-28): HK founder 攞唔到 OpenAI API key · embedding 改用
- * OpenRouter (OpenAI-compatible base URL · 同 image gen + chat completion
- * sharing 嘅同一個 `OPENROUTER_API_KEY`).
+ * ADR-021 (2026-05-29): HK founder 攞唔到 OpenAI API key · embedding 行
+ * CrazyRouter (OpenAI-compatible · 同 chat completion sharing 嘅同一個
+ * `CRAZYROUTER_API_KEY`). CrazyRouter 解封咗 embedding（OpenRouter 喺香港
+ * block 埋 text-embedding） → RAG semantic search 喺香港終於 work。
  *
- * Model: OpenAI text-embedding-3-small via OpenRouter
- * (1536 dim · 中文-friendly · OpenRouter usage charged but cheap).
+ * Model: text-embedding-3-small (CrazyRouter bare slug · 1536 dim · 中文-friendly).
  *
- * 注: 如果 OpenRouter 唔 expose /v1/embeddings · embed() 會 throw · 上層
+ * 注: 如果 CrazyRouter 暫時 503 / embed 失敗 · embed() 會 throw · 上層
  * embedTextSafe() catch return null · memory journal 自動 degrade (lorebook
- * 仍然 work via keyword scan · RAG semantic search 暫時失效). 呢個係 launch
- * 後 backlog item · 換 Cohere multilingual embed 補返 RAG layer.
+ * 仍然 work via keyword scan · RAG semantic search 暫時失效).
  */
 
 const openaiEmbedClient = createOpenAI({
-  apiKey: process.env.OPENROUTER_API_KEY,
-  baseURL: "https://openrouter.ai/api/v1",
-  headers: {
-    "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL ?? "https://app.kieio.com",
-    "X-Title": "Kieio",
-  },
+  apiKey: process.env.CRAZYROUTER_API_KEY,
+  baseURL: "https://crazyrouter.com/v1",
+  headers: { "X-Title": "Kieio" },
 });
 
-const EMBED_MODEL = "openai/text-embedding-3-small";
+const EMBED_MODEL = "text-embedding-3-small";
 const EMBED_DIMS = 1536;
 
 /**

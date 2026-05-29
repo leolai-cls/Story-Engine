@@ -480,6 +480,8 @@
       "userBadge": "→ {protagonist}",
       "aiBadge": "↳ 叙事",
       "aiPending": "↳ 叙事 (输出中...)",
+      "thinkingLabel": "思考过程",
+      "thinkingLive": "AI 思考中…",
       "aiThinking": "AI 思考中...",
       "moderationPending": "内容审核 + AI 思考中…",
       "directorSoftTooltip": "NPC 反应与你预期不同"
@@ -499,7 +501,9 @@
       "modelLocked": "升级 tier 才能用这个 model",
       "agentMode": "NPC 内心戏",
       "agentTooltip": "这个 turn 每个 NPC 有自己 POV + 内心独白（Storyteller tier · 每个 NPC ~6 credits）",
-      "agentTierRequired": "NPC 内心戏需要 Storyteller tier — 升级才解锁"
+      "agentTierRequired": "NPC 内心戏需要 Storyteller tier — 升级才解锁",
+      "thinkingMode": "深度思考",
+      "thinkingTooltip": "AI 想清楚剧情同人物先落笔 · 叙事更深 · 会多烧 credits、慢几秒（按实际用量计）"
     },
     "rail": {
       "npcCount": "NPC · {count}",

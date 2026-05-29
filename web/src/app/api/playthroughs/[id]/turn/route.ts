@@ -130,7 +130,8 @@ export async function POST(
     .from("playthroughs")
     .select(
       // Wave 2 fix CRIT-A: include npc_l3_enabled · was missing → L3 path dead
-      "id, user_id, story_id, character_name, current_state, llm_model, turn_count, npc_l3_enabled",
+      // 2026-05-29: include thinking_mode_enabled (founder deep-thinking toggle · Migration 0046)
+      "id, user_id, story_id, character_name, current_state, llm_model, turn_count, npc_l3_enabled, thinking_mode_enabled",
     )
     .eq("id", playthroughId)
     .single();
@@ -839,13 +840,23 @@ export async function POST(
     }
   }
 
+  // 2026-05-29 (founder product decision): per-playthrough deep-thinking toggle
+  // (Migration 0046). ON → narrator reasons before writing (richer narration ·
+  // more credits · slower). Gemini thinking is routed via the thinking-enabled
+  // CrazyRouter instance (providers.ts); Anthropic uses extended thinking which
+  // requires temperature=1 and max_tokens > thinking budget.
+  const thinkingEnabled =
+    (pt as { thinking_mode_enabled?: boolean }).thinking_mode_enabled === true;
+  const narratorModelId = pt.llm_model ?? "claude-sonnet-4-6";
+  const narratorIsAnthropic = MODELS[narratorModelId]?.provider === "anthropic";
+  const ANTHROPIC_THINKING_BUDGET = 2000;
+
   // W5 · 2026-05-28: Gemini safety_settings injection 由 lib/ai/providers.ts
   // 嘅 fetch interceptor 處理 · 唔需要喺呢度傳 providerOptions.
   const result = streamText({
     // AUDIT FIX (AI-H-09): use provider dispatcher so non-Anthropic models
-    // (OpenRouter for adult mode, etc.) route to the right SDK rather than
-    // 404'ing against Anthropic.
-    model: getProviderModel(pt.llm_model ?? "claude-sonnet-4-6"),
+    // route to the right SDK rather than 404'ing against Anthropic.
+    model: getProviderModel(narratorModelId, { thinking: thinkingEnabled }),
     messages: [
       {
         role: "system",
@@ -867,8 +878,22 @@ export async function POST(
       update_character_disposition: updateCharacterDispositionTool,
       set_permanent_flag: setPermanentFlagTool,
     },
-    temperature: 0.85,
-    maxOutputTokens: 1500,
+    // Anthropic extended thinking requires temperature=1; otherwise keep 0.85.
+    temperature: thinkingEnabled && narratorIsAnthropic ? 1 : 0.85,
+    // Deep thinking needs headroom for reasoning + prose (else prose gets cut).
+    maxOutputTokens: thinkingEnabled ? 4000 : 1500,
+    // Anthropic extended thinking (call-level providerOptions · coexists with
+    // the per-message cacheControl above). CrazyRouter models get their thinking
+    // behaviour from the provider instance, not here.
+    ...(thinkingEnabled && narratorIsAnthropic
+      ? {
+          providerOptions: {
+            anthropic: {
+              thinking: { type: "enabled" as const, budgetTokens: ANTHROPIC_THINKING_BUDGET },
+            },
+          },
+        }
+      : {}),
     // W4 fix · agent 4-persona retest 2026-05-28 揾到 streamText silent fail:
     // POST /turn 返 200 OK 但 narrator output 從未出 · AI turn row 從未 insert ·
     // credit charge 從未 trigger. Root cause 推斷係 OpenRouter Gemini chat
@@ -1556,5 +1581,10 @@ export async function POST(
     },
   });
 
-  return result.toUIMessageStreamResponse();
+  // sendReasoning: stream the narrator's thinking to the client (collapsible
+  // panel · founder 2026-05-29) only when the user opted into deep thinking.
+  // Models that expose reasoning text (GLM / Claude) populate the panel;
+  // Gemini usually hides its chain-of-thought (panel may be empty · prose
+  // still improves). When thinking is OFF there is no reasoning to send.
+  return result.toUIMessageStreamResponse({ sendReasoning: thinkingEnabled });
 }

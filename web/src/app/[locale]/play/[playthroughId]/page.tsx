@@ -34,7 +34,7 @@ export default async function PlayPage({
   // Session 14: include npc_l3_enabled for Storyteller-tier opt-in toggle UI
   const { data: pt } = await supabase
     .from("playthroughs")
-    .select("id, user_id, story_id, character_name, current_state, turn_count, npc_l3_enabled, llm_model")
+    .select("id, user_id, story_id, character_name, current_state, turn_count, npc_l3_enabled, thinking_mode_enabled, llm_model")
     .eq("id", playthroughId)
     .single();
 
@@ -195,6 +195,7 @@ export default async function PlayPage({
       sidebarPlaythroughs={sidebarPlaythroughs}
       sidebarTotalCount={totalPlaythroughCount ?? sidebarPlaythroughs.length}
       npcL3Enabled={pt.npc_l3_enabled ?? false}
+      thinkingModeEnabled={(pt as { thinking_mode_enabled?: boolean }).thinking_mode_enabled ?? false}
       subscriptionTier={subscriptionTier}
       playthroughModel={(pt.llm_model as string) ?? null}
       storyContentRating={
