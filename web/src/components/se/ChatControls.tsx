@@ -170,8 +170,11 @@ export function ChatControls({
   const currentModelEntry = model ? MODELS[model] : null;
   const currentModelName = currentModelEntry?.display_name ?? t("modelDefault");
 
+  // Mobile-compact controls (founder 2026-05-29): tight gaps + a hard-truncated
+  // model name so all three chips fit ONE row on a ~390px phone instead of
+  // wrapping. Still flex-wrap as a graceful fallback.
   return (
-    <div className="mb-2 flex items-center gap-2 flex-wrap">
+    <div className="mb-2 flex items-center gap-1.5 flex-wrap">
       {/* ─── Model picker ─── */}
       <div className="relative" ref={menuRef}>
         <button
@@ -179,13 +182,13 @@ export function ChatControls({
           onClick={() => setMenuOpen((o) => !o)}
           aria-haspopup="listbox"
           aria-expanded={menuOpen}
-          className="inline-flex items-center gap-1.5 rounded-md border border-border/70 bg-card px-2.5 py-1.5 text-xs hover:border-foreground/40 transition-colors"
+          className="inline-flex items-center gap-1 rounded-md border border-border/70 bg-card px-2 py-1.5 text-xs hover:border-foreground/40 transition-colors"
         >
           <span className="text-[13px]">🤖</span>
-          <span className="se-cjk font-medium max-w-[140px] truncate">
+          <span className="se-cjk font-medium max-w-[84px] sm:max-w-[150px] truncate">
             {currentModelName}
           </span>
-          <ChevronDown className="h-3 w-3 text-muted-foreground" />
+          <ChevronDown className="h-3 w-3 text-muted-foreground flex-none" />
         </button>
 
         {menuOpen && (
@@ -241,7 +244,7 @@ export function ChatControls({
         onClick={toggleNpcL3}
         aria-pressed={npcL3}
         title={t("agentTooltip")}
-        className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs transition-colors ${
+        className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1.5 text-xs transition-colors ${
           npcL3
             ? "border-primary bg-primary/10 text-foreground"
             : "border-border/70 bg-card text-muted-foreground hover:border-foreground/40"
@@ -264,7 +267,7 @@ export function ChatControls({
         onClick={toggleThinking}
         aria-pressed={thinking}
         title={t("thinkingTooltip")}
-        className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs transition-colors ${
+        className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1.5 text-xs transition-colors ${
           thinking
             ? "border-primary bg-primary/10 text-foreground"
             : "border-border/70 bg-card text-muted-foreground hover:border-foreground/40"
