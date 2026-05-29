@@ -1000,7 +1000,7 @@ export function PlayClient({
               style={{ fontSize: 11, color: "var(--se-fg-dim)", letterSpacing: "0.04em" }}
             >
               {tPlay("input.costEstimate", {
-                credits: estimateTurnCredits(activeModel, activeNpcL3 ? 3 : 0),
+                credits: estimateTurnCredits(activeModel, activeNpcL3 ? 3 : 0, activeThinking),
               })}
               {activeNpcL3 ? (
                 <span style={{ marginLeft: 8, color: "var(--se-accent)" }}>

@@ -366,29 +366,6 @@
       "event": "Event",
       "concept": "Concept"
     },
-    "active": {
-      "emptyTitle": "No active memory for this turn",
-      "emptyBody": "The AI couldn't find relevant context for what just happened — that's by design (similarity floor). Memory shows up when you reference past events."
-    },
-    "memoir": {
-      "emptyTitle": "The AI hasn't started writing a memoir yet",
-      "emptyBody": "Summaries are written every 20 turns. Keep playing and chapters will appear here."
-    },
-    "characters": {
-      "emptyTitle": "The AI hasn't met anyone in this world yet",
-      "emptyBody": "Lorebook entries (people · places · items · events · lore) are extracted in the background while you play.",
-      "alwaysOn": "Always on",
-      "firstSeen": "First seen",
-      "readonlyBadge": "Read-only"
-    },
-    "innerVoices": {
-      "emptyTitle": "No NPC inner voices recorded yet",
-      "emptyBody": "Enable NPC inner voices in the play screen (Storyteller tier) to see each NPC's POV here.",
-      "storyteller": "Storyteller exclusive",
-      "innerThought": "Inner thought",
-      "intent": "Intent",
-      "internalPov": "Internal POV"
-    },
     "backToPlay": "Back to play",
     "continuePlay": "Continue playing",
     "ariaBack": "Back to play",

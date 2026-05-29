@@ -188,7 +188,12 @@ export async function POST(
   // Underestimate would cause post-stream charge to fail with insufficient
   // credits → "free turn" + reconciliation debt. Better to over-estimate.
   const expectedL3Agents = ((pt as { npc_l3_enabled?: boolean }).npc_l3_enabled === true) ? 3 : 0;
-  const estimatedTurnCost = estimateTurnCredits(playthroughModel, expectedL3Agents);
+  // 2026-05-29: deep-thinking mode bumps narrator output (reasoning + story
+  // text) → reserve more in the pre-charge gate (same over-estimate rationale
+  // as L3 above). Defined once here · reused by the streamText block below.
+  const thinkingEnabled =
+    (pt as { thinking_mode_enabled?: boolean }).thinking_mode_enabled === true;
+  const estimatedTurnCost = estimateTurnCredits(playthroughModel, expectedL3Agents, thinkingEnabled);
 
   const { data: profileGate, error: profileGateErr } = await supabase
     .from("profiles")
@@ -845,8 +850,7 @@ export async function POST(
   // more credits · slower). Gemini thinking is routed via the thinking-enabled
   // CrazyRouter instance (providers.ts); Anthropic uses extended thinking which
   // requires temperature=1 and max_tokens > thinking budget.
-  const thinkingEnabled =
-    (pt as { thinking_mode_enabled?: boolean }).thinking_mode_enabled === true;
+  // thinkingEnabled defined once near the pre-charge gate above (reused here).
   const narratorModelId = pt.llm_model ?? "claude-sonnet-4-6";
   const narratorIsAnthropic = MODELS[narratorModelId]?.provider === "anthropic";
   const ANTHROPIC_THINKING_BUDGET = 2000;
@@ -878,8 +882,10 @@ export async function POST(
       update_character_disposition: updateCharacterDispositionTool,
       set_permanent_flag: setPermanentFlagTool,
     },
-    // Anthropic extended thinking requires temperature=1; otherwise keep 0.85.
-    temperature: thinkingEnabled && narratorIsAnthropic ? 1 : 0.85,
+    // Anthropic extended thinking forces temperature internally — passing a
+    // value makes the SDK strip it + warn every turn (log noise). Omit it on
+    // that path; otherwise keep 0.85.
+    temperature: thinkingEnabled && narratorIsAnthropic ? undefined : 0.85,
     // Deep thinking needs headroom for reasoning + prose (else prose gets cut).
     maxOutputTokens: thinkingEnabled ? 4000 : 1500,
     // Anthropic extended thinking (call-level providerOptions · coexists with

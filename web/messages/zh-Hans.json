@@ -366,29 +366,6 @@
       "event": "事件",
       "concept": "概念"
     },
-    "active": {
-      "emptyTitle": "本 turn 没 active memory",
-      "emptyBody": "AI 现在看不到相关 context — 这是 by design（similarity floor）。当你 reference 过去发生的事，记忆就会 surface。"
-    },
-    "memoir": {
-      "emptyTitle": "AI 还没开始整理回忆",
-      "emptyBody": "每 20 turn 写一次摘要。继续玩，章节会出现在这里。"
-    },
-    "characters": {
-      "emptyTitle": "AI 还没认识这个世界的人物",
-      "emptyBody": "Lorebook entries（人物 · 地点 · 物品 · 事件 · lore）会在你玩的时候在后台抽取。",
-      "alwaysOn": "Always on",
-      "firstSeen": "首见",
-      "readonlyBadge": "唯读"
-    },
-    "innerVoices": {
-      "emptyTitle": "尚无 NPC 内心戏记录",
-      "emptyBody": "在扮演画面启用 NPC 内心戏（Storyteller tier）即可看到每个 NPC 的 POV。",
-      "storyteller": "Storyteller 独享",
-      "innerThought": "心底",
-      "intent": "意图",
-      "internalPov": "内部 POV"
-    },
     "backToPlay": "返回扮演",
     "continuePlay": "继续扮演",
     "ariaBack": "返回扮演",
