@@ -1,7 +1,7 @@
 import { generateObject } from "ai";
 import { z } from "zod";
 import { getProviderModel } from "./providers";
-import { pickModelForTier } from "./tier-router";
+import { DEFAULT_DIRECTOR, ADULT_NSFW_MODEL } from "./models";
 import {
   NpcAgentOutputSchema,
   MAX_NPC_L3_AGENTS_PER_TURN,
@@ -383,6 +383,7 @@ async function callSingleNpcAgent(params: {
   povMemories: PovMemory[];
   recentTurns: AgentBuildContext["recentTurns"];
   storyLanguage: "zh-Hant" | "zh-Hans" | "en";
+  contentRating: "sfw" | "soft" | "adult";
 }): Promise<NpcAgentResult> {
   const {
     character,
@@ -392,22 +393,19 @@ async function callSingleNpcAgent(params: {
     povMemories,
     recentTurns,
     storyLanguage,
+    contentRating,
   } = params;
 
-  // Standard tier model · CJK → GLM-5.1 · EN → Gemini Flash (via tier-router)
-  // Wave 2 fix HIGH-05 (Agent B): use ACTUAL scene content for routing decision
-  // (not proxy string). Previously hardcoded "繁體中文場景內容" / "english scene content"
-  // bypassed isChineseContent's substance check → bilingual stories (HK
-  // 中英夾雜) always routed by Bible's language flag · inner_thought quality
-  // dropped when actual scene was English-heavy. Now: sample real content.
-  const routingSample = [
-    userAction.slice(0, 300),
-    ...recentTurns.slice(-2).map((t) => t.text.slice(0, 200)),
-    character.card.voice_sample.slice(0, 100),
-  ]
-    .filter(Boolean)
-    .join("\n");
-  const modelId = pickModelForTier("standard", { context: routingSample });
+  // 2026-05-30 (founder · DB audit): NPC agents call generateObject (structured
+  // output). The Standard pool (GLM-5.1 / Gemini via CrazyRouter) is the SAME
+  // fragile structured-output path that produced blank narrator turns — and the
+  // audit found npc_inner_thoughts 100% empty. Route the agent's structured call
+  // through the reliable Anthropic Haiku (same model as the Director).
+  // EXCEPTION — adult-rated stories: CLAUDE.md hard rule #5 forbids NSFW traffic
+  // on the Anthropic account (platform-ban risk), so those stay on the NSFW-safe
+  // GLM-5.1 via CrazyRouter. Flat 6 credits/agent regardless of model (founder Q3).
+  const modelId =
+    contentRating === "adult" ? ADULT_NSFW_MODEL : DEFAULT_DIRECTOR;
 
   const systemPrompt = buildNpcAgentSystemPrompt(character.card, storyLanguage);
   const userMessage = buildAgentUserMessage({
@@ -496,6 +494,8 @@ export type NpcAgentBatchInput = {
   verdict: Verdict;
   recentTurns: Array<{ role: "user" | "ai"; text: string }>;
   storyLanguage: "zh-Hant" | "zh-Hans" | "en";
+  /** Story content rating · adult → NSFW-safe model (hard rule #5) · else Haiku */
+  contentRating: "sfw" | "soft" | "adult";
 };
 
 export type NpcAgentBatchResult = {
@@ -518,7 +518,7 @@ export type NpcAgentBatchResult = {
 export async function callNpcAgentsParallel(
   input: NpcAgentBatchInput,
 ): Promise<NpcAgentBatchResult> {
-  const { activeCharacters, userAction, verdict, recentTurns, storyLanguage, supabase, playthroughId } = input;
+  const { activeCharacters, userAction, verdict, recentTurns, storyLanguage, contentRating, supabase, playthroughId } = input;
 
   if (activeCharacters.length === 0) {
     return { outputs: [], details: [], creditsCharged: 0 };
@@ -572,6 +572,7 @@ export async function callNpcAgentsParallel(
       povMemories: povMemoriesPerChar[idx] ?? [],
       recentTurns,
       storyLanguage,
+      contentRating,
     }),
   );
 
