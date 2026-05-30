@@ -1616,5 +1616,11 @@ export async function POST(
   // Models that expose reasoning text (GLM / Claude) populate the panel;
   // Gemini usually hides its chain-of-thought (panel may be empty · prose
   // still improves). When thinking is OFF there is no reasoning to send.
-  return result.toUIMessageStreamResponse({ sendReasoning: thinkingEnabled });
+  // X-Accel-Buffering: no — tell any proxy (nginx/Vercel edge) NOT to buffer the
+  // SSE stream, so text-delta frames reach the client incrementally (word-by-word
+  // typing on EVERY model) instead of arriving in one burst (founder 2026-05-29).
+  return result.toUIMessageStreamResponse({
+    sendReasoning: thinkingEnabled,
+    headers: { "X-Accel-Buffering": "no" },
+  });
 }
