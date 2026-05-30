@@ -231,9 +231,22 @@ export function composeStyledPrompt(opts: {
   customPrompt?: string | null;
   scenePrompt: string;
   characterDescriptions?: string[];
+  /** 2026-05-29: comic must explicitly request a multi-panel page, else the
+   *  model returns a single illustration (founder: "出嚟係插圖唔係漫畫"). */
+  imageType?: "illustration" | "comic" | "wallpaper";
 }): { positive: string; negative: string } {
+  const isComic = opts.imageType === "comic";
+  // Strong, explicit comic-page framing (gpt-image-2 needs this to lay out
+  // panels + speech bubbles instead of one full-bleed illustration).
+  const COMIC_PREFIX =
+    "A comic book PAGE divided into 3-4 sequential panels, each panel framed by clear black borders with white gutters between them, comic-style speech bubbles with short dialogue, sequential left-to-right top-to-bottom reading order";
+  const COMIC_NEGATIVE =
+    "single full-bleed illustration, one single image, no panels, no panel borders, no gutters, poster";
+
   if (opts.customPrompt) {
-    return { positive: opts.customPrompt, negative: "" };
+    return isComic
+      ? { positive: `${COMIC_PREFIX}. Scene: ${opts.customPrompt}`, negative: COMIC_NEGATIVE }
+      : { positive: opts.customPrompt, negative: "" };
   }
 
   const style = opts.styleKey ? KIEIO_STYLES[opts.styleKey] : null;
@@ -249,16 +262,31 @@ export function composeStyledPrompt(opts: {
     .join("; ");
   const charBlock = chars ? `\nCharacters in scene: ${chars}` : "";
 
-  // Wave 3 audit fix AI-MED-01: image providers (Gemini/GPT/Grok) parse
-  // comma-separated descriptors better than " · " (which they treat as
-  // literal punctuation token · degrades prompt adherence ~5-15%).
-  const positive = [styleP, "of", opts.scenePrompt, charBlock, styleS]
+  // Wave 3 audit fix AI-MED-01: image providers parse comma-separated
+  // descriptors better than " · " (treated as a literal punctuation token).
+  const positive = (
+    isComic
+      ? [
+          COMIC_PREFIX,
+          styleP ? `drawn in ${styleP} style` : "",
+          "depicting",
+          opts.scenePrompt,
+          charBlock,
+          styleS,
+          "keep the same characters consistent across all panels",
+        ]
+      : [styleP, "of", opts.scenePrompt, charBlock, styleS]
+  )
     .filter(Boolean)
     .join(", ")
     .replace(/,\s+,/g, ",")
     .trim();
 
-  return { positive, negative: styleN };
+  const negative = isComic
+    ? [styleN, COMIC_NEGATIVE].filter(Boolean).join(", ")
+    : styleN;
+
+  return { positive, negative };
 }
 
 /** Aspect ratio per image type (1024-base width). */

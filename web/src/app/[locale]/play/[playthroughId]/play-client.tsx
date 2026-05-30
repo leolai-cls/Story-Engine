@@ -560,9 +560,13 @@ export function PlayClient({
             try {
               const event = JSON.parse(data);
               // AI SDK v6 emits 'text-delta' with { delta: "chunk" }
+              // Only ACCUMULATE here — the client-side typing animator (below)
+              // paces the on-screen reveal. CrazyRouter buffers Gemini (dumps
+              // all frames in one ~200ms burst at the end), so relying on the
+              // network to pace typing = "pops out". Animating client-side gives
+              // ChatGPT-style word-by-word on EVERY model. (founder 2026-05-29)
               if (event.type === "text-delta" && typeof event.delta === "string") {
                 accumulated += event.delta;
-                setStreamText(accumulated);
               } else if (
                 event.type === "reasoning-delta" &&
                 typeof event.delta === "string"
@@ -594,6 +598,30 @@ export function PlayClient({
         // the error to UI (founder feedback: silent fail = 用戶 instinct push back).
         if (streamError && !accumulated.trim()) {
           throw new Error(streamError);
+        }
+
+        // ─── Client-side typing animation (ChatGPT-style · founder 2026-05-29) ───
+        // Reveal the accumulated prose into streamText progressively (~2s total,
+        // scaled by length) so it types out word-by-word — even though
+        // CrazyRouter delivered the whole thing in one burst. This is the only
+        // way to get the typing effect for Gemini (CrazyRouter doesn't truly
+        // stream it). Skipped automatically when the prose is empty.
+        const fullText = accumulated;
+        if (fullText) {
+          await new Promise<void>((resolve) => {
+            let shown = 0;
+            const step = Math.max(2, Math.ceil(fullText.length / 130));
+            const tick = () => {
+              shown = Math.min(fullText.length, shown + step);
+              setStreamText(fullText.slice(0, shown));
+              if (shown < fullText.length) {
+                setTimeout(tick, 16);
+              } else {
+                resolve();
+              }
+            };
+            tick();
+          });
         }
 
         // Finalize: append AI turn locally, clear stream buffer

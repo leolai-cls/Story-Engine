@@ -294,6 +294,9 @@ export async function generateScene(
     customPrompt: styleMode === "custom" ? scenePrompt : null,
     scenePrompt: styleMode === "custom" ? "" : scenePrompt,
     characterDescriptions,
+    // 2026-05-29: comic needs explicit multi-panel framing (founder: comic was
+    // coming out as a single illustration, not a real comic).
+    imageType: input.imageType,
   });
 
   // ─── Pre-flight cost estimate · check user has enough credits ──────────
