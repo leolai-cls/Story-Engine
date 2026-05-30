@@ -369,6 +369,10 @@ export function PlayClient({
   // Sidebar mobile drawer state (desktop rail always visible)
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  // 2026-05-30 (founder · mobile): the composer auto-grows like ChatGPT/Claude —
+  // single-line <input> hid the start of long text (horizontal scroll). ref +
+  // effect resize the <textarea> to its content (capped, then internal scroll).
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // 2026-05-29 · inline chat controls (ChatGPT-style): model + agent mode are
   // now reactive state (seeded from props) so the cost estimate + UI update
@@ -416,6 +420,16 @@ export function PlayClient({
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [turns, streamText]);
+
+  // Auto-grow the composer to fit its content (ChatGPT/Claude-style). Reset to
+  // auto first so it can SHRINK when text is deleted / cleared after sending,
+  // then grow to scrollHeight. max-h-40 (CSS) caps it; overflow then scrolls.
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [input]);
 
   const refreshState = useCallback(async () => {
     try {
@@ -961,16 +975,30 @@ export function PlayClient({
               e.preventDefault();
               sendAction(input);
             }}
-            className="flex gap-2 w-full"
+            className="flex items-end gap-2 w-full"
           >
-            <input
-              type="text"
+            <textarea
+              ref={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                // Enter sends · Shift+Enter = newline (ChatGPT/Claude/Grok).
+                // CRITICAL for CJK: skip while an IME candidate is composing —
+                // pressing Enter to confirm a Chinese candidate must NOT submit.
+                if (
+                  e.key === "Enter" &&
+                  !e.shiftKey &&
+                  !e.nativeEvent.isComposing
+                ) {
+                  e.preventDefault();
+                  if (!streaming && input.trim()) sendAction(input);
+                }
+              }}
               placeholder={tPlay("input.placeholder")}
               disabled={streaming}
               maxLength={2000}
-              className="flex-1 min-w-0 rounded-md border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
+              rows={1}
+              className="flex-1 min-w-0 resize-none max-h-40 overflow-y-auto rounded-md border border-border bg-background px-3 py-2 text-sm leading-relaxed placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
             />
             <Button type="submit" className="flex-none" disabled={streaming || !input.trim()}>
               {streaming ? (
