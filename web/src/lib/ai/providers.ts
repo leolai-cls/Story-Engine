@@ -54,8 +54,15 @@ function makeCrazyrouterFetch(enableThinking: boolean): typeof fetch {
     try {
       const body = JSON.parse(init.body) as Record<string, unknown>;
       const model = (body.model as string | undefined) ?? "";
-      // Gemini: disable thinking unless the user opted in, else prose comes back empty.
-      if (model.includes("gemini") && !enableThinking) {
+      // Gemini: ALWAYS disable thinking on CrazyRouter (verified 2026-05-29).
+      // (a) Gemini's reasoning consumes the WHOLE output budget → finish=length,
+      //     content_len=0, reasoning≈1436 → EMPTY prose (the player's blank turns
+      //     when "deep thinking" was ON). (b) Gemini hides its chain-of-thought,
+      //     so the thinking panel gains nothing anyway. So Gemini never thinks —
+      //     the deep-thinking toggle only meaningfully applies to GLM + Claude.
+      //     `enableThinking` is intentionally ignored for Gemini.
+      void enableThinking;
+      if (model.includes("gemini")) {
         const existingExtra = (body.extra_body as Record<string, unknown> | undefined) ?? {};
         body.extra_body = {
           ...existingExtra,

@@ -111,14 +111,17 @@ export async function generateSceneImage(
   const modelId = pickImageModel(req.contentRating, req.imageType);
   const provider = `crazyrouter:${modelId}`;
 
-  // CrazyRouter image gen body shape · OpenAI-compatible /v1/images/generations.
-  // ⚠️ DEFERRED: exact body/response shape on CrazyRouter not yet verified.
+  // CrazyRouter image gen body · OpenAI-compatible /v1/images/generations.
+  // 2026-05-29 (verified): do NOT send `response_format` — CrazyRouter's
+  // gpt-image-2 rejects it (400 "response_format is not supported for
+  // gpt-image-2; use output_format instead"), which is why comic gen failed.
+  // Omitting it → CrazyRouter returns a `url` by default, which the response
+  // handler below fetches → base64. Works for nano-banana / gpt-image-2 / grok.
   const body: Record<string, unknown> = {
     model: modelId,
     prompt: req.prompt,
     size: `${req.width}x${req.height}`,
     n: 1,
-    response_format: "b64_json",
   };
 
   // Reference images (style + character) · OpenRouter proxies different
