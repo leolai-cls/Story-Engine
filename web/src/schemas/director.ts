@@ -190,3 +190,57 @@ ${v.constraint}
 \`${v.skill_key}\` vs difficulty ${v.difficulty}. Dice 應該已經喺 turn route 擲過 — 如果你睇到呢段，係 fallback path，pick 一個合理結果寫。`;
   }
 }
+
+type DirectorThinkingLang = "zh-Hant" | "zh-Hans" | "en";
+
+/**
+ * Render the Director's verdict as a PLAYER-FACING "GM thinking" block.
+ *
+ * Founder 2026-05-30: the deep-thinking toggle should surface a visible
+ * thinking process on EVERY model. But Gemini hides its chain-of-thought (and
+ * we force its thinking off — it eats the output budget), and only premium
+ * models (Claude) expose real reasoning. The Director (GM) runs on every turn
+ * regardless of which narrator model is picked, so its reasoning is the ONE
+ * universal thinking surface. We stream it into the collapsible reasoning panel
+ * before the narrator's prose. A premium model's own reasoning (if any) appends
+ * after, so the panel can show GM-thinking + model-thinking together.
+ *
+ * The verdict.reasoning field is already written in the story's language
+ * (directorSystemFor enforces this). We add a short, non-spoiler tail per
+ * verdict type to give the thinking RPG flavour without revealing the prose.
+ */
+export function verdictToGmThinking(v: Verdict, lang: DirectorThinkingLang): string {
+  const lead = lang === "en" ? "〈Game Master〉" : "〈遊戲主持〉";
+  const reasoning = v.reasoning.trim();
+  let tail = "";
+  switch (v.verdict) {
+    case "reject":
+      tail =
+        lang === "en"
+          ? "\n(This doesn't hold up in the story world — let's see how everyone present reacts.)"
+          : lang === "zh-Hans"
+            ? "\n（这在故事世界里不成立 —— 看看在场角色怎么反应。）"
+            : "\n（呢個喺故事世界唔成立 —— 睇下在場角色點反應。）";
+      break;
+    case "allow_with_constraint":
+      tail =
+        lang === "en"
+          ? "\n(Allowed — but it won't come without a cost.)"
+          : lang === "zh-Hans"
+            ? "\n（可以 —— 不过不会没有代价。）"
+            : "\n（可以 —— 不過唔會冇代價。）";
+      break;
+    case "require_skill_check":
+      tail =
+        lang === "en"
+          ? "\n(Outcome uncertain — the dice decide.)"
+          : lang === "zh-Hans"
+            ? "\n（成败未定 —— 掷骰决定。）"
+            : "\n（成敗未定 —— 擲骰決定。）";
+      break;
+    case "allow":
+    default:
+      tail = "";
+  }
+  return `${lead}\n${reasoning}${tail}`;
+}

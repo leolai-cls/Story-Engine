@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest, after } from "next/server";
-import { streamText } from "ai";
+import { streamText, createUIMessageStream, createUIMessageStreamResponse } from "ai";
 import { getProviderModel } from "@/lib/ai/providers";
 import { createClient } from "@/lib/supabase/server";
 // Migration 0018 (Phase 2 memory lockdown) — memory table mutation
@@ -17,7 +17,7 @@ import {
   type TurnContext,
 } from "@/lib/ai/turn-runner";
 import { callDirector } from "@/lib/ai/director";
-import { verdictToNarratorInstruction } from "@/schemas/director";
+import { verdictToNarratorInstruction, verdictToGmThinking } from "@/schemas/director";
 import { callNpcAgentsParallel } from "@/lib/ai/npc-agents";
 import { npcAgentToNarratorBlock, NPC_L3_CREDITS_PER_NPC } from "@/schemas/npc-agent";
 import {
@@ -1611,16 +1611,48 @@ export async function POST(
     },
   });
 
-  // sendReasoning: stream the narrator's thinking to the client (collapsible
-  // panel · founder 2026-05-29) only when the user opted into deep thinking.
-  // Models that expose reasoning text (GLM / Claude) populate the panel;
-  // Gemini usually hides its chain-of-thought (panel may be empty · prose
-  // still improves). When thinking is OFF there is no reasoning to send.
-  // X-Accel-Buffering: no — tell any proxy (nginx/Vercel edge) NOT to buffer the
-  // SSE stream, so text-delta frames reach the client incrementally (word-by-word
-  // typing on EVERY model) instead of arriving in one burst (founder 2026-05-29).
-  return result.toUIMessageStreamResponse({
-    sendReasoning: thinkingEnabled,
+  // 2026-05-30 (founder): the deep-thinking toggle must show a VISIBLE thinking
+  // process on EVERY model. Gemini hides its chain-of-thought (and we force it
+  // off — it eats the output budget), so relying on the narrator's own reasoning
+  // left the panel empty on Standard (Gemini). The Director (GM) runs every turn
+  // on every model, so its verdict reasoning IS the universal thinking surface.
+  // We wrap the narrator stream in a UI-message stream and write the GM thinking
+  // as reasoning frames FIRST, then merge the narrator (whose own reasoning, if
+  // any — e.g. Claude — appends after). The client already accumulates
+  // reasoning-delta frames into the collapsible "思考過程" panel.
+  //
+  // sendReasoning: still forward the narrator's native reasoning (Claude) when
+  // thinking is on. X-Accel-Buffering: no — ask any proxy not to buffer the SSE
+  // stream (defence-in-depth; the real word-by-word pacing is the client-side
+  // typing animation since CrazyRouter buffers Gemini regardless).
+  const gmThinking =
+    thinkingEnabled && verdict ? verdictToGmThinking(verdict, storyLanguage) : null;
+
+  if (!gmThinking) {
+    return result.toUIMessageStreamResponse({
+      sendReasoning: thinkingEnabled,
+      headers: { "X-Accel-Buffering": "no" },
+    });
+  }
+
+  const uiStream = createUIMessageStream({
+    execute: ({ writer }) => {
+      // GM (Director) thinking — visible on every model, written before the
+      // narrator's prose so the player sees the GM reasoning while the narrator
+      // generates. Same id groups it as one reasoning block.
+      writer.write({ type: "reasoning-start", id: "gm-director" });
+      writer.write({ type: "reasoning-delta", id: "gm-director", delta: gmThinking });
+      writer.write({ type: "reasoning-end", id: "gm-director" });
+      // Then the narrator stream (text + its own reasoning if sendReasoning).
+      writer.merge(result.toUIMessageStream({ sendReasoning: thinkingEnabled }));
+    },
+    // Surface a readable error to the client's error-frame handler (it logs
+    // event.type === "error"). streamText.onError already logs + Sentry-captures.
+    onError: (err) => (err instanceof Error ? err.message : String(err)),
+  });
+
+  return createUIMessageStreamResponse({
+    stream: uiStream,
     headers: { "X-Accel-Buffering": "no" },
   });
 }
