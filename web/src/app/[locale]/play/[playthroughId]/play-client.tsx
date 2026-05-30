@@ -406,25 +406,9 @@ export function PlayClient({
     {},
   );
 
-  // W2-UX-M-07: show "正在審核 + 思考..." indicator during the moderation +
-  // pre-stream window. The turn route does ~500-2000ms of moderation + DB
-  // setup before the first stream byte arrives. Without a hint the user
-  // sees "nothing happening" and may double-click. 600ms threshold avoids
-  // flashing on fast paths.
-  const [showSafetyHint, setShowSafetyHint] = useState(false);
-  const hintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => {
-    if (streaming && !streamText) {
-      if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
-      hintTimerRef.current = setTimeout(() => setShowSafetyHint(true), 600);
-    } else {
-      if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
-      setShowSafetyHint(false);
-    }
-    return () => {
-      if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
-    };
-  }, [streaming, streamText]);
+  // (2026-05-29) Removed the 600ms "內容審核" safety-hint timer — the loading
+  // indicator is now always a neutral "AI 諗緊…" (founder: never show
+  // moderation wording to the player). Moderation still runs in the pipeline.
 
   // Auto-scroll on new content
   useEffect(() => {
@@ -913,7 +897,10 @@ export function PlayClient({
               <div className="flex items-center gap-2 text-xs text-muted-foreground py-3">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 <span className="se-cjk">
-                  {showSafetyHint ? tPlay("turn.moderationPending") : tPlay("turn.aiThinking")}
+                  {/* 2026-05-29 (founder): never surface "內容審查中" to the
+                      player — it reads as censorious. Always a neutral thinking
+                      indicator (moderation still runs silently in the pipeline). */}
+                  {tPlay("turn.aiThinking")}
                 </span>
               </div>
             )}
