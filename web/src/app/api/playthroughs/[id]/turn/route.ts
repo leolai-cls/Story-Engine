@@ -881,8 +881,11 @@ export async function POST(
     // value makes the SDK strip it + warn every turn (log noise). Omit it on
     // that path; otherwise keep 0.85.
     temperature: thinkingEnabled && narratorIsAnthropic ? undefined : 0.85,
-    // Deep thinking needs headroom for reasoning + prose (else prose gets cut).
-    maxOutputTokens: thinkingEnabled ? 4000 : 1500,
+    // 2026-05-29 (founder): loosened from 1500 — output felt too thin. The user
+    // pays per token anyway; the cap is just a runaway guard (so one turn can't
+    // silently drain a big chunk of a user's credits), not a cost-saving knob.
+    // 3000 fits a rich 2-4 paragraph turn; thinking models get extra for reasoning.
+    maxOutputTokens: thinkingEnabled ? 5000 : 3000,
     // Anthropic extended thinking (call-level providerOptions · coexists with
     // the per-message cacheControl above). CrazyRouter models get their thinking
     // behaviour from the provider instance, not here.
