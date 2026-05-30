@@ -1,18 +1,14 @@
 /**
  * Phase 8 · Image generation client · CrazyRouter aggregator.
  *
- * ⚠️ DEFERRED (2026-05-29): founder is handling image gen separately ("圖之後再傾").
- * This file was repointed from OpenRouter → CrazyRouter for env/base/slug
- * consistency, but the CrazyRouter images API (request/response shape, whether
- * /v1/images/generations behaves identically, NSFW behaviour on grok-4-image)
- * is NOT yet verified end-to-end. Verify before re-enabling scene visualization.
+ * Model routing (founder rule 2026-05-29):
+ *   - ALL images (illustration / comic / wallpaper) → gpt-image-2
+ *   - ONLY NSFW (adult-rated) images → grok-4-image (gpt-image-2 can't do
+ *     explicit NSFW; grok-4-image is the most permissive available)
  *
- * CrazyRouter image slugs (from /v1/models · 2026-05-29):
- *   - SFW illustration / wallpaper → nano-banana (Gemini Flash Image)
- *   - SFW / SFW Pro comic → gpt-image-2 (native CJK rendering)
- *   - Adult-rated story → grok-4-image (most permissive available · NSFW pending test)
- *     NOTE: CrazyRouter has NO dedicated uncensored diffusion model (no Flux/Pony/SDXL);
- *     真·露骨 adult imagery may need a separate specialist provider — founder decision.
+ * Verified 2026-05-29: CrazyRouter /v1/images/generations returns 200 + a `url`
+ * (NOT b64_json — do NOT send response_format, gpt-image-2 400s on it). The
+ * response handler below fetches that url → base64.
  *
  * Routed through CrazyRouter (CRAZYROUTER_API_KEY). Generic fetch (not
  * @ai-sdk/openai images) keeps full control over the OpenAI-compatible
@@ -64,29 +60,19 @@ export type ImageGenResult =
     };
 
 /**
- * Pick the OpenRouter model_id based on content_rating + image_type.
- * Per Phase 8 plan Q3 + Q5. Wave 3 audit fix AI-HIGH-01: adult+comic now
- * keeps GPT Image 2 routing for native CJK text rendering (Grok Imagine
- * is photorealistic-only · loses comic dialogue legibility).
+ * Pick the CrazyRouter image model.
  *
- * Adult+comic trade-off: GPT-5.4-image-2 doesn't support explicit NSFW.
- * If a user generates a comic of an adult-rated story, the provider may
- * content_filter explicit visuals. Acceptable for MVP (rare combo · most
- * adult-mode users want adult illustration / wallpaper, not comic).
- *
- * Founder NSFW verification pending on grok-imagine-image-quality.
+ * Founder rule (2026-05-29): **all images use gpt-image-2**, and **only NSFW
+ * (adult-rated) images use Grok** (gpt-image-2 can't render explicit NSFW;
+ * grok-4-image is the most permissive available). imageType no longer affects
+ * the choice — gpt-image-2 handles illustration / comic / wallpaper alike.
  */
 export function pickImageModel(
   contentRating: "sfw" | "soft" | "adult",
-  imageType: ImageType,
+  _imageType: ImageType,
 ): string {
-  if (contentRating === "adult") {
-    // Adult + comic: route gpt-image-2 anyway (CJK text > NSFW for comic UX)
-    if (imageType === "comic") return "gpt-image-2";
-    return "grok-4-image";
-  }
-  if (imageType === "comic") return "gpt-image-2";
-  return "nano-banana";
+  if (contentRating === "adult") return "grok-4-image"; // NSFW only
+  return "gpt-image-2"; // everything else
 }
 
 /**
