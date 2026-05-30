@@ -695,6 +695,8 @@ export async function POST(
           verdict,
           recentTurns: recentTurnsForL3,
           storyLanguage,
+          // adult → NSFW-safe GLM (hard rule #5: no NSFW on Anthropic) · else Haiku
+          contentRating: (story.content_rating as "sfw" | "soft" | "adult") ?? "sfw",
         });
 
         npcL3SuccessfulAgents = batchResult.outputs.length;
