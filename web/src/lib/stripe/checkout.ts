@@ -75,7 +75,10 @@ export async function createCheckoutSession({
     success_url: successUrl,
     cancel_url: cancelUrl,
     customer: customerId ?? undefined,
-    customer_email: customerId ? undefined : email,
+    // Only pre-fill email when we actually have one. Guests (anonymous auth)
+    // have no email → passing "" makes Stripe reject with "Invalid email
+    // address". Omitting it lets Stripe collect the email on its hosted page.
+    customer_email: customerId ? undefined : email || undefined,
     client_reference_id: userId,
     locale: stripeLocaleFor(locale),
     // Metadata persists on both the Session and the resulting Subscription.
@@ -136,7 +139,8 @@ export async function createTopUpCheckoutSession({
     success_url: successUrl,
     cancel_url: cancelUrl,
     customer: customerId ?? undefined,
-    customer_email: customerId ? undefined : email,
+    // See note in createCheckoutSession: never pass an empty email to Stripe.
+    customer_email: customerId ? undefined : email || undefined,
     client_reference_id: userId,
     locale: stripeLocaleFor(locale),
     metadata: { user_id: userId, topup_pack: pack, purchase_kind: "topup" },
