@@ -149,11 +149,11 @@ function SidebarBody({
           <button
             type="button"
             onClick={onMobileClose}
-            className="p-1 rounded"
+            className="inline-flex items-center justify-center p-2.5 -mr-1.5 rounded"
             style={{ color: "var(--se-fg-muted)" }}
             aria-label={t("ariaClose")}
           >
-            <X size={14} />
+            <X size={16} />
           </button>
         ) : (
           <Link

@@ -91,7 +91,7 @@ function SkillCheckInline({
         : null;
   return (
     <div
-      className="mt-3 inline-flex items-center gap-2.5 p-2.5 rounded-md"
+      className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 p-2.5 rounded-md max-w-full"
       style={{
         background: cfg.bg,
         border: `1px solid ${cfg.line}`,

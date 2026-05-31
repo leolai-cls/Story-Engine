@@ -234,7 +234,7 @@ export function VisualizeSceneModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
       style={{
         background: "var(--se-overlay, rgba(0,0,0,0.55))",
         backdropFilter: "blur(8px)",
@@ -261,7 +261,7 @@ export function VisualizeSceneModal({
           onClick={safeClose}
           aria-label={t("close")}
           disabled={uploading}
-          className="absolute right-3 top-3 inline-flex items-center justify-center rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed transition-colors z-10"
+          className="absolute right-2 top-2 inline-flex items-center justify-center rounded-md p-2.5 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed transition-colors z-10"
         >
           <X className="h-4 w-4" />
         </button>
@@ -272,7 +272,7 @@ export function VisualizeSceneModal({
 
         {/* ───────── FORM stage ───────── */}
         {stage === "form" && (
-          <div className="p-6 space-y-5">
+          <div className="p-4 sm:p-6 space-y-5">
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <Sparkles className="h-4 w-4 text-primary" />

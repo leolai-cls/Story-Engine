@@ -28,7 +28,12 @@ export function DispositionAxis({
   const positive = pct >= 0;
   return (
     <div className="flex items-center gap-2 text-xs" style={{ lineHeight: 1.4 }}>
-      <span style={{ width: 32, color: "var(--se-fg-muted)" }}>{tAxes(axis)}</span>
+      <span
+        className="flex-none whitespace-nowrap"
+        style={{ minWidth: 38, color: "var(--se-fg-muted)" }}
+      >
+        {tAxes(axis)}
+      </span>
       <div
         className="relative flex-1"
         style={{
