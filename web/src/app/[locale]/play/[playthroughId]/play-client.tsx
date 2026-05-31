@@ -29,6 +29,7 @@ export type NpcData = {
   axes: { trust: number; romance: number; respect: number; fear: number };
 };
 
+
 /**
  * Skill check inline badge (4 outcomes · Hard rule #5 permanent · no retry).
  * Renders below the AI turn text when backend stored a skill_check result.
@@ -425,6 +426,9 @@ export function PlayClient({
   const [streaming, setStreaming] = useState(false);
   const [streamText, setStreamText] = useState("");
   const [error, setError] = useState<string | null>(null);
+  // 2026-06-01 (ADR-001 原則 5): 技術失敗時記住啱啱嘅 action · 俾「再試」掣
+  // 一撳就重新送同一個 action (似 ChatGPT regenerate)。
+  const [retryAction, setRetryAction] = useState<string | null>(null);
   // C10 audit fix · mobile 3-tab pattern (敘事 / 角色 / 狀態)
   const [mobileTab, setMobileTab] = useState<"narrative" | "npc" | "state">("narrative");
   // Sidebar mobile drawer state (desktop rail always visible)
@@ -799,22 +803,35 @@ export function PlayClient({
         const fullText = accumulated
           .replace(/^\s*```(?:json)?\s*\{[\s\S]*?\}\s*```\s*/i, "")
           .trimStart();
-        if (fullText) {
-          await new Promise<void>((resolve) => {
-            let shown = 0;
-            const step = Math.max(2, Math.ceil(fullText.length / 130));
-            const tick = () => {
-              shown = Math.min(fullText.length, shown + step);
-              setStreamText(fullText.slice(0, shown));
-              if (shown < fullText.length) {
-                setTimeout(tick, 16);
-              } else {
-                resolve();
-              }
-            };
-            tick();
-          });
+
+        // 2026-06-01 (ADR-001 原則 5 · 技術失敗要誠實 · 唔好假扮故事):
+        // Narrator 超時 / 交白卷 → stream 完冇實質文字。後端會插一個 failed=true
+        // 標記回合（text 空）· 前端即時靠「冇文字」判斷 · 唔好砌空白故事回合 ·
+        // 改為 roll back 玩家 turn + 顯示「整唔到請再試」+ retry 掣（似 ChatGPT）。
+        const isTechnicalFailure = !fullText.trim();
+        if (isTechnicalFailure) {
+          setStreamText("");
+          setStreamReasoning("");
+          setTurns((t) => t.filter((x) => x !== tempUserTurn)); // roll back 玩家 turn
+          setRetryAction(action); // 記住啱啱嘅 action · 俾 retry 掣用
+          setError("TECHNICAL_FAILURE");
+          return;
         }
+
+        await new Promise<void>((resolve) => {
+          let shown = 0;
+          const step = Math.max(2, Math.ceil(fullText.length / 130));
+          const tick = () => {
+            shown = Math.min(fullText.length, shown + step);
+            setStreamText(fullText.slice(0, shown));
+            if (shown < fullText.length) {
+              setTimeout(tick, 16);
+            } else {
+              resolve();
+            }
+          };
+          tick();
+        });
 
         // Finalize: append AI turn locally, clear stream buffer
         const aiTurn: Turn = {
@@ -1171,9 +1188,33 @@ export function PlayClient({
               </div>
             )}
 
-            {error && (
+            {/* 2026-06-01 (ADR-001 原則 5): 技術失敗 → 誠實告知 + retry 掣
+                (似 ChatGPT)。唔當故事內容。其餘 error 照用 PlayErrorCard。 */}
+            {error === "TECHNICAL_FAILURE" ? (
+              <div className="rounded-md border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950/40">
+                <div className="text-sm font-semibold text-amber-900 dark:text-amber-100">
+                  {tPlay("turn.failedTitle")}
+                </div>
+                <div className="mt-1 text-xs text-amber-800 dark:text-amber-200">
+                  {tPlay("turn.failedBody")}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const a = retryAction;
+                    setError(null);
+                    setRetryAction(null);
+                    if (a) sendAction(a);
+                  }}
+                  disabled={streaming}
+                  className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700 disabled:opacity-50"
+                >
+                  {tPlay("turn.failedRetry")}
+                </button>
+              </div>
+            ) : error ? (
               <PlayErrorCard error={error} />
-            )}
+            ) : null}
           </div>
 
           {/* 2026-05-29 · inline chat controls (model picker + agent toggle) ·

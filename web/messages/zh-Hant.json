@@ -477,7 +477,10 @@
       "thinkingLive": "AI 思考緊…",
       "aiThinking": "AI 諗緊...",
       "moderationPending": "內容審核 + AI 思考中…",
-      "directorSoftTooltip": "NPC 反應與你預期不同"
+      "directorSoftTooltip": "NPC 反應與你預期不同",
+      "failedTitle": "呢次生成唔到",
+      "failedBody": "可能係一時網絡或者 AI 繁忙。你嘅行動冇扣 credits，撳下面再試一次。",
+      "failedRetry": "再試一次"
     },
     "input": {
       "placeholder": "你想做咩？（描述行動、對白、決定…）",
