@@ -150,7 +150,7 @@ export function AdultModeToggle({
       {/* F4 / P6-LOW-01 audit fix · Enabling adult mode requires explicit consent dialog */}
       {confirmOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
           style={{
             background: "var(--se-overlay)",
             backdropFilter: "blur(6px)",
@@ -158,7 +158,7 @@ export function AdultModeToggle({
           onClick={() => !pending && setConfirmOpen(false)}
         >
           <div
-            className="w-full max-w-[520px] rounded-2xl p-7"
+            className="w-full max-w-[520px] max-h-[90dvh] overflow-y-auto rounded-2xl p-5 sm:p-7"
             style={{
               background: "var(--se-surface)",
               border: "1px solid var(--se-border-strong)",
