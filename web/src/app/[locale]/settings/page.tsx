@@ -193,10 +193,7 @@ export default async function SettingsPage({
             </div>
           )}
 
-          <div
-            className="grid gap-9"
-            style={{ gridTemplateColumns: "180px 1fr" }}
-          >
+          <div className="grid gap-9 md:grid-cols-[180px_1fr]">
             {/* Sticky left nav — F1-F5 audit fix · designer sidebar pattern */}
             <nav
               className="hidden md:flex flex-col gap-0.5 sticky"

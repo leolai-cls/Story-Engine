@@ -271,9 +271,12 @@ summary {
   textarea {
     -webkit-tap-highlight-color: transparent;
   }
+  /* Dim only buttons/role=button/summary on press — NOT bare <a>, because many
+     links wrap whole cards (story cards, nav rows) and a 55% fade reads as an
+     ugly flicker, not a press (audit 2026-05-31). Links navigate, so the page
+     change is the feedback; they keep the tap-highlight removal above. */
   button:not(:disabled):active,
   [role="button"]:not([aria-disabled="true"]):active,
-  a:active,
   summary:active {
     opacity: 0.55;
     transition: opacity 0.05s ease;

@@ -19,7 +19,6 @@ export function Carousel({
   moreHref,
   icon,
   children,
-  padX = 56,
   empty,
 }: {
   title: string;
@@ -27,6 +26,7 @@ export function Carousel({
   moreHref?: string;
   icon?: React.ReactNode;
   children: React.ReactNode;
+  /** @deprecated padding is now responsive (pl-4 sm:pl-14); prop kept for call-site compat. */
   padX?: number;
   /** If true, returns null (smart-hide). */
   empty?: boolean;
@@ -35,11 +35,8 @@ export function Carousel({
   const tLib = useTranslations("library.rail");
   if (empty) return null;
   return (
-    <section className="mt-7" style={{ paddingLeft: padX }}>
-      <header
-        className="flex items-baseline gap-3 mb-3"
-        style={{ paddingRight: padX }}
-      >
+    <section className="mt-7 pl-4 sm:pl-14">
+      <header className="flex items-baseline gap-3 mb-3 pr-4 sm:pr-14">
         {icon && (
           <span
             className="inline-flex items-center justify-center w-6 h-6 rounded-md"
@@ -76,10 +73,7 @@ export function Carousel({
           </Link>
         )}
       </header>
-      <div
-        className="se-row-scroll flex gap-3.5 overflow-x-auto pb-3.5"
-        style={{ paddingRight: padX }}
-      >
+      <div className="se-row-scroll flex gap-3.5 overflow-x-auto pb-3.5 pr-4 sm:pr-14">
         {children}
       </div>
     </section>
