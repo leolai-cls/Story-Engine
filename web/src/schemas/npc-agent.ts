@@ -138,6 +138,48 @@ export function npcAgentToNarratorBlock(outputs: NpcAgentOutput[]): string {
 ${sections.join("\n\n")}`;
 }
 
+/**
+ * Build a PLAYER-FACING "NPC inner voices" block for the reasoning panel.
+ *
+ * Founder 2026-05-30: surface the Agent so the player can SEE it working — they
+ * couldn't tell if Agent mode was active because the inner thoughts were
+ * internal-only ("撳入去打開個過程" · show it's really thinking). This is shown to
+ * the player in the collapsible 思考過程 panel (streamed as reasoning frames
+ * before the narrator prose · turn route). Distinct from npcAgentToNarratorBlock
+ * which is internal context fed to the Narrator.
+ *
+ * Shows per NPC: 心聲 (inner_thought) · 打算 (intent) · 考量 (the motivation from
+ * the MIRROR trace · the "why"). Compact + readable for 1-3 NPCs.
+ */
+export function npcAgentsToThinkingBlock(
+  outputs: NpcAgentOutput[],
+  language: "zh-Hant" | "zh-Hans" | "en" = "zh-Hant",
+): string {
+  if (outputs.length === 0) return "";
+  const L =
+    language === "en"
+      ? { head: "〈Character inner voices〉", thought: "Inner voice", intent: "Intent", why: "Reasoning" }
+      : language === "zh-Hans"
+        ? { head: "〈角色心声〉", thought: "心声", intent: "打算", why: "考量" }
+        : { head: "〈角色心聲〉", thought: "心聲", intent: "打算", why: "考量" };
+  // Collapse newlines so each agent stays a clean multi-line entry in the panel.
+  const clean = (s: string): string => s.replace(/[\r\n]+/g, " ").trim();
+  const blocks = outputs.map((o) => {
+    const name = clean(o.character_name).slice(0, 60);
+    const lines = [
+      name,
+      `　${L.thought}：${clean(o.inner_thought)}`,
+      `　${L.intent}：${clean(o.intent)}`,
+    ];
+    const motivation = o.reasoning_trace?.motivation
+      ? clean(o.reasoning_trace.motivation)
+      : "";
+    if (motivation) lines.push(`　${L.why}：${motivation}`);
+    return lines.join("\n");
+  });
+  return `${L.head}\n${blocks.join("\n\n")}`;
+}
+
 // ─── Helper · estimate NPC L3 credit charge ────────────────────────────────
 
 /**

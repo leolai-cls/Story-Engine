@@ -19,7 +19,7 @@ import {
 import { callDirector } from "@/lib/ai/director";
 import { verdictToNarratorInstruction, verdictToGmThinking } from "@/schemas/director";
 import { callNpcAgentsParallel } from "@/lib/ai/npc-agents";
-import { npcAgentToNarratorBlock, NPC_L3_CREDITS_PER_NPC } from "@/schemas/npc-agent";
+import { npcAgentToNarratorBlock, npcAgentsToThinkingBlock, NPC_L3_CREDITS_PER_NPC } from "@/schemas/npc-agent";
 import {
   rollSkillCheck,
   skillCheckToNarratorInstruction,
@@ -1630,7 +1630,21 @@ export async function POST(
   const gmThinking =
     thinkingEnabled && verdict ? verdictToGmThinking(verdict, storyLanguage) : null;
 
-  if (!gmThinking) {
+  // 2026-05-30 (founder): when Agent mode fired NPC L3 agents this turn, surface
+  // their inner voices in the SAME 思考過程 panel so the player can SEE the agents
+  // working ("撳入去打開個過程"). Independent of the deep-thinking toggle — if you
+  // paid for Agent mode you see it regardless. Outputs were computed pre-narrator
+  // (npcL3AgentDetails); the player-facing block is built here.
+  const npcOutputs = npcL3AgentDetails
+    .map((d) => d.output)
+    .filter((o): o is NonNullable<typeof o> => o !== null);
+  const npcThinking =
+    npcOutputs.length > 0 ? npcAgentsToThinkingBlock(npcOutputs, storyLanguage) : null;
+
+  // Combined pre-narrator thinking preamble (GM verdict + NPC inner voices).
+  const thinkingPreamble = [gmThinking, npcThinking].filter(Boolean).join("\n\n");
+
+  if (!thinkingPreamble) {
     return result.toUIMessageStreamResponse({
       sendReasoning: thinkingEnabled,
       headers: { "X-Accel-Buffering": "no" },
@@ -1639,13 +1653,13 @@ export async function POST(
 
   const uiStream = createUIMessageStream({
     execute: ({ writer }) => {
-      // GM (Director) thinking — visible on every model, written before the
-      // narrator's prose so the player sees the GM reasoning while the narrator
-      // generates. Same id groups it as one reasoning block.
-      writer.write({ type: "reasoning-start", id: "gm-director" });
-      writer.write({ type: "reasoning-delta", id: "gm-director", delta: gmThinking });
-      writer.write({ type: "reasoning-end", id: "gm-director" });
-      // Then the narrator stream (text + its own reasoning if sendReasoning).
+      // Pre-narrator thinking (GM verdict + NPC inner voices) — written before
+      // the narrator's prose so the player sees the behind-the-scenes thinking
+      // while the narrator generates. One reasoning block; the narrator's own
+      // reasoning (Claude · if sendReasoning) appends after.
+      writer.write({ type: "reasoning-start", id: "pre-narrator" });
+      writer.write({ type: "reasoning-delta", id: "pre-narrator", delta: thinkingPreamble });
+      writer.write({ type: "reasoning-end", id: "pre-narrator" });
       writer.merge(result.toUIMessageStream({ sendReasoning: thinkingEnabled }));
     },
     // Surface a readable error to the client's error-frame handler (it logs
