@@ -317,7 +317,7 @@ export function VisualizeSceneModal({
                       <span className="text-xs font-medium se-cjk">
                         {t(`imageType.${key}`)}
                       </span>
-                      <span className="text-[10px] text-muted-foreground leading-tight text-center se-cjk">
+                      <span className="text-[11px] text-muted-foreground leading-tight text-center se-cjk">
                         {t(`imageType.${key}Hint`)}
                       </span>
                     </button>
@@ -404,7 +404,7 @@ export function VisualizeSceneModal({
                           <div className="text-sm font-medium se-cjk leading-tight">
                             {style.name[locale] ?? style.name.en}
                           </div>
-                          <div className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1 se-cjk">
+                          <div className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1 se-cjk">
                             {style.bestForGenres.slice(0, 3).join(" · ")}
                           </div>
                         </button>
@@ -514,7 +514,7 @@ export function VisualizeSceneModal({
             </div>
 
             {/* ─── TOS short ─── */}
-            <p className="text-[10px] text-muted-foreground se-cjk leading-snug">
+            <p className="text-[11px] text-muted-foreground se-cjk leading-snug">
               {t("tosShort")}{" "}
               <Link href="/terms" className="underline hover:text-foreground">
                 {t("tosLink")}

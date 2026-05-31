@@ -196,7 +196,7 @@ export function ChatControls({
             role="listbox"
             className="absolute bottom-full left-0 mb-1.5 z-30 min-w-[220px] max-w-[calc(100vw-1.5rem)] rounded-lg border border-border bg-popover p-1 shadow-lg"
           >
-            <div className="px-2 py-1.5 text-[10px] uppercase tracking-wider text-muted-foreground se-cjk">
+            <div className="px-2 py-1.5 text-[11px] uppercase tracking-wider text-muted-foreground se-cjk">
               {t("modelLabel")}
             </div>
             {PICKER_MODEL_IDS.map((id) => {
@@ -224,7 +224,7 @@ export function ChatControls({
                     <span className="se-cjk font-medium block truncate">
                       {m.display_name}
                     </span>
-                    <span className="text-[10px] text-muted-foreground se-cjk block truncate">
+                    <span className="text-[11px] text-muted-foreground se-cjk block truncate">
                       {m.tier_pool === "pro" ? t("poolPro") : t("poolStandard")}
                       {m.allows_nsfw ? ` · ${t("nsfwCapable")}` : ""}
                     </span>

@@ -963,7 +963,7 @@ export function PlayClient({
                               className="flex flex-col items-center justify-center gap-1.5 rounded-md border border-primary/30 bg-muted/40"
                             >
                               <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                              <span className="text-[9px] se-cjk text-muted-foreground px-1 text-center">
+                              <span className="text-[11px] se-cjk text-muted-foreground px-1 text-center leading-tight">
                                 {img.imageType === "comic"
                                   ? tPlay("visualize.loadingComic")
                                   : tPlay("visualize.loading")}
@@ -988,7 +988,7 @@ export function PlayClient({
                               className="flex flex-col items-center justify-center gap-1 rounded-md border border-destructive/40 bg-destructive/5 px-1.5 text-center hover:border-destructive/70 transition-colors"
                             >
                               <ImageIcon className="h-4 w-4 text-destructive/70" />
-                              <span className="text-[9px] se-cjk text-destructive">
+                              <span className="text-[11px] se-cjk text-destructive leading-tight">
                                 {tPlay("visualize.bgFailed")}
                               </span>
                             </button>
