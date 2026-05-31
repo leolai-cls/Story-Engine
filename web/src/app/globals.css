@@ -250,3 +250,32 @@
     }
   }
 }
+
+/* 2026-05-30 (founder · mobile-first): tactile press feedback on touch devices.
+   Native/ChatGPT feel — pressing any control visibly responds, and the default
+   grey tap-flash is replaced by a clean dim. Scoped to coarse pointers so the
+   desktop hover experience is unchanged. touch-action:manipulation also removes
+   the ~300ms double-tap-zoom delay so taps register instantly. */
+button,
+[role="button"],
+a,
+summary {
+  touch-action: manipulation;
+}
+@media (hover: none) and (pointer: coarse) {
+  button,
+  [role="button"],
+  a,
+  summary,
+  input,
+  textarea {
+    -webkit-tap-highlight-color: transparent;
+  }
+  button:not(:disabled):active,
+  [role="button"]:not([aria-disabled="true"]):active,
+  a:active,
+  summary:active {
+    opacity: 0.55;
+    transition: opacity 0.05s ease;
+  }
+}
