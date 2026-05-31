@@ -447,10 +447,19 @@ export function buildDynamicSystemPrompt(ctx: TurnContext): string {
   const innerStreams = ctx.npcInnerStreamsBlock?.trim();
   const innerStreamsBlock = innerStreams ? innerStreams + "\n\n" : "";
 
-  return `${memoryBlock}${innerStreamsBlock}## Current Game State (this turn only)
-\`\`\`json
-${JSON.stringify(visibleState, null, 2)}
-\`\`\`
+  // 2026-05-31 (founder · "narrator leaks JSON into the story"): show state as
+  // plain "- key: value" lines, NOT a ```json fenced block. Root cause of the
+  // leak — Gemini few-shot-MIMICKED the JSON block in the prompt and echoed a
+  // JSON object before the prose (confirmed with thinking ON and OFF). Plain
+  // text gives it no template to copy. The header also states it's read-only.
+  const stateLines = Object.entries(visibleState)
+    .map(
+      ([k, v]) =>
+        `- ${k}: ${v === null || typeof v !== "object" ? String(v) : JSON.stringify(v)}`,
+    )
+    .join("\n");
+  return `${memoryBlock}${innerStreamsBlock}## Current Game State (READ-ONLY reference — do NOT repeat or output this; write story prose only)
+${stateLines}
 
 ${charsDynamic}`;
 }

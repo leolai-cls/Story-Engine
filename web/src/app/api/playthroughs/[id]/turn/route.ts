@@ -940,18 +940,25 @@ export async function POST(
         // L-08 fix: detect LLM refusal + substitute in-fiction fallback.
         // AUDIT FIX (AI-M-07): pass story language so fallback matches locale
         // instead of forcing 繁中 on 簡中 / EN stories.
-        const isRefusal = isLLMRefusal(text);
+        // 2026-05-31 (founder · "narrator leaks JSON into the story"): strip a
+        // leading ```json {...}``` block the narrator may echo from the state
+        // context (Gemini mimicry) — keep only the prose. Defence-in-depth on top
+        // of the prompt reformat (turn-runner shows state as plain text now).
+        const cleanText = (text ?? "")
+          .replace(/^\s*```(?:json)?\s*\{[\s\S]*?\}\s*```\s*/i, "")
+          .trimStart();
+        const isRefusal = isLLMRefusal(cleanText);
         // 2026-05-29: NEVER save a blank turn. Some models (e.g. Gemini via
         // CrazyRouter on a Director-reject turn, or thinking-mode variance)
         // occasionally return a tool call with EMPTY prose → the player saw no
         // reply + embedText got "empty input". Treat empty prose like a refusal
         // and substitute the in-fiction fallback so there is ALWAYS a narrative.
-        const isEmptyProse = !text || !text.trim();
+        const isEmptyProse = !cleanText || !cleanText.trim();
         const storyLanguage = ctx.story.story_bible.hard_locked.language;
         const finalText =
           isRefusal || isEmptyProse
             ? refusalFallbackNarrative(storyLanguage)
-            : text;
+            : cleanText;
         if (isRefusal || isEmptyProse) {
           console.warn(
             `[turn] narrator ${isRefusal ? "refused" : "returned empty prose"} — substituted in-fiction fallback. Original head:`,

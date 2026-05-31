@@ -713,7 +713,12 @@ export function PlayClient({
         // CrazyRouter delivered the whole thing in one burst. This is the only
         // way to get the typing effect for Gemini (CrazyRouter doesn't truly
         // stream it). Skipped automatically when the prose is empty.
-        const fullText = accumulated;
+        // 2026-05-31 (founder): strip a leading ```json {...}``` block the
+        // narrator sometimes echoes from the state context (Gemini mimicry) so
+        // the player never sees raw JSON — matches the server-side strip.
+        const fullText = accumulated
+          .replace(/^\s*```(?:json)?\s*\{[\s\S]*?\}\s*```\s*/i, "")
+          .trimStart();
         if (fullText) {
           await new Promise<void>((resolve) => {
             let shown = 0;
@@ -734,7 +739,7 @@ export function PlayClient({
         // Finalize: append AI turn locally, clear stream buffer
         const aiTurn: Turn = {
           role: "ai",
-          text: accumulated,
+          text: fullText,
           index: tempUserTurn.index + 1,
           reasoning: reasoningAccumulated.trim() || undefined,
         };
