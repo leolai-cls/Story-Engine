@@ -67,6 +67,10 @@ const OG_LOCALE: Record<string, string> = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  // 2026-05-31 (founder): it's a webapp, not a zoomable page — lock pinch/double-
+  // tap zoom so it feels like a native app (maximumScale 1 + userScalable false).
+  maximumScale: 1,
+  userScalable: false,
   interactiveWidget: "resizes-content",
 };
 

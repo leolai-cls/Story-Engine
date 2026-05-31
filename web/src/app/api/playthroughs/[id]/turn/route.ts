@@ -1652,7 +1652,7 @@ export async function POST(
   }
 
   const uiStream = createUIMessageStream({
-    execute: ({ writer }) => {
+    execute: async ({ writer }) => {
       // Pre-narrator thinking (GM verdict + NPC inner voices) — written before
       // the narrator's prose so the player sees the behind-the-scenes thinking
       // while the narrator generates. One reasoning block; the narrator's own
@@ -1660,7 +1660,15 @@ export async function POST(
       writer.write({ type: "reasoning-start", id: "pre-narrator" });
       writer.write({ type: "reasoning-delta", id: "pre-narrator", delta: thinkingPreamble });
       writer.write({ type: "reasoning-end", id: "pre-narrator" });
-      writer.merge(result.toUIMessageStream({ sendReasoning: thinkingEnabled }));
+      // 2026-05-31 (founder · "thinking mode no output"): pump the narrator parts
+      // in an AWAITED loop, NOT writer.merge(). merge() let this (previously sync)
+      // execute resolve immediately → the UI stream closed BEFORE the narrator's
+      // prose arrived. CrazyRouter buffers Gemini (prose lands ~16s in), so the
+      // stream was already closed → blank narrative + the never-blank fallback
+      // fired. Awaiting the loop keeps the stream open until the narrator finishes.
+      for await (const part of result.toUIMessageStream({ sendReasoning: thinkingEnabled })) {
+        writer.write(part);
+      }
     },
     // Surface a readable error to the client's error-frame handler (it logs
     // event.type === "error"). streamText.onError already logs + Sentry-captures.
