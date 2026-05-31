@@ -35,6 +35,15 @@ import {
 } from "@/lib/ai/memory/retriever";
 import { maybeRunSummarization } from "@/lib/ai/memory/summarizer";
 import { runLorebookExtraction } from "@/lib/ai/memory/lorebook";
+import {
+  writeCharacterExperiences,
+  loadCharacterExperiencesBlock,
+  SOUL_UPGRADE_THRESHOLD,
+} from "@/lib/ai/character/experience-writer";
+import {
+  parsePendingTensions,
+  accumulateTensions,
+} from "@/lib/ai/character/sediment";
 import { embedTextSafe } from "@/lib/ai/embed";
 // ─── Phase 3 credits ─────────────────────────────────────────────────────
 import {
@@ -721,6 +730,38 @@ export async function POST(
         e instanceof Error ? e.message : e,
       );
     }
+  }
+
+  // ─── Character Soul M4 · 讀取角色經歷記憶 (pm/architecture/03 + 04) ───
+  // 今回合 active 角色 (directorNpcUpdates) · 用 user-action embedding query 各自
+  // 相關經歷 · 組成 block 塞入 Narrator Tier 2。等角色反應基於累積經歷。
+  // 重用 memory.queryEmbedding (慳一個 embed)。全 non-fatal · 失敗 = 空 block。
+  try {
+    if (directorNpcUpdates.length > 0 && memory.queryEmbedding) {
+      const activeForRead = directorNpcUpdates
+        .map((upd) => {
+          const ch = ctx.characters.find(
+            (c) =>
+              c.card.name.trim().toLowerCase() ===
+              upd.character_name.trim().toLowerCase(),
+          );
+          return ch?.character_id
+            ? { character_id: ch.character_id, name: ch.card.name }
+            : null;
+        })
+        .filter((c): c is { character_id: string; name: string } => c !== null);
+      ctx.characterExperiencesBlock = await loadCharacterExperiencesBlock({
+        supabase,
+        playthroughId,
+        activeCharacters: activeForRead,
+        queryEmbedding: memory.queryEmbedding,
+      });
+    }
+  } catch (e) {
+    console.warn(
+      "[turn] character experience read exception (non-fatal):",
+      e instanceof Error ? e.message : e,
+    );
   }
 
   // 4.5 SKILL CHECK — Phase 1.5.2: if Director required a check, roll dice now.
@@ -1567,6 +1608,120 @@ export async function POST(
               } catch (e) {
                 console.warn(
                   "[turn] NPC dynamic state persist exception:",
+                  e instanceof Error ? e.message : e,
+                );
+              }
+            });
+          }
+
+          // ─── Character Soul M1 · 經歷日誌 (pm/architecture/03 + IMPLEMENTATION) ───
+          // 今回合 active 角色 (directorNpcUpdates) → bump interaction_count →
+          // 揾出已升級 (>= SOUL_UPGRADE_THRESHOLD) 嘅 → 寫經歷日誌 (背景 AI call)。
+          // 動態升級 (founder #2): 路人甲 (出場一次) 永遠唔升級 · 慳 call + 慳儲存。
+          // 失敗全部 non-fatal · 唔影響已 save 嘅 turn。
+          if (directorNpcUpdates.length > 0) {
+            after(async () => {
+              try {
+                const serviceClient = createServiceRoleClient();
+                // active 角色 name → character_id
+                const activeChars = directorNpcUpdates
+                  .map((upd) => {
+                    const ch = ctx.characters.find(
+                      (c) =>
+                        c.card.name.trim().toLowerCase() ===
+                        upd.character_name.trim().toLowerCase(),
+                    );
+                    return ch?.character_id
+                      ? { character_id: ch.character_id, name: ch.card.name }
+                      : null;
+                  })
+                  .filter((c): c is { character_id: string; name: string } => c !== null);
+                if (activeChars.length === 0) return;
+
+                // Bump interaction_count for each active char · 攞返新 count
+                // (用 RPC atomic increment 最穩 · 但避免新 migration · 用 read-modify-
+                //  write · 背景單線程 · race 風險低)。
+                const upgraded: Array<{ character_id: string; name: string }> = [];
+                for (const ac of activeChars) {
+                  const { data: stateRow } = await serviceClient
+                    .from("playthrough_character_states")
+                    .select("interaction_count")
+                    .eq("playthrough_id", playthroughId)
+                    .eq("character_id", ac.character_id)
+                    .maybeSingle();
+                  const newCount = ((stateRow?.interaction_count as number | null) ?? 0) + 1;
+                  await serviceClient
+                    .from("playthrough_character_states")
+                    .update({ interaction_count: newCount })
+                    .eq("playthrough_id", playthroughId)
+                    .eq("character_id", ac.character_id);
+                  if (newCount >= SOUL_UPGRADE_THRESHOLD) upgraded.push(ac);
+                }
+
+                // 為已升級角色寫經歷日誌 (一個 AI call · bias toward 冇 entry)
+                if (upgraded.length > 0) {
+                  const expResult = await writeCharacterExperiences({
+                    serviceClient,
+                    playthroughId,
+                    turnIndex: aiTurnIndex,
+                    upgraded,
+                    turnText: finalText,
+                    playerAction: action,
+                    language: (storyBible.hard_locked.language === "zh-Hans" ||
+                      storyBible.hard_locked.language === "en"
+                      ? storyBible.hard_locked.language
+                      : "zh-Hant") as "zh-Hant" | "zh-Hans" | "en",
+                  });
+
+                  // ─── M2 沉澱張力：累加經歷 → 超 threshold 轉 sediment (演化) ───
+                  // 純邏輯 · 無 AI call。pending_tensions 獨立 column (無 RPC race)。
+                  const byChar = new Map<string, typeof expResult.perCharacter>();
+                  for (const e of expResult.perCharacter) {
+                    const arr = byChar.get(e.character_id) ?? [];
+                    arr.push(e);
+                    byChar.set(e.character_id, arr);
+                  }
+                  for (const [charId, exps] of byChar) {
+                    if (exps.length === 0) continue;
+                    // 攞角色 volatility (story_characters · fallback 0.5) + 現有 pending_tensions
+                    const { data: scRow } = await serviceClient
+                      .from("story_characters")
+                      .select("volatility")
+                      .eq("id", charId)
+                      .maybeSingle();
+                    const volatility = (scRow?.volatility as number | null) ?? 0.5;
+                    const { data: ptRow } = await serviceClient
+                      .from("playthrough_character_states")
+                      .select("pending_tensions")
+                      .eq("playthrough_id", playthroughId)
+                      .eq("character_id", charId)
+                      .maybeSingle();
+                    const current = parsePendingTensions(ptRow?.pending_tensions);
+                    const { next, newSediments } = accumulateTensions(
+                      current,
+                      exps.map((e) => ({
+                        weight: e.weight,
+                        affects: e.affects,
+                        what_happened: e.what_happened,
+                        turn_index: aiTurnIndex,
+                      })),
+                      volatility,
+                    );
+                    await serviceClient
+                      .from("playthrough_character_states")
+                      .update({ pending_tensions: next })
+                      .eq("playthrough_id", playthroughId)
+                      .eq("character_id", charId);
+                    if (newSediments.length > 0) {
+                      console.log(
+                        `[turn] character ${charId} 沉澱演化: ${newSediments.map((s) => s.axis).join(", ")}`,
+                      );
+                    }
+                  }
+                }
+              } catch (e) {
+                console.warn(
+                  "[turn] character experience write exception:",
                   e instanceof Error ? e.message : e,
                 );
               }
