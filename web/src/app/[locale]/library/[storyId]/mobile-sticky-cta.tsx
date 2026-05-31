@@ -14,7 +14,7 @@ export function MobileStickyForkCta({ disabled }: { disabled?: boolean }) {
   const t = useTranslations("storyDetail.cta");
   return (
     <div
-      className="md:hidden fixed bottom-0 left-0 right-0 z-30 flex items-center gap-2 px-4 py-3"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-30 flex items-center gap-2 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
       style={{
         background: "rgba(251,250,246,0.95)",
         backdropFilter: "blur(14px)",

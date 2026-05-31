@@ -131,18 +131,18 @@ export function MemoryJournalClient({
           }}
         >
           <X size={12} />
-          {t("backToPlay")}
+          <span className="hidden sm:inline">{t("backToPlay")}</span>
         </Link>
         <div style={{ width: 1, height: 18, background: "var(--se-border)" }} />
-        <div>
+        <div className="min-w-0 flex-1">
           <h1
-            className="m-0 text-sm font-semibold se-cjk"
+            className="m-0 text-sm font-semibold se-cjk truncate"
             style={{ color: "var(--se-fg)" }}
           >
             {t("headerTitle", { protagonist })}
           </h1>
           <div
-            className="se-mono mt-0.5"
+            className="se-mono mt-0.5 truncate"
             style={{ fontSize: 10.5, color: "var(--se-fg-dim)", letterSpacing: "0.04em" }}
           >
             {showCsam
@@ -150,11 +150,10 @@ export function MemoryJournalClient({
               : t("headerSubtitle", { storyTitle: storyTitle.toUpperCase(), turn: turnCount })}
           </div>
         </div>
-        <div className="flex-1" />
         <Link
           href={`/play/${playthroughId}` as never}
           locale={locale}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium"
+          className="inline-flex flex-none items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium"
           style={{
             background: "var(--se-fg)",
             color: "var(--se-bg)",
