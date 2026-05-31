@@ -626,7 +626,22 @@ export function PlayClient({
         let accumulated = "";
         // Deep-thinking mode: narrator reasoning streamed as reasoning-* frames
         // (route sets sendReasoning when thinking is on). Shown in a collapsible panel.
+        // 2026-05-31: the GM (Director) + NPC-agent thinking arrives UP-FRONT in the
+        // X-Think-Preamble response header (base64 UTF-8) — decoupled from the
+        // narrator stream so the narrator's prose can't get cut off. Seed the panel
+        // with it; the narrator's own reasoning-delta frames append below.
         let reasoningAccumulated = "";
+        const preambleB64 = res.headers.get("X-Think-Preamble");
+        if (preambleB64) {
+          try {
+            reasoningAccumulated = new TextDecoder().decode(
+              Uint8Array.from(atob(preambleB64), (c) => c.charCodeAt(0)),
+            );
+            setStreamReasoning(reasoningAccumulated);
+          } catch {
+            // ignore a malformed header · panel just stays empty
+          }
+        }
         // W4 fix 2026-05-28 (agent retest post-PR-#5): SSE stream 可能包
         // {"type":"error","errorText":"..."} frame (e.g. OpenRouter upstream
         // TOS violation · Gemini safety filter rejection). 之前嘅 code 只認
