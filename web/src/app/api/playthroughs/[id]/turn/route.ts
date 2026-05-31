@@ -12,12 +12,10 @@ import {
   buildDynamicSystemPrompt,
   buildMessages,
   extractTurnState,
-  isLLMRefusal,
-  refusalFallbackNarrative,
   type TurnContext,
 } from "@/lib/ai/turn-runner";
 import { callDirector } from "@/lib/ai/director";
-import { verdictToNarratorInstruction, verdictToGmThinking } from "@/schemas/director";
+import { verdictToContextNote, verdictToGmThinking } from "@/schemas/director";
 import { callNpcAgentsParallel } from "@/lib/ai/npc-agents";
 import { npcAgentToNarratorBlock, npcAgentsToThinkingBlock, NPC_L3_CREDITS_PER_NPC } from "@/schemas/npc-agent";
 import {
@@ -61,7 +59,12 @@ import { MODELS, tierForModel, recentTurnsLimitForTier } from "@/lib/ai/models";
  */
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+// 2026-06-01 (founder bug · timeout 真兇): 由 60 bump 到 300。play 頁嘅 server
+// action (page.tsx) 早就設 300 · 但呢個 turn route 一直係 60 → Director(4s) +
+// memory retrieval + Narrator 加埋撞 60s timeout → Gemini 被砍交白卷 → 觸發
+// 「眉頭微皺」fallback。Pro plan 撐到 300。GM 重構 (拆 Director call) 之後整體
+// 會快返 · 但 300 ceiling 係安全網。
+export const maxDuration = 300;
 
 /**
  * Recent turns window — ADR-022 simplified: standard=12 · pro=12.
@@ -78,6 +81,7 @@ const MAX_RECENT_TURN_LIMIT = 20;
  */
 const TURN_COOLDOWN_MS = 1500;
 const lastTurnAt = new Map<string, number>();
+
 
 export async function POST(
   req: NextRequest,
@@ -720,6 +724,15 @@ export async function POST(
   }
 
   // 4.5 SKILL CHECK — Phase 1.5.2: if Director required a check, roll dice now.
+  // 2026-06-01 (ADR-001 · GM 降做 prep 員): 除咗 skill check 外，Director verdict
+  // 唔再「指示」Narrator 點寫。reject / allow_with_constraint 改用 verdictToContextNote
+  // 出一個中性背景參考，Narrator 自己按四層優先級判斷。呢個拆走咗舊 reject 路徑嘅
+  // canned「眉頭微皺」pushback pattern。skill check 仍保留（骰已擲·結果要 narrate）。
+  const directorLang: "zh-Hant" | "zh-Hans" | "en" =
+    storyBible.hard_locked.language === "zh-Hans" ||
+    storyBible.hard_locked.language === "en"
+      ? storyBible.hard_locked.language
+      : "zh-Hant";
   let skillCheckResult: SkillCheckResult | null = null;
   let directorInstruction: string;
   if (verdict.verdict === "require_skill_check") {
@@ -738,13 +751,16 @@ export async function POST(
       verdict.failure_consequence_hint,
     );
   } else {
-    directorInstruction = verdictToNarratorInstruction(verdict);
+    directorInstruction = verdictToContextNote(verdict, directorLang);
   }
 
   // 5. Stream Narrator response with prompt caching + Director instruction
+  // 2026-06-01: directorInstruction 可能係空 string（allow case · GM 唔加嘢）·
+  // 只喺有內容時先 append · 避免多餘空行污染 prompt。
   const stableSystem = buildStableSystemPrompt(ctx);
-  const dynamicSystem =
-    buildDynamicSystemPrompt(ctx) + "\n\n" + directorInstruction;
+  const dynamicSystem = directorInstruction.trim()
+    ? buildDynamicSystemPrompt(ctx) + "\n\n" + directorInstruction
+    : buildDynamicSystemPrompt(ctx);
   const messages = buildMessages(ctx.recent_turns, action);
 
   // AUDIT FIX (AI-C-03 / DB-H-03): atomic turn pair acquisition via RPC.
@@ -890,6 +906,11 @@ export async function POST(
     // Anthropic extended thinking forces temperature internally — passing a
     // value makes the SDK strip it + warn every turn (log noise). Omit it on
     // that path; otherwise keep 0.85.
+    // 2026-06-01 (方案甲 · 情況 1 自動重試): connection 層失敗（call 唔到 /
+    // 500 / rate limit · 喺任何 token stream 出嚟之前發生）由 SDK 自動重試 1 次 ·
+    // 玩家完全唔知。明確設 1（SDK default 2）。情況 2（stream 中途死 / 出空白）
+    // 唔喺度處理 · 因為文字可能已 stream 咗 · 由 onFinish 送誠實失敗訊號 + 前端 retry 掣。
+    maxRetries: 1,
     temperature: thinkingEnabled && narratorIsAnthropic ? undefined : 0.85,
     // 2026-05-29 (founder): loosened from 1500 — output felt too thin. The user
     // pays per token anyway; the cap is just a runaway guard (so one turn can't
@@ -947,31 +968,34 @@ export async function POST(
         const cleanText = (text ?? "")
           .replace(/^\s*```(?:json)?\s*\{[\s\S]*?\}\s*```\s*/i, "")
           .trimStart();
-        const isRefusal = isLLMRefusal(cleanText);
-        // 2026-05-29: NEVER save a blank turn. Some models (e.g. Gemini via
-        // CrazyRouter on a Director-reject turn, or thinking-mode variance)
-        // occasionally return a tool call with EMPTY prose → the player saw no
-        // reply + embedText got "empty input". Treat empty prose like a refusal
-        // and substitute the in-fiction fallback so there is ALWAYS a narrative.
-        const isEmptyProse = !cleanText || !cleanText.trim();
-        const storyLanguage = ctx.story.story_bible.hard_locked.language;
-        const finalText =
-          isRefusal || isEmptyProse
-            ? refusalFallbackNarrative(storyLanguage)
-            : cleanText;
-        if (isRefusal || isEmptyProse) {
+        // 2026-06-01 (ADR-001 原則 5 · 技術失敗要誠實 · 唔好假扮故事):
+        // 失敗判斷 **只睇有冇實質文字出到** · 唔再用 isLLMRefusal 內容分析。
+        // 舊邏輯 (isLLMRefusal + 貼 refusalFallbackNarrative 死文字) 係「眉頭微皺」
+        // bug 嘅根源 —— 將一個技術失敗 (Gemini 超時交白卷) 扮成故事失敗 (NPC 反應)。
+        // 而家：有文字 = 成功 (就算劇情上玩家動作失敗 · 都係成功嘅一回合)。
+        // 冇文字 (空白 / 超時被砍 / model 死) = 技術失敗 → 唔存故事 · 唔污染記憶 ·
+        // 送誠實失敗訊號俾前端 (前端顯示「整唔到請再試」+ retry 掣 · 似 ChatGPT)。
+        // 註: isLLMRefusal / refusalFallbackNarrative 已 deprecated · 唔再 import 用。
+        const technicalFailure = !cleanText || !cleanText.trim();
+        // 失敗時：插入一個 failed=true 標記回合（text 留空 · 唔係假故事文字）。
+        // 前端見到 failed 標記 → 顯示「整唔到請再試」+ retry 掣（唔當故事回合）。
+        // 失敗回合唔 embed 入記憶（下面 !technicalFailure 已 skip）· 清潔系統 (07)
+        // 一句 SQL (WHERE failed=true) 就清走。用標記而唔係完全唔 insert · 係為咗
+        // 避免「玩家 turn 已 pre-persist 但冇對應 AI turn」嘅孤兒回合 (reload 會亂)。
+        const finalText = technicalFailure ? "" : cleanText;
+        if (technicalFailure) {
           console.warn(
-            `[turn] narrator ${isRefusal ? "refused" : "returned empty prose"} — substituted in-fiction fallback. Original head:`,
+            `[turn] narrator produced no usable prose (timeout / empty / model error) — saving failed=true turn, client shows retry. Original head:`,
             (text ?? "").slice(0, 200),
           );
         }
 
         // 2026-05-29: state changes now come from a SEPARATE Haiku extraction
         // of the finished prose (the Narrator no longer uses tools — see the
-        // streamText note). Skip on refusal / empty-prose fallback (nothing
-        // really happened). Extractor failure is non-fatal — prose still saves.
+        // streamText note). Skip on technical failure (nothing really happened).
+        // Extractor failure is non-fatal — prose still saves.
         const extraction =
-          !isRefusal && !isEmptyProse
+          !technicalFailure
             ? await extractTurnState(ctx, finalText).catch((e) => {
                 console.warn(
                   "[turn] state extraction failed (continuing):",
@@ -1258,7 +1282,10 @@ export async function POST(
             turn_index: aiTurnIndex,
             role: "ai",
             text: finalText,
-            state_delta: isRefusal ? null : delta,
+            state_delta: technicalFailure ? null : delta,
+            // 2026-06-01 (ADR-001 原則 5): 技術失敗標記。前端見到 → retry 掣 ·
+            // 唔當故事 · 清潔系統 (07) 清走 · reload 時 page.tsx filterFailedTurns 隱藏。
+            failed: technicalFailure,
             // AUDIT FIX F-03 (Wave 2): persist Director failure flag inline so
             // postmortems can grep for `director_verdict->>'fallback' = 'true'`
             director_verdict: directorFailed
@@ -1320,7 +1347,7 @@ export async function POST(
           });
           let narratorCredits = 0;
           let backgroundCredits = 0;
-          if (!isRefusal) {
+          if (!technicalFailure) {
             const fullTurnCredits = computeTurnCredits({
               narrator: {
                 modelId: pt.llm_model ?? "claude-sonnet-4-6",
@@ -1369,7 +1396,7 @@ export async function POST(
                 director_credits: directorCredits,
                 background_credits: backgroundCredits, // P3-COST-H-05 reserve
                 narrator_model: pt.llm_model ?? "claude-sonnet-4-6",
-                refusal: isRefusal,
+                refusal: technicalFailure,
                 // Phase 1.5 · NPC L3 telemetry for cost analytics + audit trail
                 // Wave 2 fix CRIT-C: use NPC_L3_CREDITS_PER_NPC constant
                 npc_l3_active_agents: npcL3SuccessfulAgents,
@@ -1429,7 +1456,7 @@ export async function POST(
         // Each helper still wraps its own error handling so one failing
         // doesn't cascade-kill the others.
         const aiTurnId = aiTurnRow?.id ?? null;
-        if (!isRefusal && aiTurnId) {
+        if (!technicalFailure && aiTurnId) {
           // Embed AI turn → turn_embeddings (RAG tier 3)
           //
           // Migration 0018 lockdown: use service-role client for memory writes.
@@ -1603,7 +1630,7 @@ export async function POST(
               }
             });
           }
-        } else if (isRefusal && userTurnId && memory.queryEmbedding) {
+        } else if (technicalFailure && userTurnId && memory.queryEmbedding) {
           // AUDIT FIX (P2-UX-H-07): on refusal, the AI fallback narrative
           // shouldn't enter RAG (canned text has no signal). But the user
           // action turn SHOULD still be retrievable — that way Director on

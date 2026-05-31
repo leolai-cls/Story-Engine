@@ -20,9 +20,9 @@
 
 **永遠遵守**：
 
-- ✅ **用繁體中文** 溝通（用戶會中英夾雜，你跟住嚟）
-- ✅ 當佢係 **business partner**，唔係 engineer。傾 product / 體驗 / 商業模式，唔好開口就 stack trace
-- ✅ 解釋決定時用 **business language + 具體例子**（戀愛故事介面 vs D&D 介面），唔好淨係列 framework
+- 🔴 **同用戶講嘢一定要用繁體中文，而且零英文技術 terms**（用戶講過 100+ 次，呢個係最重要嘅 rule）。唔好寫 CRIT/HIGH/MED、唔好寫 framework 名、唔好寫 component/schema/endpoint 呢類字、表格 header 唔好用英文。要用就即場用日常話解釋（例：唔好寫「SSE stream」→ 寫「即時送返嚟嘅文字」）。內部文件 / git / code comment 可以中英夾雜，但**面對用戶講嘢就要乾淨繁中**。
+- ✅ 當佢係 **生意拍檔**，唔係工程師。傾產品 / 體驗 / 商業模式，唔好開口就講技術細節
+- ✅ 解釋決定時用 **生意角度 + 具體例子**（戀愛故事介面 vs D&D 介面），唔好淨係列一堆名詞
 - ✅ Solo dev 但 **唔妥協 scope** — 唔好因為佢一個人就建議減 feature。佢 willing to put in the work，分階段執行就得
 - ✅ 行動前 **講清楚會做咩**，做完 **summary 1-2 句**
 - ✅ 風險決定（destructive ops、share data、charge money）**永遠 confirm 先做**
@@ -45,75 +45,47 @@
 |---|---|---|
 | **MVP scope** | 一個 engine handle 三個 mode（自己創作 / 社群 / 官方） | 三者本質係同一件事 — 邊個寫個 prompt 而已 |
 | **市場** | 中文圈 first（HK + TW + 海外華人，繁中為主） | 大平台冇人服務，藍海 |
-| **遊玩模式** | 故事自適應介面（AI 每個故事生成專屬 state schema + 對應 UI） | 護城河 feature，其他平台抄起碼要 6-12 個月 |
-| **多 Model** | 用戶可揀 Claude / GPT / Gemini / Grok / Open Source | 唔同用戶有唔同偏好，credits 一視同仁 |
+| **遊玩模式** | 故事自適應介面（AI 每個故事生成專屬 state schema + 對應 UI） | 護城河 feature — 數據 + 介面都跟故事生成 |
+| **多 Model** | 用戶可揀 model（**2 tier：Standard / Pro**，見下） | 唔同用戶有唔同偏好，credits 一視同仁 |
 | **付費模式** | Subscription + 月度 credits + 一次性 top-up | 對齊 NovelAI / AI Dungeon，平台用戶熟 |
-| **成人模式** | Opt-in + KYC 年齡驗證；開啟後只可用唔會 ban 嘅 Model | 防止大 Model 公司 ban 我哋個 account |
-| **長期記憶** | 4 層架構：近 20 turns 全文 + 滾動摘要 + RAG 向量 + 自動 lorebook | 解決行業 #1 churn 原因（"AI 唔記得"） |
-| **Narrative Integrity** | Story Bible + Character Cards + Skill Checks + Director Model | 解決行業 #2 churn 原因（"取悅型 AI / Yes-Man Problem"） |
-| **訂價** | USD 為 primary（$9.99 / $19.99 / $49.99） | HK / TW 用戶熟，唔需要 multi-currency 複雜 |
+| **訂閱層** | **2 tier：Standard（平 model）+ Pro（強 model）**；成人模式 = Pro 入面嘅 toggle | 簡化（前身有 Pro Max / Adult tier 已砍） |
+| **成人模式** | Opt-in + **自我聲明 18+ checkbox（NO KYC — 已 cancel 好耐）**；開啟後只可用唔會 ban 嘅 model | KYC 太重 · 自我聲明足夠 |
+| **長期記憶** | 4 層架構：近 20 turns 全文 + 滾動摘要 + RAG 向量 + 自動 lorebook + **角色記憶宮殿 + 信念演化** | 解決行業 #1 churn 原因（"AI 唔記得"）· 詳見 `pm/architecture/04-memory.md` |
+| **角色靈魂 + GM** | **角色三層靈魂（出身+經歷+沉澱）+ GM 做 prep 員（唔做決策）+ 四層優先級** | 解決行業 #2 churn（"yes-man / NPC 冇靈魂"）· **2026-06-01 重設計取代咗舊 Director Model**，詳見 `pm/architecture/` |
+| **訂價** | USD 為 primary（Standard / Pro 兩個價位） | HK / TW 用戶熟，唔需要 multi-currency 複雜 |
 | **Launch market** | HK + TW 同步 launch | 用戶 explicit 決定。TW 市場大過 HK 4x，同步加速 PMF。**官方故事要 cultural diversity** — 唔可以全 HK setting |
 | **官方故事創作** | Founder + Claude 自己寫（at launch） | Solo lean，align founder vision，author program 推遲到 v1.5+ |
 | **違規過濾 provider** | OpenAI Moderation API (free) at launch | Free + cover 大部分 case；Phase 5 review |
-| **AI 記性引擎** | OpenAI text-embedding-3-small | 多語言 + 平；Phase 2 用中文 benchmark 驗證 |
-| **Turn pipeline 架構** | **Orchestrator Pattern**（用戶 intuition lock 嘅）| 玩家輸入永遠先經後台框架 enforcement + 記憶 prep + Director 仲裁，先 call 外部 LLM。玩家 prompt 冇辦法直接觸碰外部 LLM |
+| **AI 記性引擎** | **CrazyRouter text-embedding-3-small**（HK founder 攞唔到 OpenAI key） | 多語言 + 平；經 CrazyRouter 路由 |
+| **Turn pipeline 架構** | **四層優先級 + 單 Narrator LLM**（GM 做 prep 員，唔做決策）| 玩家輸入經 GM 整理（世界>角色>場景>玩家指令）後交俾 Narrator 自然敘事。**2026-06-01 取代咗舊 Orchestrator/Director 仲裁架構**，詳見 `pm/architecture/02-turn-pipeline.md` |
 
-## Narrative Integrity Engine（產品護城河 #2）
+## 角色靈魂 + 記憶引擎（產品護城河 #2 — 2026-06-01 重設計）
 
-行業最大 design flaw：AI 不斷取悅玩家，NPC 冇靈魂，玩家想做乜就做乜。我哋用 4 層解決：
+> 🚨 **完整架構喺 `pm/architecture/` folder**。呢度只係 high-level summary。
+> **新 session 處理角色 / 記憶 / GM / turn 相關嘢之前，一定要先讀 `pm/architecture/`。**
 
-**① 故事聖經 (Story Bible)** — 創作時 AI 生成 + 用戶可改，永遠注入 context（Anthropic prompt cache）：
-- 核心衝突 (central_conflict)
-- 世界規則 (world_invariants) — 物理 / 魔法 / 社會 hard limits
-- 故事弧 (story_arc) — 3-5 個 Act milestones
-- 語調風格 (tone_and_style)
+行業最大 design flaw：AI 不斷取悅玩家、NPC 冇靈魂、玩家想做乜就做乜。我哋嘅解法（2026-06-01 founder 梳理後 lock）：
 
-**② 角色卡 (Character Cards)** — 每個 NPC 一張，包括：
-- 性格 traits、過去、目標
-- **紅線 (red_lines)** — 觸發即 in-fiction 拒絕，AI 永遠唔可以違反
-- 講嘢風格 (voice_sample)
-- 弧線（NPC 點evolve）
+**核心哲學（4 條，詳見 `pm/architecture/01-philosophy.md`）**：
+1. 移除硬寫死 · 改用 AI 推導（emergent over hardcoded）
+2. GM 係 prep 員，唔係決策者
+3. 四層優先級：世界 > 角色 > 當下場景 > 玩家指令（低層唔可推翻高層）
+4. 平台只守法律底線（CSAM / 真實傷害），故事內容零自我審查
 
-DB：`story_characters` (模板) + `playthrough_character_states` (per-playthrough 狀態 / disposition / 累積記憶)
+**① 角色三層靈魂**（`03-character-soul.md`）— 角色唔係寫死嘅 trait 清單：
+- 出身（永久 anchor）+ 經歷日誌（累積）+ 當下狀態（即時）
+- 沉澱張力機制：角色經歷沉澱消化先作決定，重大事一次夠、細微事要累積（threshold 由角色易變度定）
+- 玩家可透過長期經歷真正改變角色性格
 
-**③ 能力檢定 (Skill Checks)** — 玩家試風險行動時觸發：
-- (skill stat + d20) vs Director 定嘅難度
-- 失敗 = 真實 state cost（HP / 好感度 / 信任 / 聲譽）
-- **永久後果，唔可以 reset 同一 turn**
-- UI：擲骰動畫提升 RPG 感
+**② 4 層記憶 + 角色記憶宮殿**（`04-memory.md`）— 近期全文 + 滾動摘要 + RAG 向量 + 自動 lorebook，加角色信念演化圖譜（temporal graph：角色信念會隨經歷被推翻更新）
 
-**④ Director Model** — 每 turn 第 1 次 LLM call：
-- 用 cheap model（Haiku / Gemini Flash），1-2 秒
-- 檢查：violate Bible？違反 NPC 紅線？需 Skill Check？Arc 走偏？
-- 輸出 structured verdict → Narrator 根據 verdict 寫敘事
-- **+20-30% credits/turn**，但係 Narrator 仲係用玩家揀嘅 premium model
+**③ GM = prep 員 + 四層 context + 單 Narrator LLM**（`02-turn-pipeline.md`）— 每回合一個 LLM call。GM 整理好分層 context 交俾 Narrator，Narrator 自己決定世界點回應。**取代咗舊嘅 Director Model verdict 仲裁**（舊系統對 ambiguous case 過敏 over-reject，見 `decisions.md` ADR-001）
 
-**UX hard rule**：Director 嘅介入永遠 in-fiction（NPC pushback / failed attempt），唔係 system error message。「林思雅推開你」唔係「Action rejected: personality violation」。
+**④ 故事自適應系統 + 介面**（`05-game-system.md` / `06-generative-panels.md`）— 每個故事 AI 生成適合佢嘅 mechanics（D&D 擲骰 / JRPG 回合制 / 寵物捕捉 / 純小說無）+ 揀適合嘅介面 panel
 
-### Bible 3 層 calibration（防止過度寫死）
+**外部參考**：MemPalace（記憶藍本，藍本重建唔內嵌）+ OpenDesign（panel 概念啟發）— research 結論喺 `04-memory.md` / `06-generative-panels.md`。
 
-| 層 | 字數預算 | 例子 | 點 enforce |
-|---|---|---|---|
-| 🔒 Hard Locked | 150-300 字 (5-10 條) | premise、NPC 紅線、世界物理 limits | System prompt + Director 強制 |
-| 🎯 Soft Guided | 300-500 字 | Story arc with **conditional** transitions | Director 引導但有彈性 |
-| 🎨 Open | 0 字 | 對白、場景、subplot、NPC 反應細節 | 唔寫，Narrator 自由發揮 |
-
-**Hard rules**：
-- Story arc transition **永遠用 condition**（「好感度 >= 60 且 1-on-1 互動 >= 3」），**永遠唔用 turn number**（「第 12 turn」）
-- Hard Locked 層由 Director 強制；Soft Guided 層 Director 有 discretion
-- **Earned exception**：玩家可以透過 in-game 行動「改變」NPC red lines（e.g., 救咗佢一命解鎖某啲信任）。Director 判定可否觸發
-
-### 3 層防禦：點樣 enforce Bible
-
-| 層 | 機制 | 防咩 |
-|---|---|---|
-| 1. System prompt priority | Bible / 紅線寫入 system role，LLM RLHF 訓練成 system 優先於 user | 95%+ 普通玩家 prompt |
-| 2. Director Model | 第二個 LLM call 預先審核玩家行動 | 老練玩家 jailbreak |
-| 3. Tool Calling structured output | state_delta 必須符合 JSON Schema | AI hallucinate 或被 prompt 騙 |
-
-加埋 **Anthropic / OpenAI prompt caching**：Bible + Character Cards 嘅 system prompt 前綴 cached → input cost -90% → Bible / Cards 可以寫得 detailed 而 cost 唔爆炸。
-
-**Phase placement**：階段 1 包含 Bible + Character Cards generation；階段 1.5 加入 Director + Skill Check engine。**MVP day 1 hard requirement** — 第一個玩家試覺得 yes-man，我哋就輸咗。
+**Phase placement**：呢個係 launch 前嘅核心重設計，DESIGN LOCKED · IMPLEMENTATION PENDING。實作優先級：角色靈魂 > GM 重構（本質同一件事）> 自適應介面。
 
 ---
 
@@ -121,13 +93,14 @@ DB：`story_characters` (模板) + `playthrough_character_states` (per-playthrou
 
 | Layer | Choice |
 |---|---|
-| Frontend + Backend | Next.js 15 (App Router) + TypeScript + React 19 |
+| Frontend + Backend | Next.js 16 (App Router · Turbopack) + TypeScript + React 19 |
 | UI | Tailwind v4 + shadcn/ui + Framer Motion |
 | Database / Auth | Supabase（Postgres + pgvector + Auth + Storage + Realtime + Edge Functions） |
 | LLM 抽象層 | Vercel AI SDK |
-| Embedding | OpenAI text-embedding-3-small (1536-dim, 中文友好) |
-| Payments | Stripe Subscriptions + Checkout |
-| 年齡驗證 | Stripe Identity |
+| LLM provider | **CrazyRouter（aggregator）+ Anthropic direct ONLY**（HK founder 攞唔到 OpenAI/Google/xAI direct key，亦唔用 OpenRouter）。base `crazyrouter.com/v1` |
+| Embedding | text-embedding-3-small (1536-dim, 中文友好) · 經 CrazyRouter |
+| Payments | Stripe Subscriptions + Checkout（live mode · HKD） |
+| 年齡驗證 | **冇（已 cancel）— 成人模式 = 自我聲明 18+ checkbox** |
 | Email | Resend |
 | Analytics / Errors | PostHog + Sentry |
 | Hosting | Vercel + Supabase |
@@ -167,6 +140,7 @@ DB：`story_characters` (模板) + `playthrough_character_states` (per-playthrou
 |---|---|---|
 | `plan.html` | `~/.claude/plans/text-based-rpg-webapp-elegant-kurzweil.md` | 完整 plan — HTML 業務 view，MD 技術深度 |
 | `pm-dashboard.html` | `pm/STATUS.md` + `pm/ROADMAP.md` + `pm/DECISIONS.md` + `pm/BACKLOG.md` + `pm/OPEN_QUESTIONS.md` + `pm/GLOSSARY.md` | PM dashboard — HTML 一覽，MD 分文件 source of truth |
+| — | **`pm/architecture/` folder** | 🚨 核心架構（記憶 / 角色靈魂 / GM / 自適應系統）— 處理呢啲嘢前必讀。一個系統一份文件 + 索引 + 名詞表 + ADR |
 | — | `CLAUDE.md`（呢份） | Project soul，每次自動 load |
 
 **Update 紀律**：
@@ -210,7 +184,7 @@ DB：`story_characters` (模板) + `playthrough_character_states` (per-playthrou
 18. **Top-K retrieval 冇 similarity floor 等於 noise by design** — `ORDER BY similarity LIMIT K` 一定返 K row 唔理多 irrelevant。Player 經驗 "AI 老係 reference 過場 NPC" 唔係 bug，係 by-design 行為。Vector search 永遠加 `WHERE similarity > threshold` floor — 回 EMPTY 好過回 noise。每個 source tune 唔同 floor (Story Engine: summaries 0.55 / RAG 0.5 / lorebook 0.45)。
 19. **Memory / 後台 feature differentiator 一定要 UI surface** — 即使 backend 100% work，user 見唔到就 unfalsifiable。NovelAI lorebook UI 係佢哋 #1 retention driver。"AI 真係記得" claim 冇 Memory Journal 等於 marketing 喺空氣度。Plan UI 同 backend 一齊 ship，唔係留到「之後」。
 20. **Audit cost projections 永遠 underestimate** — Phase 2 原本估 ~2% memory overhead，實際係 ~35% on Narrator baseline。每次 add LLM call 都要 re-baseline 真實 per-turn cost vs subscription tier pricing。Adventurer $9.99/mo 200-turn = $4.60 = 46% COGS。
-21. **Founder priority rule — Function → UI → Money** — Phase number 唔等於 execution order。Founder explicit 講：先完成所有 product **function**（story engine / memory / community / adult mode logic / official content），再 **UI** design（library / Memory Journal / locale switcher / Settings polish / Library UI），最後先做 **money**（credits UX / Stripe / KYC / refund saga）。Session 7 嗰陣 Phase 3 credits 順序排錯 — 屬於 money tier 但做咗喺 function 完成之前。**任何時候建議 next move 之前 check：佢屬邊個 tier？高 tier 嘅 deferred work 唔該先做晒**。
+21. **Founder priority rule — Function → UI → Money** — Phase number 唔等於 execution order。Founder explicit 講：先完成所有 product **function**（story engine / memory / community / adult mode logic / official content），再 **UI** design（library / Memory Journal / locale switcher / Settings polish / Library UI），最後先做 **money**（credits UX / Stripe / refund saga）。Session 7 嗰陣 Phase 3 credits 順序排錯 — 屬於 money tier 但做咗喺 function 完成之前。**任何時候建議 next move 之前 check：佢屬邊個 tier？高 tier 嘅 deferred work 唔該先做晒**。（註：KYC 年齡驗證已 cancel，成人模式 = 自我聲明 18+）
 22. **加 enum 但唔 implement filter = documented missing safeguard** — Phase 5 嘅 `moderation_flags` 加咗 `'csam'` 同 `'sexual_minor'` enum 表示呢類 vector 存在，但 createStoryFromPrompt / upsertComment / rateStory 全部冇 pre-filter。CLAUDE.md hard rule #6 violation。**每次加 enum 認 acknowledge attack vector 嘅同時必須 implement 對應 defense**。否則就係 schema-level admission without code-level enforcement。
 23. **`bump_X_count` triggers need symmetric INSERT + DELETE handlers** — counter-without-decrement 係常見 race vector。Phase 5 嘅 play_count 只有 INSERT trigger，加 user 可以 fork→delete loop 將 count inflate。每次寫 trigger 增 counter 都諗：「邊個情況會減？」如果有 DELETE 路徑能 affect count，就需要 mirror trigger。
 24. **`auth.uid() = user_id` UPDATE policy 唔夠 — 要 column restriction** — Phase 5 嘅 story_comments_own_update 用 bare `using/with check auth.uid()=user_id` — 但冇限制邊個 column 可以改。用戶可以 un-delete · edit body · re-parent 跨 story · 改 story_id。**任何 UPDATE policy 都要諗：用戶可以改邊個 column？哪個 column 變化會 break invariant？** 解法：trigger BEFORE UPDATE 比 RLS column-list 更穩。
@@ -226,17 +200,23 @@ DB：`story_characters` (模板) + `playthrough_character_states` (per-playthrou
 34. **Customer-facing copy ≠ internal strategy text** — Session 15 lift 咗 CLAUDE.md「對手要 6-12 個月先抄到」(internal competitive moat assessment) 入 marketing pill · founder catch (繁中 vulgarities)。Competitor trash-talk in own marketing 係 unprofessional + signals insecurity。**任何 customer-facing copy (marketing · product UI · email · error messages) 永遠 user-benefit framing · NEVER lift 自 CLAUDE.md / DECISIONS.md / pm/STATUS.md 嘅 strategy / competitive / technical advantage talk**。寫之前自問：呢句寫俾用戶睇 · 定寫俾自己 / 投資者睇？只有後者啱 candid。Internal docs 仍然繼續 candid · 但只活喺呢度 · 唔輸出。
 35. **Cross-subdomain auth redirect 永遠用 `getAppOrigin()`** — Session 15 Google login regression：`authRedirectBase()` 用咗 `NEXT_PUBLIC_SITE_URL` (post-split = marketing host kieio.com) → OAuth callback 落 marketing host → Supabase 喺 marketing 域 set cookie → middleware redirect 入 product host (app.kieio.com) → cookie 唔見 → user 表面 unauth (但 Supabase 顯示 session 已成功)。Silent failure mode。**所有 auth `redirectTo` / `emailRedirectTo` MUST 用 `getAppOrigin()` from `lib/urls.ts`**。唔可以 fall back `headers().get("origin")` (browser-controlled · phishing vector) · 唔可以直接用 `NEXT_PUBLIC_SITE_URL` (post-split 已 = marketing host)。Cookie scope 永遠係 parent domain (`.kieio.com`) · 等 marketing + product 都讀到 session。
 36. **Spec-vs-code drift = documentation hygiene failure** — Session 15 揾到 pm/STATUS.md Pricing v3 line 74 講「Free signup 1k + 50/day」但 Migration 0001 column default + Migration 0008 trigger 淨係 grant 50。Drift undetected since launch · only caught when founder explicit 問「register 之後到底拎幾多?」。Migration 0033 fix (1000 + backfill +950)。**每次 ship new feature 應該 scan spec docs for related claims · validate code 真係 match · 唔好 trust the doc just because 你 wrote it**。Spec docs 可以同 code 同樣 wrong · 兩邊都要 cross-verify。Founder 一旦 explicit 問細節 = high signal 你應該即刻 check 兩邊 sync。
+37. **核心架構（記憶 / 角色靈魂 / GM / turn pipeline / 自適應系統）改之前必讀 `pm/architecture/`** — Session 16 (2026-06-01) founder 梳理咗成套核心架構入呢個 folder。任何 session 要動角色 / 記憶 / Director / turn pipeline / panel 之前，**一定要先讀 `pm/architecture/README.md` 再讀對應文件**，因為 code 現狀同 target 架構有 drift（舊 Director Model 要 deprecate），唔讀就會基於過時理解做嘢。呢度嘅 5 個 ADR (decisions.md) 係 DESIGN LOCKED。
+38. **唔好靠估 — 唔肯定就查實** — Session 16 兩次靠估出錯：(a) 估生圖 host 用錯 → grep 證明三個 call 同一 host，host 唔係 bug；(b) 估 skill modal 闊度爆 mobile → 原來真正 component 係另一個 inline 版本。每次都係即刻自我驗證先避免將錯誤寫入 memory 累下個 session。**凡係診斷 bug / 評估外部 project / 講某段 code 點 work，一定要實際讀返個 code / 攞真實 log / probe 真實 endpoint，唔好靠記憶或者推測落結論。** Founder downloaded MemPalace + OpenDesign 就係要我讀真實 source 先判斷，唔係估。
 
 ---
 
 ## Open Items（待解決）
 
+**核心架構重設計（Session 16 · 詳見 `pm/architecture/`）**：
+- NPC Agent L3（角色 POV 思考）喺新架構：維持付費 / 全部 default / hybrid？
+- 現有 state panel 嘅裸好感度數字條 — 改質性顯示定交 AI 決定要唔要 expose？
+- MemPalace 中文 entity 處理直接借用定改良（要 spike 驗證）
+- 角色經歷日誌 + 信念圖譜寫入：用 LLM 抽（準但貴）定 regex（慳但漏）？
+
+**其他**：
 - 內容 moderation 嘅具體實作（哪個 provider、CSAM filter source）
-- 預設訂價係 USD 定 HKD？最終 launch 時 confirm
-- v1.5 嘅 cover image 生成用邊個 provider（Fal.ai vs Replicate vs Together）
 - Lorebook entity 同名 dedup 策略（「阿明」vs「陳家明」）— 用 naive exact match 先
-- Phase 1.5.3 M-02 NPC name fuzzy match strategy（exact + Levenshtein fallback?）
 
 ---
 
-_Last updated: 2026-05-28 (Session 15 — 🟡 MONEY TIER SHIPPED · Phase 4 Stripe (subscription + checkout + portal + top-up + cron) + Phase 6 KYC (Stripe Identity) · 3-wave audit converged (9 ship blockers) · 🌐 Marketing site live at kieio.com (dark cinematic landing + pricing + 3 selling points) · 🔀 Hard subdomain split (kieio.com marketing + app.kieio.com product · cookies `.kieio.com`) · 🌏 i18n Wave 2 (622 keys × 3 locales · 9-cycle audit converged) · 🔧 Google login subdomain bug fix · 💰 Migration 0033 signup grant 1000 correction · added hard rules #34-36 · function + UI + money tier 全完 · 🏁 next = Phase 7 5 條官方故事 + comprehensive E2E)_
+_Last updated: 2026-06-01 (Session 16 — 🧭 CORE ARCHITECTURE REDESIGN · founder 梳理「記憶 + 角色靈魂 = 產品最重要」· 開咗 `pm/architecture/` folder（哲學 / turn pipeline / 角色靈魂 / 記憶 / 自適應系統 / 自適應介面 + 5 ADR + 名詞表）· GM 由決策者降做 prep 員（取代舊 Director）· 角色三層靈魂 + 沉澱張力 · MemPalace 藍本重建唔內嵌 · 移除角色硬紅線只守法律底線 · DESIGN LOCKED IMPL PENDING · 🐛 同場修好 play 兩個 bug（skill 徽章 live + 生圖 fallback chain）PR #51 已 merge prod · added hard rules #37-38 · 🏁 next = 角色靈魂 + GM 重構實作)_

@@ -75,7 +75,7 @@ export default async function PlayPage({
 
   const { data: turns } = await supabase
     .from("turns")
-    .select("turn_index, role, text, skill_check, director_verdict")
+    .select("turn_index, role, text, skill_check, director_verdict, failed")
     .eq("playthrough_id", playthroughId)
     .order("turn_index", { ascending: true });
 
@@ -192,7 +192,7 @@ export default async function PlayPage({
       storyDescription={story.description ?? ""}
       stateSchema={schemaParse.data}
       initialState={(pt.current_state as Record<string, unknown>) ?? {}}
-      initialTurns={(turns ?? []).map((t) => ({
+      initialTurns={filterFailedTurns(turns ?? []).map((t) => ({
         role: t.role as "user" | "ai",
         text: t.text,
         index: t.turn_index,
@@ -219,6 +219,32 @@ export default async function PlayPage({
 
 // Local alias so the cast above doesn't need to import the full type from client
 type Turn = import("./play-client").Turn;
+
+/**
+ * 2026-06-01 (ADR-001 原則 5 · 技術失敗要誠實): reload 後過濾走技術失敗回合。
+ * 後端 turn route 失敗時插一個 failed=true 嘅 AI turn (text 空 · 避免孤兒)。
+ * 載入時將呢個失敗 AI turn 連同佢對應嘅玩家 turn (index-1) 一齊剔走 · 等失敗回合
+ * 完全唔顯示 (當冇發生過) · 玩家唔會見到空白回合 · 亦唔污染敘事歷史。
+ * (清潔系統 pm/architecture/07 將來會喺 DB 層真正清走 failed=true 嘅 row。)
+ */
+function filterFailedTurns(
+  rows: Array<{ turn_index: number; role: string; text: string; failed?: boolean }>,
+): Array<{ turn_index: number; role: string; text: string; skill_check?: unknown; director_verdict?: unknown }> {
+  const dropIndexes = new Set<number>();
+  for (const r of rows) {
+    if (r.failed) {
+      dropIndexes.add(r.turn_index); // 失敗 AI turn
+      dropIndexes.add(r.turn_index - 1); // 對應玩家 turn
+    }
+  }
+  return rows.filter((r) => !dropIndexes.has(r.turn_index)) as Array<{
+    turn_index: number;
+    role: string;
+    text: string;
+    skill_check?: unknown;
+    director_verdict?: unknown;
+  }>;
+}
 
 /**
  * Localized relative-time formatter.

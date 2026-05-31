@@ -143,8 +143,53 @@ export const DirectorOutputSchema = z.object({
 export type DirectorOutput = z.infer<typeof DirectorOutputSchema>;
 
 /**
- * Convert verdict into a system-prompt addendum that the Narrator consumes.
- * Each verdict shapes Narrator's behavior differently.
+ * 2026-06-01 (ADR-001 · GM 由決策者降做 prep 員)：新版「中性背景參考」。
+ *
+ * 舊 verdictToNarratorInstruction 會強推 Narrator 寫 reject pushback / constraint，
+ * 製造咗「眉頭微皺」嗰種 canned pattern，亦令 Director 嘅誤判直接污染敘事。
+ *
+ * 新哲學（pm/architecture/02-turn-pipeline.md）：GM 唔做決策。Narrator 自己睇四層
+ * 優先級（世界>角色>場景>玩家指令）決定世界點回應。Director 嘅 verdict 只係一個
+ * 「內部觀察筆記」· 中性 · 唔強制 · Narrator 可以採納或者按自己判斷無視。
+ *
+ * - allow → 完全唔加 note（最常見 · 唔好用 token）
+ * - reject / allow_with_constraint → 一句中性觀察 + 明確交返判斷權俾 Narrator
+ * - require_skill_check → 喺 turn route 另外用 skillCheckToNarratorInstruction 處理
+ *   （骰已擲 · 結果要 narrate）· 唔經呢度
+ */
+export function verdictToContextNote(v: Verdict, lang: DirectorThinkingLang = "zh-Hant"): string {
+  if (v.verdict === "allow" || v.verdict === "require_skill_check") {
+    return ""; // allow: 唔加嘢。skill_check: turn route 另外處理。
+  }
+
+  // reject / allow_with_constraint：俾一個中性 internal note，唔強推 pushback。
+  const observation =
+    v.verdict === "reject"
+      ? v.in_fiction_pushback_hint || v.reasoning
+      : v.constraint;
+
+  if (lang === "en") {
+    return `[INTERNAL CONTEXT — DO NOT QUOTE · this is a background note, NOT an instruction]
+## GM observation (optional reference)
+The GM noted a possible tension between the player's action and the world/characters: ${observation}
+You are the Narrator. Decide for yourself, using the four-tier priority (World > Characters > Scene > Player command), how the world and the present characters naturally respond. If the action genuinely doesn't fit, let it fail inside the fiction and have each present character react in their OWN voice and mood — never a canned line. If it actually fits fine, just narrate it. This note is only a hint; trust your own read of the scene.`;
+  }
+  if (lang === "zh-Hans") {
+    return `[INTERNAL CONTEXT — DO NOT QUOTE · 这是背景笔记，不是指令]
+## GM 观察（可选参考）
+GM 留意到玩家行动与世界/角色之间可能有张力：${observation}
+你是 Narrator。请你自己按四层优先级（世界 > 角色 > 场景 > 玩家指令）判断世界同在场角色会怎样自然回应。如果这个行动真的不成立，让它在故事里自然失败，由每个在场角色按自己的 voice 同心情反应 —— 绝不用罐头台词。如果其实没问题，就正常叙述。这只是提示；相信你自己对场景的判断。`;
+  }
+  return `[INTERNAL CONTEXT — DO NOT QUOTE · 呢個係背景筆記，唔係指令]
+## GM 觀察（可選參考）
+GM 留意到玩家行動同世界/角色之間可能有張力：${observation}
+你係 Narrator。請你自己按四層優先級（世界 > 角色 > 場景 > 玩家指令）判斷世界同在場角色會點自然回應。如果呢個行動真係唔成立，等佢喺故事入面自然失敗，由每個在場角色按自己嘅 voice 同心情反應 —— 絕對唔好用罐頭台詞。如果其實冇問題，就正常敘述。呢個只係提示；相信你自己對場景嘅判斷。`;
+}
+
+/**
+ * @deprecated 2026-06-01 ADR-001 · 用 verdictToContextNote 取代。
+ * 舊版會強推 reject pushback / constraint · 製造 canned pattern。保留住做 reference
+ * 直到 Director 完全 deprecate。唔好喺新 code path 用。
  */
 export function verdictToNarratorInstruction(v: Verdict): string {
   switch (v.verdict) {

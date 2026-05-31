@@ -461,7 +461,10 @@
       "thinkingLive": "AI is thinking…",
       "aiThinking": "AI thinking...",
       "moderationPending": "Moderation + AI thinking…",
-      "directorSoftTooltip": "NPC reaction differed from your expectation"
+      "directorSoftTooltip": "NPC reaction differed from your expectation",
+      "failedTitle": "Couldn't generate this time",
+      "failedBody": "Might be a brief network or AI hiccup. You weren't charged any credits — tap below to try again.",
+      "failedRetry": "Try again"
     },
     "input": {
       "placeholder": "What do you want to do? (describe action, dialogue, decision…)",
