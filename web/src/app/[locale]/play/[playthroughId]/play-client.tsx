@@ -953,16 +953,25 @@ export function PlayClient({
                         }
                         if (img.failed) {
                           return (
-                            <div
+                            <button
                               key={img.id}
+                              type="button"
                               style={dims}
-                              className="flex flex-col items-center justify-center gap-1 rounded-md border border-destructive/40 bg-destructive/5 px-1.5 text-center"
+                              onClick={() => {
+                                // Retry: drop the failed placeholder + reopen the
+                                // visualize modal for this turn (founder · audit).
+                                setSceneImages((prev) =>
+                                  prev.filter((e) => e.id !== img.id),
+                                );
+                                setVisualizeTurnIndex(turn.index);
+                              }}
+                              className="flex flex-col items-center justify-center gap-1 rounded-md border border-destructive/40 bg-destructive/5 px-1.5 text-center hover:border-destructive/70 transition-colors"
                             >
                               <ImageIcon className="h-4 w-4 text-destructive/70" />
                               <span className="text-[9px] se-cjk text-destructive">
                                 {tPlay("visualize.bgFailed")}
                               </span>
-                            </div>
+                            </button>
                           );
                         }
                         return (
@@ -1144,7 +1153,7 @@ export function PlayClient({
 
         {/* Right rail · NPC dispositions + State panel · mobile uses tabs */}
         <div
-          className={`lg:sticky lg:top-16 lg:self-start lg:flex lg:flex-col gap-4 lg:max-h-[calc(100vh-5rem)] lg:overflow-y-auto ${mobileTab !== "narrative" ? "block" : "hidden lg:flex"}`}
+          className={`min-h-0 overflow-y-auto lg:sticky lg:top-16 lg:self-start lg:flex lg:flex-col gap-4 lg:max-h-[calc(100vh-5rem)] ${mobileTab !== "narrative" ? "block" : "hidden lg:flex"}`}
         >
           {/* NPC cards — Hard rule #6: 4-axis disposition visible per NPC · mobile: tab="npc"
               2026-05-29 (founder #3): only show characters who've appeared in
