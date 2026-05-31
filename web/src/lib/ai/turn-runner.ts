@@ -387,6 +387,13 @@ export type TurnContext = {
    * (Director already ran before NPC agents · no recursion).
    */
   npcInnerStreamsBlock?: string;
+  /**
+   * Character Soul M4 — 角色經歷記憶 block (formatted by loadCharacterExperiencesBlock).
+   * 升級角色嘅相關經歷 · wrapped in [INTERNAL CONTEXT — DO NOT QUOTE]。
+   * 空 string 當冇相關經歷 / 角色未升級 / migration 未 apply。
+   * 注入 Narrator dynamic system prompt (Tier 2 角色層) · 等角色反應基於累積經歷。
+   */
+  characterExperiencesBlock?: string;
 };
 
 /**
@@ -483,6 +490,12 @@ export function buildDynamicSystemPrompt(ctx: TurnContext): string {
   const innerStreams = ctx.npcInnerStreamsBlock?.trim();
   const innerStreamsBlock = innerStreams ? innerStreams + "\n\n" : "";
 
+  // Character Soul M4 · 角色經歷記憶 block (升級角色嘅相關累積經歷)
+  // Already wrapped in [INTERNAL CONTEXT — DO NOT QUOTE] by loadCharacterExperiencesBlock.
+  // 空 when 冇升級角色 / 冇相關經歷 / migration 未 apply。
+  const charExp = ctx.characterExperiencesBlock?.trim();
+  const charExpBlock = charExp ? charExp + "\n\n" : "";
+
   // 2026-05-31 (founder · "narrator leaks JSON into the story"): show state as
   // plain "- key: value" lines, NOT a ```json fenced block. Root cause of the
   // leak — Gemini few-shot-MIMICKED the JSON block in the prompt and echoed a
@@ -494,7 +507,7 @@ export function buildDynamicSystemPrompt(ctx: TurnContext): string {
         `- ${k}: ${v === null || typeof v !== "object" ? String(v) : JSON.stringify(v)}`,
     )
     .join("\n");
-  return `${memoryBlock}${innerStreamsBlock}## Current Game State (READ-ONLY reference — do NOT repeat or output this; write story prose only)
+  return `${memoryBlock}${charExpBlock}${innerStreamsBlock}## Current Game State (READ-ONLY reference — do NOT repeat or output this; write story prose only)
 ${stateLines}
 
 ${charsDynamic}`;

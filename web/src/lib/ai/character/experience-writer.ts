@@ -227,3 +227,82 @@ export async function writeCharacterExperiences(params: {
 
   return { written: rows.length, ...usage };
 }
+
+// ─── M4 讀取整合 ─────────────────────────────────────────────────────────────
+
+export type ActiveCharacterForRead = {
+  character_id: string;
+  name: string;
+};
+
+/**
+ * 讀取角色經歷 (M4 · Narrator 整合)。為今回合 active 角色 · 用 user-action
+ * embedding query 各自相關嘅經歷 (match_character_experiences RPC · similarity
+ * floor)。組成一個 markdown block 餵入 Narrator 嘅角色層 (Tier 2)。
+ *
+ * 用 user client (RLS: 只攞到自己 playthrough · RPC SECURITY INVOKER)。
+ * queryEmbedding 重用 retriever 已算嗰個 (慳一個 embed call)。
+ *
+ * @returns markdown block (空 string = 冇相關經歷 · 唔加入 prompt)
+ */
+export async function loadCharacterExperiencesBlock(params: {
+  supabase: SupabaseClient;
+  playthroughId: string;
+  activeCharacters: ActiveCharacterForRead[];
+  queryEmbedding: number[] | null;
+  perCharacterLimit?: number;
+}): Promise<string> {
+  const {
+    supabase,
+    playthroughId,
+    activeCharacters,
+    queryEmbedding,
+    perCharacterLimit = 3,
+  } = params;
+
+  if (!queryEmbedding || activeCharacters.length === 0) return "";
+
+  const sections: string[] = [];
+  for (const ac of activeCharacters) {
+    try {
+      const { data, error } = await supabase.rpc("match_character_experiences", {
+        p_playthrough_id: playthroughId,
+        p_character_id: ac.character_id,
+        p_query_embedding: queryEmbedding as unknown as string,
+        p_match_count: perCharacterLimit,
+        p_min_similarity: 0.5,
+      });
+      if (error) {
+        const msg = String(error.message ?? "");
+        // RPC / table 未 apply (migration 0048) → silent skip
+        if (/does not exist/i.test(msg)) return "";
+        continue;
+      }
+      const rows = (data ?? []) as Array<{
+        what_happened: string;
+        my_response: string | null;
+        emotional_tone: string | null;
+      }>;
+      if (rows.length === 0) continue;
+      const lines = rows
+        .map((r) => {
+          const resp = r.my_response ? ` → ${r.my_response}` : "";
+          const tone = r.emotional_tone ? `（${r.emotional_tone}）` : "";
+          return `  - ${r.what_happened}${resp}${tone}`;
+        })
+        .join("\n");
+      sections.push(`${ac.name} 記得：\n${lines}`);
+    } catch {
+      continue; // non-fatal · 一個角色失敗唔影響其他
+    }
+  }
+
+  if (sections.length === 0) return "";
+
+  // 包喺 internal-context tag (同 npcInnerStreamsBlock 一致 · 防 verbatim quote)
+  return `[INTERNAL CONTEXT — DO NOT QUOTE · 角色記憶背景 · 用嚟令角色反應基於佢累積嘅經歷]
+## 角色經歷記憶
+呢啲係相關角色之前經歷過、並影響緊佢哋而家點睇嘢嘅事。寫角色反應時 · 由呢啲累積經歷推導佢哋嘅態度 · 唔好當佢哋係第一次見主角。唔好逐字引用 · 用你自己嘅敘事自然體現。
+
+${sections.join("\n\n")}`;
+}

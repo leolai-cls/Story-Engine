@@ -37,6 +37,7 @@ import { maybeRunSummarization } from "@/lib/ai/memory/summarizer";
 import { runLorebookExtraction } from "@/lib/ai/memory/lorebook";
 import {
   writeCharacterExperiences,
+  loadCharacterExperiencesBlock,
   SOUL_UPGRADE_THRESHOLD,
 } from "@/lib/ai/character/experience-writer";
 import { embedTextSafe } from "@/lib/ai/embed";
@@ -725,6 +726,38 @@ export async function POST(
         e instanceof Error ? e.message : e,
       );
     }
+  }
+
+  // ─── Character Soul M4 · 讀取角色經歷記憶 (pm/architecture/03 + 04) ───
+  // 今回合 active 角色 (directorNpcUpdates) · 用 user-action embedding query 各自
+  // 相關經歷 · 組成 block 塞入 Narrator Tier 2。等角色反應基於累積經歷。
+  // 重用 memory.queryEmbedding (慳一個 embed)。全 non-fatal · 失敗 = 空 block。
+  try {
+    if (directorNpcUpdates.length > 0 && memory.queryEmbedding) {
+      const activeForRead = directorNpcUpdates
+        .map((upd) => {
+          const ch = ctx.characters.find(
+            (c) =>
+              c.card.name.trim().toLowerCase() ===
+              upd.character_name.trim().toLowerCase(),
+          );
+          return ch?.character_id
+            ? { character_id: ch.character_id, name: ch.card.name }
+            : null;
+        })
+        .filter((c): c is { character_id: string; name: string } => c !== null);
+      ctx.characterExperiencesBlock = await loadCharacterExperiencesBlock({
+        supabase,
+        playthroughId,
+        activeCharacters: activeForRead,
+        queryEmbedding: memory.queryEmbedding,
+      });
+    }
+  } catch (e) {
+    console.warn(
+      "[turn] character experience read exception (non-fatal):",
+      e instanceof Error ? e.message : e,
+    );
   }
 
   // 4.5 SKILL CHECK — Phase 1.5.2: if Director required a check, roll dice now.
