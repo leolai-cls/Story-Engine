@@ -134,7 +134,12 @@ export async function writeCharacterExperiences(params: {
   turnText: string;
   playerAction: string;
   language: StoryLanguage;
-}): Promise<{ written: number; inputTokens?: number; outputTokens?: number }> {
+}): Promise<{
+  written: number;
+  perCharacter: WrittenExperience[];
+  inputTokens?: number;
+  outputTokens?: number;
+}> {
   const {
     serviceClient,
     playthroughId,
@@ -146,7 +151,7 @@ export async function writeCharacterExperiences(params: {
   } = params;
 
   // 冇升級角色 → 唔使跑 AI (慳)。
-  if (upgraded.length === 0) return { written: 0 };
+  if (upgraded.length === 0) return { written: 0, perCharacter: [] };
 
   const nameToId = new Map(upgraded.map((c) => [c.name.trim(), c.character_id]));
 
@@ -182,12 +187,12 @@ export async function writeCharacterExperiences(params: {
       "[char-exp] generation failed (non-fatal):",
       e instanceof Error ? e.message : e,
     );
-    return { written: 0 };
+    return { written: 0, perCharacter: [] };
   }
 
   // 過濾走 AI invent 嘅名 (唔喺 upgraded 名單)。
   const valid = entries.filter((e) => nameToId.has(e.character_name.trim()));
-  if (valid.length === 0) return { written: 0, ...usage };
+  if (valid.length === 0) return { written: 0, perCharacter: [], ...usage };
 
   // Embed what_happened (RAG retrieve 用) · 一次過 batch。
   let vectors: (number[] | null)[] = valid.map(() => null);
@@ -219,14 +224,30 @@ export async function writeCharacterExperiences(params: {
     const msg = String(error.message ?? "");
     if (/relation .* does not exist/i.test(msg)) {
       // Migration 0048 未 apply — silent no-op。
-      return { written: 0, ...usage };
+      return { written: 0, perCharacter: [], ...usage };
     }
     console.warn("[char-exp] insert failed:", msg);
-    return { written: 0, ...usage };
+    return { written: 0, perCharacter: [], ...usage };
   }
 
-  return { written: rows.length, ...usage };
+  // Return per-character 寫咗嘅 entry (M2 沉澱張力用：weight + affects)
+  const perCharacter = valid.map((e) => ({
+    character_id: nameToId.get(e.character_name.trim())!,
+    weight: e.weight,
+    affects: e.affects ?? [],
+    what_happened: e.what_happened,
+  }));
+
+  return { written: rows.length, perCharacter, ...usage };
 }
+
+/** writeCharacterExperiences 寫咗嘅一條 entry 嘅沉澱相關部分 (per character) */
+export type WrittenExperience = {
+  character_id: string;
+  weight: number;
+  affects: string[];
+  what_happened: string;
+};
 
 // ─── M4 讀取整合 ─────────────────────────────────────────────────────────────
 
@@ -262,6 +283,31 @@ export async function loadCharacterExperiencesBlock(params: {
 
   if (!queryEmbedding || activeCharacters.length === 0) return "";
 
+  // M2: 攞 active 角色嘅已沉澱演化 (sediments) · 一次過 query
+  const sedimentByChar = new Map<string, import("./sediment").Sediment[]>();
+  try {
+    const { data: stateRows } = await supabase
+      .from("playthrough_character_states")
+      .select("character_id, pending_tensions")
+      .eq("playthrough_id", playthroughId)
+      .in(
+        "character_id",
+        activeCharacters.map((c) => c.character_id),
+      );
+    const { parsePendingTensions } = await import("./sediment");
+    for (const row of (stateRows ?? []) as Array<{
+      character_id: string;
+      pending_tensions: unknown;
+    }>) {
+      const pt = parsePendingTensions(row.pending_tensions);
+      if (pt.sediments.length > 0) {
+        sedimentByChar.set(row.character_id, pt.sediments);
+      }
+    }
+  } catch {
+    // non-fatal · 冇 sediment 照行
+  }
+
   const sections: string[] = [];
   for (const ac of activeCharacters) {
     try {
@@ -283,15 +329,25 @@ export async function loadCharacterExperiencesBlock(params: {
         my_response: string | null;
         emotional_tone: string | null;
       }>;
-      if (rows.length === 0) continue;
-      const lines = rows
-        .map((r) => {
-          const resp = r.my_response ? ` → ${r.my_response}` : "";
-          const tone = r.emotional_tone ? `（${r.emotional_tone}）` : "";
-          return `  - ${r.what_happened}${resp}${tone}`;
-        })
-        .join("\n");
-      sections.push(`${ac.name} 記得：\n${lines}`);
+      const parts: string[] = [];
+      if (rows.length > 0) {
+        const lines = rows
+          .map((r) => {
+            const resp = r.my_response ? ` → ${r.my_response}` : "";
+            const tone = r.emotional_tone ? `（${r.emotional_tone}）` : "";
+            return `  - ${r.what_happened}${resp}${tone}`;
+          })
+          .join("\n");
+        parts.push(`${ac.name} 記得：\n${lines}`);
+      }
+      // M2: 加已沉澱演化 (角色累積經歷後真正消化咗嘅改變)
+      const seds = sedimentByChar.get(ac.character_id);
+      if (seds && seds.length > 0) {
+        const { sedimentsToNote } = await import("./sediment");
+        const note = sedimentsToNote(ac.name, seds);
+        if (note) parts.push(note);
+      }
+      if (parts.length > 0) sections.push(parts.join("\n"));
     } catch {
       continue; // non-fatal · 一個角色失敗唔影響其他
     }

@@ -40,6 +40,10 @@ import {
   loadCharacterExperiencesBlock,
   SOUL_UPGRADE_THRESHOLD,
 } from "@/lib/ai/character/experience-writer";
+import {
+  parsePendingTensions,
+  accumulateTensions,
+} from "@/lib/ai/character/sediment";
 import { embedTextSafe } from "@/lib/ai/embed";
 // ─── Phase 3 credits ─────────────────────────────────────────────────────
 import {
@@ -1656,7 +1660,7 @@ export async function POST(
 
                 // 為已升級角色寫經歷日誌 (一個 AI call · bias toward 冇 entry)
                 if (upgraded.length > 0) {
-                  await writeCharacterExperiences({
+                  const expResult = await writeCharacterExperiences({
                     serviceClient,
                     playthroughId,
                     turnIndex: aiTurnIndex,
@@ -1668,6 +1672,52 @@ export async function POST(
                       ? storyBible.hard_locked.language
                       : "zh-Hant") as "zh-Hant" | "zh-Hans" | "en",
                   });
+
+                  // ─── M2 沉澱張力：累加經歷 → 超 threshold 轉 sediment (演化) ───
+                  // 純邏輯 · 無 AI call。pending_tensions 獨立 column (無 RPC race)。
+                  const byChar = new Map<string, typeof expResult.perCharacter>();
+                  for (const e of expResult.perCharacter) {
+                    const arr = byChar.get(e.character_id) ?? [];
+                    arr.push(e);
+                    byChar.set(e.character_id, arr);
+                  }
+                  for (const [charId, exps] of byChar) {
+                    if (exps.length === 0) continue;
+                    // 攞角色 volatility (story_characters · fallback 0.5) + 現有 pending_tensions
+                    const { data: scRow } = await serviceClient
+                      .from("story_characters")
+                      .select("volatility")
+                      .eq("id", charId)
+                      .maybeSingle();
+                    const volatility = (scRow?.volatility as number | null) ?? 0.5;
+                    const { data: ptRow } = await serviceClient
+                      .from("playthrough_character_states")
+                      .select("pending_tensions")
+                      .eq("playthrough_id", playthroughId)
+                      .eq("character_id", charId)
+                      .maybeSingle();
+                    const current = parsePendingTensions(ptRow?.pending_tensions);
+                    const { next, newSediments } = accumulateTensions(
+                      current,
+                      exps.map((e) => ({
+                        weight: e.weight,
+                        affects: e.affects,
+                        what_happened: e.what_happened,
+                        turn_index: aiTurnIndex,
+                      })),
+                      volatility,
+                    );
+                    await serviceClient
+                      .from("playthrough_character_states")
+                      .update({ pending_tensions: next })
+                      .eq("playthrough_id", playthroughId)
+                      .eq("character_id", charId);
+                    if (newSediments.length > 0) {
+                      console.log(
+                        `[turn] character ${charId} 沉澱演化: ${newSediments.map((s) => s.axis).join(", ")}`,
+                      );
+                    }
+                  }
                 }
               } catch (e) {
                 console.warn(
