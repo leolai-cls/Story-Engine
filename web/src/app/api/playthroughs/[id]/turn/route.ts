@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest, after } from "next/server";
-import { streamText, createUIMessageStream, createUIMessageStreamResponse } from "ai";
+import { streamText } from "ai";
 import { getProviderModel } from "@/lib/ai/providers";
 import { createClient } from "@/lib/supabase/server";
 // Migration 0018 (Phase 2 memory lockdown) — memory table mutation
@@ -1641,42 +1641,29 @@ export async function POST(
   const npcThinking =
     npcOutputs.length > 0 ? npcAgentsToThinkingBlock(npcOutputs, storyLanguage) : null;
 
-  // Combined pre-narrator thinking preamble (GM verdict + NPC inner voices).
-  const thinkingPreamble = [gmThinking, npcThinking].filter(Boolean).join("\n\n");
+  // Combined pre-narrator thinking (GM verdict + NPC inner voices), capped so it
+  // fits comfortably inside an HTTP header.
+  const thinkingPreamble = [gmThinking, npcThinking]
+    .filter(Boolean)
+    .join("\n\n")
+    .slice(0, 2000);
 
-  if (!thinkingPreamble) {
-    return result.toUIMessageStreamResponse({
-      sendReasoning: thinkingEnabled,
-      headers: { "X-Accel-Buffering": "no" },
-    });
+  // 2026-05-31 (founder · "thinking mode no output"): deliver the GM/NPC thinking
+  // via a RESPONSE HEADER — do NOT wrap the narrator in createUIMessageStream.
+  // Wrapping (writer.merge OR an awaited pump) closed / raced the UI stream so
+  // CrazyRouter's BUFFERED Gemini prose (lands ~16s in, all at once) never made
+  // it out → blank narrative + the never-blank fallback fired. The header keeps
+  // the narrator on the exact proven toUIMessageStreamResponse path that
+  // thinking-OFF uses (always produced prose). The client reads X-Think-Preamble
+  // (base64 UTF-8) to seed the 思考過程 panel; the narrator's own reasoning
+  // (Claude · sendReasoning) still streams as reasoning-delta frames and appends.
+  const headers: Record<string, string> = { "X-Accel-Buffering": "no" };
+  if (thinkingPreamble) {
+    headers["X-Think-Preamble"] = Buffer.from(thinkingPreamble, "utf8").toString("base64");
   }
 
-  const uiStream = createUIMessageStream({
-    execute: async ({ writer }) => {
-      // Pre-narrator thinking (GM verdict + NPC inner voices) — written before
-      // the narrator's prose so the player sees the behind-the-scenes thinking
-      // while the narrator generates. One reasoning block; the narrator's own
-      // reasoning (Claude · if sendReasoning) appends after.
-      writer.write({ type: "reasoning-start", id: "pre-narrator" });
-      writer.write({ type: "reasoning-delta", id: "pre-narrator", delta: thinkingPreamble });
-      writer.write({ type: "reasoning-end", id: "pre-narrator" });
-      // 2026-05-31 (founder · "thinking mode no output"): pump the narrator parts
-      // in an AWAITED loop, NOT writer.merge(). merge() let this (previously sync)
-      // execute resolve immediately → the UI stream closed BEFORE the narrator's
-      // prose arrived. CrazyRouter buffers Gemini (prose lands ~16s in), so the
-      // stream was already closed → blank narrative + the never-blank fallback
-      // fired. Awaiting the loop keeps the stream open until the narrator finishes.
-      for await (const part of result.toUIMessageStream({ sendReasoning: thinkingEnabled })) {
-        writer.write(part);
-      }
-    },
-    // Surface a readable error to the client's error-frame handler (it logs
-    // event.type === "error"). streamText.onError already logs + Sentry-captures.
-    onError: (err) => (err instanceof Error ? err.message : String(err)),
-  });
-
-  return createUIMessageStreamResponse({
-    stream: uiStream,
-    headers: { "X-Accel-Buffering": "no" },
+  return result.toUIMessageStreamResponse({
+    sendReasoning: thinkingEnabled,
+    headers,
   });
 }
