@@ -642,6 +642,31 @@ export function PlayClient({
             // ignore a malformed header · panel just stays empty
           }
         }
+        // 2026-06-01 (founder bug fix): the live turn's skill-check badge + the
+        // Director amber border used to appear only after a page reload, because
+        // the SSE stream carried prose only. The turn route now ships them as
+        // base64-JSON response headers (same pattern as X-Think-Preamble above)
+        // so we can attach them to the freshly-built turn below — no extra
+        // round-trip. Fixes both desktop and mobile (the "desktop yes / mobile
+        // no" was just a reload artifact).
+        const decodeHeaderJson = <T,>(b64: string | null): T | undefined => {
+          if (!b64) return undefined;
+          try {
+            return JSON.parse(
+              new TextDecoder().decode(
+                Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)),
+              ),
+            ) as T;
+          } catch {
+            return undefined;
+          }
+        };
+        const liveSkillCheck = decodeHeaderJson<NonNullable<Turn["skillCheck"]>>(
+          res.headers.get("X-Skill-Check"),
+        );
+        const liveDirectorVerdict = decodeHeaderJson<
+          NonNullable<Turn["directorVerdict"]>
+        >(res.headers.get("X-Director-Verdict"));
         // W4 fix 2026-05-28 (agent retest post-PR-#5): SSE stream 可能包
         // {"type":"error","errorText":"..."} frame (e.g. OpenRouter upstream
         // TOS violation · Gemini safety filter rejection). 之前嘅 code 只認
@@ -742,6 +767,11 @@ export function PlayClient({
           text: fullText,
           index: tempUserTurn.index + 1,
           reasoning: reasoningAccumulated.trim() || undefined,
+          // Attach the live skill-check + director verdict decoded from the
+          // response headers so the badge + amber border render immediately on
+          // this turn (no reload needed).
+          skillCheck: liveSkillCheck,
+          directorVerdict: liveDirectorVerdict,
         };
         setTurns((t) => [...t, aiTurn]);
         setStreamText("");
