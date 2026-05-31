@@ -49,7 +49,6 @@ import { generateText } from "ai";
 import { getProviderModel } from "@/lib/ai/providers";
 import { DIRECTOR_MODEL } from "@/lib/ai/models";
 import { captureServerEvent } from "@/lib/posthog/server";
-import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 
 const ALLOWED_IMAGE_TYPES = ["illustration", "comic", "wallpaper"] as const;
@@ -506,8 +505,10 @@ export async function generateScene(
     }
   });
 
-  revalidatePath(`/play/${input.playthroughId}`);
-  revalidatePath(`/play/${input.playthroughId}/memory`);
+  // 2026-05-30 (founder): NO revalidatePath. The client adds the image
+  // optimistically (background, non-blocking gen) — forcing a full play-page
+  // RSC refresh after the long (~90s) comic gen was what flashed
+  // "This page couldn't load". The /memory gallery refetches on its own load.
 
   return {
     ok: true,

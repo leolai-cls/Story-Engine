@@ -13,9 +13,11 @@ import {
   PlaythroughSidebar,
   type SidebarPlaythrough,
 } from "@/components/se/PlaythroughSidebar";
-import { VisualizeSceneModal } from "@/components/se/VisualizeSceneModal";
+import { VisualizeSceneModal, type VisualizeRequest } from "@/components/se/VisualizeSceneModal";
 import { ChatControls } from "@/components/se/ChatControls";
 import type { StyleKey } from "@/lib/ai/image-styles";
+import { estimateImageCredits } from "@/lib/ai/image-gen";
+import { generateScene } from "./visualize-actions";
 
 /**
  * NPC card data passed in from server.
@@ -302,6 +304,10 @@ export type SceneImageEntry = {
   imageType: "illustration" | "comic" | "wallpaper";
   styleMode: string;
   styleValue: string;
+  /** 2026-05-30: background generation — image is still rendering (placeholder). */
+  pending?: boolean;
+  /** Background generation failed — show an inline retry. */
+  failed?: boolean;
 };
 
 export function PlayClient({
@@ -408,6 +414,78 @@ export function PlayClient({
       return acc;
     },
     {},
+  );
+  // Credit balance shown in the visualize modal · seeded from server, decremented
+  // optimistically when a background gen fires (refunded if it fails).
+  const [balance, setBalance] = useState(currentBalance);
+
+  // 2026-05-30 (founder): background, non-blocking scene-image generation
+  // (ChatGPT-style). The modal hands us the request + closes immediately; we
+  // drop an inline pending placeholder on the turn and run generateScene in the
+  // background (this component stays mounted, so the promise survives). When it
+  // resolves the placeholder becomes the image; on failure it flips to an
+  // inline error. No blocking spinner, no page refresh.
+  const handleGenerateScene = useCallback(
+    (req: VisualizeRequest) => {
+      const turnIdx = visualizeTurnIndex;
+      if (turnIdx === null) return;
+      const tempId = `pending-${crypto.randomUUID()}`;
+      setSceneImages((prev) => [
+        ...prev,
+        {
+          id: tempId,
+          turnIndex: turnIdx,
+          storageUrl: "",
+          imageType: req.imageType,
+          styleMode: req.styleMode,
+          styleValue: req.styleValue,
+          pending: true,
+        },
+      ]);
+      const cost = estimateImageCredits(
+        storyContentRating,
+        req.imageType,
+        req.proQuality ?? false,
+      );
+      setBalance((b) => b - cost);
+      generateScene({
+        playthroughId,
+        turnIndex: turnIdx,
+        imageType: req.imageType,
+        styleMode: req.styleMode,
+        styleKey: req.styleKey,
+        styleReferenceId: req.styleReferenceId,
+        customPrompt: req.customPrompt,
+        proQuality: req.proQuality,
+      })
+        .then((res) => {
+          if (res.ok) {
+            setSceneImages((prev) =>
+              prev.map((e) =>
+                e.id === tempId
+                  ? { ...e, id: res.sceneImageId, storageUrl: res.storageUrl, pending: false }
+                  : e,
+              ),
+            );
+          } else {
+            setBalance((b) => b + cost); // server already refunded · keep display honest
+            setSceneImages((prev) =>
+              prev.map((e) =>
+                e.id === tempId ? { ...e, pending: false, failed: true } : e,
+              ),
+            );
+          }
+        })
+        .catch(() => {
+          setBalance((b) => b + cost);
+          setSceneImages((prev) =>
+            prev.map((e) =>
+              e.id === tempId ? { ...e, pending: false, failed: true } : e,
+            ),
+          );
+        });
+    },
+    [visualizeTurnIndex, playthroughId, storyContentRating],
   );
 
   // (2026-05-29) Removed the 600ms "內容審核" safety-hint timer — the loading
@@ -855,6 +933,38 @@ export function PlayClient({
                             : img.imageType === "comic"
                               ? { width: 168, height: 126 }
                               : { width: 168, height: 95 };
+                        // Background generation (founder 2026-05-30): pending →
+                        // inline spinner placeholder; failed → inline error.
+                        if (img.pending) {
+                          return (
+                            <div
+                              key={img.id}
+                              style={dims}
+                              className="flex flex-col items-center justify-center gap-1.5 rounded-md border border-primary/30 bg-muted/40"
+                            >
+                              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                              <span className="text-[9px] se-cjk text-muted-foreground px-1 text-center">
+                                {img.imageType === "comic"
+                                  ? tPlay("visualize.loadingComic")
+                                  : tPlay("visualize.loading")}
+                              </span>
+                            </div>
+                          );
+                        }
+                        if (img.failed) {
+                          return (
+                            <div
+                              key={img.id}
+                              style={dims}
+                              className="flex flex-col items-center justify-center gap-1 rounded-md border border-destructive/40 bg-destructive/5 px-1.5 text-center"
+                            >
+                              <ImageIcon className="h-4 w-4 text-destructive/70" />
+                              <span className="text-[9px] se-cjk text-destructive">
+                                {tPlay("visualize.bgFailed")}
+                              </span>
+                            </div>
+                          );
+                        }
                         return (
                           <a
                             key={img.id}
@@ -1089,22 +1199,8 @@ export function PlayClient({
           storyDescription={storyDescription}
           storyDefaultStyleKey={(storyDefaultStyleKey ?? null) as StyleKey | null}
           subscriptionTier={subscriptionTier}
-          currentBalance={currentBalance}
-          onSuccess={(sceneImageId, storageUrl, imageType, styleMode, styleValue) => {
-            // Wave 3 fix UX-MED-01 / DF-HIGH-01: thread full metadata so
-            // thumbnail uses correct aspect-ratio dimensions immediately.
-            setSceneImages((prev) => [
-              ...prev,
-              {
-                id: sceneImageId,
-                turnIndex: visualizeTurnIndex,
-                storageUrl,
-                imageType,
-                styleMode,
-                styleValue,
-              },
-            ]);
-          }}
+          currentBalance={balance}
+          onGenerate={handleGenerateScene}
         />
       )}
     </div>
