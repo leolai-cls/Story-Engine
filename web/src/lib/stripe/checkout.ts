@@ -90,10 +90,11 @@ export async function createCheckoutSession({
       metadata: { user_id: userId, internal_tier: tier },
     },
     allow_promotion_codes: true,
-    // Tax collection set to "auto" lets Stripe Tax compute and add VAT/GST
-    // based on customer location. Requires Stripe Tax to be enabled in the
-    // dashboard; otherwise it no-ops gracefully.
-    automatic_tax: { enabled: true },
+    // Stripe Tax OFF (founder 2026-05-31): HK has no sales tax, and our digital
+    // products don't need per-line tax codes. With automatic_tax enabled but no
+    // Stripe Tax config, Checkout errors "You must specify a tax code in all
+    // line items". Leave off until/unless we sell into a taxed jurisdiction.
+    automatic_tax: { enabled: false },
   });
 }
 
@@ -148,7 +149,8 @@ export async function createTopUpCheckoutSession({
       metadata: { user_id: userId, topup_pack: pack, purchase_kind: "topup" },
     },
     allow_promotion_codes: true,
-    automatic_tax: { enabled: true },
+    // Stripe Tax OFF — see note in createCheckoutSession (HK, digital goods).
+    automatic_tax: { enabled: false },
     // Show clear line item description in receipt
     invoice_creation: { enabled: true },
   });
