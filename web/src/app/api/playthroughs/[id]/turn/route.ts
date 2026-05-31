@@ -35,6 +35,10 @@ import {
 } from "@/lib/ai/memory/retriever";
 import { maybeRunSummarization } from "@/lib/ai/memory/summarizer";
 import { runLorebookExtraction } from "@/lib/ai/memory/lorebook";
+import {
+  writeCharacterExperiences,
+  SOUL_UPGRADE_THRESHOLD,
+} from "@/lib/ai/character/experience-writer";
 import { embedTextSafe } from "@/lib/ai/embed";
 // ─── Phase 3 credits ─────────────────────────────────────────────────────
 import {
@@ -1567,6 +1571,74 @@ export async function POST(
               } catch (e) {
                 console.warn(
                   "[turn] NPC dynamic state persist exception:",
+                  e instanceof Error ? e.message : e,
+                );
+              }
+            });
+          }
+
+          // ─── Character Soul M1 · 經歷日誌 (pm/architecture/03 + IMPLEMENTATION) ───
+          // 今回合 active 角色 (directorNpcUpdates) → bump interaction_count →
+          // 揾出已升級 (>= SOUL_UPGRADE_THRESHOLD) 嘅 → 寫經歷日誌 (背景 AI call)。
+          // 動態升級 (founder #2): 路人甲 (出場一次) 永遠唔升級 · 慳 call + 慳儲存。
+          // 失敗全部 non-fatal · 唔影響已 save 嘅 turn。
+          if (directorNpcUpdates.length > 0) {
+            after(async () => {
+              try {
+                const serviceClient = createServiceRoleClient();
+                // active 角色 name → character_id
+                const activeChars = directorNpcUpdates
+                  .map((upd) => {
+                    const ch = ctx.characters.find(
+                      (c) =>
+                        c.card.name.trim().toLowerCase() ===
+                        upd.character_name.trim().toLowerCase(),
+                    );
+                    return ch?.character_id
+                      ? { character_id: ch.character_id, name: ch.card.name }
+                      : null;
+                  })
+                  .filter((c): c is { character_id: string; name: string } => c !== null);
+                if (activeChars.length === 0) return;
+
+                // Bump interaction_count for each active char · 攞返新 count
+                // (用 RPC atomic increment 最穩 · 但避免新 migration · 用 read-modify-
+                //  write · 背景單線程 · race 風險低)。
+                const upgraded: Array<{ character_id: string; name: string }> = [];
+                for (const ac of activeChars) {
+                  const { data: stateRow } = await serviceClient
+                    .from("playthrough_character_states")
+                    .select("interaction_count")
+                    .eq("playthrough_id", playthroughId)
+                    .eq("character_id", ac.character_id)
+                    .maybeSingle();
+                  const newCount = ((stateRow?.interaction_count as number | null) ?? 0) + 1;
+                  await serviceClient
+                    .from("playthrough_character_states")
+                    .update({ interaction_count: newCount })
+                    .eq("playthrough_id", playthroughId)
+                    .eq("character_id", ac.character_id);
+                  if (newCount >= SOUL_UPGRADE_THRESHOLD) upgraded.push(ac);
+                }
+
+                // 為已升級角色寫經歷日誌 (一個 AI call · bias toward 冇 entry)
+                if (upgraded.length > 0) {
+                  await writeCharacterExperiences({
+                    serviceClient,
+                    playthroughId,
+                    turnIndex: aiTurnIndex,
+                    upgraded,
+                    turnText: finalText,
+                    playerAction: action,
+                    language: (storyBible.hard_locked.language === "zh-Hans" ||
+                      storyBible.hard_locked.language === "en"
+                      ? storyBible.hard_locked.language
+                      : "zh-Hant") as "zh-Hant" | "zh-Hans" | "en",
+                  });
+                }
+              } catch (e) {
+                console.warn(
+                  "[turn] character experience write exception:",
                   e instanceof Error ? e.message : e,
                 );
               }
