@@ -8,6 +8,15 @@ import { getMyPlaythroughs } from "@/lib/community/queries";
 import type { SidebarPlaythrough } from "@/components/se/PlaythroughSidebar";
 import { getActiveTier } from "@/lib/billing/credits";
 
+// 2026-05-30 (founder · self-audit): the Visualize scene-image server action
+// runs in this route's function, and a gpt-image-2 COMIC takes ~90s. With the
+// default ceiling the function was killed mid-gen → the client's action call
+// rejected → an inline "失敗" + credit refund even though the image had already
+// saved + charged (it only appeared on reload). 300s (this plan supports it —
+// the cleanup-storage cron uses 300 too) lets the gen finish cleanly; the 90s
+// image-fetch abort inside generateSceneImage stays the graceful-timeout guard.
+export const maxDuration = 300;
+
 export default async function PlayPage({
   params,
 }: {
