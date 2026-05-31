@@ -857,7 +857,15 @@ export async function POST(
   const result = streamText({
     // AUDIT FIX (AI-H-09): use provider dispatcher so non-Anthropic models
     // route to the right SDK rather than 404'ing against Anthropic.
-    model: getProviderModel(narratorModelId, { thinking: thinkingEnabled }),
+    // 2026-05-31 (founder · "thinking mode no output" · root cause): only
+    // ANTHROPIC narrators get the thinking provider instance. CrazyRouter models
+    // (Gemini/GLM/GPT) have thinking force-disabled anyway (providers.ts), and
+    // routing Gemini through the thinking instance + the 5000-token bump made the
+    // streamText ERROR (0 input/output tokens → empty prose → fallback). For
+    // CrazyRouter the narrator gen must stay identical to thinking-OFF (proven to
+    // produce prose); the deep-thinking toggle still surfaces GM thinking via the
+    // X-Think-Preamble header.
+    model: getProviderModel(narratorModelId, { thinking: thinkingEnabled && narratorIsAnthropic }),
     messages: [
       {
         role: "system",
@@ -886,8 +894,10 @@ export async function POST(
     // 2026-05-29 (founder): loosened from 1500 — output felt too thin. The user
     // pays per token anyway; the cap is just a runaway guard (so one turn can't
     // silently drain a big chunk of a user's credits), not a cost-saving knob.
-    // 3000 fits a rich 2-4 paragraph turn; thinking models get extra for reasoning.
-    maxOutputTokens: thinkingEnabled ? 5000 : 3000,
+    // 3000 fits a rich 2-4 paragraph turn; only the Anthropic thinking path gets
+    // extra headroom for reasoning tokens. CrazyRouter stays at 3000 (the bump to
+    // 5000 was part of what made the Gemini thinking-on narrator error out).
+    maxOutputTokens: thinkingEnabled && narratorIsAnthropic ? 5000 : 3000,
     // Anthropic extended thinking (call-level providerOptions · coexists with
     // the per-message cacheControl above). CrazyRouter models get their thinking
     // behaviour from the provider instance, not here.
