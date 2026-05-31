@@ -45,6 +45,7 @@ export async function GET(req: NextRequest) {
     style_refs_expired: 0,
     style_refs_storage_removed: 0,
     style_refs_storage_failed: 0,
+    failed_turns_removed: 0,
     started_at: new Date().toISOString(),
     finished_at: "",
   };
@@ -99,6 +100,28 @@ export async function GET(req: NextRequest) {
     }
   } catch (e) {
     console.error("[cron/cleanup-storage] style_references pass crashed:", e);
+  }
+
+  // ─── Pass 1.5: 清走技術失敗回合 (Character Soul / 07 機械式清潔) ────────
+  // Narrator 超時/空白 → failed=true 標記回合 (ADR-001 原則 5)。前端即時隱藏 ·
+  // page.tsx reload 時 filterFailedTurns 隱藏 · 但 DB row 留住。呢度定期清走
+  // (>1 日) · 等記憶宮殿唔積垃圾。純機械清潔 · 無 LLM (07 精神)。
+  // failed turn 從來唔 embed (turn route !technicalFailure gate) · 所以無 RAG 殘留。
+  try {
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { data: deleted, error: delErr } = await supabase
+      .from("turns")
+      .delete()
+      .eq("failed", true)
+      .lt("created_at", cutoff)
+      .select("id");
+    if (delErr) {
+      console.error("[cron/cleanup-storage] failed-turn cleanup error:", delErr);
+    } else {
+      result.failed_turns_removed = deleted?.length ?? 0;
+    }
+  } catch (e) {
+    console.error("[cron/cleanup-storage] failed-turn pass crashed:", e);
   }
 
   // ─── Pass 2: scene_images orphan storage cleanup ───────────────────────
