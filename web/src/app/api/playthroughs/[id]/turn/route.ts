@@ -1679,6 +1679,27 @@ export async function POST(
     headers["X-Think-Preamble"] = Buffer.from(thinkingPreamble, "utf8").toString("base64");
   }
 
+  // 2026-06-01 (founder bug): the skill-check badge + Director amber border only
+  // appeared after a full page reload — the live SSE stream carried prose only,
+  // so the freshly-built client turn had no skill_check / director_verdict. The
+  // server persists both on turns.* (so reload shows them), but the live turn
+  // didn't. Mirror the X-Think-Preamble pattern: ship them as base64-JSON
+  // response headers so the client attaches them onto the just-completed turn —
+  // no extra round-trip. Fixes the skill badge AND the director border live, on
+  // every device (the "desktop yes / mobile no" was a reload artifact).
+  if (skillCheckResult) {
+    headers["X-Skill-Check"] = Buffer.from(
+      JSON.stringify(skillCheckResult),
+      "utf8",
+    ).toString("base64");
+  }
+  if (verdict) {
+    headers["X-Director-Verdict"] = Buffer.from(
+      JSON.stringify({ verdict: verdict.verdict }),
+      "utf8",
+    ).toString("base64");
+  }
+
   return result.toUIMessageStreamResponse({
     sendReasoning: thinkingEnabled,
     headers,

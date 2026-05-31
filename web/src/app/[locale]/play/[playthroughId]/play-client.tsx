@@ -166,6 +166,61 @@ function SkillCheckInline({
 }
 
 /**
+ * Pending scene-image placeholder with a fake progress bar (2026-06-01 founder).
+ *
+ * "Progress UX to fake it faster" — fills the bar to 90% over the first 60% of
+ * expected duration (feels fast), then slow-creeps the remaining 9% over the
+ * next 40% (gives the real provider call time to land). When the parent swaps
+ * `img.pending` to false, the placeholder is replaced by the real image so the
+ * bar's final 1% never has to render. Tuned values from observed P50:
+ *   - comic (gpt-image-2 primary): ~50s expected
+ *   - illustration / wallpaper (nano-banana-2 primary): ~8s expected
+ */
+function PendingSceneImage({
+  dims,
+  imageType,
+  loadingLabel,
+}: {
+  dims: { width: number; height: number };
+  imageType: string;
+  loadingLabel: string;
+}) {
+  const expectedMs = imageType === "comic" ? 50_000 : 8_000;
+  const [progressPct, setProgressPct] = useState(0);
+
+  useEffect(() => {
+    const start = Date.now();
+    const id = setInterval(() => {
+      const elapsed = Date.now() - start;
+      const ratio = Math.min(elapsed / expectedMs, 1);
+      // Two-segment ease: 0→90% across first 60% of time, 90→99% across rest.
+      const p =
+        ratio < 0.6
+          ? (ratio / 0.6) * 0.9
+          : 0.9 + ((ratio - 0.6) / 0.4) * 0.09;
+      setProgressPct(Math.floor(p * 100));
+    }, 120);
+    return () => clearInterval(id);
+  }, [expectedMs]);
+
+  return (
+    <div
+      style={dims}
+      className="relative flex flex-col items-center justify-center gap-1.5 rounded-md border border-primary/30 bg-muted/40 overflow-hidden"
+    >
+      <Loader2 className="h-4 w-4 animate-spin text-primary" />
+      <span className="text-[11px] se-cjk text-muted-foreground px-1 text-center leading-tight">
+        {loadingLabel}
+      </span>
+      <div
+        className="absolute bottom-0 left-0 h-[2px] bg-primary"
+        style={{ width: `${progressPct}%`, transition: "width 120ms linear" }}
+      />
+    </div>
+  );
+}
+
+/**
  * AUDIT FIX (P3-UX-M-13): friendly UX for credit / tier errors.
  * Parses prefixed error strings into actionable cards with Settings link.
  *
@@ -642,6 +697,31 @@ export function PlayClient({
             // ignore a malformed header · panel just stays empty
           }
         }
+        // 2026-06-01 (founder bug fix): the live turn's skill-check badge + the
+        // Director amber border used to appear only after a page reload, because
+        // the SSE stream carried prose only. The turn route now ships them as
+        // base64-JSON response headers (same pattern as X-Think-Preamble above)
+        // so we can attach them to the freshly-built turn below — no extra
+        // round-trip. Fixes both desktop and mobile (the "desktop yes / mobile
+        // no" was just a reload artifact).
+        const decodeHeaderJson = <T,>(b64: string | null): T | undefined => {
+          if (!b64) return undefined;
+          try {
+            return JSON.parse(
+              new TextDecoder().decode(
+                Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)),
+              ),
+            ) as T;
+          } catch {
+            return undefined;
+          }
+        };
+        const liveSkillCheck = decodeHeaderJson<NonNullable<Turn["skillCheck"]>>(
+          res.headers.get("X-Skill-Check"),
+        );
+        const liveDirectorVerdict = decodeHeaderJson<
+          NonNullable<Turn["directorVerdict"]>
+        >(res.headers.get("X-Director-Verdict"));
         // W4 fix 2026-05-28 (agent retest post-PR-#5): SSE stream 可能包
         // {"type":"error","errorText":"..."} frame (e.g. OpenRouter upstream
         // TOS violation · Gemini safety filter rejection). 之前嘅 code 只認
@@ -742,6 +822,11 @@ export function PlayClient({
           text: fullText,
           index: tempUserTurn.index + 1,
           reasoning: reasoningAccumulated.trim() || undefined,
+          // Attach the live skill-check + director verdict decoded from the
+          // response headers so the badge + amber border render immediately on
+          // this turn (no reload needed).
+          skillCheck: liveSkillCheck,
+          directorVerdict: liveDirectorVerdict,
         };
         setTurns((t) => [...t, aiTurn]);
         setStreamText("");
@@ -954,21 +1039,21 @@ export function PlayClient({
                               ? { width: 168, height: 126 }
                               : { width: 168, height: 95 };
                         // Background generation (founder 2026-05-30): pending →
-                        // inline spinner placeholder; failed → inline error.
+                        // inline placeholder. 2026-06-01: + fake progress bar
+                        // so the wait feels faster (90% bar in first 60% of
+                        // expected time · then slow creep until real result).
                         if (img.pending) {
                           return (
-                            <div
+                            <PendingSceneImage
                               key={img.id}
-                              style={dims}
-                              className="flex flex-col items-center justify-center gap-1.5 rounded-md border border-primary/30 bg-muted/40"
-                            >
-                              <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                              <span className="text-[11px] se-cjk text-muted-foreground px-1 text-center leading-tight">
-                                {img.imageType === "comic"
+                              dims={dims}
+                              imageType={img.imageType}
+                              loadingLabel={
+                                img.imageType === "comic"
                                   ? tPlay("visualize.loadingComic")
-                                  : tPlay("visualize.loading")}
-                              </span>
-                            </div>
+                                  : tPlay("visualize.loading")
+                              }
+                            />
                           );
                         }
                         if (img.failed) {
