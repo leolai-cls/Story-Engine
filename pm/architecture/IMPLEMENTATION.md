@@ -23,6 +23,28 @@
 
 ---
 
+## ✅ 實作進度 (Session 16 · 2026-06-01)
+
+第二階段全部 milestone 完成 (branch feat/character-soul-m1)：
+- ✅ **M1 經歷日誌** (baf89dd): character_experiences 表 + 動態升級 (出場≥3先有靈魂) + 背景 AI 寫入
+- ✅ **M4 讀取整合** (e99421a): Narrator 讀返角色經歷 (Tier 2) · 重用 query embedding
+- ✅ **M2 沉澱張力** (dd7dba5): pending_tensions column + 純邏輯 sediment + volatility threshold
+- ✅ **M6 機械清潔** (8c42612): cron 清走 failed turn (語意消化/去重 = backlog)
+- ✅ **M3 信念圖譜** (8ecef2e): character_beliefs temporal · 收窄做事實一致性 · 同 M1 call 合併
+- ✅ **M5 移除硬紅線** (c14ce37): red_lines 改出身傾向 · 角色卡 + npc-agents (director.ts 殘留留 Phase 6)
+
+實際執行順序 M1→M4→M2→M6→M3→M5 (M4 提前等讀取框架早建 · 增量安全)。每個 build verified ·
+所有 migration (0048/0049/0050) 已 apply prod。
+
+**未做 (backlog / 待 founder)**：
+- volatility 由 schema-generator 按性格生成 (暫 fallback 0.5)
+- M6 語意消化整合 + 經歷去重壓縮
+- director.ts 完全 deprecate (ADR-001 Phase 6)
+- 5 平 model vs 1 貴 model benchmark (M4 後)
+- 角色經歷 Memory Journal UI surface (hard rule #19)
+
+---
+
 ## Milestone 拆解 (按 dependency 排)
 
 ### M1 · 經歷日誌 (Experience Log) — 地基
