@@ -46,8 +46,23 @@ const ExperienceEntrySchema = z.object({
   affects: z.array(z.string().min(1).max(40)).max(3).default([]),
 });
 
+/**
+ * M3 信念 entry — 只抽**事實性、需要前後一致**嘅信念 (「陳家明 以為 主角死咗」)。
+ * ⚠️ 唔抽性格/情緒/價值 (會壓扁角色 · 留故事 · 見 04)。
+ * change_type: new = 新信念 · invalidate = 推翻舊信念 (subject+predicate 配對舊嘅)。
+ */
+const BeliefEntrySchema = z.object({
+  character_name: z.string().min(1).max(60),
+  subject: z.string().min(1).max(80), // 通常係角色自己 或 主角 或 第三方
+  predicate: z.string().min(1).max(40), // 以為 / 知道 / 當 / 相信 (事實關係)
+  object: z.string().min(1).max(120), // 主角死咗 / 主角真實身份 / 主角係敵人
+  change_type: z.enum(["new", "invalidate"]),
+});
+
 const ExperienceBatchSchema = z.object({
   entries: z.array(ExperienceEntrySchema).max(4),
+  /** M3: 今回合角色嘅事實性信念變化 (只事實 · 唔抽性格) · max 3 */
+  beliefs: z.array(BeliefEntrySchema).max(3).default([]),
 });
 
 function experienceSystemPrompt(
@@ -72,7 +87,13 @@ For each character GENUINELY affected this turn, write ONE experience entry (fro
 - One entry per character max. Never more than 4 total.
 - Do NOT write entries for characters not in the list above.
 
-If nothing meaningful happened, return \`entries: []\`.`;
+## beliefs — factual belief changes (⚠️ facts ONLY, NOT personality)
+Also note any FACTUAL, consistency-critical belief a character formed/lost this turn (things the AI easily forgets across turns, breaking continuity):
+- ✅ Extract: "Chan Ka-ming thinks the protagonist is dead", "Lin Siu-ah knows the protagonist's true identity" (subject / predicate=thinks·knows·believes / object) · change_type="new" or "invalidate" (overturned this turn)
+- ❌ Do NOT extract personality/emotion/values: "Lin Siu-ah is arrogant" ← that's characterization, belongs in experience log, NOT beliefs
+- Most turns have no belief change · freely return \`beliefs: []\`. Max 3.
+
+If nothing meaningful happened, return \`entries: []\` (+ \`beliefs: []\`).`;
   }
   if (language === "zh-Hans") {
     return `你是 Story Engine 的角色经历记录员。看完最新一回合后，判断有没有发生对以下角色有 MEANINGFUL 影响的事：${nameList}。
@@ -91,7 +112,13 @@ If nothing meaningful happened, return \`entries: []\`.`;
 - 每个角色最多一条。总数不超过 4。
 - 不在上面名单的角色不要写。
 
-如果没有 meaningful 的事，return \`entries: []\`。`;
+## beliefs — 事实性信念变化（⚠️ 只抽事实 · 不抽性格）
+留意角色今回合有没有**事实性、需要前后一致**的信念变化 (AI 跨回合容易记漏、记漏就穿帮)：
+- ✅ 应该抽：「陈家明 以为 主角死了」「林思雅 知道 主角真实身份」(subject / predicate=以为·知道·当·相信 / object) · change_type="new" 或 "invalidate"(今回合被推翻)
+- ❌ 不要抽性格/情绪/价值：「林思雅 性格 高傲」← 留给经历日志 · 不入 beliefs
+- 大部分回合没有信念变化 · 放心 \`beliefs: []\`。max 3。
+
+如果没有 meaningful 的事，return \`entries: []\` (+ \`beliefs: []\`)。`;
   }
   return `你係 Story Engine 嘅角色經歷記錄員。睇完最新一回合之後 · 判斷有冇發生對以下角色有 MEANINGFUL 影響嘅事：${nameList}。
 
@@ -109,7 +136,14 @@ If nothing meaningful happened, return \`entries: []\`.`;
 - 每個角色最多一條。總數唔超過 4。
 - 唔喺上面名單嘅角色唔好寫。
 
-如果冇 meaningful 嘅事 · return \`entries: []\`。`;
+## beliefs — 事實性信念變化（⚠️ 只抽事實 · 唔抽性格）
+除咗經歷 · 留意角色今回合有冇**事實性、需要前後一致**嘅信念變化。呢啲係 AI 跨回合容易記漏、記漏就穿崩嘅事實：
+- ✅ 應該抽：「陳家明 以為 主角死咗」「林思雅 知道 主角真實身份」「阿強 當 主角 係敵人」(subject / predicate=以為·知道·當·相信 / object)
+- ✅ change_type="new" = 新信念 · "invalidate" = 今回合呢個信念被推翻 (e.g. 陳家明撞破主角未死)
+- ❌ **唔好抽**性格/情緒/價值：「林思雅 性格 高傲」「殺手 唔傷害 小朋友」← 呢啲係角色塑造 · 留俾經歷日誌 · 唔好入 beliefs
+- 大部分回合冇信念變化 · 放心 \`beliefs: []\`。max 3。
+
+如果冇 meaningful 嘅事 · return \`entries: []\` (+ \`beliefs: []\`)。`;
 }
 
 export type UpgradedCharacter = {
@@ -156,6 +190,7 @@ export async function writeCharacterExperiences(params: {
   const nameToId = new Map(upgraded.map((c) => [c.name.trim(), c.character_id]));
 
   let entries: z.infer<typeof ExperienceEntrySchema>[];
+  let beliefs: z.infer<typeof BeliefEntrySchema>[] = [];
   let usage: { inputTokens?: number; outputTokens?: number } = {};
   try {
     const result = await generateObject({
@@ -178,6 +213,7 @@ export async function writeCharacterExperiences(params: {
       maxOutputTokens: 800,
     });
     entries = result.object.entries;
+    beliefs = result.object.beliefs ?? [];
     usage = {
       inputTokens: result.usage?.inputTokens,
       outputTokens: result.usage?.outputTokens,
@@ -189,6 +225,9 @@ export async function writeCharacterExperiences(params: {
     );
     return { written: 0, perCharacter: [] };
   }
+
+  // M3: 寫信念變化 (temporal · new=insert · invalidate=set valid_to) · non-fatal
+  await writeBeliefs(serviceClient, playthroughId, turnIndex, nameToId, beliefs);
 
   // 過濾走 AI invent 嘅名 (唔喺 upgraded 名單)。
   const valid = entries.filter((e) => nameToId.has(e.character_name.trim()));
@@ -249,6 +288,51 @@ export type WrittenExperience = {
   what_happened: string;
 };
 
+/**
+ * M3 · 寫信念變化 (temporal · 事實一致性)。new = insert 新信念 (valid_to=null)。
+ * invalidate = 揾返 subject+predicate 配對嘅當前有效信念 · set valid_to=now。
+ * 全 non-fatal · migration 未 apply silent skip。
+ */
+async function writeBeliefs(
+  serviceClient: SupabaseClient,
+  playthroughId: string,
+  turnIndex: number,
+  nameToId: Map<string, string>,
+  beliefs: z.infer<typeof BeliefEntrySchema>[],
+): Promise<void> {
+  if (beliefs.length === 0) return;
+  for (const b of beliefs) {
+    const charId = nameToId.get(b.character_name.trim());
+    if (!charId) continue; // AI invent 嘅名 · skip
+    try {
+      if (b.change_type === "invalidate") {
+        // 推翻當前有效嘅同 subject+predicate 信念
+        await serviceClient
+          .from("character_beliefs")
+          .update({ valid_to: new Date().toISOString(), invalidated_by_turn: turnIndex })
+          .eq("playthrough_id", playthroughId)
+          .eq("character_id", charId)
+          .eq("subject", b.subject)
+          .eq("predicate", b.predicate)
+          .is("valid_to", null);
+      } else {
+        await serviceClient.from("character_beliefs").insert({
+          playthrough_id: playthroughId,
+          character_id: charId,
+          subject: b.subject,
+          predicate: b.predicate,
+          object: b.object,
+          established_turn: turnIndex,
+        });
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (/does not exist/i.test(msg)) return; // migration 0050 未 apply
+      // 其他錯 non-fatal · 繼續下一個
+    }
+  }
+}
+
 // ─── M4 讀取整合 ─────────────────────────────────────────────────────────────
 
 export type ActiveCharacterForRead = {
@@ -283,6 +367,8 @@ export async function loadCharacterExperiencesBlock(params: {
 
   if (!queryEmbedding || activeCharacters.length === 0) return "";
 
+  const charIds = activeCharacters.map((c) => c.character_id);
+
   // M2: 攞 active 角色嘅已沉澱演化 (sediments) · 一次過 query
   const sedimentByChar = new Map<string, import("./sediment").Sediment[]>();
   try {
@@ -290,10 +376,7 @@ export async function loadCharacterExperiencesBlock(params: {
       .from("playthrough_character_states")
       .select("character_id, pending_tensions")
       .eq("playthrough_id", playthroughId)
-      .in(
-        "character_id",
-        activeCharacters.map((c) => c.character_id),
-      );
+      .in("character_id", charIds);
     const { parsePendingTensions } = await import("./sediment");
     for (const row of (stateRows ?? []) as Array<{
       character_id: string;
@@ -306,6 +389,29 @@ export async function loadCharacterExperiencesBlock(params: {
     }
   } catch {
     // non-fatal · 冇 sediment 照行
+  }
+
+  // M3: 攞 active 角色嘅當前有效信念 (valid_to IS NULL · 事實一致性) · 一次過 query
+  const beliefByChar = new Map<string, string[]>();
+  try {
+    const { data: beliefRows } = await supabase
+      .from("character_beliefs")
+      .select("character_id, subject, predicate, object")
+      .eq("playthrough_id", playthroughId)
+      .in("character_id", charIds)
+      .is("valid_to", null);
+    for (const row of (beliefRows ?? []) as Array<{
+      character_id: string;
+      subject: string;
+      predicate: string;
+      object: string;
+    }>) {
+      const arr = beliefByChar.get(row.character_id) ?? [];
+      arr.push(`${row.subject}${row.predicate}${row.object}`);
+      beliefByChar.set(row.character_id, arr);
+    }
+  } catch {
+    // non-fatal (migration 0050 未 apply) · 冇信念照行
   }
 
   const sections: string[] = [];
@@ -346,6 +452,15 @@ export async function loadCharacterExperiencesBlock(params: {
         const { sedimentsToNote } = await import("./sediment");
         const note = sedimentsToNote(ac.name, seds);
         if (note) parts.push(note);
+      }
+      // M3: 加當前有效信念 (事實一致性 · 防穿崩)
+      const beliefs = beliefByChar.get(ac.character_id);
+      if (beliefs && beliefs.length > 0) {
+        parts.push(
+          `${ac.name} 而家認定嘅事實（必須前後一致 · 唔好寫到佢唔知）：\n${beliefs
+            .map((b) => `  - ${b}`)
+            .join("\n")}`,
+        );
       }
       if (parts.length > 0) sections.push(parts.join("\n"));
     } catch {
