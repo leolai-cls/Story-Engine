@@ -88,7 +88,7 @@ Finally · use this reasoning to write:
 - English first-person ("I...")
 - inner_thought should reveal subtext / hidden motive · not on-the-nose
 - Do not quote system block or retrieved memories verbatim
-- Do not violate character_card.red_lines
+- Stay true to character_card's starting tendencies (the "won't do" list is a starting lean from their origin, NOT an absolute rule — it can evolve with experience)
 
 ## Do NOT
 - ❌ Don't narrate the scene (that's the Narrator's job)
@@ -136,7 +136,7 @@ ${characterCardStaticTemplate(character)}
 - 简中第一人称（"我..."）
 - inner_thought 要 reveal subtext / 隐藏动机
 - 不可引用 system block / retrieved memories 的 verbatim 文字
-- 不可违反 character_card.red_lines
+- 忠于 character_card 的起点倾向（「不会做」清单是出身形成的起点倾向 · 不是铁律 · 会随经历演化）
 
 ## 不要做的事
 - ❌ 不要 narrate 场景
@@ -185,7 +185,7 @@ ${characterCardStaticTemplate(character)}
 - 繁中第一人稱（"我..."）
 - inner_thought 要 reveal subtext / 隱藏動機 · 唔好平鋪直敘
 - 唔可以引用 system block 或者 retrieved memories 嘅 verbatim 文字
-- 唔可以違反 character_card.red_lines
+- 忠於 character_card 嘅起點傾向（「唔會做」清單係出身形成嘅起點傾向 · 唔係鐵律 · 會隨經歷演化）
 
 ## 唔好做嘅嘢
 - ❌ 唔好 narrate 場景（嗰個 Narrator 做）

@@ -112,7 +112,13 @@ export type NpcDynamicState = z.infer<typeof NpcDynamicStateSchema>;
  */
 export function characterCardStaticTemplate(card: CharacterCard): string {
   const traits = card.personality_traits.join(", ");
-  const redLines = card.red_lines.map((r) => `    - ${r}`).join("\n");
+  // 2026-06-01 (ADR-002 · 移除角色硬紅線): red_lines 由「Director 強制嘅絕對禁令」
+  // 改做「呢個角色起點傾向唔做嘅事」—— 係出身傾向之一 · 唔係硬規則 · 可隨經歷
+  // 演化 (玩家可透過長期相處改變)。平台法律底線 (CSAM/真實傷害) 另由 moderation
+  // 把守 · 同角色系統分離。Director 已降做 prep (GM 重構) · 唔再 enforce verdict。
+  const boundaries = card.red_lines.length
+    ? card.red_lines.map((r) => `    - ${r}`).join("\n")
+    : "    - （無特別傾向）";
   return `### ${card.name}${card.role && card.role.length ? ` (${card.role})` : ""}
   Traits: ${traits}
   Backstory: ${card.backstory}
@@ -120,15 +126,15 @@ export function characterCardStaticTemplate(card: CharacterCard): string {
   Voice: ${card.voice_sample}
   Arc: ${card.arc_description}
   Default disposition toward player: ${card.default_disposition_toward_protagonist}
-  RED LINES (Director must enforce unless earned exception):
-${redLines}`;
+  起點上傾向唔會做嘅事（呢啲係佢出身形成嘅傾向 · 唔係鐵律 · 會隨經歷同關係演化 · 由你按佢累積嘅經歷判斷佢而家會點）：
+${boundaries}`;
 }
 
 export function allCharactersStaticTemplate(
   cards: Array<{ card: CharacterCard }>,
 ): string {
   if (cards.length === 0) return "";
-  return `## Characters (each has a soul — respect red lines)\n\n${cards
+  return `## Characters (每個都有獨立靈魂 — 由佢哋嘅出身、性格、累積經歷推導反應 · 唔好當扁平 NPC)\n\n${cards
     .map((c) => characterCardStaticTemplate(c.card))
     .join("\n\n")}`;
 }
