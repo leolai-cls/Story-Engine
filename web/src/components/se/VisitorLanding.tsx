@@ -25,16 +25,7 @@ export function VisitorLanding({ locale }: { locale: string }) {
         background: "var(--se-bg)",
       }}
     >
-      <div
-        className="mx-auto px-6 sm:px-14 py-16"
-        style={{
-          maxWidth: 1280,
-          display: "grid",
-          gridTemplateColumns: "1fr 460px",
-          gap: 56,
-          alignItems: "center",
-        }}
-      >
+      <div className="mx-auto px-6 sm:px-14 py-16 grid grid-cols-1 md:grid-cols-[1fr_460px] gap-10 md:gap-14 md:items-center max-w-[1280px]">
         {/* Left: pitch */}
         <div>
           <span
@@ -75,7 +66,7 @@ export function VisitorLanding({ locale }: { locale: string }) {
             {t("subtitle")}
           </p>
           {/* 3 pillars */}
-          <div className="grid grid-cols-3 gap-5 mt-9">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mt-9">
             <Pillar
               icon={<Brain size={16} />}
               title={t("pillars.memory.title")}

@@ -45,7 +45,7 @@ export function ContinueCard({
       href={`/${locale}/play/${p.playthroughId}`}
       className="flex-none flex gap-4 p-3.5 rounded-xl cursor-pointer transition-all"
       style={{
-        width: 380,
+        width: "min(380px, 85vw)",
         background: "var(--se-surface)",
         border: "1px solid var(--se-border)",
         boxShadow: "var(--se-shadow-card)",
