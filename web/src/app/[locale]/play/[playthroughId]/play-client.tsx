@@ -743,7 +743,7 @@ export function PlayClient({
   );
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="h-dvh flex flex-col bg-background overflow-hidden">
       {/* Slim header — AUDIT FIX MG-UX-HIGH-03: mobile 360px viewport had
           ~140px overflow with all 6 elements visible at full size. Now:
           mobile shows [Menu] [back-icon-only] [title-truncate] [memory-icon-only],
@@ -849,7 +849,7 @@ export function PlayClient({
             sidebar (240) doesn't steal width from the narrative+state grid.
             Net effect on lg viewports: narrative recovers ~80px lost to sidebar,
             matching designer v5 pixel intent (designer never had a sidebar). */}
-        <div className="flex-1 mx-auto max-w-[1520px] w-full px-4 sm:px-6 py-4 grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 min-h-0">
+        <div className="flex-1 mx-auto max-w-[1520px] w-full px-4 sm:px-6 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] grid grid-cols-1 lg:grid-cols-[1fr_320px] grid-rows-[minmax(0,1fr)] gap-4 min-h-0">
         {/* Narrative + input · mobile: only when tab="narrative" */}
         <div className={`flex-col min-h-0 ${mobileTab === "narrative" ? "flex" : "hidden lg:flex"}`}>
           <div className="text-xs text-muted-foreground mb-2 line-clamp-1">
@@ -859,7 +859,7 @@ export function PlayClient({
           {/* Turn history */}
           <div
             ref={scrollRef}
-            className="flex-1 overflow-y-auto rounded-xl border border-border/60 bg-card/30 p-4 space-y-4 min-h-[400px]"
+            className="flex-1 min-h-0 overflow-y-auto rounded-xl border border-border/60 bg-card/30 p-4 space-y-4 lg:min-h-[400px]"
           >
             {turns.map((turn) => {
               // C6 audit fix · Hard rule #4: Director re-interpreted player
@@ -1110,7 +1110,7 @@ export function PlayClient({
               rows={1}
               className="flex-1 min-w-0 resize-none max-h-40 overflow-y-auto rounded-md border border-border bg-background px-3 py-2 text-sm leading-relaxed placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
             />
-            <Button type="submit" className="flex-none" disabled={streaming || !input.trim()}>
+            <Button type="submit" className="flex-none transition-transform active:scale-95" disabled={streaming || !input.trim()}>
               {streaming ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (

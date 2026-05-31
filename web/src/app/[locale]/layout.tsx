@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Noto_Sans_TC } from "next/font/google";
 import localFont from "next/font/local";
 import { NextIntlClientProvider, hasLocale } from "next-intl";
@@ -58,6 +58,16 @@ const OG_LOCALE: Record<string, string> = {
   en: "en_US",
   "zh-Hant": "zh_HK",
   "zh-Hans": "zh_CN",
+};
+
+// 2026-05-30 (founder · mobile-first): when the on-screen keyboard opens, resize
+// the layout (shrink the viewport) instead of overlaying it — so the composer
+// stays pinned above the keyboard and typing doesn't shift/scroll the page.
+// Pairs with the play screen's h-dvh fixed-viewport layout.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  interactiveWidget: "resizes-content",
 };
 
 export async function generateMetadata({
