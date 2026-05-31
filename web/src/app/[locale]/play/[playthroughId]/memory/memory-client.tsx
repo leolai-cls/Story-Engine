@@ -282,7 +282,7 @@ export function MemoryJournalClient({
               </span>
             </div>
             <div
-              className="mt-1 pl-5 text-[10.5px] leading-snug"
+              className="mt-1 pl-5 text-[11.5px] leading-snug"
               style={{ color: "var(--se-fg-dim)" }}
             >
               {t("nav.recentHint")}
@@ -298,7 +298,7 @@ export function MemoryJournalClient({
             }}
           >
             <Lock size={11} color="var(--se-fg-dim)" className="mt-0.5 flex-none" />
-            <div className="text-[10.5px] se-cjk" style={{ color: "var(--se-fg-muted)", lineHeight: 1.5 }}>
+            <div className="text-[11.5px] se-cjk" style={{ color: "var(--se-fg-muted)", lineHeight: 1.5 }}>
               {t("nav.readonlyTitle")}
               <br />
               {t("nav.readonlyBody")}
@@ -374,7 +374,7 @@ function NavItem({
       </div>
       {hint && (
         <div
-          className="pl-5 leading-snug text-[10.5px]"
+          className="pl-5 leading-snug text-[11.5px]"
           style={{ color: "var(--se-fg-dim)" }}
         >
           {hint}
