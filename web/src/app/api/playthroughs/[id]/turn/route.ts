@@ -15,7 +15,7 @@ import {
   type TurnContext,
 } from "@/lib/ai/turn-runner";
 import { callDirector } from "@/lib/ai/director";
-import { verdictToContextNote, verdictToGmThinking } from "@/schemas/director";
+import { verdictToContextNote } from "@/schemas/director";
 import { callNpcAgentsParallel } from "@/lib/ai/npc-agents";
 import { npcAgentToNarratorBlock, npcAgentsToThinkingBlock, NPC_L3_CREDITS_PER_NPC } from "@/schemas/npc-agent";
 import {
@@ -545,20 +545,11 @@ export async function POST(
   // apply_npc_dynamic_state RPC). If RPC missing, in-memory update still
   // benefits THIS turn's Narrator quality.
   //
-  // AUDIT FIX F-06 (Wave 2): SKIP npc_updates when verdict=reject. If Director
-  // rejected the action, the NPC didn't actually accept it — applying
-  // npc_updates would bake the rejected reality into NPC state. Also closes
-  // a narrative-integrity attack vector (player social-engineers Director
-  // into emitting npc_updates that violate red_lines while verdict says
-  // "reject" · CLAUDE.md hard rule #5).
-  const shouldApplyNpcUpdates =
-    directorNpcUpdates.length > 0 && verdict.verdict !== "reject";
-  if (verdict.verdict === "reject" && directorNpcUpdates.length > 0) {
-    console.log(
-      `[turn] skipping ${directorNpcUpdates.length} npc_updates (verdict=reject · narrative-integrity guard)`,
-    );
-    directorNpcUpdates = []; // also clear so after() block doesn't persist
-  }
+  // PR2 (ADR-001 · GM 唔做判官): 移除舊 reject-gate。verdict 唔再決定 NPC 反應方向。
+  // npc_updates 而家只係**今回合 prep hint** (transitional · decision 12) — Director
+  // 預估 NPC 當下心情餵俾 Narrator。canonical NPC 狀態應改由 final narrative / extractor
+  // 後處理更新 (follow-up · 見 play-command-fix-plan.md)。reject 唔再 skip / 清空。
+  const shouldApplyNpcUpdates = directorNpcUpdates.length > 0;
   if (shouldApplyNpcUpdates) {
     for (const upd of directorNpcUpdates) {
       const ch = ctx.characters.find(
@@ -648,7 +639,7 @@ export async function POST(
   //
   // SKIP conditions (each saves cost · maintains narrative integrity):
   //   (a) playthrough.npc_l3_enabled === false (opt-in flag · founder Q4)
-  //   (b) Director verdict === "reject" (F-04 mitigation · NPC pushback IS the scene)
+  //   (b) [REMOVED PR2 · decision 10] verdict 唔再 gate NPC L3 (reject 唔再 = NPC 拒絕)
   //   (c) No active NPCs in Director's npc_updates (no one to model)
   //   (d) directorFailed === true (skip extra LLM if Director already faltered)
   //
@@ -676,10 +667,11 @@ export async function POST(
     );
   }
 
+  // PR2 (ADR-001 · decision 10): 移除 verdict==="reject" gate — verdict 唔再 gate
+  // NPC modeling (reject 唔再代表「NPC 拒絕」· 由 Narrator 按四層自決)。
   const shouldRunNpcL3 =
     npcL3EnabledOnPlaythrough &&
     !directorFailed &&
-    verdict.verdict !== "reject" &&
     directorNpcUpdates.length > 0;
 
   if (shouldRunNpcL3) {
@@ -786,10 +778,10 @@ export async function POST(
   }
 
   // 4.5 SKILL CHECK — Phase 1.5.2: if Director required a check, roll dice now.
-  // 2026-06-01 (ADR-001 · GM 降做 prep 員): 除咗 skill check 外，Director verdict
-  // 唔再「指示」Narrator 點寫。reject / allow_with_constraint 改用 verdictToContextNote
-  // 出一個中性背景參考，Narrator 自己按四層優先級判斷。呢個拆走咗舊 reject 路徑嘅
-  // canned「眉頭微皺」pushback pattern。skill check 仍保留（骰已擲·結果要 narrate）。
+  // 2026-06-01 (ADR-001 · GM 唔做判官 · PR2): 除咗 skill check 外，verdict 唔再推動
+  // 敘事。verdictToContextNote 而家:reject→""(Narrator 按四層自決世界點回應·唔再有
+  // GM pushback 劇本)·allow_with_constraint→中性世界代價提示(無 NPC 劇本)。skill check
+  // 仍保留(骰已擲·結果要 narrate)。平台法律底線改由 onFinish post-hoc 輸出檢查把守。
   const directorLang: "zh-Hant" | "zh-Hans" | "en" =
     storyBible.hard_locked.language === "zh-Hans" ||
     storyBible.hard_locked.language === "en"
@@ -1899,8 +1891,10 @@ export async function POST(
   // thinking is on. X-Accel-Buffering: no — ask any proxy not to buffer the SSE
   // stream (defence-in-depth; the real word-by-word pacing is the client-side
   // typing animation since CrazyRouter buffers Gemini regardless).
-  const gmThinking =
-    thinkingEnabled && verdict ? verdictToGmThinking(verdict, storyLanguage) : null;
+  // PR2 (ADR-001 · decision 11): 非 skill-check turn 唔再喺思考面板顯示 GM verdict
+  // reasoning (verdict.reasoning 本質係判官理由 · 顯示 = GM 喺玩家體驗上仍係判官)。
+  // 思考面板而家只顯示 NPC inner voices (L3) + Narrator 自己嘅 reasoning (Claude · 若有)。
+  const gmThinking: string | null = null;
 
   // 2026-05-30 (founder): when Agent mode fired NPC L3 agents this turn, surface
   // their inner voices in the SAME 思考過程 panel so the player can SEE the agents
@@ -1948,12 +1942,8 @@ export async function POST(
       "utf8",
     ).toString("base64");
   }
-  if (verdict) {
-    headers["X-Director-Verdict"] = Buffer.from(
-      JSON.stringify({ verdict: verdict.verdict }),
-      "utf8",
-    ).toString("base64");
-  }
+  // PR2 (ADR-001 · decision 10): X-Director-Verdict header 移除 — GM verdict 唔再
+  // 落前端 (amber 框 PR #65 已移除 · 呢個 header 變咗 dead plumbing)。
 
   return result.toUIMessageStreamResponse({
     sendReasoning: thinkingEnabled,
