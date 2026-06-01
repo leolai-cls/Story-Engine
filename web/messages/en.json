@@ -68,26 +68,42 @@
           "name": "Free",
           "price": "$0",
           "credits": "50 credits / day",
-          "features": ["Entry-level AI models", "Create + play stories", "Basic community access"]
+          "features": [
+            "Entry-level AI models",
+            "Create + play stories",
+            "Basic community access"
+          ]
         },
         "adventurer": {
           "name": "Adventurer",
           "price": "$9.99",
           "credits": "5,000 credits / month",
-          "features": ["All SFW models", "Full community", "Email support"]
+          "features": [
+            "All SFW models",
+            "Full community",
+            "Email support"
+          ]
         },
         "storyteller": {
           "name": "Storyteller",
           "price": "$19.99",
           "credits": "15,000 credits / month",
           "popular": "Most popular",
-          "features": ["All AI models", "Adult mode (KYC required)", "Priority support"]
+          "features": [
+            "All AI models",
+            "Adult mode (KYC required)",
+            "Priority support"
+          ]
         },
         "legend": {
           "name": "Legend",
           "price": "$49.99",
           "credits": "50,000 credits / month",
-          "features": ["Everything + early access", "Beta features", "1-on-1 onboarding"]
+          "features": [
+            "Everything + early access",
+            "Beta features",
+            "1-on-1 onboarding"
+          ]
         }
       }
     },
@@ -639,13 +655,33 @@
       "emailLabel": "Email",
       "emailGuestPlaceholder": "(Guest / anonymous login)",
       "displayNameLabel": "Display name",
-      "languageLabel": "Language",
-      "languageHint": "Affects UI text · individual story narrative language is picked at creation time",
+      "displayNamePlaceholder": "Not set — tap to set",
+      "displayNameSave": "Save",
+      "displayNameCancel": "Cancel",
+      "displayNameInvalid": "Enter 1–40 characters",
+      "displayNameSaveFailed": "Couldn't save, try again",
+      "languageLabel": "Interface language",
+      "languageHint": "Affects UI text only. Each story's language is chosen when you create it.",
       "joinedLabel": "Joined"
     },
     "preferences": {
       "title": "Preferences",
-      "subtitle": "Pick a tier · we route the best model for you (Chinese vs English · vendor availability) · adult tier requires Adult Mode first"
+      "subtitle": "Appearance · default story language · email notifications",
+      "themeLabel": "Appearance",
+      "themeHint": "Light, dark, or follow your device's system setting",
+      "themeLight": "Light",
+      "themeDark": "Dark",
+      "themeSystem": "System",
+      "storyLangLabel": "Default story language",
+      "storyLangHint": "Pre-fills the narrative language when you create a new story (changeable per story)",
+      "storyLangAuto": "Ask each time",
+      "storyLangZhHant": "Traditional Chinese",
+      "storyLangZhHans": "Simplified Chinese",
+      "storyLangEn": "English",
+      "notifyProductLabel": "Product updates",
+      "notifyProductHint": "Email me about new features and important changes",
+      "notifyMarketingLabel": "Marketing emails",
+      "notifyMarketingHint": "Offers, events and featured stories (off by default)"
     },
     "adult": {
       "title": "Adult mode",
@@ -653,7 +689,7 @@
     },
     "credits": {
       "title": "Credits",
-      "subtitleFormat": "Current {tier} · balance {balance} credits · Phase 4 money tier unlocks top-up",
+      "subtitleFormat": "You're on {tier} · balance {balance} credits",
       "balanceLabel": "BALANCE",
       "balanceUnit": "credits",
       "subscriptionStatus": "Subscription status:",
@@ -665,9 +701,9 @@
       "ledgerEmpty": "No credit activity yet.",
       "ledgerBalance": "bal {balance}",
       "tierDescriptions": {
-        "free": "50 credits per day · Standard models only",
-        "adventurer": "2,000 credits per month · no turn cap · Standard + Pro AI models · Adult mode (after age verification)",
-        "storyteller": "4,000 credits per month · all features · Unlimited NPC Inner Voices · Adult mode",
+        "free": "1,000 on signup · +100 daily (cap 1,000) · Standard AI",
+        "adventurer": "8,000 credits / month · no turn cap · Standard + Pro AI · adult mode available",
+        "storyteller": "18,000 credits / month · all features · unlimited NPC inner voices · adult mode available",
         "legend": "Deprecated · same as Pro"
       }
     },
@@ -680,11 +716,25 @@
       "signOutLabel": "Sign out",
       "signOutHint": "Signs out on all devices",
       "exportLabel": "Export my data",
-      "exportHint": "All playthroughs · memory · comments · ~zip file",
-      "exportButton": "Export (v1.5+)",
+      "exportHint": "All your stories, progress and memories · downloaded as JSON",
+      "exportButton": "Download",
+      "exportBusy": "Preparing…",
+      "exportFailed": "Export failed, try again",
       "deleteLabel": "Delete account",
-      "deleteHint": "Irreversible · all stories · playthroughs · memory permanently lost",
-      "deleteButton": "Delete..."
+      "deleteHint": "Irreversible · all stories, progress and memories permanently gone",
+      "deleteButton": "Delete account",
+      "deleteConfirmWord": "DELETE",
+      "deleteConfirmPrompt": "Type \"<word></word>\" to confirm",
+      "deleteDialogTitle": "Permanently delete your account?",
+      "deleteDialogBody": "This can't be undone. All your stories, progress, memories and credits are erased immediately, and any subscription is cancelled.",
+      "deleteDialogCancel": "Cancel",
+      "deleteDialogConfirm": "Delete permanently",
+      "deleteDialogProcessing": "Deleting…",
+      "deleteDialogClose": "Close",
+      "deleteFailed": "Delete failed, try again or contact support",
+      "supportLabel": "Contact us",
+      "termsLabel": "Terms of Service",
+      "privacyLabel": "Privacy Policy"
     },
     "ledger": {
       "turn_charge": "Played a turn",
@@ -724,12 +774,12 @@
     },
     "adultModeToggle": {
       "cardTitle": "Adult mode (18+)",
-      "cardDescription": "Enable to pick NSFW models · create + play adult-rated stories.",
+      "cardDescription": "Enable to create and play stories with explicit content (18+).",
       "enabledBadge": "Enabled",
-      "stateOn": "Adult mode enabled",
-      "stateOff": "Adult mode disabled",
-      "enabledExplainer": "You can pick OpenRouter NSFW models · create adult-rated stories · the Library shows adult content.",
-      "disabledExplainer": "SFW + soft content only. NSFW models + adult-rated stories hidden.",
+      "stateOn": "Adult mode: on",
+      "stateOff": "Adult mode: off",
+      "enabledExplainer": "You can create 18+ stories · the Library shows adult content · narration uses an AI model that supports explicit content.",
+      "disabledExplainer": "Standard and soft content only; 18+ stories stay hidden.",
       "ageVerifiedYes": "You're age-verified — you can toggle adult mode on/off freely.",
       "ageVerifiedNo": "Identity verification required to enable adult mode.",
       "requiresVerificationTitle": "Age verification required (18+)",
@@ -745,9 +795,9 @@
         "eyebrow": "Confirm enable adult mode",
         "title": "Ready to open 18+ content?",
         "intro": "Once enabled:",
-        "bullet1": "Model picker shows OpenRouter NSFW models (explicit content)",
-        "bullet2": "Creation flow can pick \"Adult\" content_rating",
-        "bullet3": "Library exposes the \"18+ Adult\" filter",
+        "bullet1": "Narration can use an AI model that supports explicit content",
+        "bullet2": "You can pick the \"Adult (18+)\" rating when creating a story",
+        "bullet3": "The Library gains an \"18+ Adult\" filter",
         "bullet4": "Story detail no longer hides adult stories",
         "csamStrong": "Platform strictly forbids",
         "csamBody": "creations involving minors, real people, or illegal content · violators get permanent account termination and legal reporting. CSAM / illegal pre-filter is always-on in every mode.",
@@ -763,16 +813,16 @@
       "title": "One-time top-up",
       "errorPrefix": "Error:",
       "small": {
-        "label": "Small pack",
-        "credits": "+ 2,000 credits"
+        "label": "Starter pack",
+        "credits": "+ 1,000 credits"
       },
       "medium": {
-        "label": "Medium pack",
-        "credits": "+ 5,500 credits"
+        "label": "Standard pack",
+        "credits": "+ 3,500 credits"
       },
       "large": {
-        "label": "Large pack",
-        "credits": "+ 12,000 credits"
+        "label": "Bulk pack",
+        "credits": "+ 8,000 credits"
       }
     },
     "billingToast": {
@@ -1049,6 +1099,50 @@
       "section4Title": "4. Opt-out + browser controls",
       "section4Body": "Set Do-Not-Track in your browser · PostHog honors it. Clear cookies via your browser settings to reset analytics distinct_id. Essential cookies cannot be opted out without breaking auth.",
       "lastUpdated": "Last updated: {date} · contact privacy@kieio.com for questions"
+    }
+  },
+  "plans": {
+    "back": "Back to settings",
+    "title": "Choose a plan",
+    "subtitle": "Every plan includes the full feature set. Upgrade or cancel anytime.",
+    "popular": "Popular",
+    "perMonth": " / mo",
+    "freeDefault": "Your current plan",
+    "ctaSubscribe": "Upgrade",
+    "ctaCurrent": "Current plan",
+    "ctaResume": "Resume subscription",
+    "ctaManage": "Manage subscription",
+    "ctaSwitch": "Switch to this plan",
+    "ctaLogin": "Log in",
+    "tiers": {
+      "free": {
+        "name": "Free",
+        "credits": "1,000 on signup · +50 daily (cap 1,000)",
+        "features": [
+          "Create + play stories",
+          "Standard AI narration",
+          "Basic community access"
+        ]
+      },
+      "standard": {
+        "name": "Standard",
+        "credits": "8,000 credits / month",
+        "features": [
+          "Solid value AI models",
+          "Full community access",
+          "Email support"
+        ]
+      },
+      "pro": {
+        "name": "Pro",
+        "credits": "18,000 credits / month",
+        "features": [
+          "Strongest AI models (deeper narration)",
+          "Adult mode (self-attest 18+)",
+          "Multi-character agents",
+          "Priority support"
+        ]
+      }
     }
   }
 }

@@ -20,7 +20,7 @@ const LOCALES = [
   { v: "en", label: "EN", full: "English" },
 ] as const;
 
-export function LocaleSwitcher() {
+export function LocaleSwitcher({ align = "right" }: { align?: "left" | "right" } = {}) {
   const router = useRouter();
   const pathname = usePathname();
   const locale = useLocale();
@@ -66,7 +66,7 @@ export function LocaleSwitcher() {
       </button>
       {open && (
         <div
-          className="absolute right-0 top-full mt-1 z-50 min-w-[200px] py-1 rounded-md"
+          className={`absolute ${align === "left" ? "left-0" : "right-0"} top-full mt-1 z-50 min-w-[200px] py-1 rounded-md`}
           style={{
             background: "var(--se-surface)",
             border: "1px solid var(--se-border)",

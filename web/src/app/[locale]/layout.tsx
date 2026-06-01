@@ -155,6 +155,16 @@ export default async function LocaleLayout({
       lang={locale}
       className={`${geistSans.variable} ${geistMono.variable} ${notoSansTc.variable} ${termina.variable} ${gimbalExtended.variable} h-full antialiased`}
     >
+      <head>
+        {/* No-flash theme: apply the user's saved theme before first paint so
+            dark mode doesn't flash light. Reads localStorage("kieio-theme")
+            (set by the settings ThemeToggle); falls back to system. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('kieio-theme')||'system';var d=t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',d);}catch(e){}})();`,
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col bg-background text-foreground font-sans">
         <NextIntlClientProvider>
           <PostHogProvider userId={user?.id ?? null} userTraits={userTraits}>
