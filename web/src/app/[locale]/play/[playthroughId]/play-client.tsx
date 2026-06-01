@@ -1224,6 +1224,7 @@ export function PlayClient({
               playthroughId={playthroughId}
               currentModel={activeModel}
               subscriptionTier={subscriptionTier}
+              isAdult={storyContentRating === "adult"}
               npcL3Enabled={activeNpcL3}
               thinkingEnabled={activeThinking}
               onModelChange={setActiveModel}

@@ -170,6 +170,15 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
     inputPerMillion: 3.0,
     outputPerMillion: 15.0,
   },
+  "deepseek-v3-2": {
+    // DeepSeek V3.2 (Standard 中文 roleplay · 取代 GLM · 2026-06-01)。
+    // Founder 提供 CrazyRouter grok-style 詳細頁確認: 提示(input) $0.252 /
+    // 补全(output) $0.378 = 原价 $0.28/$0.42 嘅 -10% promo 價。
+    // Price at un-discounted 原价 (跟 gpt-5-4-pro / grok 保守慣例)。
+    // 平過 GLM ($1.40/$4.40) 約 5×。
+    inputPerMillion: 0.28,
+    outputPerMillion: 0.42,
+  },
   // ─── OpenRouter NSFW (Phase 6 adult mode · Hard rule #5 LLM isolation) ─
   // Llama 3.1 405B · only NSFW-allowed narrator · uncensored variant.
   // P6-CRIT-01 fix: key MUST match the internal MODELS id, NOT provider id.

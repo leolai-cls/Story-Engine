@@ -495,6 +495,7 @@
       "poolPro": "Pro · 最深層敘事",
       "nsfwCapable": "可成人",
       "modelLocked": "升級 tier 先用到呢個 model",
+      "adultLocked": "成人模式鎖定 · 固定用 Grok",
       "agentMode": "NPC 內心戲",
       "agentTooltip": "今個 turn 每個 NPC 有自己 POV + 內心獨白（Storyteller tier · 每個 NPC ~6 credits）",
       "agentTierRequired": "NPC 內心戲需要 Storyteller tier — 升級先解鎖",
