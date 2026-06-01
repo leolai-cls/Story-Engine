@@ -453,6 +453,7 @@ export type Database = {
           role: string | null
           story_id: string
           voice_sample: string | null
+          volatility: number
         }
         Insert: {
           arc_description?: string | null
@@ -467,6 +468,7 @@ export type Database = {
           role?: string | null
           story_id: string
           voice_sample?: string | null
+          volatility?: number
         }
         Update: {
           arc_description?: string | null
@@ -481,6 +483,7 @@ export type Database = {
           role?: string | null
           story_id?: string
           voice_sample?: string | null
+          volatility?: number
         }
         Relationships: [
           {

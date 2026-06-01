@@ -382,6 +382,7 @@ Each NPC:
 - \`voice_sample\` (20-400 chars): 2-3 sentences in English demonstrating speech style
 - \`arc_description\` (10-280 chars): how the NPC evolves
 - \`default_disposition_toward_protagonist\`: pick [hostile, wary, neutral, friendly, warm, devoted]
+- \`volatility\` (0.0-1.0): how readily this character's attitude shifts from accumulated experiences. Stubborn / principled / steady → low (0.1-0.3); ordinary → ~0.5; emotional / impulsive / mercurial → high (0.7-0.9). Derive it from the personality — make characters differ.
 
 NPC count = the minimum the story needs (3-5 is usually right). Quality > quantity.`;
   }
@@ -397,6 +398,7 @@ NPC count = the minimum the story needs (3-5 is usually right). Quality > quanti
 - \`voice_sample\` (20-400 字): 2-3 句 demonstrating 讲话风格，简体中文
 - \`arc_description\` (10-280 字)：NPC 如何 evolve
 - \`default_disposition_toward_protagonist\`: 选 [hostile, wary, neutral, friendly, warm, devoted]
+- \`volatility\` 易变度 (0.0-1.0)：这个角色的态度有多容易因累积经历而改变。固执/有原则/沉稳 → 低 (0.1-0.3)；普通 → ~0.5；情绪化/冲动/善变 → 高 (0.7-0.9)。按性格定 · 让角色之间有差异。
 
 NPC 数量 = 故事需要的最少 (3-5 通常合适)。质量 > 数量。`;
   }
@@ -411,6 +413,7 @@ NPC 数量 = 故事需要的最少 (3-5 通常合适)。质量 > 数量。`;
 - \`voice_sample\` (20-400 字): 2-3 句 demonstrating 講嘢風格
 - \`arc_description\` (10-280 字)：NPC 點 evolve
 - \`default_disposition_toward_protagonist\`: 揀 [hostile, wary, neutral, friendly, warm, devoted]
+- \`volatility\` 易變度 (0.0-1.0)：呢個角色嘅態度有幾易因累積經歷而改變。固執/有原則/沉穩 → 低 (0.1-0.3)；普通 → ~0.5；情緒化/衝動/善變 → 高 (0.7-0.9)。按佢性格定 · 令角色之間有差異。
 
 NPC 數量 = 故事需要嘅最少 (3-5 通常啱)。質量 > 數量。`;
 }

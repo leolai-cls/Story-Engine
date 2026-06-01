@@ -324,6 +324,9 @@ export async function createStoryFromPrompt(
     arc_description: c.arc_description,
     default_disposition_toward_protagonist:
       c.default_disposition_toward_protagonist,
+    // 角色靈魂沉澱機制用 (sediment thresholdFor)。AI 按性格生成 · 令每個角色易變度
+    // 唔同 (固執難變 / 情緒化易變)。冇咗就全部 fallback 0.5 = 無差異。
+    volatility: c.volatility,
   }));
 
   const { data: insertedChars, error: charsErr } = await supabase

@@ -44,6 +44,11 @@ import {
   parsePendingTensions,
   accumulateTensions,
 } from "@/lib/ai/character/sediment";
+import {
+  parseMentionRoster,
+  mergeMentionRoster,
+  formatMentionRosterBlock,
+} from "@/lib/ai/character/mention-roster";
 import { embedTextSafe } from "@/lib/ai/embed";
 // ─── Phase 3 credits ─────────────────────────────────────────────────────
 import {
@@ -139,7 +144,7 @@ export async function POST(
     .select(
       // Wave 2 fix CRIT-A: include npc_l3_enabled · was missing → L3 path dead
       // 2026-05-29: include thinking_mode_enabled (founder deep-thinking toggle · Migration 0046)
-      "id, user_id, story_id, character_name, current_state, llm_model, turn_count, npc_l3_enabled, thinking_mode_enabled",
+      "id, user_id, story_id, character_name, current_state, llm_model, turn_count, npc_l3_enabled, thinking_mode_enabled, mention_roster",
     )
     .eq("id", playthroughId)
     .single();
@@ -401,6 +406,9 @@ export async function POST(
           red_lines: c.red_lines ?? [],
           voice_sample: c.voice_sample ?? "",
           arc_description: c.arc_description ?? "",
+          // 易變度 · 舊故事 row 冇就 fallback 0.5 (沉澱機制喺 turn route 另外讀 · 呢度
+          // 只為滿足 CharacterCard 型別 · 唔入 prompt)。
+          volatility: (c.volatility as number | null) ?? 0.5,
           default_disposition_toward_protagonist:
             (c.default_disposition_toward_protagonist as
               | "hostile"
@@ -795,6 +803,15 @@ export async function POST(
     directorInstruction = verdictToContextNote(verdict, directorLang);
   }
 
+  // 即興名冊 (角色升級階梯第 0 層 · 防 retcon)：parse 之前回合累積嘅 walk-on 名單 ·
+  // 注入 Narrator context (內部 block) 等就算弱 model 都唔會改名 / 否認佢哋存在。
+  // 今回合新提到嘅名喺 onFinish 由 extractor 攞返 + merge 入名冊。
+  const knownMainNames = ctx.characters.map((c) => c.card.name);
+  const currentRoster = parseMentionRoster(
+    (pt as { mention_roster?: unknown }).mention_roster,
+  );
+  ctx.mentionRosterBlock = formatMentionRosterBlock(currentRoster, knownMainNames);
+
   // 5. Stream Narrator response with prompt caching + Director instruction
   // 2026-06-01: directorInstruction 可能係空 string（allow case · GM 唔加嘢）·
   // 只喺有內容時先 append · 避免多餘空行污染 prompt。
@@ -1049,6 +1066,15 @@ export async function POST(
         const dispositionChanges = extraction?.dispositionChanges ?? [];
         const permanentFlags = extraction?.flags ?? [];
         const extractorUsage = extraction?.usage ?? {};
+        // 即興名冊 (防 retcon · 角色升級階梯第 0 層)：今回合 extractor 攞到嘅 walk-on
+        // 名 merge 入名冊。currentRoster / knownMainNames / aiTurnIndex 喺 streamText
+        // 之前定義 · 由呢個 onFinish closure 捕捉。失敗回合冇 extraction → 空 → 唔變。
+        const nextRoster = mergeMentionRoster(
+          currentRoster,
+          extraction?.mentionedCharacters ?? [],
+          aiTurnIndex,
+          knownMainNames,
+        );
 
         let newState = currentState;
         if (delta && delta.ops.length > 0) {
@@ -1363,6 +1389,11 @@ export async function POST(
         const playthroughUpdate: Record<string, unknown> = {
           current_state: newState,
         };
+        // 即興名冊：有新 walk-on 名先寫 (merge 純加 · length 增 = 有新名) ·
+        // 避免每回合都 update 同一個 jsonb。
+        if (nextRoster.length > currentRoster.length) {
+          playthroughUpdate.mention_roster = nextRoster;
+        }
         if (!acquiredViaRpc) {
           playthroughUpdate.turn_count = pt.turn_count + 2;
           playthroughUpdate.last_played_at = new Date().toISOString();
