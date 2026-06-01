@@ -233,6 +233,12 @@ export type TurnUsage = {
   };
   lorebook?: { inputTokens?: number; outputTokens?: number };
   summarizer?: { inputTokens?: number; outputTokens?: number };
+  /**
+   * Character Soul (Audit HIGH-1 fix) · 經歷日誌 + 信念抽取背景 Haiku call ·
+   * 只喺有升級角色 (interaction_count>=3) 嘅 turn 跑。固定 reserve (似 lorebook ·
+   * 因為 call 喺 charge 之後先 fire · 用估計 token · 2× markup 吸收 variance)。
+   */
+  experience?: { inputTokens?: number; outputTokens?: number };
   embedTokens?: number;
   /**
    * Phase 1.5 · NPC L3 Agents (Storyteller tier exclusive · founder Q3).
@@ -294,6 +300,15 @@ export function computeTurnCredits(usage: TurnUsage): number {
       })
     : 0;
 
+  // Character Soul (Audit HIGH-1 fix) · 經歷日誌 + 信念抽取 Haiku call
+  const experienceCredits = usage.experience
+    ? computeCredits({
+        modelId: "claude-haiku-4-5",
+        inputTokens: usage.experience.inputTokens ?? 0,
+        outputTokens: usage.experience.outputTokens ?? 0,
+      })
+    : 0;
+
   // Phase 1.5 · NPC L3 Agents flat-rate add-on (founder Q3 sign-off)
   // 6 credits per successful agent · 0 for failed (UX: don't charge on failure)
   const npcL3Credits = (usage.npcL3SuccessfulAgents ?? 0) * NPC_L3_CREDITS_PER_NPC;
@@ -304,6 +319,7 @@ export function computeTurnCredits(usage: TurnUsage): number {
     lorebookCredits +
     summarizerCredits +
     embedCredits +
+    experienceCredits +
     npcL3Credits
   );
 }
