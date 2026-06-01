@@ -148,8 +148,8 @@ export const MODELS: Record<string, ModelEntry> = {
     display_name: "Grok 4.1",
     role: "narrator",
     // ⚠️ credit_multiplier 係 legacy / charge path 根本冇用到嘅 field — 實際扣費
-    // 純粹經 credits.ts MODEL_PRICING token rate。grok MODEL_PRICING = $3/$9 ≈ glm
-    // ($1.40/$4.40) 嘅 ~2 倍 (典型回合) → 成人向每回合 credit 實際係升咗 (Grok 貴)。
+    // 純粹經 credits.ts MODEL_PRICING token rate。grok MODEL_PRICING = $3/$15 ≈ glm
+    // ($1.40/$4.40) 嘅 ~2.6 倍 (典型回合) → 成人向每回合 credit 實際升咗 (Grok 貴)。
     // pricing 策略 (要唔要 subsidize 成人向) 屬 money-tier 再議。
     credit_multiplier: 1.0,
     allows_nsfw: true,
