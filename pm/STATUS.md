@@ -12,7 +12,11 @@
 **Live URL**: https://kieio.com (marketing) · https://app.kieio.com (product) · auto-redirect 維持
 **Last updated**: 2026-06-01 (Session 16 後段 — 🧭 核心架構重設計 + 實作 · 詳見 `pm/architecture/`: (1) 開 architecture folder 完整概念架構 (哲學/turn pipeline/角色靈魂/記憶/自適應系統/介面/記憶清潔 + 6 ADR + 名詞表 + IMPLEMENTATION) · (2) GM 降做 prep 員 + 四層優先級 + 誠實失敗安全網 (PR #52 · 修好「眉頭微皺」launch blocker · 真兇 = turn route maxDuration 60→300s) · (3) 角色靈魂第二階段 M1-M6 全部實作+部署 (PR #53 · 經歷日誌+沉澱張力+信念圖譜+移除硬紅線+機械清潔 · migration 0047-0050) · (4) play 兩個 bug 修好 (skill 徽章 live + 生圖 fallback · PR #51))
 
-**🔜 下一步候選 (角色靈魂 backlog · 待 founder 揀)**: volatility 由 schema-generator 按性格生成 · 角色經歷 Memory Journal UI surface (hard rule #19) · director.ts 完全 deprecate (ADR-001 Phase 6) · 5 平 model vs 1 貴 model benchmark · 自適應介面 (06 generative panels) · 設定頁 4 項遺漏收尾 (feat/settings-overhaul 仲未完)
+**✅ Audit wave 1 完成 (PR #54 · 676179d)**: 3-agent 平行 audit (data/cost/regression) → fix wave → 收斂 audit (live DB 實測) = 0 blocker/HIGH/MEDIUM。修咗 pcs 欄位上鎖 (BLOCKER) + 失敗唔扣credit + 信念去重 + interaction_count atomic + experience credit reserve + M4 並行讀取。migration 0051-0053 已 apply prod。
+
+**🎨 沉浸感原則 lock (2026-06-01 · 推翻舊 hard rule #19)**: 護城河可見 = 敘事流露 · 唔係 dashboard/journal/裸好感度數字 (「睇哈利波特唔會列晒所有嘢」)。Memory Journal UI = 唔做。現有裸數字條 = 唔獨立 fix · 併入 Stage 3 自適應介面。
+
+**🔜 下一步候選 (待 founder 揀)**: Stage 3 自適應介面 (06 · AI 揀 panel + 質性顯示 · 落實數字條原則 · 角色靈魂之後嘅護城河) · 設定頁 4 項收尾 (feat/settings-overhaul) · volatility 由 schema-generator 生成 · director.ts 完全 deprecate (ADR-001 Phase 6) · 5平vs1貴 model benchmark · 你親自玩測 (留一次過 E2E)
 
 ## 🎯 Founder priority rule（鎖死）
 
