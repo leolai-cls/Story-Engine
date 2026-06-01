@@ -655,13 +655,33 @@
       "emailLabel": "Email",
       "emailGuestPlaceholder": "（訪客 / 匿名登入）",
       "displayNameLabel": "顯示名稱",
+      "displayNamePlaceholder": "未設定 — 撳一下設定",
+      "displayNameSave": "儲存",
+      "displayNameCancel": "取消",
+      "displayNameInvalid": "請輸入 1–40 個字",
+      "displayNameSaveFailed": "儲存唔到，再試一次",
       "languageLabel": "語言",
       "languageHint": "影響 UI 文字 · 個別故事嘅 narrative language 喺 creation 時揀",
       "joinedLabel": "加入日期"
     },
     "preferences": {
       "title": "偏好",
-      "subtitle": "揀 tier · 我哋幫你揀最啱嘅 model（中文 vs 英文 · vendor 可用性）· adult tier 需要先開成人模式"
+      "subtitle": "揀 tier · 我哋幫你揀最啱嘅 model（中文 vs 英文 · vendor 可用性）· adult tier 需要先開成人模式",
+      "themeLabel": "外觀",
+      "themeHint": "淺色、深色，或者跟你裝置嘅系統設定",
+      "themeLight": "淺色",
+      "themeDark": "深色",
+      "themeSystem": "跟系統",
+      "storyLangLabel": "預設故事語言",
+      "storyLangHint": "開新故事時預先填好敘事語言（每個故事都可以改）",
+      "storyLangAuto": "每次問",
+      "storyLangZhHant": "繁體中文",
+      "storyLangZhHans": "簡體中文",
+      "storyLangEn": "English",
+      "notifyProductLabel": "產品更新",
+      "notifyProductHint": "有新功能同重要改動時 email 通知我",
+      "notifyMarketingLabel": "推廣 email",
+      "notifyMarketingHint": "優惠、活動同精選故事（預設關咗）"
     },
     "adult": {
       "title": "成人模式",
@@ -698,9 +718,23 @@
       "exportLabel": "匯出我嘅 data",
       "exportHint": "所有 playthrough · 記憶 · 評論 · ~zip 檔",
       "exportButton": "匯出（v1.5+）",
+      "exportBusy": "準備緊…",
+      "exportFailed": "匯出失敗，再試一次",
       "deleteLabel": "刪除帳號",
       "deleteHint": "不可逆 · 所有故事 · playthrough · 記憶會永久消失",
-      "deleteButton": "刪除..."
+      "deleteButton": "刪除...",
+      "deleteConfirmWord": "DELETE",
+      "deleteConfirmPrompt": "輸入「<word></word>」嚟確認",
+      "deleteDialogTitle": "永久刪除你個帳戶？",
+      "deleteDialogBody": "呢個操作無法復原。你所有故事、進度、記憶同 credits 會即刻清除，訂閱亦會取消。",
+      "deleteDialogCancel": "取消",
+      "deleteDialogConfirm": "永久刪除",
+      "deleteDialogProcessing": "刪緊…",
+      "deleteDialogClose": "關閉",
+      "deleteFailed": "刪除失敗，再試一次或者聯絡支援",
+      "supportLabel": "聯絡我哋",
+      "termsLabel": "服務條款",
+      "privacyLabel": "私隱政策"
     },
     "ledger": {
       "turn_charge": "玩 turn 扣費",
@@ -1065,6 +1099,50 @@
       "section4Title": "4. Opt-out + browser controls",
       "section4Body": "Browser 設 Do-Not-Track · PostHog 會 honor。Clear cookies 重置 analytics distinct_id。必要 cookie 唔可以 opt out 否則 break auth。",
       "lastUpdated": "最後更新：{date} · 有問題 email privacy@kieio.com"
+    }
+  },
+  "plans": {
+    "back": "返回設定",
+    "title": "選擇方案",
+    "subtitle": "所有方案都包含完整功能。隨時可以升級或取消。",
+    "popular": "最熱門",
+    "perMonth": " / 月",
+    "freeDefault": "你而家用緊呢個",
+    "ctaSubscribe": "升級",
+    "ctaCurrent": "你而家用緊",
+    "ctaResume": "恢復訂閱",
+    "ctaManage": "管理訂閱",
+    "ctaSwitch": "轉去呢個方案",
+    "ctaLogin": "登入",
+    "tiers": {
+      "free": {
+        "name": "免費",
+        "credits": "註冊送 1,000 · 每日 +50（上限 1,000）",
+        "features": [
+          "創作 + 玩故事",
+          "Standard AI 講故事",
+          "基本社群權限"
+        ]
+      },
+      "standard": {
+        "name": "Standard",
+        "credits": "每月 8,000 credits",
+        "features": [
+          "平靚正 AI Model",
+          "完整社群權限",
+          "Email 支援"
+        ]
+      },
+      "pro": {
+        "name": "Pro",
+        "credits": "每月 18,000 credits",
+        "features": [
+          "最強 AI Model（敘事更深）",
+          "成人模式（自我聲明 18+）",
+          "多角色獨立思考（Agent）",
+          "優先支援"
+        ]
+      }
     }
   }
 }
