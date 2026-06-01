@@ -323,7 +323,8 @@ function verdictToAgentSummary(verdict: Verdict, language: StoryLanguage = "zh-H
       case "allow":
         return `ALLOW · Director permitted this attempt · but specific outcome (full success / partial / with cost) decided by Narrator + state_delta · your intent reflects reaction DURING the attempt · don't presume outcome`;
       case "reject":
-        return `REJECT · agent should NOT run (route layer skipped) · this branch unreachable`;
+        // PR2 (ADR-001): reject 唔再 skip L3 + 唔再代表「NPC 拒絕」· NPC 按自己性格反應 · Narrator 自決結果。
+        return `The player attempted something that may not fit the world or your character. React from your OWN personality + the current situation (you might resist, question, be surprised, or even go along — depends who you are). The Narrator decides the actual outcome; don't presume it fails.`;
       case "allow_with_constraint":
         return `ALLOW WITH CONSTRAINT · action proceeds but with cost: ${verdict.constraint} · your intent should account for this constraint`;
       case "require_skill_check":
@@ -335,7 +336,8 @@ function verdictToAgentSummary(verdict: Verdict, language: StoryLanguage = "zh-H
       case "allow":
         return `ALLOW · Director 接受了这个 attempt · 但具体 outcome (full success / partial / 有代价) 由 Narrator + state_delta 决定 · 你 intent 反映 attempt 期间的 reaction · 不要假设结果`;
       case "reject":
-        return `REJECT · agent should NOT run (route layer skipped) · this branch unreachable`;
+        // PR2 (ADR-001): reject 不再 skip L3 + 不再代表「NPC 拒绝」· NPC 按自己性格反应 · Narrator 自决结果。
+        return `玩家试了一些可能不符合世界 / 你角色的事。你按自己性格 + 当下情境反应（可以抗拒、质疑、惊讶、甚至顺其自然 · 看你是谁）。最终结果由 Narrator 决定 · 不要预设一定失败。`;
       case "allow_with_constraint":
         return `ALLOW WITH CONSTRAINT · 行动进行但有 cost: ${verdict.constraint} · 你的 intent 考虑这个 constraint`;
       case "require_skill_check":
@@ -351,8 +353,8 @@ function verdictToAgentSummary(verdict: Verdict, language: StoryLanguage = "zh-H
       // reflects reaction-to-attempt · NOT presumed-success outcome.
       return `ALLOW · Director 接受咗呢個 attempt · 但具體 outcome (full success / partial / 有代價) 由 Narrator + state_delta 決定 · 你 intent 反映 attempt 期間嘅 reaction · 唔好假設結果`;
     case "reject":
-      // Dead branch · turn route skips L3 on reject. Kept for type-completeness.
-      return `REJECT · agent should NOT run (route layer skipped) · this branch unreachable`;
+      // PR2 (ADR-001): reject 唔再 skip L3 + 唔再代表「NPC 拒絕」· NPC 按自己性格反應 · Narrator 自決結果。
+      return `玩家試咗啲可能唔符合世界 / 你角色嘅嘢。你按自己性格 + 當下情境反應（可以抗拒、質疑、驚訝、甚至順其自然 · 睇你係邊個）。最終結果由 Narrator 決定 · 唔好預設一定失敗。`;
     case "allow_with_constraint":
       return `ALLOW WITH CONSTRAINT · 行動進行但有 cost: ${verdict.constraint} · 你嘅 intent 考慮呢個 constraint`;
     case "require_skill_check":
