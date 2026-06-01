@@ -131,7 +131,7 @@ export function npcAgentToNarratorBlock(outputs: NpcAgentOutput[]): string {
 
 ⚠️ **規則**:
 - inner_thought 永遠唔可以 verbatim 出現喺敘事入面 (用你自己嘅 prose 表達)
-- intent 影響 NPC 行動 / 對白 · 但 final outcome 由 Director verdict + state_delta 決定
+- intent 影響 NPC 行動 / 對白 · 但 final outcome 由你 (Narrator) 按四層優先級 + state_delta 自決 (唔係由 Director verdict 決定)
 - 如果兩個 NPC intent 衝突 (A 想阻擋 · B 想助攻) → dramatize 衝突 · 唔好揀邊個贏 (由 state_delta 反映 canonical outcome)
 - 玩家只應該見到 observable cues (眼神 · 身體語言 · 講咗咩話 · 做咗咩動作)
 

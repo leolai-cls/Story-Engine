@@ -96,6 +96,9 @@ const SCORE_FLOOR: Partial<Record<ModerationCategory, number>> = {
   "sexual/minors": 0.5,
   "violence/graphic": 0.6,
   "illicit/violent": 0.5,
+  // PR2 audit fix: 補返 self-harm/instructions floor (之前淨靠 boolean · output legal
+  // floor 同 input hard-block 而家都有 score 後備 · 對齊其他法律底線 category)。
+  "self-harm/instructions": 0.5,
   "harassment/threatening": 0.7,
   "hate/threatening": 0.7,
 };
@@ -356,6 +359,61 @@ export async function moderateText(
   }
 
   return evaluateResult(result, contentRating);
+}
+
+/**
+ * PR2 (2026-06-01) · post-hoc Narrator OUTPUT 法律底線檢查 (窄範圍 · 全新 defence-in-depth)。
+ *
+ * 拆 GM 道德判官 (ADR-001) 後加:GM 一直只審玩家**輸入**·從來無審 Narrator **輸出**。
+ * turn route onFinish 對成人 Narrator 輸出跑呢個。
+ *
+ * ⚠️ 唔可以 reuse moderateText(adult) — 佢 HARD_BLOCK 含 violence/graphic·但虛構血腥 =
+ * 合法黑暗內容 (原則 4 唔自我審查)·攔咗就變返審查。所以呢度只攔真正法律底線:
+ *   - sexual/minors        (CSAM · 違法)
+ *   - illicit/violent      (真實武器 / WMD 指引 · 違法)
+ *   - self-harm/instructions (真實自殘 how-to · 真實傷害指引)
+ * 明確 EXCLUDE: violence/graphic (虛構暴力) · self-harm/intent (敘事內角色意圖係故事·非真實)。
+ *
+ * un-stream 唔到 (內容已串流俾玩家) → 事後偵測 (caller 清走 turn + 唔污染記憶 + audit)·
+ * 唔係 pre-gate。真正 pre-gate (查玩家輸入) 一直喺 turn route 開頭。fail-OPEN: classifier
+ * 掛咗就放行 (唔好因為 audit 層當咗就 block 合法成人內容 · 真硬閘喺輸入側)。
+ *
+ * ⚠️ hard rule #5 例外 (founder 拍板 2026-06-02): 呢個 classifier (callClassifier) 用
+ * Haiku (Anthropic) 掃成人輸出。係**刻意嘅例外** —— #5 禁嘅係**生成型** NSFW 上 Anthropic ·
+ * 唔係安全 classifier。Anthropic AUP 容許送內容做安全分類 · 而且呢個只出 yes/no 唔生成內容 ·
+ * 同 extractTurnState (一直用 Haiku 讀成人輸出抽 state · 純結構) 同類。唔當違反 #5。
+ */
+const OUTPUT_LEGAL_FLOOR: ModerationCategory[] = [
+  "sexual/minors",
+  "illicit/violent",
+  "self-harm/instructions",
+];
+
+export async function checkOutputLegalFloor(
+  output: string,
+): Promise<{ allowed: true } | { allowed: false; categories: ModerationCategory[] }> {
+  if (!output || !output.trim()) return { allowed: true };
+  const result = await callClassifier(output).catch(() => null);
+  if (result === null) {
+    console.warn(
+      "[moderation] output legal-floor classifier unavailable — allowing (fail-open · best-effort audit layer)",
+    );
+    return { allowed: true };
+  }
+  const triggered: ModerationCategory[] = [];
+  for (const cat of OUTPUT_LEGAL_FLOOR) {
+    if (result.categories[cat]) {
+      triggered.push(cat);
+      continue;
+    }
+    const floor = SCORE_FLOOR[cat];
+    if (floor !== undefined && (result.category_scores[cat] ?? 0) >= floor) {
+      triggered.push(cat);
+    }
+  }
+  return triggered.length === 0
+    ? { allowed: true }
+    : { allowed: false, categories: triggered };
 }
 
 export async function assertContentAllowed(

@@ -143,47 +143,40 @@ export const DirectorOutputSchema = z.object({
 export type DirectorOutput = z.infer<typeof DirectorOutputSchema>;
 
 /**
- * 2026-06-01 (ADR-001 · GM 由決策者降做 prep 員)：新版「中性背景參考」。
+ * 2026-06-01 (ADR-001 · GM 唔做判官 · PR2)：verdict 唔再推動敘事。
  *
- * 舊 verdictToNarratorInstruction 會強推 Narrator 寫 reject pushback / constraint，
- * 製造咗「眉頭微皺」嗰種 canned pattern，亦令 Director 嘅誤判直接污染敘事。
+ * 真實成人 playthrough 證實:舊版(就算 demote 成「中性觀察」)只要將 reject 嘅
+ * pushback_hint / reasoning 傳落去 · 弱 model (Grok) 都會照跟 → 過度拒絕 + canned
+ * 「眉頭微皺」+ 翻炒 (第 8 ≈ 第 10 回)。PR2 索性唔再將 reject 嘅嘢交俾 Narrator。
  *
- * 新哲學（pm/architecture/02-turn-pipeline.md）：GM 唔做決策。Narrator 自己睇四層
- * 優先級（世界>角色>場景>玩家指令）決定世界點回應。Director 嘅 verdict 只係一個
- * 「內部觀察筆記」· 中性 · 唔強制 · Narrator 可以採納或者按自己判斷無視。
+ * 新行為:
+ * - allow / reject / require_skill_check → 返 ""（唔加嘢）。
+ *   reject 嘅「世界點回應」由 Narrator 自己按四層 (Tier 1 世界法則 + Tier 2 角色)
+ *   emergent 決定 —— GM 唔再寫 pushback 劇本 (原則 1/2)。成人內容按原則 4 由
+ *   Narrator 自決 · 唔再由 Haiku 判官道德攔 (ADR-002 · 移除硬紅線)。
+ * - allow_with_constraint → 只出一個**中性世界代價提示**(可能代價/風險) · 無
+ *   allow/reject label · 無 NPC 台詞動作劇本 · Narrator 自己決定點演 (decision 8)。
+ * - require_skill_check → turn route 用 skillCheckToNarratorInstruction 處理 · 唔經呢度。
  *
- * - allow → 完全唔加 note（最常見 · 唔好用 token）
- * - reject / allow_with_constraint → 一句中性觀察 + 明確交返判斷權俾 Narrator
- * - require_skill_check → 喺 turn route 另外用 skillCheckToNarratorInstruction 處理
- *   （骰已擲 · 結果要 narrate）· 唔經呢度
+ * ⚠️ 唔好再將 reject 嘅 pushback_hint / reasoning 傳落 Narrator (Codex/founder lock)。
+ * 平台法律底線改由 turn route onFinish 嘅 post-hoc 輸出檢查把守 (唔係 GM 判官)。
  */
 export function verdictToContextNote(v: Verdict, lang: DirectorThinkingLang = "zh-Hant"): string {
-  if (v.verdict === "allow" || v.verdict === "require_skill_check") {
-    return ""; // allow: 唔加嘢。skill_check: turn route 另外處理。
-  }
-
-  // reject / allow_with_constraint：俾一個中性 internal note，唔強推 pushback。
-  const observation =
-    v.verdict === "reject"
-      ? v.in_fiction_pushback_hint || v.reasoning
-      : v.constraint;
-
+  if (v.verdict !== "allow_with_constraint") return "";
+  const stakes = v.constraint;
   if (lang === "en") {
-    return `[INTERNAL CONTEXT — DO NOT QUOTE · this is a background note, NOT an instruction]
-## GM observation (optional reference)
-The GM noted a possible tension between the player's action and the world/characters: ${observation}
-You are the Narrator. Decide for yourself, using the four-tier priority (World > Characters > Scene > Player command), how the world and the present characters naturally respond. If the action genuinely doesn't fit, let it fail inside the fiction and have each present character react in their OWN voice and mood — never a canned line. If it actually fits fine, just narrate it. This note is only a hint; trust your own read of the scene.`;
+    return `[INTERNAL CONTEXT — background reference, NOT an instruction]
+This action may carry real stakes / cost in the world (for your reference only): ${stakes}
+You are the Narrator. Decide for yourself, via the four tiers, whether and how these stakes surface — through the world and the present characters' own reactions. This is only a hint; never spell it out as a label or a canned line.`;
   }
   if (lang === "zh-Hans") {
-    return `[INTERNAL CONTEXT — DO NOT QUOTE · 这是背景笔记，不是指令]
-## GM 观察（可选参考）
-GM 留意到玩家行动与世界/角色之间可能有张力：${observation}
-你是 Narrator。请你自己按四层优先级（世界 > 角色 > 场景 > 玩家指令）判断世界同在场角色会怎样自然回应。如果这个行动真的不成立，让它在故事里自然失败，由每个在场角色按自己的 voice 同心情反应 —— 绝不用罐头台词。如果其实没问题，就正常叙述。这只是提示；相信你自己对场景的判断。`;
+    return `[INTERNAL CONTEXT — 背景参考，不是指令]
+这个行动在世界里可能牵涉真实代价 / 风险（仅供你参考）：${stakes}
+你是 Narrator。请你自己按四层判断这些代价会不会、以及怎样浮现 —— 透过世界同在场角色自己的反应。这只是提示；绝不要写成标签或罐头台词。`;
   }
-  return `[INTERNAL CONTEXT — DO NOT QUOTE · 呢個係背景筆記，唔係指令]
-## GM 觀察（可選參考）
-GM 留意到玩家行動同世界/角色之間可能有張力：${observation}
-你係 Narrator。請你自己按四層優先級（世界 > 角色 > 場景 > 玩家指令）判斷世界同在場角色會點自然回應。如果呢個行動真係唔成立，等佢喺故事入面自然失敗，由每個在場角色按自己嘅 voice 同心情反應 —— 絕對唔好用罐頭台詞。如果其實冇問題，就正常敘述。呢個只係提示；相信你自己對場景嘅判斷。`;
+  return `[INTERNAL CONTEXT — 背景參考，唔係指令]
+呢個行動喺世界入面可能牽涉真實代價 / 風險（淨係俾你參考）：${stakes}
+你係 Narrator。請你自己按四層判斷呢啲代價會唔會、同點樣浮現 —— 透過世界同在場角色自己嘅反應。呢個只係提示；絕對唔好寫成標籤或者罐頭台詞。`;
 }
 
 /**
