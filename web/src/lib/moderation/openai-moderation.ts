@@ -96,6 +96,9 @@ const SCORE_FLOOR: Partial<Record<ModerationCategory, number>> = {
   "sexual/minors": 0.5,
   "violence/graphic": 0.6,
   "illicit/violent": 0.5,
+  // PR2 audit fix: 補返 self-harm/instructions floor (之前淨靠 boolean · output legal
+  // floor 同 input hard-block 而家都有 score 後備 · 對齊其他法律底線 category)。
+  "self-harm/instructions": 0.5,
   "harassment/threatening": 0.7,
   "hate/threatening": 0.7,
 };
@@ -374,6 +377,11 @@ export async function moderateText(
  * un-stream 唔到 (內容已串流俾玩家) → 事後偵測 (caller 清走 turn + 唔污染記憶 + audit)·
  * 唔係 pre-gate。真正 pre-gate (查玩家輸入) 一直喺 turn route 開頭。fail-OPEN: classifier
  * 掛咗就放行 (唔好因為 audit 層當咗就 block 合法成人內容 · 真硬閘喺輸入側)。
+ *
+ * ⚠️ hard rule #5 例外 (founder 拍板 2026-06-02): 呢個 classifier (callClassifier) 用
+ * Haiku (Anthropic) 掃成人輸出。係**刻意嘅例外** —— #5 禁嘅係**生成型** NSFW 上 Anthropic ·
+ * 唔係安全 classifier。Anthropic AUP 容許送內容做安全分類 · 而且呢個只出 yes/no 唔生成內容 ·
+ * 同 extractTurnState (一直用 Haiku 讀成人輸出抽 state · 純結構) 同類。唔當違反 #5。
  */
 const OUTPUT_LEGAL_FLOOR: ModerationCategory[] = [
   "sexual/minors",

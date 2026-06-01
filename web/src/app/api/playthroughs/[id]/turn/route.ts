@@ -1394,11 +1394,13 @@ export async function POST(
             failed: technicalFailure,
             // AUDIT FIX F-03 (Wave 2): persist Director failure flag inline so
             // postmortems can grep for `director_verdict->>'fallback' = 'true'`
-            director_verdict: legalBlocked
-              ? { ...verdict, post_hoc_legal_block: legalFloorCategories }
-              : directorFailed
-                ? { ...verdict, fallback: true }
-                : verdict,
+            // PR2 audit fix (L1): 兩個 flag 可以同時 true (Director 掛咗 fallback allow ·
+            // 之後 Narrator 輸出又中法律底線) → merge · 唔好互相覆蓋 (保 audit 完整)。
+            director_verdict: {
+              ...verdict,
+              ...(directorFailed ? { fallback: true } : {}),
+              ...(legalBlocked ? { post_hoc_legal_block: legalFloorCategories } : {}),
+            },
             skill_check: skillCheckResult,
             // P6-HIGH-01 fix: derive llm_provider from MODELS catalog instead
             // of hardcoded "anthropic". Previously Llama (openrouter) turns

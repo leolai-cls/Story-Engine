@@ -220,8 +220,6 @@ type AgentBuildContext = {
 };
 
 function buildAgentUserMessage(ctx: AgentBuildContext): string {
-  // Verdict summary · concise · Director already decided · agent obeys
-  const verdictSummary = verdictToAgentSummary(ctx.verdict, ctx.language);
   const lang = ctx.language;
 
   const soloMsg =
@@ -242,12 +240,14 @@ function buildAgentUserMessage(ctx: AgentBuildContext): string {
       : lang === "zh-Hans"
         ? "(scene 刚开始)"
         : "(scene 剛開始)";
-  const verdictHeader =
+  // PR2 (ADR-001 · 拆 NPC agent 嘅 verdict 判官框架): NPC 唔再收 Director 判決 ("you
+  // MUST obey")。只知道玩家「試咗」乜 · 按自己性格反應 · 結果由 Narrator 按四層自決。
+  const attemptFrame =
     lang === "en"
-      ? "## Director's verdict (already decided · you MUST obey)"
+      ? "## How to read the player's action above\nThe player ATTEMPTED this. React from your OWN personality + current state. You do NOT decide the outcome — the Narrator decides what actually happens (full success / partial / failure / cost). Your inner_thought + intent reflect your reaction to the attempt, not a presumed result."
       : lang === "zh-Hans"
-        ? "## Director's verdict (已决定 · 你必须遵守)"
-        : "## Director's verdict (已決定 · 你必須遵守)";
+        ? "## 怎么读上面玩家的行动\n玩家「尝试」了这件事。你按自己的性格 + 当下状态反应。你不决定结果 —— 由 Narrator 决定实际发生什么（完全成功 / 部分 / 失败 / 有代价）。你的 inner_thought + intent 反映你对这个尝试的反应，不要预设成败。"
+        : "## 點讀上面玩家嘅行動\n玩家「試咗」呢件事。你按自己嘅性格 + 當下狀態反應。你唔決定結果 —— 由 Narrator 決定實際發生咩（完全成功 / 部分 / 失敗 / 有代價）。你嘅 inner_thought + intent 反映你對呢個嘗試嘅反應，唔好預設成敗。";
   const closingDirective =
     lang === "en"
       ? `Follow MIRROR 3-step · output NpcAgentOutput schema (character_name must equal "${ctx.character.card.name}").`
@@ -296,8 +296,7 @@ function buildAgentUserMessage(ctx: AgentBuildContext): string {
   return `## Player's just-completed action
 ${ctx.userAction}
 
-${verdictHeader}
-${verdictSummary}
+${attemptFrame}
 
 ## Other NPCs active this turn (their public-visible L2 state)
 ${otherNpcsBlock}
@@ -317,50 +316,9 @@ ${recentTurnsBlock || sceneStartMsg}
 ${closingDirective}`;
 }
 
-function verdictToAgentSummary(verdict: Verdict, language: StoryLanguage = "zh-Hant"): string {
-  if (language === "en") {
-    switch (verdict.verdict) {
-      case "allow":
-        return `ALLOW · Director permitted this attempt · but specific outcome (full success / partial / with cost) decided by Narrator + state_delta · your intent reflects reaction DURING the attempt · don't presume outcome`;
-      case "reject":
-        // PR2 (ADR-001): reject 唔再 skip L3 + 唔再代表「NPC 拒絕」· NPC 按自己性格反應 · Narrator 自決結果。
-        return `The player attempted something that may not fit the world or your character. React from your OWN personality + the current situation (you might resist, question, be surprised, or even go along — depends who you are). The Narrator decides the actual outcome; don't presume it fails.`;
-      case "allow_with_constraint":
-        return `ALLOW WITH CONSTRAINT · action proceeds but with cost: ${verdict.constraint} · your intent should account for this constraint`;
-      case "require_skill_check":
-        return `SKILL CHECK · ${verdict.skill_key} vs ${verdict.difficulty} · outcome undecided (dice roll decides) · your intent reflects your reaction to the player's attempt · don't know success / failure`;
-    }
-  }
-  if (language === "zh-Hans") {
-    switch (verdict.verdict) {
-      case "allow":
-        return `ALLOW · Director 接受了这个 attempt · 但具体 outcome (full success / partial / 有代价) 由 Narrator + state_delta 决定 · 你 intent 反映 attempt 期间的 reaction · 不要假设结果`;
-      case "reject":
-        // PR2 (ADR-001): reject 不再 skip L3 + 不再代表「NPC 拒绝」· NPC 按自己性格反应 · Narrator 自决结果。
-        return `玩家试了一些可能不符合世界 / 你角色的事。你按自己性格 + 当下情境反应（可以抗拒、质疑、惊讶、甚至顺其自然 · 看你是谁）。最终结果由 Narrator 决定 · 不要预设一定失败。`;
-      case "allow_with_constraint":
-        return `ALLOW WITH CONSTRAINT · 行动进行但有 cost: ${verdict.constraint} · 你的 intent 考虑这个 constraint`;
-      case "require_skill_check":
-        return `SKILL CHECK · ${verdict.skill_key} vs ${verdict.difficulty} · outcome 未定 (掷骰决定) · 你的 intent 反映你对玩家尝试的 reaction · 不知 success / failure`;
-    }
-  }
-  // Default: zh-Hant
-  switch (verdict.verdict) {
-    case "allow":
-      // Wave 2 fix HIGH-06: removed "順利進行" bias. Director ALLOW means the
-      // attempt is permitted to play out — specific outcome (full success ·
-      // partial · cost) determined by Narrator + state_delta. Agent intent
-      // reflects reaction-to-attempt · NOT presumed-success outcome.
-      return `ALLOW · Director 接受咗呢個 attempt · 但具體 outcome (full success / partial / 有代價) 由 Narrator + state_delta 決定 · 你 intent 反映 attempt 期間嘅 reaction · 唔好假設結果`;
-    case "reject":
-      // PR2 (ADR-001): reject 唔再 skip L3 + 唔再代表「NPC 拒絕」· NPC 按自己性格反應 · Narrator 自決結果。
-      return `玩家試咗啲可能唔符合世界 / 你角色嘅嘢。你按自己性格 + 當下情境反應（可以抗拒、質疑、驚訝、甚至順其自然 · 睇你係邊個）。最終結果由 Narrator 決定 · 唔好預設一定失敗。`;
-    case "allow_with_constraint":
-      return `ALLOW WITH CONSTRAINT · 行動進行但有 cost: ${verdict.constraint} · 你嘅 intent 考慮呢個 constraint`;
-    case "require_skill_check":
-      return `SKILL CHECK · ${verdict.skill_key} vs ${verdict.difficulty} · outcome 未定 (擲骰決定) · 你嘅 intent 反映你對玩家嘗試嘅 reaction · 唔知 success / failure`;
-  }
-}
+// PR2 (ADR-001 · 拆 NPC agent verdict 判官框架): verdictToAgentSummary 已移除 —
+// NPC agent 唔再收 Director 判決 (見 buildAgentUserMessage 嘅 attemptFrame)。NPC
+// 按自己性格反應玩家嘅嘗試 · 結果由 Narrator 自決。
 
 // ─── Single NPC agent call ──────────────────────────────────────────────────
 
