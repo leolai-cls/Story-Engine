@@ -109,9 +109,11 @@ export const MODELS: Record<string, ModelEntry> = {
     tier_pool: "standard",
   },
 
-  // ─── CrazyRouter · Standard pool 中文 roleplay + NSFW model ──────────
-  // ADR-022: GLM 5.1 同時係 (a) Standard pool 中文/roleplay 模型 (b) Adult mode
-  // 統一 model · adult_mode_enabled user 路由去呢個 model with allows_nsfw=true.
+  // ─── CrazyRouter · Standard pool 中文 roleplay model ─────────────────
+  // ADR-022: GLM 5.1 = Standard pool 中文/roleplay 模型。
+  // ADR-024 (2026-06-01): 成人向 narrator 由 GLM 換做 Grok 4.1 (見下) · GLM 唔再
+  // 做 adult model · 留返做 Standard 中文 SFW。allows_nsfw 留 true (佢的確識做) ·
+  // 但 adultMode 路由唔再指向佢。
   // CrazyRouter slug = bare `glm-5.1`.
   "glm-5-1": {
     id: "glm-5-1",
@@ -120,10 +122,43 @@ export const MODELS: Record<string, ModelEntry> = {
     display_name: "GLM-5.1",
     role: "narrator",
     credit_multiplier: 1.0,
-    allows_nsfw: true, // ADR-022: GLM 5 做 cross-tier NSFW model
+    allows_nsfw: true, // 識做 NSFW · 但 adult 路由已改去 Grok (ADR-024)
     min_tier: "free",
-    description: "Standard tier · 「Roleplay & 創意寫作最強」 · 中文 OK · 成人模式統一 model。",
+    description: "Standard tier · 中文 roleplay · 長 context。",
     tier_pool: "standard",
+  },
+
+  // ─── CrazyRouter · 成人向唯一 narrator model (ADR-024 · 2026-06-01) ────
+  // Founder 決定 (research-backed: Reddit/JanitorAI 社群 + EQ-Bench 寫作評測):
+  // 成人向由 GLM-5.1 (偏弱 · 會 retcon 即興角色名 · 真實 playthrough「阿俊」bug)
+  // 換做 Grok 4.1。理由:
+  //   - 前沿級一致性遠勝 GLM → 直接修 retcon (記唔牢一閃名 → 自己作新名嘅病)
+  //   - xAI 最 permissive (辛辣模式 · 唔拒絕成人內容)
+  //   - 經 CrazyRouter (本身容許成人內容) · 唔會累 Anthropic 帳號 (hard rule #5)
+  // 失敗處理 = 通用機制 (maxRetries=1 連接層自動再試 + onFinish 誠實失敗 + 前端
+  //   retry 掣) · 同所有 model 一樣 · 唔自動轉 model (founder 2026-06-01:「用返
+  //   同正常 model 一樣機制」· 否決 Kimi 自動後備)。
+  // CrazyRouter slug = bare `grok-4.1` (非 -thinking variant · 直接寫 prose ·
+  //   理論上冇 Gemini 嗰個 thinking-budget 食晒 budget 出空白嘅 footgun · 但
+  //   founder 實測時若見空白回合 → 查 xAI reasoning param 加入 providers.ts 攔截)。
+  "grok-4-1": {
+    id: "grok-4-1",
+    provider: "crazyrouter",
+    model_id: "grok-4.1",
+    display_name: "Grok 4.1",
+    role: "narrator",
+    // 同 GLM adult 一樣維持 1.0 · 唔改成人向 user 面對嘅 credit 價 (Grok 真實成本
+    // 可能略高 · 屬 money-tier 再議 · 唔喺 function tier 動 pricing)。
+    credit_multiplier: 1.0,
+    allows_nsfw: true,
+    // 成人向任何訂閱 tier 都可開 · 真正 gate 喺 content_rating='adult' +
+    // adult_mode_enabled (turn route) · 唔靠 min_tier。
+    min_tier: "free",
+    description: "成人模式 narrator · 前沿級一致性 + 最 permissive · 經 CrazyRouter。",
+    // adult-only · 經 pickModelForTier 嘅 adultMode branch 路由 · 唔入 TIER_POOLS
+    // 正常輪換 (tierForModel null → DEFAULT_TIER standard → 12-turn 記憶窗 · 同
+    // 之前 GLM adult 一致)。
+    tier_pool: null,
   },
 };
 
@@ -143,10 +178,13 @@ export const TIER_POOLS: Record<ModelTier, string[]> = {
 export const DIRECTOR_MODEL = "claude-haiku-4-5";
 
 /**
- * Adult mode NSFW narrator model (ADR-022).
- * 任何 adult_mode_enabled=true + is_age_verified=true user 喺任何 tier 都用呢個.
+ * Adult mode NSFW narrator model.
+ * ADR-022: 任何 adult_mode_enabled=true user 喺任何 tier 都用呢個。
+ * ADR-024 (2026-06-01): GLM-5.1 → Grok 4.1 (research-backed · 修 retcon · 最
+ *   permissive · 經 CrazyRouter 唔累 Anthropic 帳號)。成人向 NPC L3 agent
+ *   (npc-agents.ts) 都跟住用呢個 (NSFW context 唔可上 Anthropic · hard rule #5)。
  */
-export const ADULT_NSFW_MODEL = "glm-5-1";
+export const ADULT_NSFW_MODEL = "grok-4-1";
 
 /**
  * Default tier for new accounts. "standard" 確保 free user 唔會撞到 Pro tier-gate 失敗 ·
