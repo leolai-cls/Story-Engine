@@ -359,6 +359,10 @@ export function estimateTurnCredits(
     lorebook: { inputTokens: 2000, outputTokens: 500 },
     summarizer: { inputTokens: 250, outputTokens: 40 }, // amortized 1/20
     embedTokens: 400,
+    // Audit LOW fix: 對稱於 actual charge 嘅 experience reserve。中後期 turn 通常
+    // 有升級角色 → 經歷 Haiku call。pre-charge 估算唔加會令 low-balance user 過 gate
+    // 後少收 ~6 credit (方向安全·唔會多收·但對稱性更乾淨)。保守當有 (略高估)。
+    experience: { inputTokens: 1500, outputTokens: 300 },
     npcL3SuccessfulAgents: npcL3ExpectedAgents,
   });
 }
