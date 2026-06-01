@@ -47,7 +47,7 @@ import {
 import { chargeCredits, getActiveTier } from "@/lib/billing/credits";
 import { generateText } from "ai";
 import { getProviderModel } from "@/lib/ai/providers";
-import { DIRECTOR_MODEL, ADULT_NSFW_MODEL } from "@/lib/ai/models";
+import { pickUtilityModel } from "@/lib/ai/tier-router";
 import { captureServerEvent } from "@/lib/posthog/server";
 import { after } from "next/server";
 
@@ -701,12 +701,9 @@ async function summarizeTurnForScene(
   contentRating: "sfw" | "soft" | "adult",
 ): Promise<string> {
   const text = turnText.slice(0, 4000); // cap input
-  // 2026-06-01: 成人故事用 Grok (ADULT_NSFW_MODEL) 寫畫面 prompt · 唔用 Haiku —
-  //   (a) Anthropic 會自我審查 → 出 SFW prompt → 成人圖唔成人 (founder 報);
-  //   (b) hard rule #5: 成人內容唔可經 Anthropic。
-  // 其餘 (sfw/soft) 維持 Haiku (平 + 純文字 generateText · 唔涉結構輸出可靠性)。
-  const modelId = contentRating === "adult" ? ADULT_NSFW_MODEL : DIRECTOR_MODEL;
-  const model = getProviderModel(modelId);
+  // 成人故事用 Grok 寫畫面 prompt · 唔用 Haiku (Anthropic 自我審查 → SFW prompt →
+  // 成人圖唔成人;+ hard rule #5)。路由集中喺 pickUtilityModel (single source)。
+  const model = getProviderModel(pickUtilityModel(contentRating));
   // 生圖指示 (唔係敘事約束)：叫 prompt-writer 忠實描述場景已有嘅露骨元素 · 唔好
   // 自我淡化 (否則 Grok 都可能出於慣性寫 tame)。
   const adultDirection =
