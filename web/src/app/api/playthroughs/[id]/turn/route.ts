@@ -819,7 +819,7 @@ export async function POST(
   const dynamicSystem = directorInstruction.trim()
     ? buildDynamicSystemPrompt(ctx) + "\n\n" + directorInstruction
     : buildDynamicSystemPrompt(ctx);
-  const messages = buildMessages(ctx.recent_turns, action);
+  const messages = buildMessages(ctx.recent_turns, action, directorLang);
 
   // AUDIT FIX (AI-C-03 / DB-H-03): atomic turn pair acquisition via RPC.
   // Falls back to legacy non-atomic read if migration 0003 not yet applied.
