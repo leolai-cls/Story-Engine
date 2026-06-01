@@ -586,11 +586,29 @@ export function refusalFallbackNarrative(
 「你...你係咪認真？」對方半信半疑咁睇住你，等你重新表達意圖。`;
 }
 
+/**
+ * 對話開頭嘅隱藏 user cue (locale-aware)。
+ * 2026-06-01 bug fix：turn 0 = AI 開場白 (role=ai) → recent_turns 由 "ai" turn 起
+ * → messages 以 bare assistant 訊息開頭 (前面冇 user)。Chat API 預期 user-first ·
+ * Grok via CrazyRouter 處理唔到 → 每回合開頭原封不動抄返開場白 (滾雪球)。塞一句
+ * 隱藏 user cue 喺最前 · 令對話永遠 user-first。玩家睇唔到呢句。
+ */
+const LEADING_USER_CUE: Record<StoryLanguage, string> = {
+  "zh-Hant": "（繼續呢個故事。）",
+  "zh-Hans": "（继续这个故事。）",
+  en: "(Continue this story.)",
+};
+
 export function buildMessages(
   recentTurns: TurnContext["recent_turns"],
   newUserAction: string,
+  language: StoryLanguage = "zh-Hant",
 ): Array<{ role: "user" | "assistant"; content: string }> {
   const messages: Array<{ role: "user" | "assistant"; content: string }> = [];
+  // 防 bare leading assistant message (見上 LEADING_USER_CUE)。
+  if (recentTurns.length > 0 && recentTurns[0].role === "ai") {
+    messages.push({ role: "user", content: LEADING_USER_CUE[language] });
+  }
   for (const turn of recentTurns) {
     messages.push({
       role: turn.role === "ai" ? "assistant" : "user",
