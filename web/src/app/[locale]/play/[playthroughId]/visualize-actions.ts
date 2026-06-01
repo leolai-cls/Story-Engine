@@ -47,7 +47,7 @@ import {
 import { chargeCredits, getActiveTier } from "@/lib/billing/credits";
 import { generateText } from "ai";
 import { getProviderModel } from "@/lib/ai/providers";
-import { DIRECTOR_MODEL } from "@/lib/ai/models";
+import { DIRECTOR_MODEL, ADULT_NSFW_MODEL } from "@/lib/ai/models";
 import { captureServerEvent } from "@/lib/posthog/server";
 import { after } from "next/server";
 
@@ -206,9 +206,11 @@ export async function generateScene(
       };
     }
   } else {
-    // AI summarize turn → scene gen prompt · cheap Haiku call (~$0.001)
-    // Turn text already passed moderation upstream (turn route enforces it).
-    scenePrompt = await summarizeTurnForScene(turnRow.text as string);
+    // AI summarize turn → scene gen prompt. Turn text already passed moderation
+    // upstream (turn route enforces it).
+    // 2026-06-01: 成人故事傳 contentRating → 摘要 route 去 Grok 而唔係 Haiku
+    // (Anthropic 會自我審查 → 出 SFW prompt → 成人圖唔成人 · 兼補 hard rule #5)。
+    scenePrompt = await summarizeTurnForScene(turnRow.text as string, contentRating);
   }
 
   // ─── Resolve style (Q1 + 3-tier picker) ────────────────────────────────
@@ -694,9 +696,23 @@ export async function uploadStyleReference(
  * Helper · LLM-summarize turn text into a scene description for image gen.
  * Uses Director model (Haiku 4.5 · cheap · ~$0.001) · single short call.
  */
-async function summarizeTurnForScene(turnText: string): Promise<string> {
+async function summarizeTurnForScene(
+  turnText: string,
+  contentRating: "sfw" | "soft" | "adult",
+): Promise<string> {
   const text = turnText.slice(0, 4000); // cap input
-  const model = getProviderModel(DIRECTOR_MODEL);
+  // 2026-06-01: 成人故事用 Grok (ADULT_NSFW_MODEL) 寫畫面 prompt · 唔用 Haiku —
+  //   (a) Anthropic 會自我審查 → 出 SFW prompt → 成人圖唔成人 (founder 報);
+  //   (b) hard rule #5: 成人內容唔可經 Anthropic。
+  // 其餘 (sfw/soft) 維持 Haiku (平 + 純文字 generateText · 唔涉結構輸出可靠性)。
+  const modelId = contentRating === "adult" ? ADULT_NSFW_MODEL : DIRECTOR_MODEL;
+  const model = getProviderModel(modelId);
+  // 生圖指示 (唔係敘事約束)：叫 prompt-writer 忠實描述場景已有嘅露骨元素 · 唔好
+  // 自我淡化 (否則 Grok 都可能出於慣性寫 tame)。
+  const adultDirection =
+    contentRating === "adult"
+      ? "This is an adult story. Faithfully include the explicit / mature visual elements the narrative actually depicts (state of undress, intimate poses, body details, sexual context). Do NOT sanitize, omit, or tone down what the scene shows."
+      : null;
   try {
     const { text: summary } = await generateText({
       model,
@@ -704,6 +720,7 @@ async function summarizeTurnForScene(turnText: string): Promise<string> {
         "You are a scene-direction assistant for an image generation pipeline.",
         "Read the narrative turn and output ONE concise scene description suitable for a text-to-image prompt.",
         "Focus on: characters in frame, action / pose, location, mood, lighting.",
+        ...(adultDirection ? [adultDirection] : []),
         "Output 50-100 English words. No markdown. No bullet points. No camera-jargon (just describe what to see).",
         "DO NOT include style instructions (art style is applied separately downstream).",
         "DO NOT include dialogue text in the description.",
@@ -714,7 +731,7 @@ async function summarizeTurnForScene(turnText: string): Promise<string> {
     });
     return summary.trim().slice(0, 600);
   } catch {
-    // Fallback · pass through truncated turn text
+    // Fallback · pass through truncated turn text (成人故事 raw text 本身已露骨)
     return text.slice(0, 200);
   }
 }
