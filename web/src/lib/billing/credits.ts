@@ -160,13 +160,17 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
     // 🚑 HOTFIX 2026-06-01: PR #56 加咗 grok-4-1 入 MODELS 但漏咗呢個 MODEL_PRICING
     // entry → computeCredits 拋 "no MODEL_PRICING entry" → 成人向 play 頁 / turn
     // 即時 500 (launch blocker · founder 開新成人故事撞到)。
-    // 價格 = xAI grok-4 標準 un-discounted base $3/$15 (CrazyRouter list 原价 input
-    // $3.00 對上 · output 按 grok 標準 5× = $15) · 跟 gpt-5-4-pro「price at base 唔
-    // 食 promo」保守做法 — 寧微 over-charge 都唔 undercharge (hard rule #4)。
-    // ⚠️ 待 founder 用 prod key 查 CrazyRouter /api/pricing 嘅 grok-4.1 真實
-    // model_ratio / completion_ratio 校準 (似 glm-5-1 嗰個 verify)。
+    // 價格校準 2026-06-01 (founder 提供 CrazyRouter 真實 pricing)：
+    //   input  = $3.00 — grok-4.1 list「原价 $3.00」單一數字 = input rate (同 gpt-5.4
+    //            嗰種顯示一致 · 確認)。用 un-discounted 原价 · 唔食 -45% promo (跟
+    //            gpt-5-4-pro 保守做法 · promo 完都唔蝕)。
+    //   output = $9.00 — CrazyRouter 簡單表冇 show grok-4.1 output;唯一明確 in/out
+    //            嘅 grok = grok-4.2 ($2 in / $6 out = ratio 3×) · 套落 grok-4.1
+    //            input $3 × 3 = $9 (CrazyRouter 自設 ratio · 唔係 xAI 公開 5×)。
+    // ⚠️ 精確 output 仍待查 CrazyRouter /api/pricing 嘅 grok-4.1 completion_ratio。
+    // 2× credit markup buffer 吸收呢個殘餘不確定性。
     inputPerMillion: 3.0,
-    outputPerMillion: 15.0,
+    outputPerMillion: 9.0,
   },
   // ─── OpenRouter NSFW (Phase 6 adult mode · Hard rule #5 LLM isolation) ─
   // Llama 3.1 405B · only NSFW-allowed narrator · uncensored variant.
