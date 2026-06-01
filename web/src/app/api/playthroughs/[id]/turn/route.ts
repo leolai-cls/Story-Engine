@@ -1185,10 +1185,15 @@ export async function POST(
 
         // Apply each character's merged changes — try atomic RPC first
         // (migration 0003), fallback to non-atomic upsert if RPC unavailable.
+        // 2026-06-01 (Audit B-1 fix): use service-role client. Migration 0051
+        // locks pcs server-managed columns against direct authenticated writes
+        // (anti console-tamper); legit disposition/flag writes MUST go through
+        // service-role so the protect trigger lets them pass.
+        const pcsServiceClient = createServiceRoleClient();
         for (const entry of mergesByChar.values()) {
           let mergedViaRpc = false;
           try {
-            const { error: rpcErr } = await supabase.rpc(
+            const { error: rpcErr } = await pcsServiceClient.rpc(
               "apply_turn_npc_changes",
               {
                 p_playthrough_id: playthroughId,
@@ -1228,7 +1233,7 @@ export async function POST(
             for (const flag of entry.newFlags) {
               if (!mergedFlags.includes(flag)) mergedFlags.push(flag);
             }
-            await supabase
+            await pcsServiceClient
               .from("playthrough_character_states")
               .upsert(
                 {
@@ -1380,12 +1385,17 @@ export async function POST(
         // Director cost charged (one Haiku call already happened).
         const aiTurnIdForCharge = aiTurnRow?.id ?? null;
         if (aiTurnIdForCharge) {
-          const directorCredits = computeCredits({
-            modelId: "claude-haiku-4-5",
-            inputTokens: directorUsage.inputTokens ?? 0,
-            outputTokens: directorUsage.outputTokens ?? 0,
-            cachedInputTokens: directorUsage.cachedInputTokens,
-          });
+          // 2026-06-01 (Audit HIGH-2 fix): 技術失敗時完全唔扣 credit · 兌現失敗卡
+          // 嘅「冇扣 credits」承諾 (hard rule #4)。舊 code 仲扣咗 Director Haiku
+          // (~1 credit) → 講大話。失敗 = 我哋食咗個 Director 成本 (cost of doing biz)。
+          const directorCredits = technicalFailure
+            ? 0
+            : computeCredits({
+                modelId: "claude-haiku-4-5",
+                inputTokens: directorUsage.inputTokens ?? 0,
+                outputTokens: directorUsage.outputTokens ?? 0,
+                cachedInputTokens: directorUsage.cachedInputTokens,
+              });
           let narratorCredits = 0;
           let backgroundCredits = 0;
           if (!technicalFailure) {
@@ -1412,6 +1422,14 @@ export async function POST(
               // Summarizer is amortized 1/20 turns (~250 in, 40 out per rollup)
               summarizer: { inputTokens: 13, outputTokens: 2 },
               embedTokens: 400,
+              // Character Soul (Audit HIGH-1 fix): 經歷日誌+信念背景 Haiku call ·
+              // 只喺今回合有 active 角色 (可能升級) 先 reserve。charge 喺 after()
+              // 升級判斷之前 · 所以保守：有 active 角色就 reserve (略高估好過唔收 ·
+              // hard rule #20)。估 ~1500 in / 300 out (大部分 turn entries:[] 但 input 照付)。
+              experience:
+                directorNpcUpdates.length > 0
+                  ? { inputTokens: 1500, outputTokens: 300 }
+                  : undefined,
               // Phase 1.5 · NPC L3 flat-rate add-on (6 credits per successful agent · founder Q3)
               npcL3SuccessfulAgents,
             });
@@ -1638,24 +1656,26 @@ export async function POST(
                   .filter((c): c is { character_id: string; name: string } => c !== null);
                 if (activeChars.length === 0) return;
 
-                // Bump interaction_count for each active char · 攞返新 count
-                // (用 RPC atomic increment 最穩 · 但避免新 migration · 用 read-modify-
-                //  write · 背景單線程 · race 風險低)。
+                // Bump interaction_count atomically (Audit HIGH-1 + M-1 fix):
+                // bump_interaction_count RPC (0053) 係 insert-or-increment 一個
+                // statement · race-safe (跨 instance 並行 turn 唔會 lost update) ·
+                // 自動處理 first-row missing · returning 新 count 俾升級 gate。
                 const upgraded: Array<{ character_id: string; name: string }> = [];
                 for (const ac of activeChars) {
-                  const { data: stateRow } = await serviceClient
-                    .from("playthrough_character_states")
-                    .select("interaction_count")
-                    .eq("playthrough_id", playthroughId)
-                    .eq("character_id", ac.character_id)
-                    .maybeSingle();
-                  const newCount = ((stateRow?.interaction_count as number | null) ?? 0) + 1;
-                  await serviceClient
-                    .from("playthrough_character_states")
-                    .update({ interaction_count: newCount })
-                    .eq("playthrough_id", playthroughId)
-                    .eq("character_id", ac.character_id);
-                  if (newCount >= SOUL_UPGRADE_THRESHOLD) upgraded.push(ac);
+                  const { data: newCount, error: bumpErr } = await serviceClient.rpc(
+                    "bump_interaction_count",
+                    {
+                      p_playthrough_id: playthroughId,
+                      p_character_id: ac.character_id,
+                    },
+                  );
+                  if (bumpErr) {
+                    console.warn(
+                      `[turn] bump_interaction_count failed for ${ac.name}: ${bumpErr.message}`,
+                    );
+                    continue;
+                  }
+                  if ((newCount as number) >= SOUL_UPGRADE_THRESHOLD) upgraded.push(ac);
                 }
 
                 // 為已升級角色寫經歷日誌 (一個 AI call · bias toward 冇 entry)

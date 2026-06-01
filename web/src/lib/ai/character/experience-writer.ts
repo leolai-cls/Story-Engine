@@ -239,9 +239,13 @@ export async function writeCharacterExperiences(params: {
     const results = await embedTexts(valid.map((e) => e.what_happened));
     vectors = results.map((r) => r.vector);
   } catch (e) {
-    // Embed 失敗唔阻寫入 · 留 null embedding (清潔系統將來可補 embed)。
+    // Embed 失敗唔阻寫入：保留 row 因為 M2 沉澱張力 (sediment) 唔靠 embedding ·
+    // 仍需要 weight + affects。⚠️ 已知限制 (Audit M-3): null-embedding 嘅 row
+    // 唔會被 match_character_experiences RAG 搜到 (WHERE embedding is not null) ·
+    // 而家冇 backfill job 補 embed → 呢條經歷對「讀取餵 Narrator」永久 invisible
+    // (但仍計入沉澱)。embed outage 罕見 · 接受。將來如果做 backfill cron 先改。
     console.warn(
-      "[char-exp] embed failed (writing without embedding):",
+      "[char-exp] embed failed — row kept for sediment but NOT RAG-retrievable (no backfill):",
       e instanceof Error ? e.message : e,
     );
   }
@@ -316,6 +320,18 @@ async function writeBeliefs(
           .eq("predicate", b.predicate)
           .is("valid_to", null);
       } else {
+        // Audit HIGH-3: idempotent insert。先 invalidate 同 (subject+predicate)
+        // 嘅舊 active 信念 (object 可能變咗 · e.g.「主角 身份 = 學生」→「= 臥底」) ·
+        // 再 insert 新嘅。避免兩個 active row 同 key (撞 0052 partial unique index)
+        // + 防同一事實 repeat 餵 Narrator。
+        await serviceClient
+          .from("character_beliefs")
+          .update({ valid_to: new Date().toISOString(), invalidated_by_turn: turnIndex })
+          .eq("playthrough_id", playthroughId)
+          .eq("character_id", charId)
+          .eq("subject", b.subject)
+          .eq("predicate", b.predicate)
+          .is("valid_to", null);
         await serviceClient.from("character_beliefs").insert({
           playthrough_id: playthroughId,
           character_id: charId,
@@ -414,59 +430,58 @@ export async function loadCharacterExperiencesBlock(params: {
     // non-fatal (migration 0050 未 apply) · 冇信念照行
   }
 
-  const sections: string[] = [];
-  for (const ac of activeCharacters) {
-    try {
-      const { data, error } = await supabase.rpc("match_character_experiences", {
-        p_playthrough_id: playthroughId,
-        p_character_id: ac.character_id,
-        p_query_embedding: queryEmbedding as unknown as string,
-        p_match_count: perCharacterLimit,
-        p_min_similarity: 0.5,
-      });
-      if (error) {
-        const msg = String(error.message ?? "");
-        // RPC / table 未 apply (migration 0048) → silent skip
-        if (/does not exist/i.test(msg)) return "";
-        continue;
+  const { sedimentsToNote } = await import("./sediment");
+  // Audit MEDIUM-1 fix: 並行 query 每個角色嘅經歷 (取代 serial for loop) ·
+  // 減少 player-facing turn 嘅 time-to-first-token 延遲。
+  const sectionResults = await Promise.all(
+    activeCharacters.map(async (ac) => {
+      try {
+        const { data, error } = await supabase.rpc("match_character_experiences", {
+          p_playthrough_id: playthroughId,
+          p_character_id: ac.character_id,
+          p_query_embedding: queryEmbedding as unknown as string,
+          p_match_count: perCharacterLimit,
+          p_min_similarity: 0.5,
+        });
+        if (error) return null; // RPC/table 未 apply 或一時失敗 → skip 呢個角色
+        const rows = (data ?? []) as Array<{
+          what_happened: string;
+          my_response: string | null;
+          emotional_tone: string | null;
+        }>;
+        const parts: string[] = [];
+        if (rows.length > 0) {
+          const lines = rows
+            .map((r) => {
+              const resp = r.my_response ? ` → ${r.my_response}` : "";
+              const tone = r.emotional_tone ? `（${r.emotional_tone}）` : "";
+              return `  - ${r.what_happened}${resp}${tone}`;
+            })
+            .join("\n");
+          parts.push(`${ac.name} 記得：\n${lines}`);
+        }
+        // M2: 加已沉澱演化 (角色累積經歷後真正消化咗嘅改變)
+        const seds = sedimentByChar.get(ac.character_id);
+        if (seds && seds.length > 0) {
+          const note = sedimentsToNote(ac.name, seds);
+          if (note) parts.push(note);
+        }
+        // M3: 加當前有效信念 (事實一致性 · 防穿崩)
+        const beliefs = beliefByChar.get(ac.character_id);
+        if (beliefs && beliefs.length > 0) {
+          parts.push(
+            `${ac.name} 而家認定嘅事實（必須前後一致 · 唔好寫到佢唔知）：\n${beliefs
+              .map((b) => `  - ${b}`)
+              .join("\n")}`,
+          );
+        }
+        return parts.length > 0 ? parts.join("\n") : null;
+      } catch {
+        return null; // non-fatal · 一個角色失敗唔影響其他
       }
-      const rows = (data ?? []) as Array<{
-        what_happened: string;
-        my_response: string | null;
-        emotional_tone: string | null;
-      }>;
-      const parts: string[] = [];
-      if (rows.length > 0) {
-        const lines = rows
-          .map((r) => {
-            const resp = r.my_response ? ` → ${r.my_response}` : "";
-            const tone = r.emotional_tone ? `（${r.emotional_tone}）` : "";
-            return `  - ${r.what_happened}${resp}${tone}`;
-          })
-          .join("\n");
-        parts.push(`${ac.name} 記得：\n${lines}`);
-      }
-      // M2: 加已沉澱演化 (角色累積經歷後真正消化咗嘅改變)
-      const seds = sedimentByChar.get(ac.character_id);
-      if (seds && seds.length > 0) {
-        const { sedimentsToNote } = await import("./sediment");
-        const note = sedimentsToNote(ac.name, seds);
-        if (note) parts.push(note);
-      }
-      // M3: 加當前有效信念 (事實一致性 · 防穿崩)
-      const beliefs = beliefByChar.get(ac.character_id);
-      if (beliefs && beliefs.length > 0) {
-        parts.push(
-          `${ac.name} 而家認定嘅事實（必須前後一致 · 唔好寫到佢唔知）：\n${beliefs
-            .map((b) => `  - ${b}`)
-            .join("\n")}`,
-        );
-      }
-      if (parts.length > 0) sections.push(parts.join("\n"));
-    } catch {
-      continue; // non-fatal · 一個角色失敗唔影響其他
-    }
-  }
+    }),
+  );
+  const sections = sectionResults.filter((s): s is string => s !== null);
 
   if (sections.length === 0) return "";
 
