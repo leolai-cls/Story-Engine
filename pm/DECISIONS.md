@@ -7,6 +7,24 @@
 
 ---
 
+## ADR-024 — 成人向 narrator: GLM 5.1 → Grok 4.1
+**Date**: 2026-06-01 · **Status**: ✅ Accepted
+
+**Decision**: 成人模式 narrator（同成人向 NPC L3 agent）由 GLM-5.1 換做 **Grok 4.1**（`grok-4.1` via CrazyRouter）。GLM-5.1 留低做 Standard pool 中文 SFW model。失敗處理用**通用機制**（同所有 model 一樣：maxRetries=1 連接層自動再試 + onFinish 誠實失敗 + 前端 retry 掣）· **唔自動轉做另一隻 model**。
+
+**Context**: 真實 adult playthrough「生日轉運」(2026-06-01) GLM-5.1 retcon 即興角色名（turn 2 寫「阿俊」· turn 4 否認改「阿輝」）。根因 = 弱 model 記唔牢一閃名。Research（Reddit/JanitorAI 社群 + EQ-Bench 寫作評測）：GLM 中游 · DeepSeek benchmark 高但 RP「error-prone 要 babysit」· Grok 4.1 = 最 permissive（辛辣模式）+ 前沿級一致性。Founder 揀 Grok 主；否決 Kimi 自動後備（「失敗用返同正常 model 一樣機制」· 唔加特殊 model-switch code）。
+
+**Consequences**:
+- `models.ts`: 加 `grok-4-1` entry（allows_nsfw · crazyrouter · tier_pool null · multiplier 1.0 = 唔改 adult credit 價）· `ADULT_NSFW_MODEL` 改指向佢
+- `tier-router.ts`: adult branch 自動解去 Grok（邏輯不變 · 只改 const + 註解）
+- 失敗 = 通用 honest-fail · 冇 model-switch fallback（否決 Kimi 自動頂）
+- 現有 adult playthrough 唔自動 migrate（留 GLM · 新 playthrough 至用 Grok · 開新嘅做乾淨測試 · 避免帶住污染歷史）
+- ⚠️ 待 founder 實測:Grok via CrazyRouter 若出空白回合 → 查 xAI reasoning param 加 `providers.ts` 攔截（似 Gemini `thinking_budget=0` 嗰個 footgun）
+- Pricing（Grok 真實成本可能略高）= money-tier 再議 · 暫維持 credit 1.0
+- 長期結構性修正（即興名冊 / 角色升級階梯）仍見 `pm/architecture/03-character-soul.md`
+
+---
+
 ## ADR-022 — Model 簡化做 2 tier + 唯一 NSFW model 用 GLM 5
 **Date**: 2026-05-28 · **Status**: ✅ Accepted
 

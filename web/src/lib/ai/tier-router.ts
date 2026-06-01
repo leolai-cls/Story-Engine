@@ -11,7 +11,7 @@
  *   3. context text (用嚟做 language detection)
  *
  * Decision:
- *   - adultMode=true → 一律 return ADULT_NSFW_MODEL ("glm-5-1")
+ *   - adultMode=true → 一律 return ADULT_NSFW_MODEL ("grok-4-1" · ADR-024)
  *   - tier="standard" + 中文 dominant → "glm-5-1"
  *   - tier="standard" + 英文 → "gemini-3-5-flash"
  *   - tier="pro" + 中文 dominant → "claude-sonnet-4-6"
@@ -77,8 +77,10 @@ export function pickModelForTier(
 
 /**
  * Get a fallback chain for a tier · used when primary vendor is down.
- * Adult mode bypass: 只 return ADULT_NSFW_MODEL · 冇 fallback (founder 唔接受
- * NSFW 路由去其他可能 ban 嘅 vendor).
+ * Adult mode bypass: 只 return ADULT_NSFW_MODEL (Grok 4.1) · 冇 model-switch
+ * fallback。Founder 2026-06-01 (ADR-024):「失敗用返同正常 model 一樣機制」——
+ * 即 maxRetries=1 連接層自動再試 + onFinish 誠實失敗 + 前端 retry 掣 · 唔自動
+ * 轉做另一隻 model (否決咗 Kimi 自動後備 · 避免特殊機制)。
  */
 export function fallbackChainForTier(
   tier: ModelTier,
