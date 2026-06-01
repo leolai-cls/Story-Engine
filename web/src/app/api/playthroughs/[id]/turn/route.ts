@@ -1581,6 +1581,7 @@ export async function POST(
                 playthroughId,
                 currentMaxTurnIndex: aiTurnIndex,
                 language: storyBible.hard_locked.language,
+                contentRating: (story.content_rating as "sfw" | "soft" | "adult") ?? "sfw",
                 sceneBoundary: directorSceneBoundary,
               });
             } catch (e) {
@@ -1602,6 +1603,7 @@ export async function POST(
                 aiNarrative: finalText,
                 protagonistName: pt.character_name,
                 language: storyBible.hard_locked.language,
+                contentRating: (story.content_rating as "sfw" | "soft" | "adult") ?? "sfw",
               });
             } catch (e) {
               console.warn(
@@ -1722,6 +1724,7 @@ export async function POST(
                       storyBible.hard_locked.language === "en"
                       ? storyBible.hard_locked.language
                       : "zh-Hant") as "zh-Hant" | "zh-Hans" | "en",
+                    contentRating: (story.content_rating as "sfw" | "soft" | "adult") ?? "sfw",
                   });
 
                   // ─── M2 沉澱張力：累加經歷 → 超 threshold 轉 sediment (演化) ───

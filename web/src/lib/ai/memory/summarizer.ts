@@ -1,8 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { generateText } from "ai";
-import { anthropicProvider } from "../providers";
-import { DEFAULT_DIRECTOR } from "../models";
+import { getProviderModel } from "../providers";
+import { pickUtilityModel } from "../tier-router";
 import { embedTextSafe } from "../embed";
+
+type ContentRating = "sfw" | "soft" | "adult";
 
 /**
  * Summarizer — Phase 2 memory layer (tier 2: rolling summaries).
@@ -34,7 +36,8 @@ const TURNS_PER_BLOCK = 20;
  * standard 20-turn cadence resumes.
  */
 const FIRST_BLOCK_TURNS = 10;
-const SUMMARIZER_MODEL = DEFAULT_DIRECTOR; // Haiku 4.5
+// 摘要 model 由 pickUtilityModel(contentRating) 決定 (SFW→Haiku · adult→Grok ·
+// 避免 Anthropic 洗白成人記憶 + hard rule #5)。唔再寫死。
 
 type StoryLanguage = "zh-Hant" | "zh-Hans" | "en";
 
@@ -154,6 +157,8 @@ export async function maybeRunSummarization(params: {
   currentMaxTurnIndex: number;
   /** Story language for locale-aware summary prompt (P2-UX-H-09). */
   language?: StoryLanguage;
+  /** 成人故事 → 摘要 route 去 Grok (avoid Anthropic 洗白 + hard rule #5)。 */
+  contentRating?: ContentRating;
   /**
    * Phase 1 — Director's scene_boundary verdict for this turn.
    * When true · fires summary even if turn count < TURNS_PER_BLOCK
@@ -166,6 +171,7 @@ export async function maybeRunSummarization(params: {
     playthroughId,
     currentMaxTurnIndex,
     language = "zh-Hant",
+    contentRating = "sfw",
     sceneBoundary = false,
   } = params;
 
@@ -240,6 +246,7 @@ export async function maybeRunSummarization(params: {
     fromIndex: maxSummarized,
     toIndex: triggerUpper,
     language,
+    contentRating,
   });
 }
 
@@ -253,8 +260,9 @@ export async function runSummarization(params: {
   fromIndex: number; // inclusive
   toIndex: number; // exclusive (Postgres int4range upper)
   language?: StoryLanguage;
+  contentRating?: ContentRating;
 }): Promise<boolean> {
-  const { supabase, playthroughId, fromIndex, toIndex, language = "zh-Hant" } = params;
+  const { supabase, playthroughId, fromIndex, toIndex, language = "zh-Hant", contentRating = "sfw" } = params;
 
   try {
     // 1. Fetch the turns to summarize
@@ -287,7 +295,7 @@ export async function runSummarization(params: {
         : `請壓縮以下 ${turns.length} 個 turn 嘅敘事：\n\n${turnsText}\n\n依照 system prompt 規則寫 2-4 段繁中摘要：`;
 
     const llmResult = await generateText({
-      model: anthropicProvider(SUMMARIZER_MODEL),
+      model: getProviderModel(pickUtilityModel(contentRating)),
       system: summarizerSystemPrompt(language),
       prompt: userPrompt,
       temperature: 0.3,

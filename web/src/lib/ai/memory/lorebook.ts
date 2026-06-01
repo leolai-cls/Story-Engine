@@ -1,8 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { generateObject } from "ai";
+import { pickUtilityModel } from "../tier-router";
 import { z } from "zod";
-import { anthropicProvider } from "../providers";
-import { DEFAULT_DIRECTOR } from "../models";
+import { getProviderModel } from "../providers";
 import { embedTexts } from "../embed";
 
 /**
@@ -22,7 +22,8 @@ import { embedTexts } from "../embed";
  * just refresh the latest description / embedding.
  */
 
-const EXTRACTOR_MODEL = DEFAULT_DIRECTOR; // Haiku 4.5
+// lorebook 抽取 model 由 pickUtilityModel(contentRating) 決定 (SFW→Haiku ·
+// adult→Grok · 避免 Anthropic 洗白成人設定/描述 + hard rule #5)。唔再寫死。
 
 type StoryLanguage = "zh-Hant" | "zh-Hans" | "en";
 
@@ -142,6 +143,8 @@ export async function runLorebookExtraction(params: {
   protagonistName?: string | null;
   /** Story language for locale-aware extractor prompt (P2-UX-H-09). */
   language?: StoryLanguage;
+  /** 成人故事 → lorebook 抽取 route 去 Grok (avoid Anthropic 洗白 + hard rule #5)。 */
+  contentRating?: "sfw" | "soft" | "adult";
 }): Promise<number> {
   const {
     supabase,
@@ -150,6 +153,7 @@ export async function runLorebookExtraction(params: {
     aiNarrative,
     protagonistName,
     language = "zh-Hant",
+    contentRating = "sfw",
   } = params;
 
   // Skip if narrative is too short to have anything to extract
@@ -175,7 +179,7 @@ export async function runLorebookExtraction(params: {
         : `玩家行動：\n${userAction.slice(0, 500)}\n\nAI 敘事：\n${aiNarrative.slice(0, 4000)}\n\n依照 system prompt 嘅規則 extract entities。`;
 
     const llmResult = await generateObject({
-      model: anthropicProvider(EXTRACTOR_MODEL),
+      model: getProviderModel(pickUtilityModel(contentRating)),
       schema: ExtractionResultSchema,
       system: extractorSystemPrompt(language) + protagonistContext,
       prompt: userPromptForExtractor,

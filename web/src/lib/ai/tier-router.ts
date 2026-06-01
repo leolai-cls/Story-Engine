@@ -100,3 +100,25 @@ export function fallbackChainForTier(
 export function getDirectorModel(): string {
   return DIRECTOR_MODEL;
 }
+
+/**
+ * Support / prep model 路由 (single source of truth · 2026-06-01)。
+ *
+ * 俾「讀故事內容 + 生成自然語言」嘅輔助 LLM call 用：滾動摘要 (summarizer) ·
+ * 角色經歷 (experience-writer) · lorebook 描述 · 生圖畫面 prompt · NPC L3 內心戲。
+ *
+ * - SFW / soft → DIRECTOR_MODEL (Haiku · 平 + 結構輸出穩定)。
+ * - adult → ADULT_NSFW_MODEL (Grok)：因為 (a) Anthropic 寫嘢會自我審查 → 成人
+ *   記憶 / 描述俾洗白變質 (founder 最 concern);(b) hard rule #5 — 成人內容唔可經
+ *   Anthropic。
+ *
+ * ⚠️ 純結構抽取 (extractTurnState 狀態 ops · Director verdict) **唔用呢個** —
+ *   佢哋出嘅係數字 / 標籤 (洗白風險細) + 喺每回合關鍵 path + 靠結構輸出可靠性 ·
+ *   留 Haiku。將來若驗證 Grok 結構輸出夠穩 · 可以考慮埋。
+ *
+ * 全部 adult support 路由集中喺呢度 · 各 module 唔好再散開抄 ternary
+ * (two-catalog drift bug class · 漏改一個就出事)。
+ */
+export function pickUtilityModel(contentRating: "sfw" | "soft" | "adult"): string {
+  return contentRating === "adult" ? ADULT_NSFW_MODEL : DIRECTOR_MODEL;
+}

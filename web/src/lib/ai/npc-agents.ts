@@ -1,7 +1,7 @@
 import { generateObject } from "ai";
 import { z } from "zod";
 import { getProviderModel } from "./providers";
-import { DEFAULT_DIRECTOR, ADULT_NSFW_MODEL } from "./models";
+import { pickUtilityModel } from "./tier-router";
 import {
   NpcAgentOutputSchema,
   MAX_NPC_L3_AGENTS_PER_TURN,
@@ -399,13 +399,13 @@ async function callSingleNpcAgent(params: {
   // 2026-05-30 (founder · DB audit): NPC agents call generateObject (structured
   // output). The Standard pool (GLM-5.1 / Gemini via CrazyRouter) is the SAME
   // fragile structured-output path that produced blank narrator turns — and the
-  // audit found npc_inner_thoughts 100% empty. Route the agent's structured call
-  // through the reliable Anthropic Haiku (same model as the Director).
-  // EXCEPTION — adult-rated stories: CLAUDE.md hard rule #5 forbids NSFW traffic
-  // on the Anthropic account (platform-ban risk), so those stay on the NSFW-safe
-  // GLM-5.1 via CrazyRouter. Flat 6 credits/agent regardless of model (founder Q3).
-  const modelId =
-    contentRating === "adult" ? ADULT_NSFW_MODEL : DEFAULT_DIRECTOR;
+  // audit found npc_inner_thoughts 100% empty. So SFW structured calls go through
+  // reliable Anthropic Haiku. EXCEPTION — adult-rated stories: hard rule #5 forbids
+  // NSFW traffic on Anthropic, so they route to the adult model (now Grok) via
+  // CrazyRouter (accepting the structured-output fragility risk · non-fatal).
+  // Routing 集中喺 pickUtilityModel (single source · 2026-06-01)。
+  // Flat 6 credits/agent regardless of model (founder Q3).
+  const modelId = pickUtilityModel(contentRating);
 
   const systemPrompt = buildNpcAgentSystemPrompt(character.card, storyLanguage);
   const userMessage = buildAgentUserMessage({

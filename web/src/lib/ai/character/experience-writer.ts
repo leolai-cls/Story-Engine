@@ -1,8 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { generateObject } from "ai";
 import { z } from "zod";
-import { anthropicProvider } from "../providers";
-import { DEFAULT_DIRECTOR } from "../models";
+import { getProviderModel } from "../providers";
+import { pickUtilityModel } from "../tier-router";
 import { embedTexts } from "../embed";
 
 /**
@@ -21,7 +21,8 @@ import { embedTexts } from "../embed";
  * Fire-and-forget from turn route onFinish via after(). 唔阻塞 client。
  */
 
-const EXPERIENCE_MODEL = DEFAULT_DIRECTOR; // Haiku 4.5
+// 經歷 model 由 pickUtilityModel(contentRating) 決定 (SFW→Haiku · adult→Grok ·
+// 避免 Anthropic 洗白成人經歷 + hard rule #5)。唔再寫死。
 
 /** 動態升級 threshold — 角色出場累積到呢個次數先開始有經歷日誌。 */
 export const SOUL_UPGRADE_THRESHOLD = 3;
@@ -168,6 +169,8 @@ export async function writeCharacterExperiences(params: {
   turnText: string;
   playerAction: string;
   language: StoryLanguage;
+  /** 成人故事 → 經歷寫入 route 去 Grok (avoid Anthropic 洗白 + hard rule #5)。 */
+  contentRating?: "sfw" | "soft" | "adult";
 }): Promise<{
   written: number;
   perCharacter: WrittenExperience[];
@@ -182,6 +185,7 @@ export async function writeCharacterExperiences(params: {
     turnText,
     playerAction,
     language,
+    contentRating = "sfw",
   } = params;
 
   // 冇升級角色 → 唔使跑 AI (慳)。
@@ -194,7 +198,7 @@ export async function writeCharacterExperiences(params: {
   let usage: { inputTokens?: number; outputTokens?: number } = {};
   try {
     const result = await generateObject({
-      model: anthropicProvider(EXPERIENCE_MODEL),
+      model: getProviderModel(pickUtilityModel(contentRating)),
       schema: ExperienceBatchSchema,
       messages: [
         {
