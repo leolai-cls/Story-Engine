@@ -401,6 +401,9 @@ export async function POST(
           red_lines: c.red_lines ?? [],
           voice_sample: c.voice_sample ?? "",
           arc_description: c.arc_description ?? "",
+          // 易變度 · 舊故事 row 冇就 fallback 0.5 (沉澱機制喺 turn route 另外讀 · 呢度
+          // 只為滿足 CharacterCard 型別 · 唔入 prompt)。
+          volatility: (c.volatility as number | null) ?? 0.5,
           default_disposition_toward_protagonist:
             (c.default_disposition_toward_protagonist as
               | "hostile"

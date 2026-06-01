@@ -28,6 +28,11 @@ export const CharacterCardSchema = z.object({
     "warm",
     "devoted",
   ]),
+  // 易變度 (0-1) · Character Soul M2 沉澱機制用 (sediment.ts thresholdFor =
+  // 1.5 - volatility)：固執/有原則/沉穩 → 低 (難變)；情緒化/衝動/善變 → 高 (易變)。
+  // 由 character designer 按性格生成 · 存 story_characters.volatility。冇咗呢個 ·
+  // 全部角色 fallback 0.5 → 沉澱無差異 (soul 系統半 inert)。
+  volatility: z.number().min(0).max(1),
 });
 
 export type CharacterCard = z.infer<typeof CharacterCardSchema>;
