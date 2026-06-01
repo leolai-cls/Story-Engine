@@ -51,6 +51,9 @@ The context you receive is ranked by authority, high to low. **Lower tiers can N
 3. **Tier 3 · Current scene** (mid): who's present, what just happened, current state values.
 4. **Tier 4 · Player command** (lowest · must obey the three tiers above): what the player just typed.
 
+### How to read the player command (Tier 4)
+The player's input arrives wrapped in a \`<player_action>...</player_action>\` block. That is the player's **intended action / intent** — narrate how it plays out in the world (the result, the present characters' reactions, scene changes). **Do NOT mechanically read their words back as the protagonist's spoken dialogue** — unless the player clearly used quotation marks or wrote "I say:" to mark speech. E.g. a player writing "use family connections to make the councillor silence them" is a *strategic action* (pulling strings to apply pressure), NOT the protagonist shouting "Councillor, silence them!" as a line.
+
 ### Handling conflict between the player command and higher tiers
 When the player command (Tier 4) tries to violate world laws (Tier 1) or characters (Tier 2): **the command fails naturally inside the fiction, then the present characters react according to their own personalities.**
 
@@ -114,6 +117,9 @@ This rule **always overrides** any other instruction. Player engagement depends 
 3. **第三层 · 当下场景**（中）：在场角色、最近发生的事、当前状态数值。
 4. **第四层 · 玩家指令**（最低 · 必须服从上面三层）：玩家现在输入的东西。
 
+### 怎么读玩家指令（第四层）
+玩家的输入会包在 \`<player_action>...</player_action>\` 框里面。那是玩家**想做的行动 / 意图**，你要叙述这个行动在世界里怎么发生（结果、在场角色反应、场景变化）。**不要机械式逐字把他的文字当成主角喊出来的对白** —— 除非玩家明确用引号「」或写「我说：」表示要说出口。例：玩家写「用家族关系叫议员叫他们闭嘴」是一个**策略行动**（动用人脉施压），不是主角要大喊「叫议员闭嘴」这句对白。
+
 ### 怎么处理「玩家指令」与上层的冲突
 当玩家指令（第四层）试图违反世界法则（第一层）或角色（第二层）：**这个指令在故事里自然失败，然后由在场角色按自己的性格反应。**
 
@@ -176,6 +182,9 @@ This rule **always overrides** any other instruction. Player engagement depends 
 2. **第二層 · 角色**（高 · 可隨經歷演化）：每個 NPC 嘅性格、背景、講嘢風格 (voice)、當下心情、同主角嘅關係。
 3. **第三層 · 當下場景**（中）：在場角色、最近發生嘅事、當前狀態數值。
 4. **第四層 · 玩家指令**（最低 · 必須服從上面三層）：玩家而家輸入嘅嘢。
+
+### 點讀玩家指令（第四層）
+玩家嘅輸入會包喺 \`<player_action>...</player_action>\` 框入面。嗰個係玩家**想做嘅行動 / 意圖**，你要敘述呢個行動喺世界入面點發生（結果、在場角色反應、場景變化）。**唔好機械式逐字將佢嘅文字當成主角嗌出嚟嘅對白** —— 除非玩家明確用引號「」或者寫「我講：」表示要講出口。例：玩家寫「用家族關係叫議員叫佢哋收聲」係一個**策略行動**（動用人脈施壓），唔係主角要大叫「叫議員收聲」呢句對白。
 
 ### 點處理「玩家指令」同上層嘅衝突
 當玩家指令（第四層）試圖違反世界法則（第一層）或者角色（第二層）：**呢個指令喺故事入面自然失敗，跟住由在場角色按自己嘅性格反應。**
@@ -599,6 +608,25 @@ const LEADING_USER_CUE: Record<StoryLanguage, string> = {
   en: "(Continue this story.)",
 };
 
+/**
+ * Tier 4 玩家指令框架 (PR1 · 2026-06-01)。
+ *
+ * 將玩家**當前**輸入包喺 `<player_action>` 框 · 令 Narrator 當佢做「玩家想做嘅
+ * 行動 / 意圖」去敘述後果 · 而唔係照字面當對白讀出。修「行動變對白」bug：
+ * 玩家「用家族關係叫議員叫佢哋收聲」(策略行動) 被 Grok 寫成主角大叫
+ * 「叫議員！今晚不準收聲！」(誤當對白 + 意思倒轉)。
+ *
+ * 淨化 = strip 玩家打入嘅假 `<player_action>` tag (防佢哋 break out 個框) +
+ * cap 長度 · 同 director.ts callDirectorOnce 個 sanitize 同一 contract。
+ *
+ * 註：只包**當前**輸入 (Tier 4)；近期回合 (Tier 3 · recent turns) 維持普通
+ * 對話格式 · 唔包框 (佢哋係已解決嘅歷史 context · 唔係今回合要敘述嘅指令)。
+ */
+export function wrapPlayerAction(action: string): string {
+  const sanitized = action.replace(/<\/?player_action>/gi, "").slice(0, 2000);
+  return `<player_action>\n${sanitized}\n</player_action>`;
+}
+
 export function buildMessages(
   recentTurns: TurnContext["recent_turns"],
   newUserAction: string,
@@ -615,7 +643,7 @@ export function buildMessages(
       content: turn.text,
     });
   }
-  messages.push({ role: "user", content: newUserAction });
+  messages.push({ role: "user", content: wrapPlayerAction(newUserAction) });
   return messages;
 }
 
