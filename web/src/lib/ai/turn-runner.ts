@@ -394,6 +394,12 @@ export type TurnContext = {
    * 注入 Narrator dynamic system prompt (Tier 2 角色層) · 等角色反應基於累積經歷。
    */
   characterExperiencesBlock?: string;
+  /**
+   * 即興名冊 block (formatted by formatMentionRosterBlock · 角色升級階梯第 0 層)。
+   * 之前回合提過名嘅 walk-on 路人清單 · wrapped in [INTERNAL CONTEXT — DO NOT QUOTE]。
+   * 空 string 當冇 walk-on 名。注入 Narrator dynamic system prompt 防 retcon (改名/否認)。
+   */
+  mentionRosterBlock?: string;
 };
 
 /**
@@ -496,6 +502,11 @@ export function buildDynamicSystemPrompt(ctx: TurnContext): string {
   const charExp = ctx.characterExperiencesBlock?.trim();
   const charExpBlock = charExp ? charExp + "\n\n" : "";
 
+  // 即興名冊 block (角色升級階梯第 0 層 · 防 retcon)。Already wrapped 由
+  // formatMentionRosterBlock。空 when 冇 walk-on 名。
+  const roster = ctx.mentionRosterBlock?.trim();
+  const rosterBlock = roster ? roster + "\n\n" : "";
+
   // 2026-05-31 (founder · "narrator leaks JSON into the story"): show state as
   // plain "- key: value" lines, NOT a ```json fenced block. Root cause of the
   // leak — Gemini few-shot-MIMICKED the JSON block in the prompt and echoed a
@@ -507,7 +518,7 @@ export function buildDynamicSystemPrompt(ctx: TurnContext): string {
         `- ${k}: ${v === null || typeof v !== "object" ? String(v) : JSON.stringify(v)}`,
     )
     .join("\n");
-  return `${memoryBlock}${charExpBlock}${innerStreamsBlock}## Current Game State (READ-ONLY reference — do NOT repeat or output this; write story prose only)
+  return `${memoryBlock}${rosterBlock}${charExpBlock}${innerStreamsBlock}## Current Game State (READ-ONLY reference — do NOT repeat or output this; write story prose only)
 ${stateLines}
 
 ${charsDynamic}`;
@@ -619,6 +630,10 @@ export const TurnExtractionSchema = z.object({
   ops: z.array(StateOpSchema).max(10),
   disposition_changes: z.array(DispositionChangeSchema).max(8),
   flags: z.array(PermanentFlagSchema).max(3),
+  // 即興名冊 (角色升級階梯第 0 層 · 防 retcon)：今回合敘事提到嘅、唔喺主要角色名單
+  // 嘅人名 (walk-on 路人)。只攞名 · 唔攞描述 (keep schema grammar 細 · 保護呢個關鍵
+  // extractor 唔爆 grammar ceiling · hard rule #10)。
+  mentioned_characters: z.array(z.string().min(1).max(40)).max(8),
 });
 
 export async function extractTurnState(
@@ -628,6 +643,7 @@ export async function extractTurnState(
   delta: StateDelta | null;
   dispositionChanges: DispositionChange[];
   flags: PermanentFlagToSet[];
+  mentionedCharacters: string[];
   usage: { inputTokens?: number; outputTokens?: number; cachedInputTokens?: number };
 }> {
   const fields = ctx.story.state_schema.fields
@@ -672,6 +688,9 @@ If the narrative changes how an NPC feels toward the player, emit one change: ch
 ## Permanent flags (flags[]) — RARE
 Only for story-defining moments (rescue / betrayal / vow / sacrifice). Most turns: empty.
 
+## Other named people (mentioned_characters[])
+List the NAMES of any specific named people who appear or are mentioned in this turn's narrative but are NOT in the main cast above (${charNames}). Walk-on characters, people referred to by name in passing, newly-introduced minor characters. Names only — no description. This keeps names consistent across turns (so a name introduced once is never denied or changed later). Empty if no other named people appeared.
+
 Return empty arrays for anything that did not change. Do NOT invent changes the narrative does not support.`;
 
   const result = await generateObject({
@@ -687,6 +706,7 @@ Return empty arrays for anything that did not change. Do NOT invent changes the 
     delta: obj.ops.length > 0 ? { ops: obj.ops } : null,
     dispositionChanges: obj.disposition_changes,
     flags: obj.flags,
+    mentionedCharacters: obj.mentioned_characters,
     usage: {
       inputTokens: result.usage?.inputTokens,
       outputTokens: result.usage?.outputTokens,
