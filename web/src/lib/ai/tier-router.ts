@@ -101,24 +101,40 @@ export function getDirectorModel(): string {
   return DIRECTOR_MODEL;
 }
 
+export type UtilityPurpose = "text" | "structured";
+
 /**
  * Support / prep model 路由 (single source of truth · 2026-06-01)。
  *
- * 俾「讀故事內容 + 生成自然語言」嘅輔助 LLM call 用：滾動摘要 (summarizer) ·
- * 角色經歷 (experience-writer) · lorebook 描述 · 生圖畫面 prompt · NPC L3 內心戲。
+ * 俾「讀故事內容 + 生成自然語言」嘅輔助 LLM call 用：滾動摘要 (summarizer · text) ·
+ * 角色經歷 (experience-writer · structured) · lorebook (structured) · 生圖畫面
+ * prompt (text) · NPC L3 內心戲 (structured)。
  *
  * - SFW / soft → DIRECTOR_MODEL (Haiku · 平 + 結構輸出穩定)。
  * - adult → ADULT_NSFW_MODEL (Grok)：因為 (a) Anthropic 寫嘢會自我審查 → 成人
  *   記憶 / 描述俾洗白變質 (founder 最 concern);(b) hard rule #5 — 成人內容唔可經
  *   Anthropic。
  *
- * ⚠️ 純結構抽取 (extractTurnState 狀態 ops · Director verdict) **唔用呢個** —
- *   佢哋出嘅係數字 / 標籤 (洗白風險細) + 喺每回合關鍵 path + 靠結構輸出可靠性 ·
- *   留 Haiku。將來若驗證 Grok 結構輸出夠穩 · 可以考慮埋。
+ * @param purpose `"text"` (generateText) vs `"structured"` (generateObject)。目前
+ *   adult 兩者都 → Grok · 但分開個 param 係為 **精準 rollback**：若 Grok 結構輸出
+ *   證實唔穩 (CrazyRouter structured 歷史上 fragile · 見 npc-agents audit note) ·
+ *   淨係將下面 `structured` 改返 DIRECTOR_MODEL 即可 · 唔會連 text (摘要/生圖
+ *   prompt) 都拖返 Haiku。
  *
- * 全部 adult support 路由集中喺呢度 · 各 module 唔好再散開抄 ternary
- * (two-catalog drift bug class · 漏改一個就出事)。
+ * ⚠️ 純結構抽取 (extractTurnState 狀態 ops · Director verdict) **唔用呢個** —
+ *   出數字 / 標籤 (洗白風險細) + 每回合關鍵 path + 靠結構輸出可靠性 · 留 Haiku。
+ *
+ * 全部 adult support 路由 + **計費** (credits.ts computeTurnCredits) 都行呢個 ·
+ * 確保「跑邊隻」同「收邊隻」唔會 drift (two-catalog drift bug class)。
  */
-export function pickUtilityModel(contentRating: "sfw" | "soft" | "adult"): string {
-  return contentRating === "adult" ? ADULT_NSFW_MODEL : DIRECTOR_MODEL;
+export function pickUtilityModel(
+  contentRating: "sfw" | "soft" | "adult",
+  purpose: UtilityPurpose,
+): string {
+  if (contentRating !== "adult") return DIRECTOR_MODEL;
+  const adultByPurpose: Record<UtilityPurpose, string> = {
+    text: ADULT_NSFW_MODEL,
+    structured: ADULT_NSFW_MODEL, // 🔧 rollback hook: 若 Grok 結構輸出唔穩 → DIRECTOR_MODEL
+  };
+  return adultByPurpose[purpose];
 }

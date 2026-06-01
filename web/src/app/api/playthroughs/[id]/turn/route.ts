@@ -61,7 +61,7 @@ import {
 // ─── Phase 5 Wave 2 moderation (W1-MOD-H-03 audit fix) ──────────────────
 import { ModerationConfigError, moderateText, verdictToCode } from "@/lib/moderation/openai-moderation";
 // ─── Phase 6 non-money function: adult mode gate ────────────────────────
-import { MODELS, tierForModel, recentTurnsLimitForTier } from "@/lib/ai/models";
+import { MODELS, tierForModel, recentTurnsLimitForTier, ADULT_NSFW_MODEL } from "@/lib/ai/models";
 
 /**
  * POST /api/playthroughs/[id]/turn
@@ -206,7 +206,19 @@ export async function POST(
   // as L3 above). Defined once here · reused by the streamText block below.
   const thinkingEnabled =
     (pt as { thinking_mode_enabled?: boolean }).thinking_mode_enabled === true;
-  const estimatedTurnCost = estimateTurnCredits(playthroughModel, expectedL3Agents, thinkingEnabled);
+  // 成人 playthrough 個 narrator 本身就係 Grok (ADULT_NSFW_MODEL) → 由佢推 utility
+  // content rating · 令 reserve 按 Grok 計 (背景 lorebook/summarizer/experience 貴啲)。
+  // pre-charge gate 喺 story load 之前 · 仲未有準確 content_rating · 用呢個推導 ·
+  // 實際扣費 (onFinish computeTurnCredits) 就用準確 story.content_rating。
+  // (邊緣 case: 舊 glm-adult playthrough narrator≠Grok → reserve 當 sfw 略低 · 但
+  //  實際扣費照準 · 只係 ~0 個舊 playthrough 受影響。)
+  const estimateUtilityRating = playthroughModel === ADULT_NSFW_MODEL ? "adult" : "sfw";
+  const estimatedTurnCost = estimateTurnCredits(
+    playthroughModel,
+    expectedL3Agents,
+    thinkingEnabled,
+    estimateUtilityRating,
+  );
 
   const { data: profileGate, error: profileGateErr } = await supabase
     .from("profiles")
@@ -1431,6 +1443,9 @@ export async function POST(
           let backgroundCredits = 0;
           if (!technicalFailure) {
             const fullTurnCredits = computeTurnCredits({
+              // 成人故事 → lorebook/summarizer/experience 計 Grok 價 (同 runtime
+              // 路由經同一 pickUtilityModel · 防 billing drift · PR #62 QC)。
+              contentRating: (story.content_rating as "sfw" | "soft" | "adult") ?? "sfw",
               narrator: {
                 modelId: pt.llm_model ?? "claude-sonnet-4-6",
                 inputTokens: usage?.inputTokens ?? 0,

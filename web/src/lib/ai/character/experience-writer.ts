@@ -198,7 +198,7 @@ export async function writeCharacterExperiences(params: {
   let usage: { inputTokens?: number; outputTokens?: number } = {};
   try {
     const result = await generateObject({
-      model: getProviderModel(pickUtilityModel(contentRating)),
+      model: getProviderModel(pickUtilityModel(contentRating, "structured")),
       schema: ExperienceBatchSchema,
       messages: [
         {
@@ -222,9 +222,19 @@ export async function writeCharacterExperiences(params: {
       inputTokens: result.usage?.inputTokens,
       outputTokens: result.usage?.outputTokens,
     };
+    // Observability (PR #62 QC · 監察 Grok 結構輸出): 成人 generateObject 成功但
+    // 完全空 = valid no-op (model 判斷今回合冇值得記嘅經歷)。同「生成失敗」(catch)
+    // 區分開 · 等我哋睇得出 Grok structured 係咪有問題定真係冇嘢寫。
+    if (contentRating === "adult" && entries.length === 0 && beliefs.length === 0) {
+      console.log(
+        `[char-exp] adult generateObject OK · 0 entries+beliefs (valid no-op) · pt=${playthroughId} turn=${turnIndex}`,
+      );
+    }
   } catch (e) {
+    // 成人 = Grok via CrazyRouter structured output · 歷史上 fragile (見 npc-agents
+    // audit note) · failure 要睇得到 (watch-point)。non-fatal: 嗰回合唔寫 entry。
     console.warn(
-      "[char-exp] generation failed (non-fatal):",
+      `[char-exp] generation FAILED (non-fatal)${contentRating === "adult" ? " · ⚠️ ADULT/Grok structured — watch CrazyRouter structured reliability" : ""}:`,
       e instanceof Error ? e.message : e,
     );
     return { written: 0, perCharacter: [] };

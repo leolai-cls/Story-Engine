@@ -1,5 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { NPC_L3_CREDITS_PER_NPC } from "@/schemas/npc-agent";
+// pickUtilityModel = single source of truth for 「成人向背景步驟用邊隻 model」。
+// 計費 call 返佢 · 確保「跑邊隻」同「收邊隻」唔會 drift (PR #62 follow-up QC)。
+// (tier-router → models · 純 catalog · 冇 import credits · 無 circular。)
+import { pickUtilityModel } from "@/lib/ai/tier-router";
 
 /**
  * Credit meter — Phase 3 monetization foundation per ADR-009 / CLAUDE.md.
@@ -255,6 +259,12 @@ export type TurnUsage = {
     outputTokens?: number;
     cachedInputTokens?: number;
   };
+  /**
+   * 故事 content rating — 決定背景生成步驟 (lorebook / summarizer / experience)
+   * 用邊隻 model 計費。adult → Grok · sfw/soft → Haiku (經 pickUtilityModel ·
+   * 同 runtime 路由同一個來源 · 防 billing drift)。預設 sfw。
+   */
+  contentRating?: "sfw" | "soft" | "adult";
   lorebook?: { inputTokens?: number; outputTokens?: number };
   summarizer?: { inputTokens?: number; outputTokens?: number };
   /**
@@ -284,6 +294,10 @@ export type TurnUsage = {
  * Background work (lorebook + summarizer) uses Haiku; embed is text-embedding-3-small.
  */
 export function computeTurnCredits(usage: TurnUsage): number {
+  // 背景生成步驟 (lorebook / summarizer / experience) 用邊隻 model 計費 · 同
+  // runtime 路由經同一個 pickUtilityModel → adult=Grok · sfw/soft=Haiku · 防 drift。
+  const cr = usage.contentRating ?? "sfw";
+
   const narratorCredits = computeCredits({
     modelId: usage.narrator.modelId,
     inputTokens: usage.narrator.inputTokens ?? 0,
@@ -302,7 +316,7 @@ export function computeTurnCredits(usage: TurnUsage): number {
 
   const lorebookCredits = usage.lorebook
     ? computeCredits({
-        modelId: "claude-haiku-4-5",
+        modelId: pickUtilityModel(cr, "structured"),
         inputTokens: usage.lorebook.inputTokens ?? 0,
         outputTokens: usage.lorebook.outputTokens ?? 0,
       })
@@ -310,7 +324,7 @@ export function computeTurnCredits(usage: TurnUsage): number {
 
   const summarizerCredits = usage.summarizer
     ? computeCredits({
-        modelId: "claude-haiku-4-5",
+        modelId: pickUtilityModel(cr, "text"),
         inputTokens: usage.summarizer.inputTokens ?? 0,
         outputTokens: usage.summarizer.outputTokens ?? 0,
       })
@@ -324,10 +338,11 @@ export function computeTurnCredits(usage: TurnUsage): number {
       })
     : 0;
 
-  // Character Soul (Audit HIGH-1 fix) · 經歷日誌 + 信念抽取 Haiku call
+  // Character Soul (Audit HIGH-1 fix) · 經歷日誌 + 信念抽取 (structured)。
+  // adult → Grok 計費 (同 runtime · 防 drift)。
   const experienceCredits = usage.experience
     ? computeCredits({
-        modelId: "claude-haiku-4-5",
+        modelId: pickUtilityModel(cr, "structured"),
         inputTokens: usage.experience.inputTokens ?? 0,
         outputTokens: usage.experience.outputTokens ?? 0,
       })
@@ -361,8 +376,13 @@ export function estimateTurnCredits(
   narratorModelId: string,
   npcL3ExpectedAgents: number = 0,
   thinkingEnabled: boolean = false,
+  // 成人向背景步驟 reserve 要按 Grok 計 (貴過 Haiku · 否則 low-balance adult user
+  // 過 gate 後實際扣超 reserve = 免費回合 + 補數債)。pre-charge gate 喺 story load
+  // 之前跑 · 嗰陣未有 content_rating · turn route 由 pt.llm_model 推 (見 call site)。
+  utilityContentRating: "sfw" | "soft" | "adult" = "sfw",
 ): number {
   return computeTurnCredits({
+    contentRating: utilityContentRating,
     narrator: {
       modelId: narratorModelId,
       inputTokens: 3000,
