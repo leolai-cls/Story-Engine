@@ -249,3 +249,201 @@ export async function setDefaultTier(
   revalidatePath("/settings");
   return { ok: true };
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// Settings overhaul (2026-06-01) — profile + preference + account actions.
+// ─────────────────────────────────────────────────────────────────────────
+
+type OkResult = { ok: true } | { ok: false; error: string };
+
+/**
+ * Update the user's display name. Was previously read-only on the settings
+ * page (the row showed the name but had no edit affordance) — a real bug,
+ * since Google-login users were stuck with whatever name OAuth gave them and
+ * it surfaces on public comments / stories.
+ */
+export async function setDisplayName(name: string): Promise<OkResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "unauthorized" };
+
+  const trimmed = name.trim();
+  if (trimmed.length < 1 || trimmed.length > 40) {
+    return { ok: false, error: "invalid_length" };
+  }
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ display_name: trimmed })
+    .eq("id", user.id);
+
+  if (error) {
+    console.error("[settings] setDisplayName failed:", error.message);
+    return { ok: false, error: "save_failed" };
+  }
+  revalidatePath("/settings");
+  return { ok: true };
+}
+
+/** UI theme preference — light / dark / system. */
+export async function setThemePreference(
+  theme: "light" | "dark" | "system",
+): Promise<OkResult> {
+  if (!["light", "dark", "system"].includes(theme)) {
+    return { ok: false, error: "invalid_theme" };
+  }
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "unauthorized" };
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ theme_preference: theme })
+    .eq("id", user.id);
+  if (error) {
+    console.error("[settings] setThemePreference failed:", error.message);
+    return { ok: false, error: "save_failed" };
+  }
+  // No revalidate — client applies the .dark class optimistically.
+  return { ok: true };
+}
+
+/**
+ * Default narrative language pre-filled at story creation. NULL clears it
+ * (ask each time). Accepts our locale codes plus an explicit "auto".
+ */
+export async function setDefaultStoryLanguage(
+  lang: string | null,
+): Promise<OkResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "unauthorized" };
+
+  const valid = ["zh-Hant", "zh-Hans", "en"];
+  const value = lang && valid.includes(lang) ? lang : null;
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ default_story_language: value })
+    .eq("id", user.id);
+  if (error) {
+    console.error("[settings] setDefaultStoryLanguage failed:", error.message);
+    return { ok: false, error: "save_failed" };
+  }
+  revalidatePath("/settings");
+  return { ok: true };
+}
+
+/** Email notification preferences. */
+export async function setNotificationPrefs(prefs: {
+  product?: boolean;
+  marketing?: boolean;
+}): Promise<OkResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "unauthorized" };
+
+  const update: { notify_product?: boolean; notify_marketing?: boolean } = {};
+  if (typeof prefs.product === "boolean") update.notify_product = prefs.product;
+  if (typeof prefs.marketing === "boolean")
+    update.notify_marketing = prefs.marketing;
+  if (Object.keys(update).length === 0) return { ok: true };
+
+  const { error } = await supabase
+    .from("profiles")
+    .update(update)
+    .eq("id", user.id);
+  if (error) {
+    console.error("[settings] setNotificationPrefs failed:", error.message);
+    return { ok: false, error: "save_failed" };
+  }
+  revalidatePath("/settings");
+  return { ok: true };
+}
+
+/**
+ * Export all of the user's data as a JSON string for client-side download.
+ * Read-only · scoped to the caller's own rows.
+ */
+export async function exportMyData(): Promise<
+  { ok: true; json: string } | { ok: false; error: string }
+> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "unauthorized" };
+
+  const [profile, playthroughs, stories, ledger] = await Promise.all([
+    supabase.from("profiles").select("*").eq("id", user.id).maybeSingle(),
+    supabase.from("playthroughs").select("*").eq("user_id", user.id),
+    supabase.from("stories").select("*").eq("owner_id", user.id),
+    supabase
+      .from("credit_ledger")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false }),
+  ]);
+
+  const payload = {
+    exported_at: new Date().toISOString(),
+    account: { id: user.id, email: user.email },
+    profile: profile.data ?? null,
+    playthroughs: playthroughs.data ?? [],
+    stories: stories.data ?? [],
+    credit_ledger: ledger.data ?? [],
+  };
+  return { ok: true, json: JSON.stringify(payload, null, 2) };
+}
+
+/**
+ * Permanently delete the user's account + all owned data.
+ *
+ * Order matters: cancel any live Stripe subscription FIRST (Postgres can't
+ * reach Stripe), then call the SECURITY DEFINER RPC which cascades the DB
+ * delete scoped to auth.uid(). Client signs out after a successful return.
+ */
+export async function deleteMyAccount(): Promise<OkResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "unauthorized" };
+
+  // Best-effort: cancel any active Stripe subscription so we don't keep
+  // billing a deleted account. Never block deletion on a Stripe hiccup.
+  try {
+    const { data: sub } = await supabase
+      .from("subscriptions")
+      .select("stripe_subscription_id, status")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const subId = sub?.stripe_subscription_id as string | undefined;
+    if (
+      subId &&
+      (sub?.status === "active" || sub?.status === "trialing" || sub?.status === "past_due")
+    ) {
+      const { getStripe } = await import("@/lib/stripe/client");
+      await getStripe().subscriptions.cancel(subId);
+    }
+  } catch (e) {
+    console.warn("[settings] deleteMyAccount Stripe cancel failed (continuing):", e);
+  }
+
+  const { error } = await supabase.rpc("delete_my_account");
+  if (error) {
+    console.error("[settings] deleteMyAccount RPC failed:", error.message);
+    return { ok: false, error: "delete_failed" };
+  }
+  return { ok: true };
+}

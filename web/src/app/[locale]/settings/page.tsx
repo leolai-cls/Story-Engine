@@ -11,19 +11,29 @@ import {
   ShieldAlert,
   Settings as SettingsIcon,
   Info,
+  Mail,
+  FileText,
+  Lock as LockIcon,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCachedUser } from "@/lib/supabase/cached-user";
 import { TIER_CONFIG, type Tier } from "@/lib/billing/credits";
-import { TierPicker } from "@/components/settings/tier-picker";
-import { type ModelTier, DEFAULT_TIER } from "@/lib/ai/models";
 import { SignOutButton } from "@/components/settings/sign-out-button";
 import { AdultModeToggle } from "@/components/settings/adult-mode-toggle";
 import { BillingPortalButton } from "@/components/settings/billing-portal-button";
 import { TopUpButtons } from "@/components/settings/topup-buttons";
 import { BillingToast } from "@/components/settings/billing-toast";
+import { DisplayNameEditor } from "@/components/settings/display-name-editor";
+import { ThemeToggle } from "@/components/settings/theme-toggle";
+import { StoryLanguageSelect } from "@/components/settings/story-language-select";
+import { NotificationPrefs } from "@/components/settings/notification-prefs";
+import { ExportDataButton } from "@/components/settings/export-data-button";
+import { DeleteAccountButton } from "@/components/settings/delete-account-button";
+import { LocaleSwitcher } from "@/components/se/LocaleSwitcher";
 
 export const dynamic = "force-dynamic";
+
+const SUPPORT_EMAIL = "support@kieio.com";
 
 /**
  * Settings page — UI tier v1 (Grok aesthetic · sticky sidebar nav · atomic SettingsCard/Row).
@@ -68,7 +78,7 @@ export default async function SettingsPage({
       .select(
         // Wave 3 fix: include stripe_customer_id · enables BillingPortalButton
         // for Free top-up-only users (Migration 0032).
-        "display_name, locale, avatar_url, subscription_tier, credit_balance, credit_period_end, default_llm_provider, default_model, default_tier, created_at, adult_mode_enabled, is_age_verified, stripe_customer_id",
+        "display_name, locale, avatar_url, subscription_tier, credit_balance, credit_period_end, default_llm_provider, default_model, default_tier, created_at, adult_mode_enabled, is_age_verified, stripe_customer_id, theme_preference, default_story_language, notify_product, notify_marketing",
       )
       .eq("id", user.id)
       .single(),
@@ -236,19 +246,15 @@ export default async function SettingsPage({
                   <SettingsRow
                     label={t("profile.displayNameLabel")}
                     control={
-                      <span className="text-sm se-cjk" style={{ color: "var(--se-fg)" }}>
-                        {profile?.display_name?.trim() || "—"}
-                      </span>
+                      <DisplayNameEditor
+                        initial={profile?.display_name?.trim() ?? ""}
+                      />
                     }
                   />
                   <SettingsRow
                     label={t("profile.languageLabel")}
                     hint={t("profile.languageHint")}
-                    control={
-                      <span className="se-mono text-xs" style={{ color: "var(--se-fg-2)" }}>
-                        {profile?.locale ?? "zh-Hant"}
-                      </span>
-                    }
+                    control={<LocaleSwitcher align="right" />}
                   />
                   <SettingsRow
                     label={t("profile.joinedLabel")}
@@ -269,12 +275,47 @@ export default async function SettingsPage({
                 title={t("preferences.title")}
                 sub={t("preferences.subtitle")}
               >
-                <TierPicker
-                  currentTier={(profile?.default_tier as ModelTier) ?? DEFAULT_TIER}
-                  subscriptionTier={tier}
-                  adultModeEnabled={profile?.adult_mode_enabled ?? false}
-                  ageVerified={profile?.is_age_verified ?? false}
-                />
+                <SettingsCard>
+                  <SettingsRow
+                    label={t("preferences.themeLabel")}
+                    hint={t("preferences.themeHint")}
+                    control={
+                      <ThemeToggle
+                        initial={
+                          (profile?.theme_preference as
+                            | "light"
+                            | "dark"
+                            | "system") ?? "system"
+                        }
+                      />
+                    }
+                  />
+                  <SettingsRow
+                    label={t("preferences.storyLangLabel")}
+                    hint={t("preferences.storyLangHint")}
+                    control={
+                      <StoryLanguageSelect
+                        initial={
+                          (profile?.default_story_language as
+                            | "zh-Hant"
+                            | "zh-Hans"
+                            | "en") ?? "auto"
+                        }
+                      />
+                    }
+                    last
+                  />
+                </SettingsCard>
+                <div className="mt-3">
+                  <SettingsCard>
+                    <div className="px-5 py-4">
+                      <NotificationPrefs
+                        initialProduct={profile?.notify_product ?? true}
+                        initialMarketing={profile?.notify_marketing ?? false}
+                      />
+                    </div>
+                  </SettingsCard>
+                </div>
               </SettingsSection>
 
               <SettingsSection
@@ -360,18 +401,20 @@ export default async function SettingsPage({
                           - No Stripe customer → /pricing CTA
                           Sources: subscriptions row (paid users) OR profile column
                           (Free top-up-only users · Migration 0032). */}
-                      {subscription?.stripe_customer_id || profile?.stripe_customer_id ? (
-                        <BillingPortalButton />
-                      ) : (
-                        <Button
-                          variant="default"
-                          size="sm"
-                          render={<Link href="/pricing" />}
-                        >
-                          <CreditCard className="h-4 w-4" />
-                          {tier === "free" ? t("credits.upgrade") : t("credits.viewPlans")}
-                        </Button>
-                      )}
+                      {/* Settings overhaul (2026-06-01): in-app /plans page
+                          instead of bouncing to marketing /pricing. Paid users
+                          (have Stripe customer) get the portal too — manage /
+                          cancel · founder PM review #4. */}
+                      <Button
+                        variant="default"
+                        size="sm"
+                        render={<Link href={"/plans" as never} />}
+                      >
+                        <CreditCard className="h-4 w-4" />
+                        {tier === "free" ? t("credits.upgrade") : t("credits.viewPlans")}
+                      </Button>
+                      {(subscription?.stripe_customer_id ||
+                        profile?.stripe_customer_id) && <BillingPortalButton />}
                     </div>
                     {/* One-time top-up packs (live 2026-05-27) */}
                     <div className="mt-4 pt-4" style={{ borderTop: "1px solid var(--se-border)" }}>
@@ -439,24 +482,58 @@ export default async function SettingsPage({
                   <SettingsRow
                     label={t("account.exportLabel")}
                     hint={t("account.exportHint")}
-                    control={
-                      <Button variant="outline" size="sm" disabled>
-                        {t("account.exportButton")}
-                      </Button>
-                    }
+                    control={<ExportDataButton />}
                   />
                   <SettingsRow
                     label={t("account.deleteLabel")}
                     hint={t("account.deleteHint")}
                     danger
-                    control={
-                      <Button variant="destructive" size="sm" disabled>
-                        {t("account.deleteButton")}
-                      </Button>
-                    }
+                    control={<DeleteAccountButton />}
                     last
                   />
                 </SettingsCard>
+
+                {/* Support + legal — founder PM review #2/#3: app screens have no
+                    footer, and we take real money, so these must be reachable
+                    from settings. */}
+                <div className="mt-3">
+                  <SettingsCard>
+                    <a
+                      href={`mailto:${SUPPORT_EMAIL}`}
+                      className="px-5 py-3.5 flex items-center gap-3 transition-colors hover:bg-[color:var(--se-surface-2)]"
+                      style={{ borderBottom: "1px solid var(--se-border)" }}
+                    >
+                      <Mail size={15} style={{ color: "var(--se-fg-muted)" }} />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium se-cjk" style={{ color: "var(--se-fg)" }}>
+                          {t("account.supportLabel")}
+                        </div>
+                        <div className="text-[11.5px] mt-0.5 se-cjk" style={{ color: "var(--se-fg-muted)" }}>
+                          {SUPPORT_EMAIL}
+                        </div>
+                      </div>
+                    </a>
+                    <Link
+                      href="/terms"
+                      className="px-5 py-3.5 flex items-center gap-3 transition-colors hover:bg-[color:var(--se-surface-2)]"
+                      style={{ borderBottom: "1px solid var(--se-border)" }}
+                    >
+                      <FileText size={15} style={{ color: "var(--se-fg-muted)" }} />
+                      <span className="text-sm font-medium se-cjk" style={{ color: "var(--se-fg)" }}>
+                        {t("account.termsLabel")}
+                      </span>
+                    </Link>
+                    <Link
+                      href="/privacy"
+                      className="px-5 py-3.5 flex items-center gap-3 transition-colors hover:bg-[color:var(--se-surface-2)]"
+                    >
+                      <LockIcon size={15} style={{ color: "var(--se-fg-muted)" }} />
+                      <span className="text-sm font-medium se-cjk" style={{ color: "var(--se-fg)" }}>
+                        {t("account.privacyLabel")}
+                      </span>
+                    </Link>
+                  </SettingsCard>
+                </div>
               </SettingsSection>
             </div>
           </div>
