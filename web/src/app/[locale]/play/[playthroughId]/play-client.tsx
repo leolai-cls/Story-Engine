@@ -9,6 +9,7 @@ import { DynamicStatePanel } from "@/components/state-panel";
 import type { StateSchema } from "@/schemas/state-schema";
 import { NpcCard } from "@/components/se/DispositionAxis";
 import { estimateTurnCredits } from "@/lib/billing/credits";
+import { stripReasoningMarkers } from "@/lib/sanitize-narration";
 import {
   PlaythroughSidebar,
   type SidebarPlaythrough,
@@ -984,33 +985,18 @@ export function PlayClient({
             className="flex-1 min-h-0 overflow-y-auto rounded-xl border border-border/60 bg-card/30 p-4 space-y-4 lg:min-h-[400px]"
           >
             {turns.map((turn) => {
-              // C6 audit fix · Hard rule #4: Director re-interpreted player
-              // action — backend exposes verdict on turns.director_verdict
-              // (jsonb). 'reject' or 'allow_with_constraint' means the AI
-              // diverged from literal player intent. Render subtle amber
-              // side-border + tooltip 「NPC 反應與你預期不同」(no system
-              // jargon per designer spec).
-              const isSoftDirector =
-                turn.role === "ai" &&
-                turn.directorVerdict?.verdict &&
-                turn.directorVerdict.verdict !== "allow" &&
-                turn.directorVerdict.verdict !== "require_skill_check";
+              // 2026-06-01 (founder/Codex · 沉浸感原則): 移除咗 GM 調整嘅 meta UI —
+              // 之前 allow_with_constraint / reject 會畫一條淺黃左邊框 + tooltip
+              // 「NPC 反應與你預期不同」。但 GM 加嘅限制應該**喺敘事文字入面感受到** ·
+              // 唔好用 UI 標籤向玩家解釋 (immersion 原則)。verdict metadata 仍然存喺
+              // turns.director_verdict (debug / audit 用) · 只係唔再 render 出嚟。
               return (
                 <div
                   key={turn.index}
-                  title={isSoftDirector ? tPlay("turn.directorSoftTooltip") : undefined}
                   className={
                     turn.role === "user"
                       ? "rounded-lg bg-primary/8 border border-primary/20 p-3"
                       : "rounded-lg bg-card border border-border/40 p-4 leading-relaxed"
-                  }
-                  style={
-                    isSoftDirector
-                      ? {
-                          borderLeft: "2px solid var(--se-warn)",
-                          paddingLeft: 16,
-                        }
-                      : undefined
                   }
                 >
                   <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
@@ -1035,7 +1021,9 @@ export function PlayClient({
                       </div>
                     </details>
                   )}
-                  <div className="text-sm whitespace-pre-wrap">{turn.text}</div>
+                  <div className="text-sm whitespace-pre-wrap">
+                    {turn.role === "ai" ? stripReasoningMarkers(turn.text) : turn.text}
+                  </div>
                   {/* C5a-d audit fix · Skill check 4 outcomes inline badge.
                       Backend rolls + stores on turns.skill_check. Hard rule #5:
                       PERMANENT · no retry · 4 outcomes (crit success / success

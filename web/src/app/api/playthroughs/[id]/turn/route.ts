@@ -62,6 +62,7 @@ import {
 import { ModerationConfigError, moderateText, verdictToCode } from "@/lib/moderation/openai-moderation";
 // ─── Phase 6 non-money function: adult mode gate ────────────────────────
 import { MODELS, tierForModel, recentTurnsLimitForTier, ADULT_NSFW_MODEL } from "@/lib/ai/models";
+import { stripReasoningMarkers } from "@/lib/sanitize-narration";
 
 /**
  * POST /api/playthroughs/[id]/turn
@@ -1035,9 +1036,12 @@ export async function POST(
         // leading ```json {...}``` block the narrator may echo from the state
         // context (Gemini mimicry) — keep only the prose. Defence-in-depth on top
         // of the prompt reformat (turn-runner shows state as plain text now).
-        const cleanText = (text ?? "")
-          .replace(/^\s*```(?:json)?\s*\{[\s\S]*?\}\s*```\s*/i, "")
-          .trimStart();
+        // 2026-06-01: 再 strip Grok reasoning marker leak ("> 🔍 **...**")。喺存
+        // turns 之前做 → finalText (落 turns + 餵 summarizer/lorebook/experience 記憶)
+        // 永不帶 reasoning 垃圾 (founder/Codex)。治本嘅 provider 壓制待驗證。
+        const cleanText = stripReasoningMarkers(
+          (text ?? "").replace(/^\s*```(?:json)?\s*\{[\s\S]*?\}\s*```\s*/i, ""),
+        );
         // 2026-06-01 (ADR-001 原則 5 · 技術失敗要誠實 · 唔好假扮故事):
         // 失敗判斷 **只睇有冇實質文字出到** · 唔再用 isLLMRefusal 內容分析。
         // 舊邏輯 (isLLMRefusal + 貼 refusalFallbackNarrative 死文字) 係「眉頭微皺」
