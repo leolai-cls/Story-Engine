@@ -147,8 +147,10 @@ export const MODELS: Record<string, ModelEntry> = {
     model_id: "grok-4.1",
     display_name: "Grok 4.1",
     role: "narrator",
-    // 同 GLM adult 一樣維持 1.0 · 唔改成人向 user 面對嘅 credit 價 (Grok 真實成本
-    // 可能略高 · 屬 money-tier 再議 · 唔喺 function tier 動 pricing)。
+    // ⚠️ credit_multiplier 係 legacy / charge path 根本冇用到嘅 field — 實際扣費
+    // 純粹經 credits.ts MODEL_PRICING token rate。grok MODEL_PRICING = $3/$15 ≈ glm
+    // ($1.40/$4.40) 嘅 3 倍 → 成人向每回合 credit 實際係升咗 (Grok 本身貴)。
+    // pricing 策略 (要唔要 subsidize 成人向) 屬 money-tier 再議。
     credit_multiplier: 1.0,
     allows_nsfw: true,
     // 成人向任何訂閱 tier 都可開 · 真正 gate 喺 content_rating='adult' +
