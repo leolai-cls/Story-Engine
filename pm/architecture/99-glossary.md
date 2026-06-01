@@ -23,6 +23,8 @@
 | 自適應介面 | Generative Panels | AI 揀 panel + JSON 配置 · open-ended kit (見 06)。 |
 | Component kit | Component Kit | AI 可揀嘅 React panel 庫 · open-ended · 隨時加。 |
 | Agent mode / NPC Agent L3 | NPC Agent L3 | 每個在場角色一個 POV LLM call · 加強角色獨立性 (見 02/05)。 |
+| 即興名冊 | Mention Roster | 角色升級階梯第 0 層 · AI 一提到名就記 {turn,名,一句} · 純文字防 retcon (見 03)。 |
+| 角色升級階梯 | Promotion Ladder | 即興名冊(0) → lorebook(1) → 完整靈魂(2) · 按角色重要性逐層升 (見 03)。 |
 | RAG | Retrieval-Augmented Generation | 用向量相似度拉返過去相關回合做 context。 |
 | 被動讀取 | Passive Retrieval | 現狀 · 一次過篩好記憶餵俾 Narrator · Narrator 唔自己再叫 (見 04)。 |
 | AI 自己揾記憶 | Agentic Retrieval | 終極版 · Narrator 寫途中發現唔夠 · 自己 call search_memory tool 補返 (見 04)。DESIGN TARGET。 |

@@ -17,7 +17,38 @@
 
 ---
 
-## 三層結構
+## 角色升級階梯 (Character Promotion Ladder · founder 2026-06-01)
+
+唔係所有角色一出場就有完整靈魂。角色按佢喺故事入面變得幾重要 · 逐層升級。呢個係「動態升級」(玩家行為決定邊個重要) 嘅完整版 · 由 **AI 一句即興提及** 一路升到 **完整靈魂**：
+
+```
+第 0 層 · 即興名冊 (Mention Roster)         ← founder 2026-06-01 新增 · 補窿
+   AI 敘事一提到一個有名嘅角色 → 入名冊 {turn, 名, 一句簡述}
+   純文字 · 無 embedding · 無 AI 抽取 · 極輕量
+   作用：防 retcon (AI 下一回合改名 / 話冇 · 見下面「點解需要」)
+        ↓ 個名反覆出現 / 玩家同佢互動
+第 1 層 · Lorebook entry                     ← 已有 (04 記憶第 4 層)
+   有描述 + embedding + RAG retrieve · entity-level
+        ↓ 互動累積 (interaction_count >= 3)
+第 2 層 · 完整角色靈魂                         ← M1-M5 (本文件下面三層結構)
+   出身 + 經歷日誌 + 沉澱張力 + 信念圖譜
+```
+
+### 點解需要第 0 層 (真實 bug 觸發 · 2026-06-01)
+成人向 playthrough「生日轉運」：turn 2 AI 寫「隔兩排嘅**阿俊**將耳機拉低」即興創造咗阿俊；turn 4 玩家叫佢阿俊，AI (GLM-5.1 弱 model) 竟然回「我叫**阿輝**，唔係阿俊」—— 自己 retcon 改咗上回合嘅名。
+
+根因：阿俊只係一句過場 mention → lorebook extractor 按「skip walk-ons」規則冇收錄 → 下回合 Narrator 只靠近期 turn 全文 grounding，弱 model 冇 catch 住「阿俊」呢個一閃名 → 即興作個新名。**記憶系統冇錯（turn 2 全文確實喺 context），係弱 model 一致性問題。** 第 0 層名冊就係將「AI 提過嘅每個名」變成一個明確清單餵返 Narrator，令佢有 quick reference 防 retcon。
+
+### 第 0 層設計要點 (實作待定)
+- **寫入**：純 code (regex / 抽 AI 敘事入面嘅人名) · 一提到就記 {turn, 名, 一句} · 無 LLM (對應 07 機械式)
+- **餵 Narrator**：每 turn 一個 "本故事至今提過嘅名" 清單 + prompt 教「呢啲名係 canon · 必須一致 · 唔可改名/話冇」(anti-retcon)
+- **清理**：有上限 (最近 N 個 / 最近 M 回合提過) · 冇再出現嘅淡出 · 防 200 回合爆 context
+- **同 lorebook 邊界**：名冊 = 純 mention 追蹤 (輕)；lorebook = 有描述 entity (重)。名冊唔重複 lorebook 嘅嘢
+- **Phase**：DESIGN · 實作排 Stage 3 / 角色靈魂 backlog。即時止血可先做 Narrator anti-retcon prompt 規則 (唔使等名冊)
+
+---
+
+## 三層結構 (第 2 層 · 完整靈魂)
 
 每個角色喺 runtime 由三層組成：
 
