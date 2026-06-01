@@ -109,12 +109,13 @@ export const MODELS: Record<string, ModelEntry> = {
     tier_pool: "standard",
   },
 
-  // ─── CrazyRouter · Standard pool 中文 roleplay model ─────────────────
-  // ADR-022: GLM 5.1 = Standard pool 中文/roleplay 模型。
-  // ADR-024 (2026-06-01): 成人向 narrator 由 GLM 換做 Grok 4.1 (見下) · GLM 唔再
-  // 做 adult model · 留返做 Standard 中文 SFW。allows_nsfw 留 true (佢的確識做) ·
-  // 但 adultMode 路由唔再指向佢。
-  // CrazyRouter slug = bare `glm-5.1`.
+  // ─── CrazyRouter · GLM-5.1 (DEPRECATED FROM NEW ROUTING · back-compat only) ─
+  // GLM-5.1 之前做兩份工:(a) 成人向 model → ADR-024 換咗 Grok ·(b) Standard 中文
+  // roleplay model → 2026-06-01 founder 換咗 deepseek-v3.2 試 (GLM 偏弱 · retcon)。
+  // ⚠️ entry 保留純為 BACK-COMPAT:現有喺玩緊嘅 GLM playthrough (舊 Standard 中文 +
+  // 未 migrate 嘅舊成人故事) 個 llm_model 鎖咗 glm-5-1 · computeCredits /
+  // userTierAllowsModel 仲要揾到佢 · 否則下一回合 500 (同 grok 漏 MODEL_PRICING
+  // 同一個 bug class · 啱啱先修)。tier_pool 改 null = 唔再入任何新輪換 / picker。
   "glm-5-1": {
     id: "glm-5-1",
     provider: "crazyrouter",
@@ -122,9 +123,29 @@ export const MODELS: Record<string, ModelEntry> = {
     display_name: "GLM-5.1",
     role: "narrator",
     credit_multiplier: 1.0,
-    allows_nsfw: true, // 識做 NSFW · 但 adult 路由已改去 Grok (ADR-024)
+    allows_nsfw: true,
     min_tier: "free",
-    description: "Standard tier · 中文 roleplay · 長 context。",
+    description: "(deprecated · back-compat only) 舊 Standard 中文 / 舊成人向 model。",
+    tier_pool: null, // deprecated from new routing · 保留俾現有 playthrough
+  },
+
+  // ─── CrazyRouter · Standard pool 中文 roleplay model (取代 GLM · 2026-06-01) ─
+  // Founder 換 DeepSeek 試「個分別」:GLM 偏弱 (retcon) · deepseek-v3.2 = 強中文 +
+  // 純 chat (非推理 · 唔似 deepseek-r1/reasoner) → 理論上冇 Gemini 嗰種 thinking-
+  // budget 食晒 budget 出空白嘅 footgun · 而且平 (原价 $0.28/$0.42 ≈ GLM 1/5)。
+  // 免費 tier token 封咗頂 → 換強 model 成本中性 (founder 2026-06-01)。
+  // CrazyRouter slug = bare `deepseek-v3.2`。
+  // ⚠️ 實測時若見空白回合 → 查 deepseek thinking param 加 providers.ts 攔截 (似 Gemini)。
+  "deepseek-v3-2": {
+    id: "deepseek-v3-2",
+    provider: "crazyrouter",
+    model_id: "deepseek-v3.2",
+    display_name: "DeepSeek V3.2",
+    role: "narrator",
+    credit_multiplier: 1.0, // legacy field · unused (實際扣費經 MODEL_PRICING)
+    allows_nsfw: false,
+    min_tier: "free",
+    description: "Standard tier · 中文 roleplay (取代 GLM) · 純 chat 非推理。",
     tier_pool: "standard",
   },
 
@@ -166,11 +187,12 @@ export const MODELS: Record<string, ModelEntry> = {
 
 /**
  * Pool of models that serve each user-facing tier. ADR-022: 2 tier only.
- * Adult mode (cross-tier) 路由唔經呢度 · 直接 return GLM 5 via pickModelForTier
- * 嗰個 adult-aware path.
+ * Adult mode (cross-tier) 路由唔經呢度 · 直接 return ADULT_NSFW_MODEL (Grok)
+ * via pickModelForTier 嗰個 adult-aware path。
+ * Standard 中文 model 2026-06-01 由 glm-5-1 換做 deepseek-v3-2 (founder)。
  */
 export const TIER_POOLS: Record<ModelTier, string[]> = {
-  standard: ["gemini-3-5-flash", "glm-5-1"],
+  standard: ["gemini-3-5-flash", "deepseek-v3-2"],
   pro: ["claude-sonnet-4-6", "gpt-5-4-pro"],
 };
 

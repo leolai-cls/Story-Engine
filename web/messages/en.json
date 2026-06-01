@@ -495,6 +495,7 @@
       "poolPro": "Pro · deepest narration",
       "nsfwCapable": "adult-capable",
       "modelLocked": "Upgrade your tier to use this model",
+      "adultLocked": "Adult mode · locked to Grok",
       "agentMode": "NPC Inner Voices",
       "agentTooltip": "Each NPC gets its own POV + inner monologue this turn (Storyteller tier · ~6 credits/NPC)",
       "agentTierRequired": "NPC Inner Voices need Storyteller tier — upgrade to unlock",

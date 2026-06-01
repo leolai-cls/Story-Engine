@@ -26,9 +26,11 @@ type SubTier = "free" | "adventurer" | "storyteller" | "legend";
 const SUB_ORDER: SubTier[] = ["free", "adventurer", "storyteller", "legend"];
 
 // Narrator models surfaced in the picker · order matters (cheap → premium).
+// 2026-06-01: glm-5-1 → deepseek-v3-2 (Standard 中文 換 DeepSeek)。成人向 model
+// (grok-4-1) 唔喺度 — 成人故事個 picker 會整個鎖死 (isAdult · 見下)。
 const PICKER_MODEL_IDS = [
   "gemini-3-5-flash",
-  "glm-5-1",
+  "deepseek-v3-2",
   "claude-sonnet-4-6",
   "gpt-5-4-pro",
 ] as const;
@@ -37,6 +39,7 @@ export function ChatControls({
   playthroughId,
   currentModel,
   subscriptionTier,
+  isAdult,
   npcL3Enabled: initialNpcL3,
   thinkingEnabled: initialThinking,
   onModelChange,
@@ -46,6 +49,8 @@ export function ChatControls({
   playthroughId: string;
   currentModel: string | null;
   subscriptionTier: SubTier;
+  /** 成人故事 (content_rating='adult') · model 鎖死成 Grok · picker 唔畀切換。 */
+  isAdult?: boolean;
   npcL3Enabled: boolean;
   thinkingEnabled: boolean;
   /** Parent updates its cost-estimate when model changes. */
@@ -175,7 +180,19 @@ export function ChatControls({
   // wrapping. Still flex-wrap as a graceful fallback.
   return (
     <div className="mb-2 flex items-center gap-1.5 flex-wrap">
-      {/* ─── Model picker ─── */}
+      {/* ─── Model picker (成人故事 → 鎖死 · 固定 Grok · 唔畀切換) ─── */}
+      {isAdult ? (
+        <div
+          className="inline-flex items-center gap-1 rounded-md border border-border/70 bg-muted/40 px-2 py-1.5 text-xs cursor-default"
+          title={t("adultLocked")}
+        >
+          <Bot className="h-3.5 w-3.5 text-muted-foreground flex-none" />
+          <span className="se-cjk font-medium max-w-[84px] sm:max-w-[150px] truncate">
+            {currentModelName}
+          </span>
+          <Lock className="h-3 w-3 text-muted-foreground flex-none" />
+        </div>
+      ) : (
       <div className="relative" ref={menuRef}>
         <button
           type="button"
@@ -237,6 +254,7 @@ export function ChatControls({
           </div>
         )}
       </div>
+      )}
 
       {/* ─── Agent mode (NPC L3 inner voices) toggle ─── */}
       <button

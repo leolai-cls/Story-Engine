@@ -12,7 +12,7 @@
  *
  * Decision:
  *   - adultMode=true → 一律 return ADULT_NSFW_MODEL ("grok-4-1" · ADR-024)
- *   - tier="standard" + 中文 dominant → "glm-5-1"
+ *   - tier="standard" + 中文 dominant → "deepseek-v3-2" (2026-06-01 換 GLM)
  *   - tier="standard" + 英文 → "gemini-3-5-flash"
  *   - tier="pro" + 中文 dominant → "claude-sonnet-4-6"
  *   - tier="pro" + 英文 → "gpt-5-4-pro"
@@ -61,9 +61,9 @@ export function pickModelForTier(
   const isCjk = options?.context ? isChineseContent(options.context) : true; // 繁中 default market
 
   if (tier === "standard") {
-    // 中文 → GLM-5.1 (roleplay leader 中文 #3)
+    // 中文 → DeepSeek V3.2 (2026-06-01 換 GLM · founder 試「個分別」· 強中文 + 平)
     // English → Gemini Flash (long context · vendor diversity)
-    return isCjk ? "glm-5-1" : "gemini-3-5-flash";
+    return isCjk ? "deepseek-v3-2" : "gemini-3-5-flash";
   }
 
   if (tier === "pro") {
