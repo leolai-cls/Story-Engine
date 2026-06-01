@@ -91,4 +91,9 @@ Founder lock：護城河 (記憶/角色靈魂) 嘅「可見」= 玩家喺**敘�
 
 ---
 
-_Last updated: 2026-06-01 (Session 16 · OpenDesign 研究結論 grounded 喺真實 source)_
+## 實作藍圖
+詳細 milestone 拆解 (M1 panel config schema+DB → M2 component kit → M3 renderer → M4 AI 生成 config → M5 裸數字條退役 → M6 擴展) + 風險 + 待決定，見 **`IMPLEMENTATION-stage3.md`**。核心：現狀已有 field 級渲染 (render_hint) · Stage 3 加一層 panel 編排 (AI 揀 panel 組合 · JSON 配置 · 預製 component · 質性化)。
+
+---
+
+_Last updated: 2026-06-01 (Session 16 · OpenDesign 研究結論 grounded 喺真實 source · + IMPLEMENTATION-stage3 藍圖)_
