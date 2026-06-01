@@ -179,7 +179,7 @@ export async function runLorebookExtraction(params: {
         : `玩家行動：\n${userAction.slice(0, 500)}\n\nAI 敘事：\n${aiNarrative.slice(0, 4000)}\n\n依照 system prompt 嘅規則 extract entities。`;
 
     const llmResult = await generateObject({
-      model: getProviderModel(pickUtilityModel(contentRating)),
+      model: getProviderModel(pickUtilityModel(contentRating, "structured")),
       schema: ExtractionResultSchema,
       system: extractorSystemPrompt(language) + protagonistContext,
       prompt: userPromptForExtractor,
@@ -188,7 +188,14 @@ export async function runLorebookExtraction(params: {
     });
 
     const entities = llmResult.object.entities;
-    if (!entities || entities.length === 0) return 0;
+    if (!entities || entities.length === 0) {
+      // Observability (PR #62 QC): 成人 generateObject 成功但 0 entities = valid
+      // no-op (區分於下面 catch 嘅生成失敗 · 監察 Grok structured 可靠性)。
+      if (contentRating === "adult") {
+        console.log(`[lorebook] adult generateObject OK · 0 entities (valid no-op) · pt=${playthroughId}`);
+      }
+      return 0;
+    }
 
     // AUDIT FIX (P2-LOGIC-H-07): trim entity.name BEFORE dedup. UNIQUE index
     // in 0005 uses lower(btrim(name)) so DB-side dedup is robust, but doing
@@ -254,7 +261,10 @@ export async function runLorebookExtraction(params: {
     // Most likely cause when this fails fresh: migration 0004 not applied
     // (lorebook_entries table missing) → upsert path will surface that.
     // Or LLM rate limit / schema validation. All non-fatal.
-    console.warn(`[lorebook] extraction failed: ${msg}`);
+    // 成人 = Grok via CrazyRouter structured · 歷史上 fragile · failure 要睇到 (watch-point)。
+    console.warn(
+      `[lorebook] extraction failed${contentRating === "adult" ? " · ⚠️ ADULT/Grok structured — watch CrazyRouter structured reliability" : ""}: ${msg}`,
+    );
     return 0;
   }
 }

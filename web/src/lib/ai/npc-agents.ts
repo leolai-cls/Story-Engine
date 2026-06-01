@@ -405,7 +405,7 @@ async function callSingleNpcAgent(params: {
   // CrazyRouter (accepting the structured-output fragility risk · non-fatal).
   // Routing 集中喺 pickUtilityModel (single source · 2026-06-01)。
   // Flat 6 credits/agent regardless of model (founder Q3).
-  const modelId = pickUtilityModel(contentRating);
+  const modelId = pickUtilityModel(contentRating, "structured");
 
   const systemPrompt = buildNpcAgentSystemPrompt(character.card, storyLanguage);
   const userMessage = buildAgentUserMessage({

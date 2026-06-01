@@ -295,7 +295,7 @@ export async function runSummarization(params: {
         : `請壓縮以下 ${turns.length} 個 turn 嘅敘事：\n\n${turnsText}\n\n依照 system prompt 規則寫 2-4 段繁中摘要：`;
 
     const llmResult = await generateText({
-      model: getProviderModel(pickUtilityModel(contentRating)),
+      model: getProviderModel(pickUtilityModel(contentRating, "text")),
       system: summarizerSystemPrompt(language),
       prompt: userPrompt,
       temperature: 0.3,

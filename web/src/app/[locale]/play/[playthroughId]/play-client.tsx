@@ -1287,7 +1287,9 @@ export function PlayClient({
               style={{ fontSize: 11, color: "var(--se-fg-dim)", letterSpacing: "0.04em" }}
             >
               {tPlay("input.costEstimate", {
-                credits: estimateTurnCredits(activeModel, activeNpcL3 ? 3 : 0, activeThinking),
+                // 傳 storyContentRating → 成人故事顯示嘅估算包埋背景步驟用 Grok 嘅成本
+                // (同 turn route reserve 一致 · 唔會顯示低咗)。
+                credits: estimateTurnCredits(activeModel, activeNpcL3 ? 3 : 0, activeThinking, storyContentRating),
               })}
               {activeNpcL3 ? (
                 <span style={{ marginLeft: 8, color: "var(--se-accent)" }}>

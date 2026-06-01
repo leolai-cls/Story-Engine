@@ -703,7 +703,7 @@ async function summarizeTurnForScene(
   const text = turnText.slice(0, 4000); // cap input
   // 成人故事用 Grok 寫畫面 prompt · 唔用 Haiku (Anthropic 自我審查 → SFW prompt →
   // 成人圖唔成人;+ hard rule #5)。路由集中喺 pickUtilityModel (single source)。
-  const model = getProviderModel(pickUtilityModel(contentRating));
+  const model = getProviderModel(pickUtilityModel(contentRating, "text"));
   // 生圖指示 (唔係敘事約束)：叫 prompt-writer 忠實描述場景已有嘅露骨元素 · 唔好
   // 自我淡化 (否則 Grok 都可能出於慣性寫 tame)。
   const adultDirection =
