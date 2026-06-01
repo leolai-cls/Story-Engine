@@ -59,7 +59,7 @@ import {
   userTierAllowsModel,
 } from "@/lib/billing/credits";
 // ─── Phase 5 Wave 2 moderation (W1-MOD-H-03 audit fix) ──────────────────
-import { ModerationConfigError, moderateText, verdictToCode } from "@/lib/moderation/openai-moderation";
+import { ModerationConfigError, moderateText, verdictToCode, checkOutputLegalFloor } from "@/lib/moderation/openai-moderation";
 // ─── Phase 6 non-money function: adult mode gate ────────────────────────
 import { MODELS, tierForModel, recentTurnsLimitForTier, ADULT_NSFW_MODEL } from "@/lib/ai/models";
 import { stripReasoningMarkers } from "@/lib/sanitize-narration";
@@ -1042,14 +1042,40 @@ export async function POST(
         // 冇文字 (空白 / 超時被砍 / model 死) = 技術失敗 → 唔存故事 · 唔污染記憶 ·
         // 送誠實失敗訊號俾前端 (前端顯示「整唔到請再試」+ retry 掣 · 似 ChatGPT)。
         // 註: isLLMRefusal / refusalFallbackNarrative 已 deprecated · 唔再 import 用。
-        const technicalFailure = !cleanText || !cleanText.trim();
+        // PR2 (ADR-001 · decision 9/13) · post-hoc 法律底線檢查 (全新 defence-in-depth)。
+        // 拆 GM 判官後·成人 Narrator 輸出冇人審。窄 evaluator 只攔 CSAM / 真實武器指引 /
+        // 真實自殘 how-to (EXCLUDE 虛構暴力 · 原則 4)。命中 → 當失敗回合 (finalText="" ·
+        // failed=true · 唔 extract · 唔 embed/summarize/lorebook) + audit log。un-stream
+        // 唔到 (已串流) → 事後清走·唔污染 history/記憶。先成人 only (decision a)。
+        const turnContentRating =
+          (story.content_rating as "sfw" | "soft" | "adult") ?? "sfw";
+        let legalFloorCategories: string[] = [];
+        if (cleanText.trim() && turnContentRating === "adult") {
+          const floor = await checkOutputLegalFloor(cleanText).catch((e) => {
+            console.warn(
+              "[turn] post-hoc legal-floor check threw (non-fatal · allowing):",
+              e instanceof Error ? e.message : e,
+            );
+            return { allowed: true as const };
+          });
+          if (!floor.allowed) {
+            legalFloorCategories = floor.categories;
+            console.error(
+              `[turn] 🚨 POST-HOC LEGAL FLOOR HIT · pt ${playthroughId} user ${user.id} · categories=[${floor.categories.join(", ")}] — turn dropped (failed=true · not embedded · audit)`,
+            );
+          }
+        }
+        const legalBlocked = legalFloorCategories.length > 0;
+
+        // 技術失敗 (空白 / 超時 / model 死) OR 法律底線命中 → 當失敗回合處理 (唔存故事文字 · 唔污染記憶)。
+        const technicalFailure = !cleanText || !cleanText.trim() || legalBlocked;
         // 失敗時：插入一個 failed=true 標記回合（text 留空 · 唔係假故事文字）。
         // 前端見到 failed 標記 → 顯示「整唔到請再試」+ retry 掣（唔當故事回合）。
         // 失敗回合唔 embed 入記憶（下面 !technicalFailure 已 skip）· 清潔系統 (07)
         // 一句 SQL (WHERE failed=true) 就清走。用標記而唔係完全唔 insert · 係為咗
         // 避免「玩家 turn 已 pre-persist 但冇對應 AI turn」嘅孤兒回合 (reload 會亂)。
         const finalText = technicalFailure ? "" : cleanText;
-        if (technicalFailure) {
+        if (technicalFailure && !legalBlocked) {
           console.warn(
             `[turn] narrator produced no usable prose (timeout / empty / model error) — saving failed=true turn, client shows retry. Original head:`,
             (text ?? "").slice(0, 200),
@@ -1368,9 +1394,11 @@ export async function POST(
             failed: technicalFailure,
             // AUDIT FIX F-03 (Wave 2): persist Director failure flag inline so
             // postmortems can grep for `director_verdict->>'fallback' = 'true'`
-            director_verdict: directorFailed
-              ? { ...verdict, fallback: true }
-              : verdict,
+            director_verdict: legalBlocked
+              ? { ...verdict, post_hoc_legal_block: legalFloorCategories }
+              : directorFailed
+                ? { ...verdict, fallback: true }
+                : verdict,
             skill_check: skillCheckResult,
             // P6-HIGH-01 fix: derive llm_provider from MODELS catalog instead
             // of hardcoded "anthropic". Previously Llama (openrouter) turns
