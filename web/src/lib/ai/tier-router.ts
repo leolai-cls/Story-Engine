@@ -116,10 +116,18 @@ export type UtilityPurpose = "text" | "structured";
  *   Anthropic。
  *
  * @param purpose `"text"` (generateText) vs `"structured"` (generateObject)。目前
- *   adult 兩者都 → Grok · 但分開個 param 係為 **精準 rollback**：若 Grok 結構輸出
- *   證實唔穩 (CrazyRouter structured 歷史上 fragile · 見 npc-agents audit note) ·
- *   淨係將下面 `structured` 改返 DIRECTOR_MODEL 即可 · 唔會連 text (摘要/生圖
- *   prompt) 都拖返 Haiku。
+ *   adult 兩者都 → Grok。分開個 param 係為咗將來可以淨係 rollback `structured` ·
+ *   唔影響 `text` (摘要 / 生圖 prompt)。
+ *
+ *   🚨 成人 structured 後備設計 (founder lock · 2026-06-01 · PR #63 QC)：
+ *     • 若 adult structured Grok 變唔穩 (CrazyRouter structured 歷史上 fragile ·
+ *       見 npc-agents audit note) · 候選後備 = **Kimi K2 via CrazyRouter** ·
+ *       但**只可以喺驗證咗 slug / pricing / adult-tolerance / structured JSON
+ *       可靠性 (benchmark) 之後**先用。而家未驗證 · 亦未入 catalog (唔好預埋)。
+ *     • **永不**將成人 structured rollback 去 Haiku / DIRECTOR_MODEL / Anthropic
+ *       — 成人內容唔可上 Anthropic (hard rule #5)。
+ *     • **永不** default 用 GLM 做成人 structured 後備 — 真實 adult playthrough
+ *       證實佢短期 grounding 弱 / 會 retcon (阿俊→阿輝) · 唔信得過做記憶 / 抽取。
  *
  * ⚠️ 純結構抽取 (extractTurnState 狀態 ops · Director verdict) **唔用呢個** —
  *   出數字 / 標籤 (洗白風險細) + 每回合關鍵 path + 靠結構輸出可靠性 · 留 Haiku。
@@ -134,7 +142,10 @@ export function pickUtilityModel(
   if (contentRating !== "adult") return DIRECTOR_MODEL;
   const adultByPurpose: Record<UtilityPurpose, string> = {
     text: ADULT_NSFW_MODEL,
-    structured: ADULT_NSFW_MODEL, // 🔧 rollback hook: 若 Grok 結構輸出唔穩 → DIRECTOR_MODEL
+    // 🔧 後備候選 = Kimi K2 via CrazyRouter (驗證 slug/pricing/adult-tolerance/結構
+    //    可靠性後先用 · 未入 catalog)。⚠️ 永不改去 DIRECTOR_MODEL/Haiku/Anthropic
+    //    (hard rule #5) · 永不 default GLM (證實弱/retcon)。詳見上面 @param 說明。
+    structured: ADULT_NSFW_MODEL,
   };
   return adultByPurpose[purpose];
 }
