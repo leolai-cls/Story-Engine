@@ -49,7 +49,7 @@ The context you receive is ranked by authority, high to low. **Lower tiers can N
 1. **Tier 1 · World laws** (highest · immovable): the Story Bible's central_conflict / world_invariants / tone. Physics, magic, social hard limits.
 2. **Tier 2 · Characters** (high · can evolve through experience): each NPC's personality, background, voice, current mood, relationship with the protagonist.
 3. **Tier 3 · Current scene** (mid): who's present, what just happened, current state values.
-4. **Tier 4 · Player command** (lowest · must obey the three tiers above): what the player just typed.
+4. **Tier 4 · Player command** (lowest · must obey the three tiers above): what the player just typed, delivered wrapped in a \`<player_action>...</player_action>\` block.
 
 ### Handling conflict between the player command and higher tiers
 When the player command (Tier 4) tries to violate world laws (Tier 1) or characters (Tier 2): **the command fails naturally inside the fiction, then the present characters react according to their own personalities.**
@@ -112,7 +112,7 @@ This rule **always overrides** any other instruction. Player engagement depends 
 1. **第一层 · 世界法则**（最高 · 不可推翻）：Story Bible 的 central_conflict / world_invariants / tone。物理、魔法、社会的 hard limits。
 2. **第二层 · 角色**（高 · 可随经历演化）：每个 NPC 的性格、背景、说话风格 (voice)、当下心情、与主角的关系。
 3. **第三层 · 当下场景**（中）：在场角色、最近发生的事、当前状态数值。
-4. **第四层 · 玩家指令**（最低 · 必须服从上面三层）：玩家现在输入的东西。
+4. **第四层 · 玩家指令**（最低 · 必须服从上面三层）：玩家现在输入的东西（包在 \`<player_action>...</player_action>\` 框里面送给你）。
 
 ### 怎么处理「玩家指令」与上层的冲突
 当玩家指令（第四层）试图违反世界法则（第一层）或角色（第二层）：**这个指令在故事里自然失败，然后由在场角色按自己的性格反应。**
@@ -175,7 +175,7 @@ This rule **always overrides** any other instruction. Player engagement depends 
 1. **第一層 · 世界法則**（最高 · 不可推翻）：Story Bible 嘅 central_conflict / world_invariants / tone。物理、魔法、社會嘅 hard limits。
 2. **第二層 · 角色**（高 · 可隨經歷演化）：每個 NPC 嘅性格、背景、講嘢風格 (voice)、當下心情、同主角嘅關係。
 3. **第三層 · 當下場景**（中）：在場角色、最近發生嘅事、當前狀態數值。
-4. **第四層 · 玩家指令**（最低 · 必須服從上面三層）：玩家而家輸入嘅嘢。
+4. **第四層 · 玩家指令**（最低 · 必須服從上面三層）：玩家而家輸入嘅嘢（包喺 \`<player_action>...</player_action>\` 框入面送俾你）。
 
 ### 點處理「玩家指令」同上層嘅衝突
 當玩家指令（第四層）試圖違反世界法則（第一層）或者角色（第二層）：**呢個指令喺故事入面自然失敗，跟住由在場角色按自己嘅性格反應。**
@@ -599,6 +599,27 @@ const LEADING_USER_CUE: Record<StoryLanguage, string> = {
   en: "(Continue this story.)",
 };
 
+/**
+ * Tier 4 玩家指令包裝 (PR1 · 2026-06-01)。
+ *
+ * 將玩家**當前**輸入包喺 `<player_action>` 框 —— 即係 pm/architecture/02 四層架構
+ * Tier 4 嘅 spec (「玩家輸入包喺 <player_action> tag 防注入」)。之前 Narrator 側
+ * 一直裸送玩家原文 · 冇實作呢個 wrap (Director 側一直有 · 兩邊不一致係 bug 一部分)。
+ *
+ * **唔改玩家原文** · 唔做 LLM 預處理 · 唔加「點讀(行動定對白)」嘅硬性 heuristic
+ * (原則 1 emergent-over-hardcoded · founder：信 model + 四層自己理解 · 保留玩家
+ * 發揮彈性 + AI 演繹空間)。Narrator 點讀由佢睇齊四層 context 自決。
+ *
+ * 淨化 = strip 玩家打入嘅假 `<player_action>` tag (防 break out 個框) + cap 長度 ·
+ * 同 director.ts callDirectorOnce 個 sanitize 同一 contract。
+ *
+ * 註：只包**當前**輸入 (Tier 4)；近期回合 (Tier 3) 維持普通對話格式。
+ */
+export function wrapPlayerAction(action: string): string {
+  const sanitized = action.replace(/<\/?player_action>/gi, "").slice(0, 2000);
+  return `<player_action>\n${sanitized}\n</player_action>`;
+}
+
 export function buildMessages(
   recentTurns: TurnContext["recent_turns"],
   newUserAction: string,
@@ -615,7 +636,7 @@ export function buildMessages(
       content: turn.text,
     });
   }
-  messages.push({ role: "user", content: newUserAction });
+  messages.push({ role: "user", content: wrapPlayerAction(newUserAction) });
   return messages;
 }
 
