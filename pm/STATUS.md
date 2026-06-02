@@ -10,13 +10,19 @@
 **Brand**: 🆕 **Kieio** · 讀「KEE-yo」· domain **kieio.com** (marketing · Cloudflare registrar) · **app.kieio.com** (product · subdomain split done)
 **Phase**: **🟢 Function tier 全完 + 🟣 UI tier 全完 + 🟡 Money tier 全完 (Phase 4 Stripe + Phase 6 KYC · 3-wave audit converged) + 🌐 Marketing landing/pricing + 🌏 i18n Wave 2 (622 keys · 9-cycle audit converged) + 🆕 Brand locked · 🏁 落 final stage (5 條官方故事 + comprehensive E2E)**
 **Live URL**: https://kieio.com (marketing) · https://app.kieio.com (product) · auto-redirect 維持
-**Last updated**: 2026-06-01 (Session 16 後段 — 🧭 核心架構重設計 + 實作 · 詳見 `pm/architecture/`: (1) 開 architecture folder 完整概念架構 (哲學/turn pipeline/角色靈魂/記憶/自適應系統/介面/記憶清潔 + 6 ADR + 名詞表 + IMPLEMENTATION) · (2) GM 降做 prep 員 + 四層優先級 + 誠實失敗安全網 (PR #52 · 修好「眉頭微皺」launch blocker · 真兇 = turn route maxDuration 60→300s) · (3) 角色靈魂第二階段 M1-M6 全部實作+部署 (PR #53 · 經歷日誌+沉澱張力+信念圖譜+移除硬紅線+機械清潔 · migration 0047-0050) · (4) play 兩個 bug 修好 (skill 徽章 live + 生圖 fallback · PR #51))
+**Last updated**: 2026-06-01 (Session 17 — 修「AI 誤解/稀釋玩家指令」: 診斷→計劃→PR1 做緊 · 詳見下面 🔧 進行中 block。Session 16 後段 — 🧭 核心架構重設計 + 實作 · 詳見 `pm/architecture/`: (1) 開 architecture folder 完整概念架構 (哲學/turn pipeline/角色靈魂/記憶/自適應系統/介面/記憶清潔 + 6 ADR + 名詞表 + IMPLEMENTATION) · (2) GM 降做 prep 員 + 四層優先級 + 誠實失敗安全網 (PR #52 · 修好「眉頭微皺」launch blocker · 真兇 = turn route maxDuration 60→300s) · (3) 角色靈魂第二階段 M1-M6 全部實作+部署 (PR #53 · 經歷日誌+沉澱張力+信念圖譜+移除硬紅線+機械清潔 · migration 0047-0050) · (4) play 兩個 bug 修好 (skill 徽章 live + 生圖 fallback · PR #51))
 
 **✅ Audit wave 1 完成 (PR #54 · 676179d)**: 3-agent 平行 audit (data/cost/regression) → fix wave → 收斂 audit (live DB 實測) = 0 blocker/HIGH/MEDIUM。修咗 pcs 欄位上鎖 (BLOCKER) + 失敗唔扣credit + 信念去重 + interaction_count atomic + experience credit reserve + M4 並行讀取。migration 0051-0053 已 apply prod。
 
 **🎨 沉浸感原則 lock (2026-06-01 · 推翻舊 hard rule #19)**: 護城河可見 = 敘事流露 · 唔係 dashboard/journal/裸好感度數字 (「睇哈利波特唔會列晒所有嘢」)。Memory Journal UI = 唔做。現有裸數字條 = 唔獨立 fix · 併入 Stage 3 自適應介面。
 
-**🔜 下一步候選 (待 founder 揀)**: Stage 3 自適應介面 (06 · AI 揀 panel + 質性顯示 · 落實數字條原則 · 角色靈魂之後嘅護城河) · 設定頁 4 項收尾 (feat/settings-overhaul) · volatility 由 schema-generator 生成 · director.ts 完全 deprecate (ADR-001 Phase 6) · 5平vs1貴 model benchmark · 你親自玩測 (留一次過 E2E)
+**🚀 進行中 (Session 17 · 2026-06-02) — LIGHT-CORE PIVOT**（取代 Session 16 四層架構）：founder 親手玩完發現**比 raw LLM 更慢 + 回合間更唔一致 + 感受唔到差異** → 重大方向修正。完整：`CLAUDE.md` 頂部 banner + `pm/architecture/decisions.md` ADR-006 + `rebuild-plan-light-core.html`。驗證：市場研究（`market-positioning-research.html`）+ 7 人策略委員會（`strategy-committee-*.html`）。
+- **輕核心**：拎走 GM / 四層仲裁（玩起似 raw LLM · 最少干預）· 非成人 → **Claude 直連**（Standard=Sonnet · Pro=Opus · 真逐字串流 + cache）· 成人 → **Grok 不變** · 記憶照留（**由護城河 #1 降做衞生**）· 擲骰移出核心。
+- **Wave 1 ✅ 實作完 + build 過 + 兩輪深度審計修好**（branch `feat/light-core-wave1` · 3 commit · **未 merge · 未部署測**）。審計捉到 3 個會 ship 嘅真 bug：① 真串流原本死咗（client 仲假打字食晒 Claude 嘅真 token）② CSAM 法律底線漏（非成人冇咗 pre-filter · hard rule #6）③ 信用 **cached token 雙收費**（pivot 引爆 · hard rule #4 · ~24% 多收）—— 全部修咗 + 驗證。
+- **W3 migration `0057`** 寫好（升級現有非成人舊故事去 Claude · 成人不動 · idempotent）· **未 apply**（等 founder confirm）。
+- **Deferred**：角色靈魂「經歷寫入」（read 修咗 · write 仲綁住死咗嘅 Director）→ Wave 2 決定 · 死 Director scaffolding cleanup · narrator 舊「用 tool」指示。**Wave 2** = 角色 → MD + keyword 調用（MemPalace 式）。
+
+**🔜 下一步（等 founder 話事）**：① **部署做法**（建議 push → Vercel preview → founder 開**新**非成人故事試真串流 + Sonnet 質素）② W3 apply confirm ③ Opus slug staging 驗（唔 work = Pro tier 靜靜壞）④ Opus 成本 / 「~235 回合」舊 marketing 文案（money tier）。
 
 ## 🎯 Founder priority rule（鎖死）
 

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kieio 市場定位研究 — 點解有人會離開 ChatGPT？</title>
+<style>
+  :root{
+    --bg:#0f1115; --card:#171a21; --card2:#1d2129; --ink:#e7e9ee; --muted:#9aa1ad;
+    --line:#2a2f3a; --accent:#8b7cf6; --accent2:#22d3ee; --good:#34d399; --warn:#fbbf24; --bad:#f87171;
+    --radius:16px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:linear-gradient(180deg,#0c0e12,#0f1115 240px);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
+    line-height:1.75;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:920px;margin:0 auto;padding:40px 22px 90px}
+  .kicker{color:var(--accent2);font-weight:700;letter-spacing:.14em;font-size:12px;text-transform:uppercase}
+  h1{font-size:30px;line-height:1.3;margin:8px 0 6px;font-weight:800}
+  h2{font-size:21px;margin:46px 0 6px;font-weight:800;display:flex;align-items:center;gap:10px}
+  h2 .n{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:9px;background:var(--accent);color:#0c0e12;font-size:14px;font-weight:900;flex:none}
+  h3{font-size:16px;margin:22px 0 4px;font-weight:700;color:#fff}
+  p{margin:8px 0;color:#d6d9e0}
+  .sub{color:var(--muted);font-size:14px;margin-top:2px}
+  .hero{background:radial-gradient(120% 140% at 0% 0%,rgba(139,124,246,.20),transparent 55%),var(--card);
+    border:1px solid var(--line);border-radius:var(--radius);padding:26px 26px 22px;margin-top:18px}
+  .verdict{font-size:18px;font-weight:700;color:#fff;margin:0}
+  .verdict b{color:var(--accent2)}
+  .note{background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.3);border-radius:12px;
+    padding:12px 14px;font-size:13px;color:#f0d8a0;margin:16px 0 0}
+  .grid{display:grid;gap:14px;margin-top:14px}
+  @media(min-width:680px){.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:1fr 1fr 1fr}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+  .card.alt{background:var(--card2)}
+  .stat{font-size:30px;font-weight:900;color:#fff;line-height:1.1}
+  .stat .u{font-size:14px;color:var(--muted);font-weight:600}
+  .lab{font-size:13px;color:var(--muted);margin-top:4px}
+  .badge{display:inline-block;font-size:11px;font-weight:800;padding:2px 9px;border-radius:999px;vertical-align:middle;margin-left:6px}
+  .b-high{background:rgba(52,211,153,.16);color:#6ee7b7;border:1px solid rgba(52,211,153,.35)}
+  .b-mid{background:rgba(251,191,36,.14);color:#fcd34d;border:1px solid rgba(251,191,36,.32)}
+  .b-good{background:rgba(52,211,153,.16);color:#6ee7b7}
+  .b-bad{background:rgba(248,113,113,.16);color:#fca5a5}
+  .b-part{background:rgba(34,211,238,.14);color:#67e8f9}
+  table{width:100%;border-collapse:collapse;margin-top:14px;font-size:14px}
+  th,td{text-align:left;padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:700;font-size:12px;letter-spacing:.04em;text-transform:uppercase}
+  td b{color:#fff}
+  .sup{color:var(--accent);font-size:11px;font-weight:700;text-decoration:none;vertical-align:super}
+  ul{margin:8px 0;padding-left:20px}li{margin:5px 0;color:#d6d9e0}
+  .pill{display:inline-block;background:var(--card2);border:1px solid var(--line);border-radius:999px;padding:3px 11px;font-size:12px;color:#c7cbd3;margin:3px 4px 0 0}
+  .rec{display:flex;gap:14px;align-items:flex-start;padding:14px 0;border-bottom:1px solid var(--line)}
+  .rec .rank{flex:none;width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-weight:900;color:#0c0e12;background:var(--good)}
+  .rec.p2 .rank{background:var(--accent2)}.rec.p3 .rank{background:var(--warn)}.rec.p4 .rank{background:#64748b}
+  .src{font-size:12.5px;color:var(--muted);display:flex;gap:8px;padding:6px 0;border-bottom:1px dashed var(--line)}
+  .src a{color:#a9b0d8;text-decoration:none;word-break:break-all}
+  .tag{flex:none;font-size:10px;font-weight:800;padding:1px 7px;border-radius:6px;height:fit-content}
+  .t-pri{background:rgba(52,211,153,.16);color:#6ee7b7}.t-sec{background:rgba(139,124,246,.16);color:#c4b5fd}.t-blog{background:rgba(148,163,184,.16);color:#cbd5e1}
+  .foot{color:var(--muted);font-size:13px;margin-top:30px;text-align:center}
+  .hl{color:#fff;font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kicker">Kieio · 市場定位深度研究</div>
+  <h1>點解有人會離開已經畀緊錢嘅 ChatGPT，<br>嚟用一個專門嘅故事 app？</h1>
+  <div class="sub">2026-06-02 · 6 條搜尋線 · 32 個來源 · 85 條資訊收窄至 25 條重點 · 由 Claude 親手 vet 來源</div>
+
+  <div class="hero">
+    <p class="verdict">一句結論：<b>有人真係會離開 —— 但唔係為咗「記憶」或「速度」。</b>佢哋為咗 <b>現成角色（零門檻）、唔審查、多媒體、手機</b> 而走。市場數據親手證實咗我哋個 pivot：記憶 + 速度係「衞生」唔係「賣點」。但同一份數據潑咗盆冷水 —— <b>留客係成個品類嘅死穴</b>。</p>
+    <div class="note">⚠️ 研究嘅自動「自我檢查」步驟撞咗系統 bug（每條資訊嘅核對 agent 都冇成功投票 → 全部被誤標「推翻」）。<b>搜集到嘅來源同數字係真嘅</b>，我已逐條人手核對來源質素；下面每個重點都標咗信心程度，並老實列出反方證據。</div>
+  </div>
+
+  <!-- 1 -->
+  <h2><span class="n">1</span>「點解唔係淨係用 ChatGPT？」—— 有答案，而且有數據</h2>
+  <p>呢個係你最關心嗰條。答案係：<span class="hl">專門 app 真係贏到，而且贏好遠</span> —— 但贏喺「體驗」唔係「個 AI 叻過人」。</p>
+  <div class="grid g3">
+    <div class="card"><div class="stat">25<span class="u"> 分鐘</span></div><div class="lab">Character.AI 每次到訪停留時間，對比 ChatGPT 得 8.4 分鐘（約 <b>3 倍</b>）<a class="sup" href="#s1">[1]</a></div></div>
+    <div class="card"><div class="stat">2<span class="u"> 小時/日</span></div><div class="lab">活躍用戶每日花喺 Character.AI 嘅時間，停留比 ChatGPT 多約 <b>300%</b><a class="sup" href="#s7">[7]</a></div></div>
+    <div class="card"><div class="stat">18M+<span class="u"> 個角色</span></div><div class="lab">用戶自己整嘅角色數量 —— 「現成任你揀」本身就係護城河<a class="sup" href="#s7">[7]</a></div></div>
+  </div>
+  <h3>真正令人走、令人留低嘅嘢（按證據強度排）</h3>
+  <table>
+    <tr><th>驅動力</th><th>證據</th><th>信心</th></tr>
+    <tr><td><b>唔審查（最強單一槓桿）</b><div class="sub">成人 / 黑暗劇情唔會中途被斬</div></td><td>Character.AI 收緊 filter 後，大批用戶出走去 Janitor AI / Chai / Pygmalion / CrushOn；新 CEO 親認 filter「過度進取」。ChatGPT 撞到露骨愛情或血腥就終止對話。<a class="sup" href="#s7">[7]</a><a class="sup" href="#s8">[8]</a></td><td><span class="badge b-high">高信心</span></td></tr>
+    <tr><td><b>現成角色 · 零門檻 · 即時</b><div class="sub">唔使識寫 prompt，撳一下就玩</div></td><td>「免 prompt 工程 + 約 2 秒即回」被點名為採用主因，直接解決「點解唔用 ChatGPT」<a class="sup" href="#s8">[8]</a></td><td><span class="badge b-high">高信心</span></td></tr>
+    <tr><td><b>多媒體沉浸（圖 / 聲）</b></td><td>星野（MiniMax）靠「多模態 + 乙女遊戲粉絲群」打開市場，唔係靠純文字傾偈<a class="sup" href="#s4">[4]</a></td><td><span class="badge b-mid">中信心</span></td></tr>
+    <tr><td><b>「陪伴 / 娛樂」定位</b><div class="sub">情感玩具，唔係生產力工具</div></td><td>用戶當 AI 角色 app 係「陪伴玩具」，同 ChatGPT 嘅「做嘢工具」係兩種用法<a class="sup" href="#s11">[11]</a></td><td><span class="badge b-mid">中信心</span></td></tr>
+    <tr><td><b>玩法機制 / 收集</b></td><td>Talkie 用扭蛋式「寶石」收集 + 角色自訂留住人<a class="sup" href="#s9">[9]</a></td><td><span class="badge b-mid">中信心</span></td></tr>
+    <tr><td style="color:var(--bad)"><b>✗ 記憶 + 速度</b></td><td style="color:#f0b8b8">一篇行業分析直接講：訂閱賣「更長記憶、更快回覆」<b>吸引力一般</b>。即係市場用真金白銀證明 —— 記憶同速度<b>唔係</b>人肯畀錢嘅嘢。<a class="sup" href="#s12">[12]</a></td><td><span class="badge b-high">高信心</span></td></tr>
+  </table>
+
+  <!-- 2 -->
+  <h2><span class="n">2</span>市場版圖（偷師對象）</h2>
+  <table>
+    <tr><th>App</th><th>地區</th><th>核心玩法 / 出名啲乜</th><th>收費 · 規模</th></tr>
+    <tr><td><b>Character.AI</b></td><td>全球/英文</td><td>1,800 萬+ 用戶自製角色；陪伴娛樂定位；Scenes 劇本 + 影片頭像 + 記憶<a class="sup" href="#s7">[7]</a></td><td>$9.99/月訂閱；~$32M 年收入，但 2,000 萬月活只得 25–30 萬付費（~1.5%）<a class="sup" href="#s7">[7]</a></td></tr>
+    <tr><td><b>Talkie</b><div class="sub">MiniMax · 海外版</div></td><td>滑動揀角色（名人/動漫）+ 自訂外貌聲音 + 扭蛋寶石收集交易<a class="sup" href="#s9">[9]</a></td><td>1,100 萬月活，<b>過半喺美國</b>；App Store 收 $3.22M（2023–25）<a class="sup" href="#s9">[9]</a><a class="sup" href="#s10">[10]</a></td></tr>
+    <tr><td><b>星野 / Xingye</b><div class="sub">MiniMax · 大陸版</div></td><td>多模態沉浸 + 乙女向；6 種對話控制（重生/回退/記憶/重啟/評分/事件日誌）<a class="sup" href="#s4">[4]</a></td><td>大陸版被審查綁死，只收 <b>$244K</b>（同期海外 Talkie 嘅 1/13）<a class="sup" href="#s10">[10]</a></td></tr>
+    <tr><td><b>筑夢島</b></td><td>大陸</td><td>~500 萬註冊，<b>約 80% 後生女</b>；人均每日打 4,000+ 字、120+ 個回合<a class="sup" href="#s5">[5]</a></td><td>下載量 2025 年插水</td></tr>
+    <tr><td><b>猫箱</b><div class="sub">字節跳動</div></td><td>大廠出品都好，日下載由 2 萬跌到 4 千<a class="sup" href="#s5">[5]</a></td><td>留客乏力</td></tr>
+    <tr><td><b>Janitor AI</b></td><td>全球/英文</td><td>純「唔審查」角色扮演，自己<b>冇 model</b>（接用戶嘅）→ 靠移除 filter 取勝<a class="sup" href="#s8">[8]</a></td><td>承接 Character.AI 出走潮</td></tr>
+    <tr><td colspan="4" style="color:var(--muted);font-size:13px">繁中 HK/TW 專屬服務：研究內<b>搵唔到任何一個有規模嘅</b>。呢個就係空隙 —— 亦係下面第 4 點。</td></tr>
+  </table>
+
+  <!-- 3 -->
+  <h2><span class="n">3</span>要照飲嘅冷水：留客 + 收費</h2>
+  <p>呢段係最重要嘅 honest 提醒。研究強烈顯示 <span class="hl">呢個品類最難嘅唔係拉人入嚟，係留住人 + 收到錢</span>。</p>
+  <div class="grid g2">
+    <div class="card alt"><div class="stat" style="color:var(--bad)">~65%<span class="u"> ↓</span></div><div class="lab">2025 年初，大陸頭部 app 日下載集體插水：星野/猫箱 2 萬→7 千、筑夢島 3 千→1 千<a class="sup" href="#s13">[13]</a></div></div>
+    <div class="card alt"><div class="stat" style="color:var(--bad)">腰斬</div><div class="lab">唔止大陸 —— 連 Character.AI 日下載都由 17 萬跌到 9 萬。<b>係成個品類嘅新鮮感/留客問題</b>，唔係單一 app<a class="sup" href="#s13">[13]</a></div></div>
+    <div class="card alt"><div class="stat" style="color:var(--warn)">~1.5%</div><div class="lab">Character.AI 付費轉化率（2,000 萬月活 → 25–30 萬付費）。訂閱係主流但轉化偏低<a class="sup" href="#s7">[7]</a></div></div>
+    <div class="card alt"><div class="stat" style="color:var(--warn)">13×</div><div class="lab">海外（唔審查）Talkie 收入係大陸（被審查）星野嘅 13 倍 —— <b>審查市場賺得差太多</b><a class="sup" href="#s10">[10]</a></div></div>
+  </div>
+  <div class="note" style="background:rgba(248,113,113,.08);border-color:rgba(248,113,113,.3);color:#f0c0c0">
+    🔻 有分析師直接潑冷水：<b>純粹嘅 AI 陪伴 app 仲未係一個成立嘅「殺手品類」</b>，佢認為更好嘅路係將佢<b>嵌入大型遊戲做 NPC</b>，而唔係漫無目的傾偈。<a class="sup" href="#s5">[5]</a> —— 呢點啱啱對返你個「深模式有目標/擲骰/支線」嘅諗法：<span class="hl">有目標嘅故事（似遊戲）可能留客好過純陪伴。</span>
+  </div>
+
+  <!-- 4 -->
+  <h2><span class="n">4</span>成人 niche + 「中文圈藍海」裁決</h2>
+  <div class="grid g2">
+    <div class="card"><h3 style="margin-top:0">成人 / 唔審查</h3>
+      <ul>
+        <li>「唔審查」係<b>已證實</b>嘅出走 + 付費驅動力（Character.AI filter 迫走大批人）<a class="sup" href="#s7">[7]</a></li>
+        <li>大陸版連「擦邊」都要落架（MiniMax 早期嘅 Glow 疑因暗示性內容被下架）—— <b>需求真實但被審查壓住</b><a class="sup" href="#s10">[10]</a></li>
+        <li>大陸 app 受法規所限，<b>合法上做唔到成人</b> → 結構性留俾你</li>
+      </ul></div>
+    <div class="card"><h3 style="margin-top:0">中文圈藍海 — 半證實 ✓</h3>
+      <ul>
+        <li>大陸市場大，但<b>被審查綁死</b>：做唔到成人、又賺得差（星野 1/13）</li>
+        <li>海外 / 唔審查市場賺錢力強 13 倍</li>
+        <li><b>真空隙 = 服務唔到嘅「繁中 + 成人 + 海外華人」</b>，大陸大廠合法上入唔到呢個場</li>
+        <li>但 ⚠️ 品類留客難題照樣存在，唔係躺贏</li>
+      </ul></div>
+  </div>
+
+  <!-- 5 -->
+  <h2><span class="n">5</span>對你個 thesis 嘅逐項裁決</h2>
+  <table>
+    <tr><th>你個賭注</th><th>裁決</th><th>根據</th></tr>
+    <tr><td><b>唔審查成人</b></td><td><span class="badge b-good">強力證實</span></td><td>最強單一出走 + 付費驅動力；大陸大廠合法上入唔到</td></tr>
+    <tr><td><b>體驗層（現成角色 / 圖 / 手機 / 零門檻）</b></td><td><span class="badge b-good">強力證實</span></td><td>呢啲先係贏 ChatGPT 嘅實際原因</td></tr>
+    <tr><td><b>記憶 / 速度做護城河</b></td><td><span class="badge b-bad">市場否定</span></td><td>訂閱賣「更長記憶更快回覆」吸引力一般 → 確認降做「衞生」嘅 pivot 啱</td></tr>
+    <tr><td><b>中文圈藍海</b></td><td><span class="badge b-part">半證實</span></td><td>空隙真實（繁中+成人+海外華人），但留客難</td></tr>
+    <tr><td><b>輕 / 快 體驗</b></td><td><span class="badge b-part">間接支持</span></td><td>「~2 秒即回」係採用主因；但「快」本身唔係付費點</td></tr>
+  </table>
+
+  <!-- 6 -->
+  <h2><span class="n">6</span>引擎 / 體驗技術（較輕證據）</h2>
+  <p class="sub">呢部分嘅來源較少（部分技術文 fetch 失敗），以下係行業普遍共識，當參考唔當定論：</p>
+  <ul>
+    <li><b>大 context 對短故事够用且更穩</b>：一個連貫故事裝得落 context window 時，原文全文比「搵返片段（RAG）」更一致。RAG 主要喺<b>跨好多文件 / 超長歷史</b>先回本。</li>
+    <li><b>「迷失喺中間」效應</b>：context 太長時，model 容易忽略中段資訊 —— 即係一味塞長唔等於記得好。</li>
+    <li><b>逐字串流大幅提升「感覺快」</b>：就算總時間一樣，逐粒字浮出嚟主觀上快好多 —— 直接對應你成人模式 Grok「等成段先彈」嘅痛點。</li>
+  </ul>
+
+  <!-- 7 -->
+  <h2><span class="n">7</span>建議：先做乜、點收費</h2>
+  <p>數據指向一個好清晰嘅次序（同我哋傾嘅「輕模式做主打」完全一致）：</p>
+  <div class="rec"><div class="rank">1</div><div><b>唔審查成人 + 現成靚故事/角色（零門檻）</b><div class="sub">呢個係最強付費驅動 + 大陸大廠入唔到嘅結構性護城河。確保「揀個故事撳一下就玩」夠快夠順。</div></div></div>
+  <div class="rec p2"><div class="rank">2</div><div><b>體驗層：插圖 + 手機原生 + 角色卡</b><div class="sub">贏 ChatGPT 嘅實際原因。圖一定要背景生成，唔阻出文。</div></div></div>
+  <div class="rec p3"><div class="rank">3</div><div><b>留客機制：「有目標嘅故事」而唔係漫無目的傾偈</b><div class="sub">品類死穴係留客；分析師建議「畀佢一個目標 / 似遊戲」。呢個正路就係你個「深模式」嘅擲骰/支線/進度 —— 但要做到「賺到先使」，唔好成日開住拖慢。</div></div></div>
+  <div class="rec p4"><div class="rank">4</div><div><b>記憶引擎：降級做後台「衞生」</b><div class="sub">唔好再當賣點宣傳、唔好成日開住燒錢拖慢。留返「故事玩到好長」先出手。</div></div></div>
+  <h3>收費</h3>
+  <p>訂閱係主流但轉化低（~1.5%）。<span class="hl">真正肯畀錢嘅點係「解鎖唔審查 + 深度體驗」</span>，唔係「更長記憶」。建議：免費策展故事拉人入嚟 → 成人 / 深模式收費。對齊返我哋傾嘅「輕=平=拉人、深=貴=Pro」。</p>
+
+  <!-- sources -->
+  <h2><span class="n">＊</span>來源（已人手核對質素 · 已剔除不可靠來源）</h2>
+  <div id="s1" class="src"><span class="tag t-sec">分析</span><a href="https://www.similarweb.com/blog/insights/ai-news/character-ai-engagement/">[1] Similarweb — Character.AI 互動數據（25.4 vs 8.4 分鐘）</a></div>
+  <div id="s3" class="src"><span class="tag t-pri">一手/創投</span><a href="https://a16z.com/how-are-consumers-using-generative-ai/">[3] a16z — 消費者點用生成式 AI（Character.AI = 第二大）</a></div>
+  <div id="s4" class="src"><span class="tag t-sec">新聞</span><a href="https://news.qq.com/rain/a/20231120A00OOS00">[4] 騰訊新聞 — 星野 多模態 + 乙女向 + 6 種對話控制</a></div>
+  <div id="s5" class="src"><span class="tag t-sec">財經新聞</span><a href="https://www.nbd.com.cn/articles/2025-07-04/3933446.html">[5] 每日經濟新聞 — 筑夢島/猫箱數據 + 「不如做遊戲 NPC」分析</a></div>
+  <div id="s7" class="src"><span class="tag t-sec">新聞</span><a href="https://ts2.tech/en/why-everyones-talking-about-character-ai-in-2025-major-updates-new-ceo-controversy/">[7] ts2.tech — Character.AI 2025 數據 / 收費 / filter 出走潮</a></div>
+  <div id="s8" class="src"><span class="tag t-blog">評測</span><a href="https://tribulant.com/blog/software/ai-roleplay-chatbot-software-comparison/">[8] Tribulant — 角色扮演 app 比較（零門檻 + ~2 秒 + Janitor 無 filter）</a></div>
+  <div id="s9" class="src"><span class="tag t-sec">財經</span><a href="https://wallstreetcn.com/articles/3721506">[9] 華爾街見聞 — Talkie 1,100 萬月活 / 扭蛋寶石玩法</a></div>
+  <div id="s10" class="src"><span class="tag t-sec">新聞</span><a href="https://news.qq.com/rain/a/20250429A09E1X00">[10] 騰訊新聞 — Talkie $3.22M vs 星野 $244K / Glow 落架 / 擦邊需求</a></div>
+  <div id="s11" class="src"><span class="tag t-sec">新聞</span><a href="https://news.qq.com/rain/a/20250429A09E1X00">[11] 騰訊新聞 — 用戶當「陪伴玩具」唔當生產力工具</a></div>
+  <div id="s12" class="src"><span class="tag t-sec">新聞</span><a href="https://news.qq.com/rain/a/20250414A03G5100">[12] 騰訊新聞 — 訂閱「更長記憶更快回覆」吸引力一般</a></div>
+  <div id="s13" class="src"><span class="tag t-sec">新聞</span><a href="https://news.qq.com/rain/a/20250414A03G5100">[13] 騰訊新聞 — 品類下載集體插水（連 Character.AI 腰斬）</a></div>
+  <div class="src" style="border:none"><span class="tag t-blog">引擎參考</span><a href="https://redis.io/blog/rag-vs-large-context-window-ai-apps/">RAG vs 大 context</a> · <a href="https://mem0.ai/blog/the-2026-token-optimization-playbook-cut-ai-agent-memory-costs-3%E2%80%934x">記憶成本優化</a></div>
+
+  <div class="foot">研究自我檢查步驟因系統 bug 失效；以上數字由原始來源人手核對，並標明信心程度。單一來源嘅具體數字當「方向」睇，唔當「精確」。</div>
+</div>
+</body>
+</html>

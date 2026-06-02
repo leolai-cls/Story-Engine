@@ -7,6 +7,17 @@
 
 ---
 
+## ADR-025 — LIGHT-CORE PIVOT（拎走 GM/四層 · 非成人轉 Claude）
+**Date**: 2026-06-02 · **Status**: ✅ Accepted（Wave 1 實作完 · 未部署測）
+
+**Decision**: 放棄 Session 16 四層 GM 架構。每回合近乎直出（玩家輸入 → 搵記憶 → 單 Narrator）。非成人 narrator = Claude 直連（Standard=Sonnet · Pro=Opus · 真逐字串流 + cache）；成人 = Grok 不變。記憶照留但降做「衞生」。擲骰移出核心（→ 將來深模式）。
+
+**Context**: founder 親手玩 Session 16 實作 → 比 raw LLM 更慢 + 回合間更唔一致 + 感受唔到差異。市場研究 + 7 人策略委員會驗證：護城河 = 中文圈 + 唔審查 + 體驗層 + 用戶累積嘅關係連續性，唔係記憶引擎（「更長記憶」賣唔到錢）。
+
+**Consequences**: 取代架構級 ADR-001（GM）。賺錢同 token margin 脫鈎 → 配套（生圖/影片/充值）。完整見 `pm/architecture/decisions.md` ADR-006 + `CLAUDE.md` 頂部 banner + `rebuild-plan-light-core.html`。Wave 2 = 角色 → MD + keyword 調用（MemPalace 式）。
+
+---
+
 ## ADR-024 — 成人向 narrator: GLM 5.1 → Grok 4.1
 **Date**: 2026-06-01 · **Status**: ✅ Accepted
 

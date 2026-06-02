@@ -14,6 +14,23 @@
 
 ---
 
+## 🆕 LIGHT-CORE PIVOT（Session 17 · 2026-06-02 · 取代 Session 16 四層架構）
+
+> ⚠️ Founder 親自玩完後嘅重大方向修正。**新 session 讀呢段 = 知道核心架構現狀。** 下面任何「四層 GM / 記憶引擎 = 護城河 #1 / 角色靈魂沉澱」嘅段落，凡同呢段衝突，以呢段為準。
+
+**起因**：founder 親手玩 → 發現比 raw LLM（ChatGPT）更慢 + 回合間更唔一致 + 感受唔到差異。經市場研究（`market-positioning-research.html`）+ 7 人策略委員會（`strategy-committee-*.html`）驗證。
+
+**新核心方向**：
+- **輕核心**：每回合近乎直出 —— 玩家輸入 → 搵記憶 → Narrator 直接講故事。**拎走 GM/Director 四層仲裁**（取代 ADR-001；玩起上嚟似 raw LLM、最少干預）。擲骰 / skill-check 移出核心（→ 將來「深模式」opt-in）。
+- **Model**：**非成人 → Claude 直連**（Standard = Sonnet · Pro = Opus · 真逐字串流 + prompt cache）；**成人 → Grok**（CrazyRouter · 不變 · hard rule #5）。⚠️ CrazyRouter buffer 晒所有 model，只有 Claude 直連先真串流。
+- **記憶系統照留**（4 層 + 角色卡），但**由「護城河 #1」降做「衞生」**（市場證實「更長記憶 / 更快回覆」賣唔到錢）。
+- **定位**：核心 = 人人玩到嘅 text RPG（戀愛 / 冒險 / 劇情）；**成人 = 一個差異化 feature，唔係核心身份**（唔標榜成人，暗示做到就得）。真護城河 = 中文圈 + 唔審查 + 體驗層（策展靚故事 / 圖 / 手機 / 零門檻）+ 用戶累積嘅關係連續性（唯一真 switching cost）。
+- **賺錢**：核心做平做快（loss-leader），錢喺**配套**（生圖 / 將來影片 / 充值），同 token margin 脫鈎。
+
+**狀態（2026-06-02）**：Wave 1 已實作 + build 過 + 兩輪審計修好（branch `feat/light-core-wave1` · 3 commit · **未 merge · 未部署測**）。**Wave 2** = 角色 → MD + keyword 調用（MemPalace 式）。完整：`pm/architecture/decisions.md` ADR-006 + `rebuild-plan-light-core.html`。
+
+---
+
 ## 同呢位用戶合作嘅風格
 
 用戶 = **創意 + 商業 partner**，**冇 technical background**。Claude 對佢嘅角色係 **vibe coding 拍檔** + technical translator + 執行者。
@@ -219,4 +236,4 @@
 
 ---
 
-_Last updated: 2026-06-01 (Session 16 — 🧭 CORE ARCHITECTURE REDESIGN · founder 梳理「記憶 + 角色靈魂 = 產品最重要」· 開咗 `pm/architecture/` folder（哲學 / turn pipeline / 角色靈魂 / 記憶 / 自適應系統 / 自適應介面 + 5 ADR + 名詞表）· GM 由決策者降做 prep 員（取代舊 Director）· 角色三層靈魂 + 沉澱張力 · MemPalace 藍本重建唔內嵌 · 移除角色硬紅線只守法律底線 · DESIGN LOCKED IMPL PENDING · 🐛 同場修好 play 兩個 bug（skill 徽章 live + 生圖 fallback chain）PR #51 已 merge prod · added hard rules #37-38 · 🏁 next = 角色靈魂 + GM 重構實作)_
+_Last updated: 2026-06-02 (Session 17 — 🆕 **LIGHT-CORE PIVOT**（見頂部 banner）· founder 親手玩完發現比 raw LLM 更慢+更唔一致+冇差異 → 拎走 GM/四層仲裁、非成人轉 Claude 直連（Standard=Sonnet / Pro=Opus · 真串流 + cache）、成人維持 Grok、記憶降做衞生、擲骰移出核心 · 取代 Session 16 四層架構（`pm/architecture/decisions.md` ADR-006 supersedes ADR-001）· 市場研究 + 7 人策略委員會驗證 · Wave 1 ✅ 實作完 + build + 兩輪深度審計修好 3 個 ship-blocker（真串流原本死咗 / 非成人 CSAM 漏 / cached token 雙收費 — hard rule #4）· branch `feat/light-core-wave1` 3 commit · **未 merge 未部署** · W3 migration `0057` 待 confirm · Wave 2 = 角色 MD+keyword（MemPalace 式）· 同場清走 stale docs（18 audit reports + 舊 scratch）+ 更新 CLAUDE/STATUS/architecture · 🏁 next = 部署去 preview 俾 founder 試真串流/Sonnet 質素)_

@@ -39,12 +39,12 @@
 
 根因：阿俊只係一句過場 mention → lorebook extractor 按「skip walk-ons」規則冇收錄 → 下回合 Narrator 只靠近期 turn 全文 grounding，弱 model 冇 catch 住「阿俊」呢個一閃名 → 即興作個新名。**記憶系統冇錯（turn 2 全文確實喺 context），係弱 model 一致性問題。** 第 0 層名冊就係將「AI 提過嘅每個名」變成一個明確清單餵返 Narrator，令佢有 quick reference 防 retcon。
 
-### 第 0 層設計要點 (實作待定)
-- **寫入**：純 code (regex / 抽 AI 敘事入面嘅人名) · 一提到就記 {turn, 名, 一句} · 無 LLM (對應 07 機械式)
-- **餵 Narrator**：每 turn 一個 "本故事至今提過嘅名" 清單 + prompt 教「呢啲名係 canon · 必須一致 · 唔可改名/話冇」(anti-retcon)
-- **清理**：有上限 (最近 N 個 / 最近 M 回合提過) · 冇再出現嘅淡出 · 防 200 回合爆 context
-- **同 lorebook 邊界**：名冊 = 純 mention 追蹤 (輕)；lorebook = 有描述 entity (重)。名冊唔重複 lorebook 嘅嘢
-- **Phase**：DESIGN · 實作排 Stage 3 / 角色靈魂 backlog。即時止血可先做 Narrator anti-retcon prompt 規則 (唔使等名冊)
+### 第 0 層設計要點 (✅ 已實作 · Session 17 · 2026-06-01 · PR #57 · migration 0056)
+- **寫入**：唔用 regex(中文人名難 regex) · 改為**重用既有 Haiku `extractTurnState` call**(本身每回合都讀緊敘事)· 加一個 `mentioned_characters` field 攞今回合提到嘅非主角名 · **只攞名(string[])·唔攞描述**(保護嗰個關鍵 extractor 唔爆 grammar ceiling · hard rule #10)· **唔加新 LLM call**。`mention-roster.ts` 純邏輯 merge `{name, turn}`(dedup·排除主角·capped 40)
+- **餵 Narrator**：每 turn 將名冊砌成內部 block(wrapped `[INTERNAL CONTEXT — DO NOT QUOTE]`)注入 dynamic prompt。措辭 = 「呢啲名出現過·係 canon·保持一致·唔好否認佢哋存在」**但唔用死規矩** —— ⚠️ founder **否決咗**硬性「必須一致·唔可改名」嘅 anti-retcon prompt(嗰種死規矩會殺死報假名/講大話/之後揭身份等合理橋段)。名冊只係**記低 + 提醒**·唔強制
+- **存**：`playthroughs.mention_roster` jsonb(migration 0056)· capped 40(按 turn 保留最早出場)· 失敗回合唔變
+- **同 lorebook 邊界**：名冊 = 純 mention 追蹤(輕)；lorebook = 有描述 entity(重)。名冊唔重複 lorebook 嘅嘢
+- **配合 model swap**：成人向已換 Grok(前沿一致性·少 retcon · ADR-024)；名冊主要為 **Standard 弱 model(GLM/Gemini)** 兜底防 retcon
 
 ---
 

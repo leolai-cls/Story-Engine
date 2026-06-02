@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kieio 策略委員會 — 完整會議紀錄</title>
+<style>
+  :root{
+    --bg:#0f1115; --card:#171a21; --card2:#1d2129; --ink:#e7e9ee; --muted:#9aa1ad;
+    --line:#2a2f3a; --accent:#8b7cf6; --good:#34d399; --warn:#fbbf24; --bad:#f87171;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:linear-gradient(180deg,#0c0e12,#0f1115 240px);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
+    line-height:1.78;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:880px;margin:0 auto;padding:40px 22px 90px}
+  .kicker{color:var(--accent);font-weight:700;letter-spacing:.14em;font-size:12px;text-transform:uppercase}
+  h1{font-size:27px;line-height:1.3;margin:8px 0 4px;font-weight:800}
+  .sub{color:var(--muted);font-size:13.5px}
+  .round{margin:40px 0 6px;padding:12px 16px;border-radius:12px;font-size:18px;font-weight:800;
+    background:linear-gradient(90deg,rgba(139,124,246,.18),transparent);border:1px solid var(--line)}
+  .member{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-top:16px}
+  .chip{display:inline-block;font-size:13px;font-weight:800;padding:4px 12px;border-radius:999px;margin-bottom:6px}
+  .c-vc{background:rgba(34,211,238,.15);color:#67e8f9}
+  .c-growth{background:rgba(52,211,153,.15);color:#6ee7b7}
+  .c-arch{background:rgba(139,124,246,.18);color:#c4b5fd}
+  .c-rp{background:rgba(244,114,182,.15);color:#f9a8d4}
+  .c-cn{background:rgba(251,191,36,.15);color:#fcd34d}
+  .c-red{background:rgba(248,113,113,.18);color:#fca5a5}
+  .c-money{background:rgba(163,230,53,.15);color:#bef264}
+  .speech p{margin:9px 0;color:#d9dce2;font-size:14.5px}
+  .speech b{color:#fff}
+  .vote{margin-top:12px;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:13.5px}
+  .vote .vt{font-weight:800;color:var(--accent2,#22d3ee);margin-bottom:6px;letter-spacing:.04em}
+  .vr{margin:4px 0;color:#cdd1d9}
+  .vr .p{display:inline-block;font-weight:800;color:#fff;width:30px}
+  .v{display:inline-block;min-width:58px;text-align:center;padding:1px 7px;border-radius:6px;font-size:11.5px;font-weight:800;margin-right:6px}
+  .v-y{background:rgba(52,211,153,.18);color:#6ee7b7}.v-c{background:rgba(251,191,36,.16);color:#fcd34d}.v-n{background:rgba(248,113,113,.18);color:#fca5a5}
+  .vm{margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);color:#aab0bb;font-size:13px}
+  .vm b{color:#e7e9ee}
+  .foot{color:var(--muted);font-size:12.5px;margin-top:30px;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kicker">Kieio · 策略委員會 · 完整會議紀錄</div>
+  <h1>七人委員會 · 兩輪辯論 · 逐字紀錄</h1>
+  <div class="sub">2026-06-02 · 已清走發言中嘅英文草稿部分，保留各委員實際繁中發言 · 5 個議案：P1 輕模式止血 / P2 護城河重定位 / P3 兩模式架構 / P4 似遊戲留客 / P5 整體 Go-or-No-Go</div>
+
+  <!-- ===================== ROUND 1 ===================== -->
+  <div class="round">第一輪 · 各自獨立發表</div>
+
+  <!-- VC R1 -->
+  <div class="member">
+    <span class="chip c-vc">懷疑派創投</span>
+    <div class="speech">
+      <p>投票前我講最尖嗰句：你哋成個團隊呢一年燒咗最多力嘅嘢（記憶引擎、角色靈魂、GM 仲裁、NPC 各自諗），市場研究啱啱證明咗係「用戶唔肯畀錢」嗰類。而真正有人畀錢嗰兩樣（唔審查、零門檻現成角色），你哋一樣未真正 ship。呢個錯配本身就係我最大嘅 concern。</p>
+      <p><b>P1【輕模式做主打】</b>支持，而且係救命。你個產品而家輸俾 ChatGPT，唔係因為 ChatGPT 叻，係因為你自己加咗五層工序拖慢又整壞一致性 —— 你親手 de-feature 咗自己。砍走 GM 仲裁、逐字串流、全文俾佢睇，呢個唔係妥協，係止血。Character.AI 後台冇你複雜，但停留時間係 ChatGPT 三倍，證明「快+順+角色一致」先係留客貨幣。</p>
+      <p><b>P2【護城河重定位】</b>有條件支持。方向啱（體驗層+唔審查+中文圈），但要老實：呢三樣冇一樣係「硬」護城河。唔審查係監管套利（隨時被支付商/法律 KO）、策展靚故事係營運壁壘（可抄）、中文圈係領先優勢非護城河。我接受你 reframe，但唔好呃自己呢度有「對手要 6-12 個月先抄到」嘅嘢。</p>
+      <p><b>P3【兩模式架構】</b>反對（住先）。你而家連輕核心都未 ship 順，就講埋深模式分支 = 過早複雜化，正正係令你今日變慢嘅同一個病。深模式留喺 backlog，等輕模式有留存數據先講。</p>
+      <p><b>P4【似遊戲有目標】</b>有條件支持。呢個可能係你真正未被驗證嘅差異化（「互動故事」vs 純陪伴），方向比記憶引擎值博。但未經市場證明，要當實驗、細範圍試，唔好當地基。</p>
+      <p><b>P5【Go/No-Go】</b>有條件 Go（細注、設止損）。品類下載插水 65%、轉化 1.5%、solo dev 押成人法律+支付風險 —— 唔係一盤我會大注 lead 嘅生意。但沉沒成本已建好、邊際成本低、唔審查+中文圈確有未被服務嘅縫。當係一個低燒錢嘅試探注，3 個月內見唔到留存就轉或者收。</p>
+      <p>最毒嗰條我照答：當大 model 越強，你會唔會只係個快被碾嘅殼？會 —— 如果護城河係「記憶/智能」。所以 P2 reframe 反而救你：你嘅殼要建喺 model 唔會幫你解決嘅嘢（策展內容、社群、唔審查、中文圈分發、品牌），呢啲 model 變強都唔會自動送俾用戶。</p>
+    </div>
+    <div class="vote"><div class="vt">投票</div>
+      <div class="vr"><span class="p">P1</span><span class="v v-y">支持</span>砍走自加嘅五層工序係止血，唔係妥協</div>
+      <div class="vr"><span class="p">P2</span><span class="v v-c">有條件</span>方向啱但三樣都係軟護城河，唔好自欺有硬壁壘</div>
+      <div class="vr"><span class="p">P3</span><span class="v v-n">反對</span>輕核心未順就分兩模式 = 重蹈令你變慢嘅覆轍</div>
+      <div class="vr"><span class="p">P4</span><span class="v v-c">有條件</span>似遊戲目標可能係真差異化，但當實驗唔當地基</div>
+      <div class="vr"><span class="p">P5</span><span class="v v-c">有條件Go</span>細注試探、設 3 個月留存止損，唔值大注 lead</div>
+      <div class="vm"><b>最大隱憂：</b>團隊把火燒晒喺市場證明冇人畀錢嘅嘢（記憶/角色靈魂），真正驅動付費嗰兩樣（唔審查、零門檻角色）反而未 ship</div>
+      <div class="vm"><b>第一建議：</b>即刻砍 GM 仲裁出輕模式、逐字串流，攞返同 ChatGPT 至少打平嘅基本盤，然後只盯一個數 —— 第二週留存</div>
+    </div>
+  </div>
+
+  <!-- Growth R1 -->
+  <div class="member">
+    <span class="chip c-growth">增長 / 產品負責人</span>
+    <div class="speech">
+      <p>作為增長/產品負責人，我淨係問一條問題：<b>新用戶頭一分鐘有冇被勾住，第 7 日點解會返嚟。</b>用呢把尺睇 5 個議案。</p>
+      <p><b>P1（輕模式做主打）</b>：我最支持呢個。研究擺明「更快回覆/更長記憶」唔係賣點，但呢度有個關鍵分別 —— <b>速度唔係賣點，但慢係殺手</b>。對手 2 秒回，你每回合等成分鐘（成人模式仲要等成段先彈），呢個直接謀殺第一分鐘嘅 hook。第一回合慢過 10 秒，七成人走咗，根本未到「記性好唔好」呢個層次。砍走 GM 仲裁、逐字串流，係救命，唔係優化。</p>
+      <p><b>P2（護城河重定位）</b>：支持。但要講白 —— 你嘅護城河其實係「現成、零門檻、唔審查、靚故事」呢個入場體驗，唔係後台記憶引擎。研究已經話畀你聽冇人為「記性」畀錢。我見過太多 team 死喺度：用半年起一個玩家三回合根本感受唔到嘅後台，攞嚟做差異化。記憶做差會輸，做好都唔會贏 —— 應該當衞生，唔係當賣點。</p>
+      <p><b>P3（兩模式架構）</b>：有條件支持，但我最警惕呢個。每加一個「模式」就係加一層複雜度同上手摩擦。如果「深模式」係玩家自己撳、或者你偷偷喺後台跑，OK；但如果係要玩家理解「我而家係輕定深」，就會分散注意力、拖慢、製造唔一致。我只接受「玩家無感、系統自動」嘅版本。</p>
+      <p><b>P4（似遊戲嘅目標留客）</b>：強烈支持，呢個係我最睇好嘅留客引擎。純陪伴傾偈冇 retention hook，但「有目標、有進度、有下一步」係經典 D1/D7 引擎 —— 玩家返嚟係因為「我上次差啲就到」。呢個比記憶引擎更能解決品類死穴。</p>
+      <p><b>P5（Go/No-Go）</b>：有條件 Go。品類下載插水 65%、轉化 1.5%，但呢啲數係「純陪伴」嘅數；你有兩張別人冇嘅牌（唔審查成人+中文圈+似遊戲目標）。條件係：先用最低成本驗證「會唔會有人返嚟」，唔好未證明留存就燒錢起 feature。</p>
+      <p>我最關心嘅事：<b>而家連一個乾淨嘅第一分鐘 demo 都未有。</b>速度問題唔修好，其他全部討論都係空談 —— 因為玩家根本捱唔到睇到你嘅好。</p>
+    </div>
+    <div class="vote"><div class="vt">投票</div>
+      <div class="vr"><span class="p">P1</span><span class="v v-y">支持</span>速度唔係賣點但「慢」係留客殺手，逐字串流救第一分鐘</div>
+      <div class="vr"><span class="p">P2</span><span class="v v-y">支持</span>記憶冇人畀錢，護城河係零門檻+唔審查+靚故事嘅入場體驗</div>
+      <div class="vr"><span class="p">P3</span><span class="v v-c">有條件</span>只接受「玩家無感、系統自動切換」，唔可以叫玩家自己揀模式</div>
+      <div class="vr"><span class="p">P4</span><span class="v v-y">支持</span>有目標/進度嘅遊戲化引擎係解品類留客死穴最直接嘅嘢</div>
+      <div class="vr"><span class="p">P5</span><span class="v v-c">有條件Go</span>兩張獨有牌值博，但要先用最平方法證明有人 D7 返嚟先燒錢</div>
+      <div class="vm"><b>最大隱憂：</b>而家根本未有一個快、流暢、第一分鐘就勾住人嘅 demo，所有定位討論都係建喺呢個未解決嘅地基上</div>
+      <div class="vm"><b>第一建議：</b>即刻砍走每回合 GM 仲裁、改逐字串流，攞「第一回合 3 秒內見字」做唯一指標，其餘背景化</div>
+    </div>
+  </div>
+
+  <!-- Arch R1 -->
+  <div class="member">
+    <span class="chip c-arch">技術架構師</span>
+    <div class="speech">
+      <p>作為技術架構師，我嘅判斷係：呢 5 個議案最值錢嘅地方，係佢哋幫你停止燒錢喺一個「用戶根本唔肯為佢畀錢」嘅後台，而唔係叫你 launch 一個新功能。</p>
+      <p><b>P1（輕模式做主打）</b> —— 技術上 100% 做到，而且係你而家最該做嘅嘢。你個 pipeline 文件白紙黑字寫住現狀係「2 個 model call（Director + Narrator）」，目標係「1 個」。砍 Director、審查同抽狀態搬去背景（你 code 已經用緊呢個 pattern），每回合慢一半、平一半、drift 即刻收窄 —— 因為 drift 嘅最大來源就係兩個 model 各自詮釋。呢個係<b>真簡化</b>，唔係換個方式繼續複雜。</p>
+      <p><b>P2（護城河重定位）</b> —— 同意，但要講清楚：唔係叫你拆走記憶引擎，而係<b>唔好再為佢做到爆</b>。你已經建咗信念圖譜、沉澱張力、4 層記憶 —— 呢啲係「做差會輸、做好都唔會贏」嘅衞生工序，研究亦印證「更長記憶」賣唔到錢。降做後台、唔再投資，啱。</p>
+      <p><b>P3（兩模式架構）</b> —— 最危險嘅一個。「輕核心+深 opt-in」聽落靚，但對一個 solo dev，呢個係<b>換個方式繼續複雜</b>：你要同時養兩條 pipeline、兩套成本模型、兩套 bug 面，永遠 2x 維護。請唔好整個對等嘅「深模式」層，只保留<b>可選單一加料</b>（例如某類故事先開 NPC 各自諗），而且預設全關。</p>
+      <p><b>P4（似遊戲留客）</b> —— 平台你已經有（故事自生成 mechanics / 擲骰），所以呢個係<b>內容同設計</b>問題，唔係架構問題。低成本、對留存有真槓桿，支持，但唔好當技術里程碑。</p>
+      <p><b>P5（Go/No-Go）</b> —— 有條件 Go。品類下載插水 65%、轉化 1.5% 係真陰影，但你嘅技術底子已經 launch-ready（Stripe/驗證/多語全完），沉沒成本已付。唯一<b>真技術紅旗 = 成人模式靠 Grok，而 CrazyRouter 條線係「成段寫晒先彈」唔串流</b>，等成分鐘 —— 呢個你自己 model 揀唔到、改唔到，係供應商層問題。要 Go 嘅前提係先確認有冇串流得到嘅 uncensored model 替代，否則你最賺錢嗰個模式（成人）體驗最差。</p>
+    </div>
+    <div class="vote"><div class="vt">投票</div>
+      <div class="vr"><span class="p">P1</span><span class="v v-y">支持</span>pipeline 文件已寫明 2→1 call 係目標，砍 Director 係唯一真簡化，慢同 drift 同源</div>
+      <div class="vr"><span class="p">P2</span><span class="v v-y">支持</span>記憶/靈魂係衞生工序非賣點，停止過度投資但保留勿拆</div>
+      <div class="vr"><span class="p">P3</span><span class="v v-c">有條件</span>唔好建對等深層 pipeline，只准單一可選加料+預設全關，否則 solo dev 養唔起 2x 維護</div>
+      <div class="vr"><span class="p">P4</span><span class="v v-y">支持</span>平台已有自生成 mechanics，呢個係內容/設計工作非技術里程碑，低成本高留存槓桿</div>
+      <div class="vr"><span class="p">P5</span><span class="v v-c">有條件Go</span>技術底已 launch-ready，但 Go 嘅硬前提係解決成人 Grok 唔串流</div>
+      <div class="vm"><b>最大隱憂：</b>成人模式（你最賺錢嗰邊）受制於 CrazyRouter 嘅 Grok 唔逐字串流，每回合等成分鐘，呢個係你改唔到嘅供應商死結，會直接殺掉付費體驗</div>
+      <div class="vm"><b>第一建議：</b>即刻喺 CrazyRouter 上面試晒邊啲 uncensored model 係 token 串流（而唔係 buffered）+ 同步起一條只剩 Narrator 嘅輕 pipeline 落 staging 量返真實每回合秒數同成本，攞數據先拍板</div>
+    </div>
+  </div>
+
+  <!-- RP R1 -->
+  <div class="member">
+    <span class="chip c-rp">AI 角色扮演領域專家</span>
+    <div class="speech">
+      <p>核實完技術前提：診斷報告同架構文件確認咗，成人模式真係每回合三個 model 串住（Haiku GM → Grok Narrator → 背景），Grok 經供應商係 buffered 唔逐字串流，而 GM 判斷過敏 + pushback 提示變死 script 係真實後台數據實證，唔係創辦人錯覺。呢啲坐實咗 P1 嘅迫切性。</p>
+      <p><b>核心判斷：單靠「唔審查成人」係護城河，但係一條淺護城河。</b>Character.AI 趕客 → Janitor 接收呢個遷徙係真，需求係硬嘅；但 Janitor 本身就證明咗呢條河有幾淺 —— 佢用 BYOK（自己駁 model）、體驗粗糙，照樣食到大批人，因為用戶要嘅唔係「好體驗」，係「無人管我」。即係話「唔審查」本身唔會 lock 住人，佢只係入場券。中文圈呢張入場券有區域+語言護城（大陸大廠法律上做唔到成人，Talkie vs 星野 13 倍收入差距已證），所以你嘅真‧護城河 = <b>唔審查 × 中文圈 × 過得去嘅體驗</b>三者疊埋，任何單一條都唔夠。</p>
+      <p><b>真正 retention 機制（領域實證）：</b>唔係記憶、唔係速度。係（1）<b>情感依附</b> —— 用戶同一個角色/世界建立關係，呢個係 25 分鐘 vs 8 分鐘嘅來源；（2）<b>零摩擦重入</b> —— 撳就玩、秒回、手機，Character.AI 嘅 2 秒回覆係上癮引擎；（3）<b>色情</b>作為原始留存（殘酷但真）。你個產品而家三樣都輸：載入慢殺（2）、GM script 化殺（1 嘅沉浸）、品類本身（3）你有但被慢同 drift 拖累。所以致命傷唔係策略，係執行 —— 產品而家比 ChatGPT 差，呢個觀察我同意。</p>
+      <p><b>逐案：</b>P1 啱大方向但要 reframe —— 慢嘅主因唔淨係 GM 仲裁，係 Grok buffered 唔串流，就算砍晒 GM，成人回合一樣等成分鐘，所以 P1 必須綁定「換可串流 model 或前端假串流」一齊做。P2 我<b>強烈支持</b>：將記憶/角色靈魂由「護城河 #1」降做衞生係今日最重要嘅認知矯正。P3 有條件支持但警告：兩模式 = 兩條 codepath，solo dev 維護地獄，深模式應該係「同一輕核心 + 背景非阻塞增強」唔係第二條同步管線。P4「似遊戲有目標」係品類續命真藥（陪伴 app 集體插水正正因為漫無目的），但成人向用戶嘅「目標」唔係支線任務係<b>關係推進</b>，要對。P5 我畀有條件 Go：需求真、區域護城真，但執行未到 ChatGPT 水平之前唔好諗錢。</p>
+    </div>
+    <div class="vote"><div class="vt">投票</div>
+      <div class="vr"><span class="p">P1</span><span class="v v-c">有條件</span>砍 GM 啱，但唔同時解決 Grok 唔串流（換 model 或前端假串流），砍完一樣慢，治標唔治本</div>
+      <div class="vr"><span class="p">P2</span><span class="v v-y">支持</span>記憶/靈魂降做衞生係今日最關鍵矯正；你為咗用戶唔畀錢嘅後台，拖死咗佢肯畀錢嘅前台體驗</div>
+      <div class="vr"><span class="p">P3</span><span class="v v-c">有條件</span>概念啱，但「深模式」要做成輕核心嘅背景非阻塞增強，唔好整第二條同步管線</div>
+      <div class="vr"><span class="p">P4</span><span class="v v-y">支持</span>有目標似遊戲係品類續命真藥，但成人向嘅「目標」=關係推進，唔係擲骰支線，要落對</div>
+      <div class="vr"><span class="p">P5</span><span class="v v-c">有條件Go</span>需求真、中文圈+成人區域護城真；條件係未追平 ChatGPT 體驗前唔好碰錢</div>
+      <div class="vm"><b>最大隱憂：</b>護城河太淺太易抄 —— 「唔審查」係入場券唔係城牆，一旦對手都唔審查，你淨低得「中文圈+體驗」，而你體驗家陣係負分</div>
+      <div class="vm"><b>第一建議：</b>即刻止血速度 —— 成人回合改前端逐字假串流（後端 buffered 照收、前端模擬打字），同步砍 GM 判斷，令「撳就玩、秒見字」成立，一個改動同時救速度同沉浸兩個致命傷</div>
+    </div>
+  </div>
+
+  <!-- CN R1 -->
+  <div class="member">
+    <span class="chip c-cn">中文圈市場 + 文化專家</span>
+    <div class="speech">
+      <p><b>作為中文圈市場+文化專家，我最核心嘅判斷：你個空隙係真，但「賺到錢」嘅證據比你諗緊嘅弱，而且最大威脅唔係技術，係支付同污名。</b></p>
+      <p><b>P1（輕模式做主打）</b>對。但要講白：砍 GM 仲裁唔係「降級」，係 Character.AI 同 Janitor 一直都係單 model 直出。你而家個架構係用工程複雜度去解一個冇人收錢嘅問題。港台用戶手機玩、地鐵玩，3 秒未出文字就走 —— 慢就是死。成人模式 Grok 唔串流（等成分鐘）係單一最致命傷，寧願換可串流嘅成人 model 都唔好留住 Grok。</p>
+      <p><b>P2（護城河重定位）</b>強烈支持，而且係你最重要嘅一個醒覺。記憶/角色靈魂係「做差會輸、做好唔會贏」嘅衞生因素，你之前當佢係 #1 護城河係策略誤判。真護城河 = 唔審查 + 繁中策展 + 海外華人觸達。但補一刀：Janitor 都唔審查、又免費，「唔審查」係入場券唔係護城河。你真正守得住嘅係<b>繁體中文 + 港台文化質感 + 合規支付</b>呢三樣大陸 app 同英文 app 都做唔到嘅交集。</p>
+      <p><b>P3（兩模式架構）</b>有條件支持，但要警告：呢個就係你而家慢嘅病根。深模式留住 = 技術債留住。solo dev 千祈唔好一開始就維護兩條 pipeline。應該係輕核心先 ship、賺到錢、有用戶數據證明真係有人想要深模式，先至加 —— 而唔係 day 1 兩條都養。</p>
+      <p><b>P4（似遊戲留客）</b>支持。純陪伴品類插水 65% 正正證明「漫無目的傾偈」留唔到客；有目標/支線/結局更像「玩一個故事」，啱你「做主角」定位，亦都係你對 Character.AI 嘅差異化。呢個係你被低估嘅武器。</p>
+      <p><b>P5（Go/No-Go）</b>有條件 Go。空隙係真：大陸 app（星野/猫箱）法律上做唔到成人，英文 app（Character.AI）中文質感差又收緊 filter，繁中成人互動故事確實冇人好好服務。但賺錢證據弱（轉化 1.5%、品類下載插水），所以唔好當主菜 all-in，當一個低成本驗證。</p>
+      <p><b>文化獨特賣點同地雷（你問我嘅核心）：</b></p>
+      <p>• <b>賣點</b>：繁體中文 + 港台語感（唔係大陸用語、唔係台灣腔硬套香港）+ 海外華人覆蓋，呢個交集確實得你哋食。台灣市場大過香港，文化包容度高，係主戰場。</p>
+      <p>• <b>地雷一（最致命）= 支付</b>：成人內容，香港/台灣本地支付通道（尤其涉及信用卡）好可能拒做或者凍結你 Stripe。呢個唔係技術問題，係生死問題。<b>必須喺 ship 之前確認支付方案。</b></p>
+      <p>• <b>地雷二 = 污名</b>：港台對「成人 + AI 陪伴」社會接受度低過西方，公開營銷會撞牆。要雙品牌或者低調入口。</p>
+      <p>• <b>地雷三 = 法律</b>：香港《淫褻及不雅物品管制條例》、台灣相關規管，18+ 自我聲明喺西方夠、喺港台未必夠 —— 至少要法律意見過一過。</p>
+    </div>
+    <div class="vote"><div class="vt">投票</div>
+      <div class="vr"><span class="p">P1</span><span class="v v-y">支持</span>慢就是死，單 model 直出 + 殺死 Grok 唔串流係生死線</div>
+      <div class="vr"><span class="p">P2</span><span class="v v-y">支持</span>記憶/靈魂係衞生因素唔係護城河，真護城河 = 繁中 + 港台質感 + 合規支付</div>
+      <div class="vr"><span class="p">P3</span><span class="v v-c">有條件</span>概念啱但唔好 day 1 養兩條 pipeline，輕核心驗證後先加深模式</div>
+      <div class="vr"><span class="p">P4</span><span class="v v-y">支持</span>有目標似遊戲正面打中品類「漫無目的留唔到客」死穴，啱「做主角」定位</div>
+      <div class="vr"><span class="p">P5</span><span class="v v-c">有條件Go</span>空隙真但賺錢未證實，當低成本驗證唔好 all-in</div>
+      <div class="vm"><b>最大隱憂：</b>成人內容喺港台嘅支付通道好可能被拒/凍結，呢個係生死問題，技術做得幾好都冇用</div>
+      <div class="vm"><b>第一建議：</b>ship 之前即刻搞掂兩件事 ——（1）確認一條敢做成人內容嘅支付通道，（2）換走 Grok 改用可逐字串流嘅成人 model</div>
+    </div>
+  </div>
+
+  <!-- Red R1 -->
+  <div class="member">
+    <span class="chip c-red">🔴 唱反調紅隊</span>
+    <div class="speech">
+      <p>呢個計劃最大嘅自欺，係將一場「我哋過去九個月起錯咗嘢」嘅證據，重新包裝成「再起多五件嘢」嘅 roadmap。創辦人親手玩到「同 ChatGPT 冇分別甚至更差」，就係市場研究已經預言咗嘅結局 —— 記憶同速度根本唔係人肯畀錢嘅嘢，而你哋恰恰將佢哋當咗護城河 #1、燒咗 17 個 session 落去。</p>
+      <p><b>P1（輕模式）</b>方向啱，但佢係供認，唔係創新。砍走 GM、串流、背景化審查 —— 呢啲做完，你個產品就正式變成「一個包住 model 嘅薄殼」，而薄殼正正最易被抄。而且成人模式用 Grok 經供應商係 buffered 唔係逐字，你 P1 嘅「逐字串流」對你最值錢嗰批用戶根本交付唔到 —— 技術上你解決唔到。</p>
+      <p><b>P2（護城河重定位）</b>危險。新「護城河」逐項都唔係護城河：唔審查 = CrazyRouter 一斷你即死、Apple/Google/Stripe 一句話你即冚；策展靚故事 = 一個人手作，對手用社群 UGC 量碾你；插圖手機 = 標配。你只係由一個假護城河搬去另一組更易冧嘅假護城河。</p>
+      <p><b>P3（兩模式）</b>solo dev 自殺。你連一個 pipeline 都未做到唔 drift、唔慢，而家要養兩條 + 一個自動路由判斷器。複雜度翻倍，測試翻倍，你係一個人。</p>
+      <p><b>P4（似遊戲留客）</b>係五個入面唯一有真留客理據嘅，但同時係最大新工程，而你連基礎敘事都未順。次序錯。</p>
+      <p><b>P5</b>你已經 17 個 session 沉沒成本，品類下載插水 65%、付費轉化 1.5%、純陪伴被分析師斷定「未成立」。理性嘅答案唔係 No-Go 落閘，係<b>收窄到一個你 solo + 純 Grok 都贏到嘅缺口</b>：成人 + 中文 + 一兩個殺手故事，擺低記憶/角色靈魂/自適應介面所有重工。</p>
+    </div>
+    <div class="vote"><div class="vt">投票</div>
+      <div class="vr"><span class="p">P1</span><span class="v v-c">有條件</span>方向啱但係止血唔係護城河，而且你最值錢嘅成人（Grok）交付唔到逐字串流，唔好當佢解決晒體驗</div>
+      <div class="vr"><span class="p">P2</span><span class="v v-n">反對</span>唔審查同策展都係一斷供應商/一個政策/一個人手就冧嘅假護城河，換湯不換藥</div>
+      <div class="vr"><span class="p">P3</span><span class="v v-n">反對</span>solo dev 養一條順嘅 pipeline 都未得，養兩條加自動路由係資源自殺</div>
+      <div class="vr"><span class="p">P4</span><span class="v v-c">有條件</span>五個入面唯一有真留客理據，但係最大新工程，要排喺基礎敘事順咗之後</div>
+      <div class="vr"><span class="p">P5</span><span class="v v-n">大幅pivot</span>唯一活路係收窄到「成人×中文×幾條殺手故事」，放棄所有後台重工；照原計劃做落去 = No-Go</div>
+      <div class="vm"><b>最大隱憂：</b>你哋會將「沉沒成本」當「進度」，繼續優化一個市場研究已證實冇人畀錢嘅後台，而唔係砍到淨低一個窄到守得住嘅缺口</div>
+      <div class="vm"><b>第一建議：</b>今個禮拜唔好寫 code —— 揀一個你最熟嘅成人故事題材，落 CrazyRouter 揾到嘅最快 model，手砌一條無 GM、純串流嘅單故事 demo，自己連玩三日，用真實留存決定值唔值得繼續，而唔係再投票</div>
+    </div>
+  </div>
+
+  <!-- Money R1 -->
+  <div class="member">
+    <span class="chip c-money">變現 / 商業模式</span>
+    <div class="speech">
+      <p><b>P1（輕模式做主打）</b> —— 支持。慢同 drift 直接殺留存，留存死就唔使講變現。但對我嚟講重點唔止係體驗，係單位經濟：每回合斬走 GM 仲裁 + NPC 多 call，等於每回合 model 成本由「4-5 個 call」變「1 個 call」，成本隨時跌 60-70%。Character.AI 得 1.5% 轉化都生存到，靠嘅就係單回合成本夠平、可以養大免費池再慢慢轉化。輕模式同時救體驗同毛利，無得輸。</p>
+      <p><b>P2（護城河重定位）</b> —— 支持。記憶/角色靈魂係「做差會輸、做好都唔會贏」嘅基本盤，唔係收費理由 —— 市場研究已經明講「更長記憶更快回覆」賣唔到錢。真正肯畀錢嘅係唔審查同零門檻。將工程重心同敘事吹噓 align 返去體驗層，啱。</p>
+      <p><b>P3（兩模式架構）</b> —— 有條件支持。產品上啱，但變現上要警惕：「深模式」唔好包裝成獨立收費層（前身 Pro Max/Adult tier 砍咗係啱嘅）。深模式成本高、用量細，應該係 Pro 訂閱內嘅 credits 消耗項，唔好再開 SKU 整複雜訂價。否則 solo dev 維護兩條收費線會出事。</p>
+      <p><b>P4（似遊戲留客）</b> —— 有條件支持。有目標/進度的確係 D7/D30 留存解藥，而留存係 LTV 嘅分母。但呢個係中長期工程，唔好喺輕模式未穩之前分心做。留客數字未見底之前唔好加結構複雜度。</p>
+      <p><b>P5（Go/No-Go）</b> —— 有條件 Go。品類下載插水 + 1.5% 轉化係真風險，但插水嘅係「純陪伴」app，唔審查 + 故事化 + 中文圈三疊加係未被服務嘅縫。關鍵變現現實：成人用 Grok（3/15 per M）跑長 context，一個重度成人用戶月燒隨時 $8-15 成本，若訂閱得 $9.99 直接蝕。成人模式必須 credits 計量、唔可以 unlimited，先至企得住。</p>
+    </div>
+    <div class="vote"><div class="vt">投票</div>
+      <div class="vr"><span class="p">P1</span><span class="v v-y">支持</span>砍多餘 call 同時救體驗同毛利，成本隨時跌 60%+，無得輸</div>
+      <div class="vr"><span class="p">P2</span><span class="v v-y">支持</span>記憶速度賣唔到錢，唔審查同零門檻先係肯畀錢嘅理由</div>
+      <div class="vr"><span class="p">P3</span><span class="v v-c">有條件</span>深模式只可做 Pro 內嘅 credits 消耗，唔好再開獨立收費層</div>
+      <div class="vr"><span class="p">P4</span><span class="v v-c">有條件</span>留客解藥但係中長期工程，輕模式未穩前唔好分心</div>
+      <div class="vr"><span class="p">P5</span><span class="v v-c">有條件Go</span>前提係訂閱保底 + 成人用 credits 計量，嚴禁無上限燒貴 model</div>
+      <div class="vm"><b>最大隱憂：</b>重度成人用戶用 Grok 跑長 context，單人月成本可超訂閱價，unlimited 模型會做一個蝕一個</div>
+      <div class="vm"><b>第一建議：</b>即刻為成人/深模式建 credits 計量同每回合成本量度，喺定價拍板前睇真實 per-user 成本分佈</div>
+    </div>
+  </div>
+
+  <!-- ===================== ROUND 2 ===================== -->
+  <div class="round">第二輪 · 睇晒對方意見後辯論 + 最終投票</div>
+
+  <!-- VC R2 -->
+  <div class="member">
+    <span class="chip c-vc">懷疑派創投</span>
+    <div class="speech">
+      <p><b>（1）我最唔同意嘅 1-2 位</b></p>
+      <p>最唔同意增長/產品負責人同中文圈市場專家對 P4 嘅「強烈支持/支持」。你哋講「有目標似遊戲」係留客真藥，我同意方向，但你哋輕輕帶過咗一個生意現實：<b>呢個係五個議案入面最貴、最唔確定、而且同創辦人技術現實最唔夾嗰個。</b>「有進度、有支線、有結局」聽落好聽，但實際上要 AI 穩定維持一條跨幾十回合唔崩、唔自相矛盾嘅敘事主線 —— 而創辦人親手玩到嘅結論正正係「回合之間資訊唔一致」。即係話 P4 嘅地基（連貫性）而家係爛嘅。喺一個連單回合都未順嘅產品度，叫佢去做「跨回合目標系統」，係喺流沙上起樓。我唔係話唔做，我係話佢絕對唔可以排喺輕模式止血之前。紅隊講得啱：次序錯。</p>
+      <p>第二個唔同意：變現專家話「Character.AI 得 1.5% 轉化都生存到，靠單回合成本平」。呢句對一間有 VC 撐、有 2000 萬月活嘅公司啱；對一個 solo dev 完全唔啱。Character.AI 嘅 1.5% 乘以海量免費用戶先有錢；Kieio 冇嗰個漏斗頂部。對 solo dev 嚟講，1.5% 轉化 + 品類下載插水 65% = 你需要天文數字嘅拉新先養到一間公司，而拉新正正係 solo dev 最冇資源嗰環。</p>
+      <p><b>（2）邊度我變咗</b></p>
+      <p>• 技術架構師同領域專家點醒咗我一個我第一輪低估嘅死結：成人模式嘅 Grok 經 CrazyRouter 係 buffered 唔串流。我第一輪話「逐字串流係止血」，但佢哋啱 —— <b>喺你最賺錢嗰個模式（成人），你嘅止血方案根本交付唔到</b>，因為 model 揀唔到、供應商層改唔到。除非前端假串流真係做到，否則 P1 對你最值錢嗰批人係空頭支票。</p>
+      <p>• 變現專家嘅成本數字改變咗我對 P5 風險形狀嘅理解：重度成人用戶月燒 $8-15 成本 vs $9.99 訂閱 = <b>做一個蝕一個</b>。即係話呢盤生意連單位經濟都未必成立。</p>
+      <p>• 我冇被說服嘅地方：冇一位委員成功反駁到我最毒嗰條 —— 當大 model 越強，呢個會唔會只係個快被碾嘅殼。連最樂觀嘅增長專家都係講「執行」，冇人能指出一個 model 變強都帶唔走嘅結構性護城河，除咗「策展內容 + 中文圈分發 + 唔審查」呢三樣軟嘢。呢個沉默本身就係答案。</p>
+      <p><b>（3）最終定論</b></p>
+      <p>呢盤嘢嘅真相係：<b>創辦人花咗九個月、十七個 session，起咗一個市場研究證明冇人畀錢嘅後台（記憶/角色靈魂），而真正驅動付費嗰兩樣（唔審查、零門檻現成角色）反而未真正 ship。</b>P1+P2 係誠實嘅止血同認知矯正 —— 應該做、即刻做。P3 係 solo dev 自殺。P4 係唯一可能嘅真差異化，但地基未穩，當實驗唔當地基。P5 我畀有條件 Go，但條件比第一輪硬。真正會殺死你嘅唔係對手 model 變強，而係你會繼續將沉沒成本當進度，優化嗰個冇人畀錢嘅後台。三個月、一個數（第二週留存）、一個硬閘（成人成本），見唔到就轉或者收。</p>
+    </div>
+    <div class="vote"><div class="vt">最終投票</div>
+      <div class="vr"><span class="p">P1</span><span class="v v-c">有條件</span>砍 GM 救到普通向，但成人向受制 Grok buffered，前端假串流做唔到就係空頭支票，要綁住一齊做</div>
+      <div class="vr"><span class="p">P2</span><span class="v v-c">有條件</span>方向啱，但三樣全係軟護城河，唔好自欺有「對手 6-12 個月先抄到」嘅硬壁壘</div>
+      <div class="vr"><span class="p">P3</span><span class="v v-n">反對</span>solo dev 連一條 pipeline 都未順，養兩條 + 自動路由係資源自殺</div>
+      <div class="vr"><span class="p">P4</span><span class="v v-c">有條件</span>唯一可能嘅真差異化，但跨回合連貫（地基）而家係爛，當實驗、絕不可排喺止血之前</div>
+      <div class="vr"><span class="p">P5</span><span class="v v-c">有條件Go</span>細注，條件加硬：成人 credits 計量 + 即刻量真實每回合成本，3 個月第二週留存見唔到就轉/收</div>
+      <div class="vm"><b>最大隱憂：</b>創辦人會繼續將沉沒成本當進度；真正肯畀錢嗰兩樣未 ship，加上重度成人用戶單人月成本隨時超訂閱價，做一個蝕一個</div>
+      <div class="vm"><b>第一建議：</b>今個禮拜唔好加任何 feature —— 砍 GM 出純 Narrator 輕 pipeline + 成人前端假串流，落 staging 度量返「第一回合見字秒數」同「每回合真實成本」兩個數，用數據拍板</div>
+    </div>
+  </div>
+
+  <!-- Growth R2 -->
+  <div class="member">
+    <span class="chip c-growth">增長 / 產品負責人</span>
+    <div class="speech">
+      <p><b>（1）點名回應我最唔同意嘅人</b></p>
+      <p>最唔同意「唱反調紅隊」嘅 P4 排序。佢將「似遊戲有目標」叫做「最大新工程，要排喺基礎敘事順咗之後」。呢個係工程思維，唔係留存思維。<b>留客引擎唔係等敘事完美先嚟做嘅 feature，佢就係留客本身。</b>純陪伴品類集體插水 65%，唔係因為敘事唔靚，係因為冇下一步、冇「我要返嚟」嘅理由。一個用戶第 7 日返唔返嚟，取決於佢離開時心入面有冇一個未完成嘅鈎（下一場戲、一個未解嘅關係、一個差啲就到嘅目標）。而呢個鈎，平台已經有自生成 mechanics 嘅底，係內容/設計題唔係大工程。將佢推到「敘事順晒先做」，等於將唯一治本嘅留客藥押到最後。</p>
+      <p>亦都要對「變現/商業模式」同我自己陣營嘅人補一句：<b>第一分鐘 hook（P1 速度）同第七日引擎（P4 目標）係兩件唔同嘅事，要同時設計，唔係順序做。</b>你可以輕模式先 ship，但 ship 嗰一刻就要至少有一個最原始嘅「目標感」，否則你救返第一分鐘，第七日一樣流失，得個快字冇得留。</p>
+      <p><b>（2）邊度俾人講到改變咗睇法</b></p>
+      <p>• 技術架構師同領域專家點醒咗我：P1 嘅「逐字串流」對成人模式交付唔到（Grok 經 CrazyRouter 係 buffered）。而成人正正係你 D1 留存最強嗰批人，第一分鐘體驗最差。所以我嘅第一建議要修正：唔淨係砍 GM，成人回合必須加前端假串流。</p>
+      <p>• 變現嗰位嘅成本數提醒咗我一個留存陷阱：重度成人用戶月燒可能超訂閱價。我唔可以用「無限暢玩」去催留存，否則我留得越好蝕得越多。留客同單位經濟要一齊睇。</p>
+      <p><b>（3）我嘅最終定論</b></p>
+      <p>殘酷事實：<b>你而家根本未有一個乾淨嘅第一分鐘，亦未有一個明確嘅返嚟理由 —— 兩個留存命門都未 ship。</b>好消息係 PR1/PR2 已經喺度做緊正確嘅手術（2 個 model call → 1 個），方向啱。單靠「快+順」只夠你追平 ChatGPT，追平唔等於留客。真正令人 D7 返嚟嘅係<b>情感依附 + 未完成嘅鈎</b>。所以 P1（止血）同 P4（造鈎）要孖住做。整體有條件 Go，唯一止損訊號就一個數：第二週留存。</p>
+    </div>
+    <div class="vote"><div class="vt">最終投票</div>
+      <div class="vr"><span class="p">P1</span><span class="v v-y">支持</span>慢係留客殺手，但成人 buffered 交付唔到逐字，必須綁前端假串流先算止血成功</div>
+      <div class="vr"><span class="p">P2</span><span class="v v-y">支持</span>記憶/靈魂係衞生，真留客貨幣係情感依附+造鈎，唔係後台</div>
+      <div class="vr"><span class="p">P3</span><span class="v v-c">有條件</span>只接受玩家無感、系統自動切換；要玩家自己揀模式即係上手自殺，solo dev 亦養唔起兩條 pipeline</div>
+      <div class="vr"><span class="p">P4</span><span class="v v-y">支持</span>「未完成嘅鈎+目標感」係解品類留客死穴唯一治本藥，要同 P1 孖住做，唔好押到敘事完美之後</div>
+      <div class="vr"><span class="p">P5</span><span class="v v-c">有條件Go</span>兩張獨有牌值博，但要用最平方法先證明有人 D7 返嚟，止損訊號=第二週留存</div>
+      <div class="vm"><b>最大隱憂：</b>你救返第一分鐘嘅速度，但離開時冇留低一個「明天要返嚟」嘅鈎，結果係追平咗 ChatGPT 嘅順暢、卻一樣留唔到客 —— 快只係入場，鈎先係留客</div>
+      <div class="vm"><b>第一建議：</b>砍 GM 出輕核心 + 成人回合上前端假串流，令第一分鐘「撳就見字」成立，同一個衝刺內為每個故事加一個最簡單嘅「戲劇問題/下一步目標」造返離場鈎，然後只盯第二週留存一個數</div>
+    </div>
+  </div>
+
+  <!-- Arch R2 -->
+  <div class="member">
+    <span class="chip c-arch">技術架構師</span>
+    <div class="speech">
+      <p><b>（1）我最唔同意邊一兩位</b></p>
+      <p>最唔同意「增長/產品負責人」對 P3 講「玩家無感、系統自動切換就 OK」。呢句聽落好靚，但作為要養呢套嘢嘅人，我要踩一腳：就算玩家無感，<b>呢個複雜度唔會消失，只係由玩家眼前搬咗去我嘅後台</b>。系統自動判斷「呢個故事用輕定深」本身就係一個要寫、要測、要 debug、會出錯嘅新部件 —— 判斷錯一次（把一個成人對話 routing 落「深模式」跑五個 call）就同時整爆速度同成本。對 solo dev，「玩家無感」唔等於「維護無感」。</p>
+      <p>其次唔同意「唱反調紅隊」講「P1 做完就係一個包住 model 嘅薄殼，最易被抄」。Character.AI、Janitor 全部都係「薄殼」，佢哋冇死於「被抄」，反而厚殼（我哋而家五層工序）先正正係死因。護城河從來唔喺 pipeline 層數，係喺策展內容、社群、分發、品牌。「薄」係對嘅工程選擇，唔係弱點。</p>
+      <p><b>（2）邊度俾人講到改變咗睇法</b></p>
+      <p>我第一輪低估咗一樣嘢：我將「成人 Grok 唔串流」當咗一個 P5 嘅 Go 前提，但「AI 角色扮演專家」同「中文圈市場專家」同時指出『前端假串流』係一個即刻交付到嘅止血解 —— 唔需要等揾到完美嘅可串流 uncensored model。技術上前端打字機 render 一段已收到嘅文字係 trivial，我之前太執著。所以我由「Go 嘅硬前提 = 揾到串流 model」軟化成「短期前端假串流止血 + 中期再 sourcing 真串流 model」兩條腿。但要補一句佢哋冇講嘅：假串流唔慳成本、唔慳真實 latency（你個伺服器一樣 hold 成分鐘先收到全文），所以只係救體感，成本同 timeout 風險仲喺度。</p>
+      <p>另外「變現/商業模式」嗰句「重度成人用戶單人月成本可超訂閱價」我接受並入返我嘅技術風險清單 —— 呢個唔淨係定價問題，係架構問題：輕 pipeline 慳嗰 60% 主要慳喺普通用戶，但成人長 context 用 Grok 跑，你慳極都仲係貴。</p>
+      <p><b>（3）最終定論</b></p>
+      <p>呢五個議案，真正嘅技術主軸只有一條：<b>由「每回合多 model 同步仲裁」回到「每回合一個 Narrator + 其餘嘢全背景化」。</b>呢個 code 已經有背景 pattern、pipeline 文件已寫 2→1 call 係目標，所以 P1 唔係新工程，係收返一個做過頭嘅設計，慢同 drift 同源，一刀解兩個病。P3 係我唯一要守嘅紅線：solo dev 唔可以養兩條對等 pipeline + 一個自動 router。P5 有條件 Go：技術底已 launch-ready，真風險係成人成本 + Grok 延遲，唔係做唔做得出。</p>
+    </div>
+    <div class="vote"><div class="vt">最終投票</div>
+      <div class="vr"><span class="p">P1</span><span class="v v-y">支持</span>砍 Director 回到單 Narrator + 其餘背景化係收返做過頭嘅設計，慢同 drift 同源，一刀解兩病</div>
+      <div class="vr"><span class="p">P2</span><span class="v v-y">支持</span>記憶/靈魂係衞生工序唔係賣點，停止過度投資但唔好拆（拆走貴過放低）</div>
+      <div class="vr"><span class="p">P3</span><span class="v v-c">有條件</span>死守一條紅線：唔准養兩條對等 pipeline + 自動 router，只准一條核心 + 可選單一加料 + 預設全關</div>
+      <div class="vr"><span class="p">P4</span><span class="v v-y">支持</span>平台已有自生成 mechanics，屬內容/設計工作非技術里程碑，低成本可試但唔當地基</div>
+      <div class="vr"><span class="p">P5</span><span class="v v-c">有條件Go</span>技術底已 launch-ready，Go 嘅真風險係成人成本 + Grok 延遲（可前端假串流止血），唔係做唔做得出</div>
+      <div class="vm"><b>最大隱憂：</b>成人模式受 Grok buffered + 長 context 雙重夾擊 —— 前端假串流救到體感但救唔到真實延遲同成本，unlimited 落去會做一個蝕一個兼食 timeout</div>
+      <div class="vm"><b>第一建議：</b>即刻喺 staging 起一條淨 Narrator 嘅輕 pipeline，量返真實每回合秒數同成本做拍板數據，同步成人模式上前端假串流止血</div>
+    </div>
+  </div>
+
+  <!-- RP R2 -->
+  <div class="member">
+    <span class="chip c-rp">AI 角色扮演領域專家</span>
+    <div class="speech">
+      <p><b>點名回應最唔同意嘅委員</b></p>
+      <p>最唔同意增長/產品負責人 —— 將 P4「似遊戲目標」當成通用留客引擎。你話佢「比記憶引擎更能解決品類死穴」，呢個係攞手機遊戲嘅 D1/D7 任務框架硬套落一個唔同物種嘅品類。以領域經驗講白：有目標/支線/進度條對「冒險·劇情」客啱，但對你最高客單價、撐起 25 分鐘 session 嗰批「陪伴·成人」客，佢哋返嚟唔係因為「我差啲打爆呢關」，係因為「我同佢之間上次發生咗咩、今次會去到邊」。對呢批人擺個任務日誌喺面前，反而<b>斬斷沉浸</b>。所以 P4 唔係品類萬靈藥，係<b>分客群嘅工具</b> —— 落錯喺陪伴核心會變干擾。</p>
+      <p>第二唔同意唱反調紅隊 —— P2「逐項都係假護城河、所以縮到乜都唔好做」。「唔審查」單獨睇係淺，呢個我同意；但你由「唔審查淺」跳到「成個 stack 都係假」係偷換。Janitor 用 BYOK + 粗糙體驗都食到大批人，正正證明「唔審查」唔係一張即蒸發嘅入場券，佢配上中文圈區域鎖（大陸大廠法律上做唔到、Talkie 對星野 13 倍收入差就係實證）就唔係「政策一句話即冧」嗰種脆。美國對手就算聽日都唔審查，佢一樣服務唔到繁體中文 + 港台語感 + 港台合規支付 —— 呢層先係抄唔到嘅。</p>
+      <p><b>邊度俾人講到改變咗睇法</b></p>
+      <p>P3 我由「有條件支持」收硬做「反對」，係俾紅隊同技術架構師講服。我原本諗住深模式做背景非阻塞增強就 OK，但真正無害嗰個版本根本唔算「兩個模式」，只係 async 增強 —— 所以「兩模式架構」呢個提法本身要否決。另外變現專家嘅成本點，令我將 P5 條件擴闊：你嘅長 session、每日多回合、長 context 嘅重度用戶，同你「最肯畀錢」嗰批係同一班人 —— 即係成本炸彈精準落喺你嘅留存冠軍身上。</p>
+      <p><b>最終定論（領域專家）</b></p>
+      <p>單靠「唔審查」做護城河 = 一條淺河、紅海、易抄。真正守得住嘅唔係 filter 開關，係對手撳掣都複製唔到嗰層：<b>繁中 × 港台文化語感 × 合規支付 × 策展角色世界 × 用戶累積落去嘅情感依附。</b>當中最硬嘅 switching cost 係「情感累積」—— 一個同角色玩咗 50 回合、有關係史嘅人，唔會走去從頭嚟過。呢點反而幫記憶/角色靈魂平反一半：佢唔係攞嚟賣嘅 feature，但佢係<b>留存嘅地基</b> —— 唔好聽紅隊講就連根拆，要做嘅係收聲唔再吹噓、靜靜留住敘事連續性。</p>
+    </div>
+    <div class="vote"><div class="vt">最終投票</div>
+      <div class="vr"><span class="p">P1</span><span class="v v-c">有條件</span>砍 GM 啱，但成人慢嘅主因係 Grok buffered，必須綁定前端假串流一齊做</div>
+      <div class="vr"><span class="p">P2</span><span class="v v-y">支持</span>但要分清：唔審查只係入場券，真護城河係「繁中×港台文化×合規支付×情感累積」呢層抄唔到嘅交集</div>
+      <div class="vr"><span class="p">P3</span><span class="v v-n">反對</span>自動路由+兩條 pipeline 對 solo dev 係重蹈變慢覆轍；「兩模式」呢個提法本身要否決</div>
+      <div class="vr"><span class="p">P4</span><span class="v v-c">有條件</span>只啱「冒險·劇情」客；陪伴/成人核心嘅「目標」必須係關係推進唔係任務日誌，唔好當品類萬靈藥</div>
+      <div class="vr"><span class="p">P5</span><span class="v v-c">有條件Go</span>條件：（一）追平 ChatGPT 體驗前唔碰錢、（二）成人強制 credits 計量，因為你嘅留存冠軍就係你嘅成本炸彈</div>
+      <div class="vm"><b>最大隱憂：</b>護城河太淺易抄 —— 「唔審查」係入場券唔係城牆；一旦對手都唔審查，你淨低「中文圈+體驗」，而你體驗家陣係負分</div>
+      <div class="vm"><b>第一建議：</b>今個禮拜唔好砌新功能 —— 落 CrazyRouter 揾一個可逐字串流嘅 uncensored model（揾唔到就前端假串流），手砌一條無 GM、純串流嘅單成人故事 demo，自己連玩三日，用第二週留存拍板</div>
+    </div>
+  </div>
+
+  <!-- CN R2 -->
+  <div class="member">
+    <span class="chip c-cn">中文圈市場 + 文化專家</span>
+    <div class="speech">
+      <p><b>（1）我最唔同意邊個</b></p>
+      <p>我最想 push back 嘅係技術架構師同 AI 角色扮演專家：你哋兩個都將「Grok 唔逐字串流」當成「換個可串流 model 就解到」嘅技術問題。我從市場角度睇到一個你哋低估嘅陷阱 —— 喺 CrazyRouter 上面，「夠快 + 可串流 + 真係唔審查 + 中文夠地道」四個條件同時滿足嘅 model 可能根本唔存在，呢個唔係調個參數就掂。你哋當佢係試一試嘅事，但佢可能係結構性死結。</p>
+      <p>同時我要對懷疑派創投同紅隊講半句唔同：你哋啱「唔審查係軟護城河、Stripe 一句即冚」，但你哋將佢歸類做「P2 護城河唔夠硬」係 understate 咗 —— 喺港台，成人內容嘅支付被拒/被凍結唔係「護城河軟」，係「<b>根本收唔到錢</b>」嘅生死問題，優先級應該排喺所有速度/體驗討論之前。一個收唔到錢嘅快產品，等於零。</p>
+      <p><b>（2）我邊度改變咗睇法</b></p>
+      <p>兩位令我修正：變現專家嘅「成人必須 credits 計量、唔可以 unlimited」我第一輪冇強調，而家完全 buy —— 佢同我嘅支付憂慮其實係孖生兄弟：你一邊驚收唔到錢，一邊驚收到嘅錢蝕住做。AI 角色扮演專家嘅「唔審查係入場券唔係城牆」framing 比我第一輪講得更利，我採納埋。另外佢提「成人向嘅『目標』係關係推進唔係擲骰支線」，令我將 P4 嘅 framing 收窄。</p>
+      <p><b>（3）最終定論</b></p>
+      <p>方向我冇變：止血（P1）+ 護城河重定位（P2）係啱嘅。但我作為市場人，要將委員會嘅注意力由「速度」狠狠拉去兩個更早會殺死成人路線嘅嘢 —— <b>支付通道同法律污名</b>。你哋成班幾乎全部把火集中喺「快」，但喺港台真實市場，順序係：就算你今晚整到秒回逐字串流，只要 Stripe 因為成人內容封咗你個戶口、或者本地信用卡通道拒做，你個產品一蚊都收唔到。成人路線真正嘅關卡係：（a）一條敢過成人內容、唔會凍結你嘅支付通道；（b）港台 18+ 自我聲明係咪法律上足夠。呢兩樣未 confirm 之前，我反對為成人模式燒任何 model/串流工程。至於普通（非成人）輕模式，照 P1 即刻砍 GM、止血。</p>
+    </div>
+    <div class="vote"><div class="vt">最終投票</div>
+      <div class="vr"><span class="p">P1</span><span class="v v-y">支持</span>慢就是死，即刻砍 GM、單 model 直出，但成人嗰邊「換可串流 model」未必喺 CrazyRouter 搵到，要當結構性風險</div>
+      <div class="vr"><span class="p">P2</span><span class="v v-y">支持</span>真護城河=繁中地道 + 港台文化質感 + 合規支付，而「唔審查」只係入場券唔係城牆</div>
+      <div class="vr"><span class="p">P3</span><span class="v v-c">有條件</span>solo dev 千祈唔好 day-1 養兩條 pipeline，輕核心驗證有留存先加深模式做背景非阻塞增強</div>
+      <div class="vr"><span class="p">P4</span><span class="v v-y">支持</span>但 framing 要分客群：成人=關係/情慾推進嘅進度感，非成人=任務支線</div>
+      <div class="vr"><span class="p">P5</span><span class="v v-c">有條件Go</span>當低成本試探，止損盯第二週留存；真正關卡唔係速度係支付+法律</div>
+      <div class="vm"><b>最大隱憂：</b>成人內容喺港台嘅支付通道好可能被拒或被凍結，加上 18+ 自我聲明法律上未必夠 —— 呢個係「根本收唔到錢」嘅生死問題，排喺所有速度/體驗討論之前</div>
+      <div class="vm"><b>第一建議：</b>ship 任何成人 model/串流工程之前，即刻 confirm 兩件生死事 ——（1）一條敢做成人內容、唔會凍結你嘅支付通道，（2）攞一個港台法律意見睇 18+ 自我聲明夠唔夠；非成人輕模式就照砍 GM 即刻止血</div>
+    </div>
+  </div>
+
+  <!-- Red R2 -->
+  <div class="member">
+    <span class="chip c-red">🔴 唱反調紅隊</span>
+    <div class="speech">
+      <p><b>（1）我最唔同意嘅委員</b></p>
+      <p>最唔同意「變現/商業模式」委員。佢 P5 投「有條件 Go」，理由係「邊際成本低、沉沒成本已建好」—— 但佢自己同一張票就點出咗致命矛盾：重度成人用戶月燒 $8-15 成本、訂閱得 $9.99，「做一個蝕一個」。佢嘅解藥係「credits 計量」。但呢度有個佢冇 steelman 嘅問題：成人 RP 用戶嘅核心行為就係<b>無止境長 context 重度使用</b>，你一裝計量錶 + 限量，你就同你唯一真實賣點（「無人管我、隨我玩」）自己打對台 —— 用戶去返免費 BYOK 嘅 Janitor。即係話你最賺錢嘅 segment 要麼蝕錢服務、要麼計量到趕客，兩條路都唔通。佢將呢個當「定價細節」，我當佢係<b>商業模式根本不成立嘅證據</b>。</p>
+      <p>其次唔同意「增長/產品負責人」同「技術架構師」。兩位都用「沉沒成本已付、launch-ready」做 Go 嘅理由 —— 呢個正正係沉沒成本謬誤。已經燒咗 17 個 session 唔係「繼續」嘅理由，係「呢個方向回報率低」嘅警號。</p>
+      <p><b>（2）邊度我畀人說服、改咗睇法</b></p>
+      <p>1. P1 我由「有條件支持」上調到接近「支持」。技術架構師指出 pipeline 文件白紙黑字寫住現狀係 2 個 call（唔係我想像中 5 層那麼誇張），而背景化 code 已經用緊。即係 P1 嘅止血真係做得快、低風險。</p>
+      <p>2. P4 我承認 steelman 偏弱。領域專家點出「成人向用戶嘅目標 = 關係推進，唔係擲骰支線」—— 呢個 reframe 令 P4 嘅留客邏輯比我原本諗嘅紮實。我仍然反對佢嘅次序，但我收回「冇真留客理據」嘅講法。</p>
+      <p>3. 「污名 + 支付」呢個地雷，中文圈專家講得比我狠且具體 —— 由我口中嘅抽象風險，變成「ship 之前必須確認、否則生死」嘅前置 blocker。呢個強化咗我嘅 No-Go 傾向。</p>
+      <p><b>（3）最終定論</b></p>
+      <p>呢一輪有個危險嘅「假共識」：七個人入面六個投 Go 或有條件 Go，聽落好似分歧已收窄。但我要點穿 —— 大家其實<b>唔係同意個計劃得，而係同意「P1 止血係啱嘅」。</b>呢兩件事被混為一談。幾乎每位委員嘅 Go 都掛住同一串前置條件：解決 Grok 唔串流、確認成人支付通道、證明 D7 留存、credits 計量企得住。冇一個解決到，個產品就唔成立 —— 而其中兩個（供應商唔串流、支付商拒做成人）<b>唔係你 solo dev 寫 code 解決得到，係你控制唔到嘅第三方。</b>唔好將「願意細注試多一鋪」誤讀成「個計劃 validated」。</p>
+    </div>
+    <div class="vote"><div class="vt">最終投票</div>
+      <div class="vr"><span class="p">P1</span><span class="v v-y">支持</span>砍 GM + 串流 + 背景化審查係止血且低風險（pipeline 已 2 call 非 5 層），但要認清呢係供認過去起錯，唔係護城河</div>
+      <div class="vr"><span class="p">P2</span><span class="v v-n">反對</span>唔審查/策展/中文圈逐項都係一斷供應商、一個支付政策、一個人手就冧嘅軟護城河，reframe 只係換一組更易冧嘅假壁壘</div>
+      <div class="vr"><span class="p">P3</span><span class="v v-n">反對</span>solo dev 連一條 pipeline 都未做順，養兩條 + 自動路由係資源自殺，正正係令你今日變慢嘅同一個病</div>
+      <div class="vr"><span class="p">P4</span><span class="v v-c">有條件</span>五個入面唯一有真留客理據（關係推進），但係最大新工程，必須排喺基礎敘事順咗、留存數據出咗之後，唔可當地基</div>
+      <div class="vr"><span class="p">P5</span><span class="v v-n">大幅pivot</span>六人「Go」實為共識「P1 止血啱」，非「計劃得」；前置條件半數掛喺你控制唔到嘅第三方，照 roadmap 行落去 = No-Go</div>
+      <div class="vm"><b>最大隱憂：</b>團隊會將「六票 Go」嘅假共識同「沉沒成本已付」讀成計劃已 validated，而真正控制唔到嘅兩個死結（供應商唔串流、支付商拒做成人）冇人能靠寫 code 解決</div>
+      <div class="vm"><b>第一建議：</b>今個禮拜唔好寫 code 起 feature —— 手砌一條無 GM、純串流、單一成人故事嘅 demo，自己連玩三日；同步並行做兩個你控制唔到嘅前置驗證（CrazyRouter 揾可串流 uncensored model、確認敢做成人嘅支付通道），三者任何一個過唔到關，就由 pivot 轉 No-Go</div>
+    </div>
+  </div>
+
+  <!-- Money R2 -->
+  <div class="member">
+    <span class="chip c-money">變現 / 商業模式</span>
+    <div class="speech">
+      <p><b>點名回應我最唔同意嘅委員</b></p>
+      <p>最唔同意「增長/產品負責人」對 P4 嘅「強烈支持」。從變現角度，「似遊戲有目標」係一把雙刃刀，佢講漏咗成本嗰邊。有目標/支線/結局 = 故事要分支、要追蹤狀態、要更長 context 餵返個 model —— 呢啲全部都係成本。而你最賺錢嗰批人（成人）要嘅「目標」（關係推進），恰恰用最平嘅單 model 直出就做到。換句話講：P4 燒錢最多嗰種玩法，服務嘅係<b>轉化率最低</b>嗰批免費陪伴用戶；而養活你盤數嗰批成人用戶，P4 對佢哋嘅 ARPU 幾乎冇貢獻。</p>
+      <p>部分唔同意「技術架構師」將成人 Grok 唔串流定性做「淨係供應商死結、你改唔到」。變現上呢個有得救而且唔使換 model：前端假串流。呢個唔係要唔要 Go 嘅前提條件，係一個一日工程就補到嘅體驗補丁。唔好將佢升級成 Go/No-Go 級別嘅 blocker。</p>
+      <p><b>邊度俾人講到改變咗睇法</b></p>
+      <p>「唱反調紅隊」同「AI 領域專家」兩個都指出「唔審查」係入場券唔係護城河，我接受呢個修正。準確啲講：唔審查係令人肯試、肯留嘅理由，但佢本身唔自動變現，亦守唔住。真正變到現嘅，係喺呢條入場券後面，你用「中文圈策展內容 + 故事化」建立嘅<b>習慣同情感依附</b> —— 人係為咗「我同呢個角色/故事嘅關係」而續訂，唔係為咗「呢度准 NSFW」而續訂（嗰個 Janitor 免費就有）。</p>
+      <p><b>最終定論（變現視角）</b></p>
+      <p>收費模型我只信一個企得住：<b>訂閱保底 + 成人/重度玩法用 credits 計量，絕不 all-you-can-eat。</b>成人用 Grok 跑長 context，一個重度用戶月燒輕易 $8-15 成本，你訂閱 $9.99 做一個蝕一個，呢個係數學唔係意見。輕模式 P1 砍走 GM 同多餘 call，每回合成本跌 60-70%，<b>同時救體驗同毛利</b>，係五個議案入面唯一「免費午餐」。P3 深模式只可以做 Pro 訂閱內嘅 credits 消耗項。一句總結：<b>體驗層（快、順、串流）決定有冇人留；計量式定價決定留得住嘅人賺唔賺到錢。兩者缺一，呢盤都唔成立。</b></p>
+    </div>
+    <div class="vote"><div class="vt">最終投票</div>
+      <div class="vr"><span class="p">P1</span><span class="v v-y">支持</span>砍 GM + 多餘 call 令每回合成本跌 60-70%，同時救體驗同毛利，五案中唯一免費午餐</div>
+      <div class="vr"><span class="p">P2</span><span class="v v-y">支持</span>記憶/靈魂市場已證冇人單獨畀錢，降做衞生係對的，但停止過度投資、唔好拆走</div>
+      <div class="vr"><span class="p">P3</span><span class="v v-c">有條件</span>深模式只准做 Pro 內 credits 消耗項，嚴禁開獨立收費層重蹈 Pro Max 覆轍</div>
+      <div class="vr"><span class="p">P4</span><span class="v v-c">有條件</span>似遊戲目標成本高且服務轉化最低嘅免費群，當小範圍實驗用留存 gate，唔可當地基押</div>
+      <div class="vr"><span class="p">P5</span><span class="v v-c">有條件Go</span>空隙真但屬細注試探，硬前提係成人 credits 計量 + per-user 成本量度先拍板定價</div>
+      <div class="vm"><b>最大隱憂：</b>重度成人用戶 Grok 跑長 context 單人月成本可超訂閱價，unlimited 必做一個蝕一個，計量式定價唔到位呢盤數學上唔成立</div>
+      <div class="vm"><b>第一建議：</b>即刻為成人/深模式上 credits 計量 + 每回合 per-user 成本量度，喺定價拍板前睇真實成本分佈，同步加前端假串流補成人體驗（一日工程，唔好當 Go/No-Go blocker）</div>
+    </div>
+  </div>
+
+  <div class="foot">委員會係模擬角色辯論，用嚟壓力測試你嘅方向，唔係事實裁決。發言已清走草稿中嘅英文部分，保留各委員實際繁中論點同投票原文。</div>
+</div>
+</body>
+</html>

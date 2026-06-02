@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kieio 策略委員會 — 投票結果同辯論重點</title>
+<style>
+  :root{
+    --bg:#0f1115; --card:#171a21; --card2:#1d2129; --ink:#e7e9ee; --muted:#9aa1ad;
+    --line:#2a2f3a; --accent:#8b7cf6; --accent2:#22d3ee; --good:#34d399; --warn:#fbbf24; --bad:#f87171;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:linear-gradient(180deg,#0c0e12,#0f1115 240px);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
+    line-height:1.7;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:960px;margin:0 auto;padding:40px 22px 90px}
+  .kicker{color:var(--accent2);font-weight:700;letter-spacing:.14em;font-size:12px;text-transform:uppercase}
+  h1{font-size:28px;line-height:1.3;margin:8px 0 6px;font-weight:800}
+  h2{font-size:20px;margin:42px 0 8px;font-weight:800;display:flex;align-items:center;gap:10px}
+  h2 .n{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:8px;background:var(--accent);color:#0c0e12;font-size:13px;font-weight:900;flex:none}
+  h3{font-size:15.5px;margin:18px 0 4px;font-weight:700;color:#fff}
+  p{margin:8px 0;color:#d6d9e0}
+  .sub{color:var(--muted);font-size:13.5px}
+  .hero{background:radial-gradient(120% 140% at 0% 0%,rgba(139,124,246,.20),transparent 55%),var(--card);
+    border:1px solid var(--line);border-radius:16px;padding:24px;margin-top:16px}
+  .hero p{font-size:16.5px;color:#fff;margin:0}
+  .hero b{color:var(--accent2)}
+  table{width:100%;border-collapse:collapse;margin-top:14px;font-size:13.5px}
+  th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:center;vertical-align:middle}
+  th{color:var(--muted);font-weight:700;font-size:11.5px;letter-spacing:.03em}
+  td.who{text-align:left;font-weight:700;color:#fff;white-space:nowrap}
+  .v{display:inline-block;min-width:62px;padding:3px 8px;border-radius:7px;font-size:12px;font-weight:800}
+  .v-y{background:rgba(52,211,153,.18);color:#6ee7b7}
+  .v-c{background:rgba(251,191,36,.16);color:#fcd34d}
+  .v-n{background:rgba(248,113,113,.18);color:#fca5a5}
+  .tallybar{display:flex;height:12px;border-radius:6px;overflow:hidden;margin:6px 0;border:1px solid var(--line)}
+  .tallybar i{display:block}.ty{background:var(--good)}.tc{background:var(--warn)}.tn{background:var(--bad)}
+  .row{display:grid;gap:14px;margin-top:14px}
+  @media(min-width:700px){.r2{grid-template-columns:1fr 1fr}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:16px 18px}
+  .card.warn{background:rgba(251,191,36,.06);border-color:rgba(251,191,36,.28)}
+  .card.bad{background:rgba(248,113,113,.06);border-color:rgba(248,113,113,.3)}
+  .card h3{margin-top:0}
+  ul{margin:6px 0;padding-left:20px}li{margin:5px 0;color:#d6d9e0}
+  .verdict-line{font-size:13.5px;color:var(--muted);margin:2px 0 14px}
+  .verdict-line b{color:#fff}
+  .quote{border-left:3px solid var(--accent);padding:4px 0 4px 14px;margin:10px 0;color:#c9cdd6;font-size:14px}
+  .pill{display:inline-block;background:var(--card2);border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:12px;color:#c7cbd3;margin:3px 4px 0 0}
+  .step{display:flex;gap:12px;align-items:flex-start;padding:11px 0;border-bottom:1px solid var(--line)}
+  .step .k{flex:none;width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font-weight:900;color:#0c0e12;background:var(--accent2);font-size:13px}
+  .foot{color:var(--muted);font-size:12.5px;margin-top:28px;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kicker">Kieio · 策略委員會 · 7 角色 × 2 輪辯論</div>
+  <h1>委員會散會：方向過關，但唔係「計劃 validated」</h1>
+  <div class="sub">2026-06-02 · 懷疑派創投 · 增長/產品 · 技術架構師 · 角色扮演專家 · 中文圈市場 · 🔴 唱反調紅隊 · 變現/商業模式</div>
+
+  <div class="hero">
+    <p>一句總結：委員會<b>一致撐「止血」（P1）同「護城河重定位」（P2）</b>，但<b>否決咗「兩個模式」嘅做法</b>，將「似遊戲留客」（P4）<b>重新定義 + 押後</b>，而 6 票「有條件 Go」入面<b>冇一票係無條件</b> —— 紅隊更點穿呢個係「假共識」。同場逼出咗三個我哋之前睇輕咗嘅真風險。</p>
+  </div>
+
+  <!-- vote matrix -->
+  <h2><span class="n">1</span>投票矩陣（最終票）</h2>
+  <table>
+    <tr><th class="who">委員</th><th>P1 輕模式止血</th><th>P2 護城河重定位</th><th>P3 兩模式架構</th><th>P4 似遊戲留客</th><th>P5 Go / No-Go</th></tr>
+    <tr><td class="who">懷疑派創投</td><td><span class="v v-c">有條件</span></td><td><span class="v v-c">有條件</span></td><td><span class="v v-n">反對</span></td><td><span class="v v-c">有條件</span></td><td><span class="v v-c">有條件 Go</span></td></tr>
+    <tr><td class="who">增長/產品</td><td><span class="v v-y">支持</span></td><td><span class="v v-y">支持</span></td><td><span class="v v-c">有條件</span></td><td><span class="v v-y">支持</span></td><td><span class="v v-c">有條件 Go</span></td></tr>
+    <tr><td class="who">技術架構師</td><td><span class="v v-y">支持</span></td><td><span class="v v-y">支持</span></td><td><span class="v v-c">有條件</span></td><td><span class="v v-y">支持</span></td><td><span class="v v-c">有條件 Go</span></td></tr>
+    <tr><td class="who">角色扮演專家</td><td><span class="v v-c">有條件</span></td><td><span class="v v-y">支持</span></td><td><span class="v v-n">反對</span></td><td><span class="v v-c">有條件</span></td><td><span class="v v-c">有條件 Go</span></td></tr>
+    <tr><td class="who">中文圈市場</td><td><span class="v v-y">支持</span></td><td><span class="v v-y">支持</span></td><td><span class="v v-c">有條件</span></td><td><span class="v v-y">支持</span></td><td><span class="v v-c">有條件 Go</span></td></tr>
+    <tr><td class="who">🔴 唱反調紅隊</td><td><span class="v v-y">支持</span></td><td><span class="v v-n">反對</span></td><td><span class="v v-n">反對</span></td><td><span class="v v-c">有條件</span></td><td><span class="v v-n">大幅 pivot</span></td></tr>
+    <tr><td class="who">變現/商業模式</td><td><span class="v v-y">支持</span></td><td><span class="v v-y">支持</span></td><td><span class="v v-c">有條件</span></td><td><span class="v v-c">有條件</span></td><td><span class="v v-c">有條件 Go</span></td></tr>
+  </table>
+
+  <!-- tallies -->
+  <h2><span class="n">2</span>點票 + 一句裁決</h2>
+
+  <h3>P1 · 輕模式止血（砍 GM、單 Narrator、背景化）</h3>
+  <div class="tallybar"><i class="ty" style="width:71%"></i><i class="tc" style="width:29%"></i></div>
+  <div class="verdict-line">支持 5 · 有條件 2 · 反對 0 — <b>全場通過，唯一「免費午餐」。</b>但全場附帶同一個警告：成人用 Grok 經供應商係「等成段先彈」唔串流，砍晒 GM 都一樣慢 → <b>必須加「前端假串流」</b>（後台照收、畫面扮逐字打）。</div>
+
+  <h3>P2 · 護城河重定位（記憶/靈魂降做衞生）</h3>
+  <div class="tallybar"><i class="ty" style="width:71%"></i><i class="tc" style="width:14%"></i><i class="tn" style="width:15%"></i></div>
+  <div class="verdict-line">支持 5 · 有條件 1 · 反對 1（紅隊）— <b>通過。</b>但多人補刀：新護城河三樣（唔審查 / 策展 / 中文圈）<b>全部係「軟」護城河</b>。唯一真正鎖到客嘅係「用戶累積落去嘅情感/關係史」—— 所以記憶<b>唔好拆，只係唔再吹噓、唔再過度投資</b>。</div>
+
+  <h3>P3 · 兩模式架構</h3>
+  <div class="tallybar"><i class="tc" style="width:57%"></i><i class="tn" style="width:43%"></i></div>
+  <div class="verdict-line">支持 0 · 有條件 4 · 反對 3 — <b>「兩條管線」呢個做法被否決。</b>連「有條件」嗰啲，條件都係同一句：<b>solo dev 唔好養兩條對等管線 + 自動切換</b>，最多只准「一條輕核心 + 可選、背景做、預設關」嘅單一加料。</div>
+
+  <h3>P4 · 似遊戲有目標留客</h3>
+  <div class="tallybar"><i class="ty" style="width:43%"></i><i class="tc" style="width:57%"></i></div>
+  <div class="verdict-line">支持 3 · 有條件 4 · 反對 0 — <b>方向冇人反對，但係爭議最大。</b>三個共識：(a) 唔好當地基、唔好排喺止血之前；(b) <b>關鍵 reframe：成人/陪伴客嘅「目標」係「關係推進」，唔係 D&D 任務日誌</b>；(c) 當細範圍實驗，用留存數據去 gate。</div>
+
+  <h3>P5 · 整體 Go / No-Go</h3>
+  <div class="tallybar"><i class="tc" style="width:86%"></i><i class="tn" style="width:14%"></i></div>
+  <div class="verdict-line">有條件 Go 6 · 大幅 pivot 1（紅隊）— <b>通過做「有條件 Go」，但冇一票無條件。</b>定性：<b>細注 wedge bet，設死止損線（第二週留存）</b>，唔係大注 all-in。</div>
+
+  <!-- convergence -->
+  <h2><span class="n">3</span>七個獨立角色「不約而同」收斂嘅嘢（最高信號）</h2>
+  <p class="sub">呢啲係冇夾過嘅角色各自講到同一樣嘢 —— 信號最強：</p>
+  <div class="row r2">
+    <div class="card"><h3>① 止血係唯一冇爭議嘅即時動作</h3><p class="sub">砍每回合 GM 仲裁、回到單 Narrator、審查/抽狀態搬背景。變現角度仲算到每回合成本跌 60-70%。同時救體驗同毛利。</p></div>
+    <div class="card"><h3>② 成人嘅死結 = Grok 唔逐字串流</h3><p class="sub">多次被獨立點出：砍晒 GM，成人一樣等成段。解法收斂為「前端假串流」—— 一日工程、即刻止到體感。</p></div>
+    <div class="card"><h3>③ 記憶/靈魂 = 衞生，唔係賣點</h3><p class="sub">幾乎全場同意。但唔好拆 —— 佢係「關係連續性」嘅地基，而關係史先係唯一真正鎖到客嘅嘢。</p></div>
+    <div class="card"><h3>④ 「自己連玩三日」先拍板</h3><p class="sub">紅隊、角色扮演、中文圈三個各自講出同一句：唔好再開會，手砌一條無 GM、純串流嘅單一成人故事 demo，自己連玩三日，用真實留存決定。</p></div>
+  </div>
+
+  <!-- new risks -->
+  <h2><span class="n">4</span>委員會逼出嚟、我哋之前睇輕咗嘅三個真風險</h2>
+  <div class="card bad"><h3>🔴 風險一：港台成人「支付 + 法律」可能根本收唔到錢（生死級）</h3>
+    <p class="sub">中文圈專家最尖：喺香港/台灣，成人內容嘅信用卡 / Stripe 通道<b>好可能被拒或被凍結</b>；18+ 自我聲明喺西方夠、喺港台法律上<b>未必夠</b>。佢主張呢個優先級<b>排喺所有速度討論之前</b> —— 一個收唔到錢嘅快產品等於零。</p></div>
+  <div class="card bad" style="margin-top:12px"><h3>🔴 風險二：成人單位經濟可能「做一個蝕一個」</h3>
+    <p class="sub">變現專家算數：重度成人用戶用 Grok 跑長 context，單人月燒 $8-15 成本 vs $9.99 訂閱。<b>必須 credits 計量、唔可以無限玩。</b>但角色扮演專家加多一刀最毒：<b>你嘅「成本炸彈」同你嘅「留存冠軍」係同一班人</b>（長 session = 最肯畀錢 = 最燒錢）。紅隊再補：一裝計量錶，就同你唯一賣點「無人管、隨我玩」打對台。</p></div>
+  <div class="card bad" style="margin-top:12px"><h3>🔴 風險三：兩個你「寫 code 都解決唔到」嘅第三方死結</h3>
+    <p class="sub">(a) CrazyRouter 上面「夠快 + 可串流 + 真唔審查 + 中文夠地道」嘅 model <b>可能根本搵唔到</b>（結構性，唔係調參）；(b) 敢做成人內容嘅<b>支付通道</b>。兩個都係第三方話事，唔係你努力寫 code 解到。</p></div>
+
+  <!-- dissent -->
+  <h2><span class="n">5</span>紅隊嘅異議（值得單獨聽）</h2>
+  <div class="card warn">
+    <div class="quote">「六票 Go 係假共識 —— 大家其實唔係同意個計劃得，係同意『P1 止血係啱』。呢兩件事被混為一談。」</div>
+    <p class="sub">紅隊唯一一票投「大幅 pivot」。佢嘅論點：每個人嘅「Go」都掛住一串前置條件（解決 Grok 串流、確認支付、證明留存、credits 企得住），而其中兩個<b>係你控制唔到嘅第三方</b>。佢提醒最危險嘅陷阱：<b>將「沉沒成本（17 個 session）」同「六票 Go」讀成「計劃已驗證」，繼續優化一個市場已證冇人畀錢嘅後台。</b></p>
+  </div>
+
+  <!-- first move -->
+  <h2><span class="n">6</span>全場最一致嘅「第一步」</h2>
+  <div class="step"><div class="k">1</div><div><b>砍 GM → 單 Narrator 輕 pipeline，落 staging 量兩個數</b><div class="sub">第一回合「見字秒數」+ 每回合「真實成本」。用數據拍板，唔好用沉沒成本。</div></div></div>
+  <div class="step"><div class="k">2</div><div><b>成人回合上「前端假串流」</b><div class="sub">後台照 buffered 收，畫面扮逐字打字。一日工程，即刻止住成人體感最差嗰點。</div></div></div>
+  <div class="step"><div class="k">3</div><div><b>同步驗證兩個第三方死結</b><div class="sub">(a) CrazyRouter 有冇可串流的 uncensored 中文 model；(b) 一條敢做成人、唔會凍結你嘅支付通道 + 港台 18+ 法律意見。</div></div></div>
+  <div class="step"><div class="k">4</div><div><b>手砌一條無 GM、純串流、單一成人故事 demo，自己連玩三日</b><div class="sub">用「第二週留存」拍板值唔值得繼續加碼。其餘（深模式、似遊戲目標）全部入 backlog。</div></div></div>
+
+  <div class="foot">委員會係模擬角色辯論，用嚟壓力測試，唔係事實裁決。投票結果僅供你拍板參考。</div>
+</div>
+</body>
+</html>
