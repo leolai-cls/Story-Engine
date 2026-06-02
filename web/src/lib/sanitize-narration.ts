@@ -34,6 +34,16 @@ export function stripReasoningMarkers(text: string): string {
       )
       // 兜底:模型淨係嘔一個 ops object
       .replace(/\{\s*"ops"\s*:\s*\[[\s\S]*?\]\s*\}/g, "")
+      // 2026-06-03 (audit · light-core): 捉漏出嚟嘅 INTERNAL prompt block —— 記憶 /
+      // 狀態 / NPC streams 嘅 marker + warning + section header,<player_action> 標籤,
+      // 同 NPC 私密 POV label。呢啲字面 marker 喺真實故事敘事永不出現,整行 strip 安全。
+      .replace(/^.*(?:\[INTERNAL CONTEXT|⚠️\s*INTERNAL|DO NOT QUOTE|NEVER quote).*$/gim, "")
+      .replace(
+        /^#{1,4}\s*(?:Long-Term Memory|NPC Inner Streams|Current Game State|World State|State Schema|世界狀態維度|世界状态维度).*$/gim,
+        "",
+      )
+      .replace(/<\/?player_action>/gi, "")
+      .replace(/\*\*(?:inner_thought|intent)\*\*[^\n]*/gi, "")
       // 清走因移除 marker 而剩低嘅空 blockquote 行
       .replace(/^[ \t]*>[ \t]*$/gm, "")
       // 收拾多餘空行

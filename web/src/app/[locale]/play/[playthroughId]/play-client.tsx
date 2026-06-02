@@ -767,7 +767,9 @@ export function PlayClient({
                 accumulated += event.delta;
                 // 真串流 (Anthropic 直連) → 即時 render，玩家睇到逐粒字浮出嚟。
                 // Buffered provider 唔即時 render（會一次過 dump）· 留俾下面假打字。
-                if (realStream) setStreamText(accumulated);
+                // audit fix: 即時 render 都要消毒，否則漏出嚟嘅 JSON / 內部 block
+                // 會喺串流途中 flash 出嚟。
+                if (realStream) setStreamText(stripReasoningMarkers(accumulated));
               } else if (
                 event.type === "reasoning-delta" &&
                 typeof event.delta === "string"
@@ -810,9 +812,11 @@ export function PlayClient({
         // 2026-05-31 (founder): strip a leading ```json {...}``` block the
         // narrator sometimes echoes from the state context (Gemini mimicry) so
         // the player never sees raw JSON — matches the server-side strip.
-        const fullText = accumulated
-          .replace(/^\s*```(?:json)?\s*\{[\s\S]*?\}\s*```\s*/i, "")
-          .trimStart();
+        // audit fix: client-finalize 而家同 server-persist 對稱 —— 行埋
+        // stripReasoningMarkers（之前只 strip 開頭 fenced json，漏咗其他內部 block）。
+        const fullText = stripReasoningMarkers(
+          accumulated.replace(/^\s*```(?:json)?\s*\{[\s\S]*?\}\s*```\s*/i, ""),
+        );
 
         // 2026-06-01 (ADR-001 原則 5 · 技術失敗要誠實 · 唔好假扮故事):
         // Narrator 超時 / 交白卷 → stream 完冇實質文字。後端會插一個 failed=true

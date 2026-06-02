@@ -196,14 +196,16 @@ export default async function PlayPage({
         role: t.role as "user" | "ai",
         text: t.text,
         index: t.turn_index,
-        skillCheck: t.skill_check as Turn["skillCheck"] | undefined,
-        directorVerdict: t.director_verdict as Turn["directorVerdict"] | undefined,
+        // light-core (2026-06-03): 擲骰/技能判定 + Director 已移出核心 → 唔再
+        // surface 舊 playthrough 嘅 skill badge / verdict 落 UI (deep mode 先重啟)。
+        skillCheck: null,
+        directorVerdict: null,
       }))}
       characterName={pt.character_name ?? defaultProtagonist}
       npcs={npcs}
       sidebarPlaythroughs={sidebarPlaythroughs}
       sidebarTotalCount={totalPlaythroughCount ?? sidebarPlaythroughs.length}
-      npcL3Enabled={pt.npc_l3_enabled ?? false}
+      npcL3Enabled={false}
       thinkingModeEnabled={(pt as { thinking_mode_enabled?: boolean }).thinking_mode_enabled ?? false}
       subscriptionTier={subscriptionTier}
       playthroughModel={(pt.llm_model as string) ?? null}

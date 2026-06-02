@@ -40,6 +40,7 @@ export function ChatControls({
   subscriptionTier,
   isAdult,
   npcL3Enabled: initialNpcL3,
+  npcL3Available = false,
   thinkingEnabled: initialThinking,
   onModelChange,
   onNpcL3Change,
@@ -51,6 +52,9 @@ export function ChatControls({
   /** 成人故事 (content_rating='adult') · model 鎖死成 Grok · picker 唔畀切換。 */
   isAdult?: boolean;
   npcL3Enabled: boolean;
+  /** light-core (2026-06-03): NPC L3 移出核心 → 預設 false 隱藏個掣。
+   *  deep mode 重啟時傳 true 即可,toggle 同 state 都仲喺度 (dormant)。 */
+  npcL3Available?: boolean;
   thinkingEnabled: boolean;
   /** Parent updates its cost-estimate when model changes. */
   onModelChange?: (modelId: string) => void;
@@ -256,6 +260,10 @@ export function ChatControls({
       )}
 
       {/* ─── Agent mode (NPC L3 inner voices) toggle ─── */}
+      {/* light-core (2026-06-03): NPC L3 唔再喺核心跑 → 隱藏個掣,免得個 toggle 講大話
+          (撳咗都唔會有效果)。toggleNpcL3 / state 全部保留做 dormant code ·
+          deep mode 重開時 play-client 傳 npcL3Available={true} 就得。 */}
+      {npcL3Available && (
       <button
         type="button"
         onClick={toggleNpcL3}
@@ -277,6 +285,7 @@ export function ChatControls({
           {npcL3 ? "ON" : "OFF"}
         </span>
       </button>
+      )}
 
       {/* ─── Deep thinking toggle (no tier gate · costs more credits) ─── */}
       <button
