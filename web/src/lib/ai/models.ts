@@ -240,14 +240,11 @@ export const ADULT_NSFW_MODEL = "grok-4-1";
 export const DEFAULT_TIER: ModelTier = "standard";
 
 /** Back-compat exports · 漸進 migration 期間用.
- *  Founder explicit (2026-05-28): keep gemini-3-5-flash · agent 上次將
- *  「provider TOS violation」誤判做 Gemini safety filter · 未 verify 真正
- *  root cause. Plain Gemini fiction usage 玩戀愛 / 黑道題材本身冇問題.
- *  真正 root cause 可能係 OpenRouter privacy setting / request body
- *  param incompat / @ai-sdk middleware · 要直接 reproduce 同 inspect SSE
- *  error 先知.
+ *  Session 17 (2026-06-02 · light-core): 非成人 default narrator 由 gemini-3-5-flash
+ *  改做 Claude Sonnet（非成人全轉 Claude 直連 · 真串流）。story 創建時無 tier / model
+ *  偏好就 fall 落呢個 · 確保新故事都行 Sonnet 而唔係退役咗嘅 Gemini（audit Q5 gap）。
  */
-export const DEFAULT_NARRATOR = "gemini-3-5-flash";
+export const DEFAULT_NARRATOR = "claude-sonnet-4-6";
 export const DEFAULT_DIRECTOR = DIRECTOR_MODEL;
 
 export function getModel(id: string): ModelEntry {

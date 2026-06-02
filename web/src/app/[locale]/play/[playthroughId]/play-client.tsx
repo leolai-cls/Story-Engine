@@ -9,6 +9,7 @@ import { DynamicStatePanel } from "@/components/state-panel";
 import type { StateSchema } from "@/schemas/state-schema";
 import { NpcCard } from "@/components/se/DispositionAxis";
 import { estimateTurnCredits } from "@/lib/billing/credits";
+import { MODELS } from "@/lib/ai/models";
 import { stripReasoningMarkers } from "@/lib/sanitize-narration";
 import {
   PlaythroughSidebar,
@@ -734,6 +735,11 @@ export function PlayClient({
         // block · 用戶唔知出咩事. 而家 capture error frame · throw 出去
         // catch 用 error UI 顯示俾用戶睇.
         let streamError: string | null = null;
+        // Session 17 (light-core audit fix #1): Anthropic 直連 (Sonnet/Opus) 係真逐字
+        // 串流 → 即時 render（唔再等成段先假打字）。Buffered provider (Grok/Gemini via
+        // CrazyRouter · 一次過 dump 全部 frame) 維持 client 假打字。
+        const realStream =
+          !!activeModel && MODELS[activeModel]?.provider === "anthropic";
 
         while (true) {
           const { done, value } = await reader.read();
@@ -759,6 +765,9 @@ export function PlayClient({
               // ChatGPT-style word-by-word on EVERY model. (founder 2026-05-29)
               if (event.type === "text-delta" && typeof event.delta === "string") {
                 accumulated += event.delta;
+                // 真串流 (Anthropic 直連) → 即時 render，玩家睇到逐粒字浮出嚟。
+                // Buffered provider 唔即時 render（會一次過 dump）· 留俾下面假打字。
+                if (realStream) setStreamText(accumulated);
               } else if (
                 event.type === "reasoning-delta" &&
                 typeof event.delta === "string"
@@ -819,20 +828,26 @@ export function PlayClient({
           return;
         }
 
-        await new Promise<void>((resolve) => {
-          let shown = 0;
-          const step = Math.max(2, Math.ceil(fullText.length / 130));
-          const tick = () => {
-            shown = Math.min(fullText.length, shown + step);
-            setStreamText(fullText.slice(0, shown));
-            if (shown < fullText.length) {
-              setTimeout(tick, 16);
-            } else {
-              resolve();
-            }
-          };
-          tick();
-        });
+        // 真串流 (Anthropic) 已經喺 loop 入面逐粒字 render 咗 → 直接 set 最終 (stripped)
+        // 文字就算 · 唔好再假打字（會 double-animate）。Buffered provider 先行假打字。
+        if (realStream) {
+          setStreamText(fullText);
+        } else {
+          await new Promise<void>((resolve) => {
+            let shown = 0;
+            const step = Math.max(2, Math.ceil(fullText.length / 130));
+            const tick = () => {
+              shown = Math.min(fullText.length, shown + step);
+              setStreamText(fullText.slice(0, shown));
+              if (shown < fullText.length) {
+                setTimeout(tick, 16);
+              } else {
+                resolve();
+              }
+            };
+            tick();
+          });
+        }
 
         // Finalize: append AI turn locally, clear stream buffer
         const aiTurn: Turn = {

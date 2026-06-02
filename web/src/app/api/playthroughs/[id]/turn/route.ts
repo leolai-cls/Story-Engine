@@ -294,17 +294,14 @@ export async function POST(
   // W1-MOD-H-03 + CLAUDE.md hard rule #6 still hold: action moderation happens
   // BEFORE any Director / Narrator call (those come later in the pipeline).
   // failClosed:true ensures transient API errors block.
-  // Session 17 (light-core · decision #1): 非成人靠 Claude 自己拒絕違法內容 → 唔再
-  // blocking pre-filter（慳一個 call · 提速 · 唔合適嘅輸入由 Claude 自然喺敘事推走）。
-  // 成人用 Grok（唔會自我拒絕）→ 保留違法底線 input pre-filter（hard rule #6 · CSAM
-  // 等）· 加埋 onFinish 嘅 post-hoc 輸出檢查 = 雙重防線。
-  const adultContentRating =
-    (((story.content_rating as "sfw" | "soft" | "adult") ?? "sfw") === "adult");
-  const moderationPromise = adultContentRating
-    ? moderateText(action, "adult", { failClosed: true })
-        .then((verdict) => ({ ok: true as const, verdict }))
-        .catch((e: unknown) => ({ ok: false as const, error: e }))
-    : Promise.resolve(null);
+  // Session 17 (light-core · decision #1 + audit hard-rule-#6 fix): 唔再做闊範圍
+  // NSFW pre-filter（非成人嘅 NSFW / 灰色內容由 Claude 自然喺敘事推走 · 唔再硬 400）。
+  // 但違法底線（CSAM / 違法 / 自殘指引）一定要守 · 唔分 rating（hard rule #6）。
+  // 用 "adult" rating call moderateText = 只觸發 HARD_BLOCK_CATEGORIES（CSAM 等）·
+  // 唔 block SFW 嘅 sexual / self-harm。成人額外有 onFinish post-hoc 輸出檢查（雙重）。
+  const moderationPromise = moderateText(action, "adult", { failClosed: true })
+    .then((verdict) => ({ ok: true as const, verdict }))
+    .catch((e: unknown) => ({ ok: false as const, error: e }));
 
   const [moderationResult, charactersResult, charStatesResult, recentTurnsResult] = await Promise.all([
     moderationPromise,
@@ -324,7 +321,7 @@ export async function POST(
   // Handle moderation verdict / error before continuing into the LLM pipeline
   // Wave 2 i18n cycle-3 fix (2026-05-28): drop hardcoded 繁中 `message`.
   // play-client renders body via play.errors.moderationConfigBody.
-  // 只有成人回合先有 moderationResult（非成人 = null · 跳過違法底線 input pre-filter）。
+  // moderationResult 而家所有 rating 都有（違法底線 / CSAM 檢查 · 見上 · hard rule #6）。
   if (moderationResult) {
     if (!moderationResult.ok) {
       const err = moderationResult.error;
