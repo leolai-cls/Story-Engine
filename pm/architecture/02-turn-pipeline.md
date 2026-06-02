@@ -3,6 +3,8 @@
 > GM 係 prep 員唔係決策者 · 四層優先級 · 單一 Narrator LLM。
 > Anchor 原則：[01-philosophy] 原則 2 (GM prep) + 原則 3 (Tier hierarchy)。
 
+> ⚠️ **2026-06-02 LIGHT-CORE PIVOT 廢除咗呢份**：GM/Director 同四層優先級**整個拎走**。新核心 = 玩家輸入 → 搵記憶 → 單 Narrator 直出（非成人 Claude / 成人 Grok），冇 GM 仲裁。見 `decisions.md` ADR-006。呢份保留作歷史記錄。
+
 ---
 
 ## 核心理念

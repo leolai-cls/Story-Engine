@@ -223,14 +223,18 @@ export function computeCredits(params: {
   }
   const markup = params.markup ?? STORY_ENGINE_MARKUP;
 
-  // AUDIT FIX (P3-COST-M-07): inputTokens from Vercel AI SDK is ALREADY
-  // exclusive of cachedInputTokens (Anthropic's `usage.input_tokens` is
-  // fresh + cache_creation; `cache_read_input_tokens` is the cached
-  // count). Previously this function subtracted cached from input, which
-  // double-counted and undercharged ~10% on every cached turn. Fix:
-  // input = full input rate, cached = separate cached rate, no subtraction.
-  const freshInput = Math.max(0, params.inputTokens ?? 0);
+  // Session 17 (2026-06-02 · audit fix · hard rule #4 · VERIFIED against the
+  // INSTALLED SDK source): the public `usage.inputTokens` from @ai-sdk = the
+  // FULL total, `inputTokens.total = noCache + cacheCreation + cacheRead`
+  // (ai/dist asLanguageModelUsage `inputTokens: usage.inputTokens.total` +
+  // @ai-sdk/anthropic dist `total: inputTokens + cacheCreationTokens + cacheReadTokens`).
+  // It INCLUDES the cached-read count; `cachedInputTokens` = cacheRead. So we MUST
+  // subtract cached from input — otherwise cacheRead tokens are billed TWICE (full
+  // rate inside freshInput + cached rate). The old "P3-COST-M-07 · no subtraction"
+  // note was WRONG for this SDK version → ~24% over-charge on every Anthropic
+  // (Sonnet/Opus) turn once the light-core pivot made non-adult = Claude (cache-on).
   const cachedInput = Math.max(0, params.cachedInputTokens ?? 0);
+  const freshInput = Math.max(0, (params.inputTokens ?? 0) - cachedInput);
   const outputTokens = Math.max(0, params.outputTokens ?? 0);
   const cachedRate = pricing.cachedInputPerMillion ?? pricing.inputPerMillion;
 
@@ -394,11 +398,14 @@ export function estimateTurnCredits(
       outputTokens: thinkingEnabled ? 3500 : 800,
       cachedInputTokens: 2000, // assume 67% cache hit in steady state
     },
+    // Session 17 (light-core): GM Director 拆走 · 呢個 Haiku reserve 而家 model 緊
+    // post-narration 嘅 extractTurnState（讀 prose + schema → 抽 state）· 比舊
+    // Director 平好多（無 8000 input + 無 cache）· 唔再 over-reserve ~21 credit
+    // （safe direction · 估值仍 ≥ 實際 extractor · 唔會 free turn）。
     director: {
       modelId: "claude-haiku-4-5",
-      inputTokens: 8000,
+      inputTokens: 4000,
       outputTokens: 400,
-      cachedInputTokens: 5000,
     },
     lorebook: { inputTokens: 2000, outputTokens: 500 },
     summarizer: { inputTokens: 250, outputTokens: 40 }, // amortized 1/20

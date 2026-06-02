@@ -5,6 +5,24 @@
 
 ---
 
+## 🆕 ADR-006 · LIGHT-CORE PIVOT — 拎走 GM/四層 · 非成人轉 Claude（2026-06-02）
+
+> ⚠️ 呢個 ADR 取代咗下面 ADR-001 + 四層架構。新 session 讀架構文件前，先讀呢個。
+
+**決定**：放棄「四層 GM 仲裁」架構。每回合近乎直出：玩家輸入 → 搵記憶 → 單 Narrator 直接講故事，似 raw LLM、最少干預。非成人 narrator 改用 **Claude 直連**（Standard=Sonnet · Pro=Opus · 真逐字串流 + prompt cache）；成人維持 **Grok**（CrazyRouter · hard rule #5）。擲骰 / skill-check 移出核心（→ 將來「深模式」opt-in）。
+
+**背景 / 觸發**：founder 親手玩 Session 16 實作出嚟嘅四層架構 → 發現**比 raw LLM（ChatGPT）更慢 + 回合間更唔一致 + 感受唔到差異**。市場研究 + 7 人策略委員會驗證：行業「更長記憶 / 更快回覆」賣唔到錢；真護城河 = 中文圈 + 唔審查 + 體驗層 + 用戶累積嘅關係連續性。
+
+**對其他 ADR / 原則嘅影響**：
+- **ADR-001（GM 降做 prep 員）→ SUPERSEDED**：唔再 demote，係**整個拎走**。GM/Director 喺核心路徑 0 live caller（neuter + dead scaffolding · 留 cleanup PR）。
+- **ADR-002（只守法律底線）→ 維持**（成人 post-hoc 法律檢查 + 非成人 CSAM input floor）。
+- **ADR-003（角色三層靈魂 + 沉澱張力）→ 推遲去 Wave 2**（角色 MD + keyword 調用 · MemPalace 式）。經歷「寫入」暫時關咗。
+- **原則 1（emergent）+ 原則 4（零自我審查）→ 維持**；**原則 2（GM as prep）+ 原則 3（四層優先）→ 廢除**。
+
+**狀態**：✅ Wave 1 已實作 + build + 兩輪審計修好（branch `feat/light-core-wave1` · 3 commit · **未 merge · 未部署測**）。Wave 2 pending。完整實作計劃 + 交叉檢查見 repo 根 `rebuild-plan-light-core.html`。
+
+---
+
 ## ADR-001 · GM 由決策者降做 prep 員 (2026-06-01)
 
 **決定**：移除 Director Model 嘅 verdict 仲裁角色。改用單 Narrator LLM + 四層優先級 context。
@@ -22,8 +40,8 @@
 4. Post-hoc 紅線檢查 (見下面 note)
 5. Director.ts 整個 deprecate + cleanup
 
-**狀態**：DESIGN LOCKED · IMPLEMENTATION PENDING。
-**驗證**：實作後用「觀察+估計春野櫻」case 跑 · 必須出 character-driven response · 唔再 canned。
+**狀態**：⚠️ **SUPERSEDED by ADR-006**（2026-06-02 light-core）—— GM 唔再 demote，係**整個拎走**。以下保留作歷史記錄。
+**驗證（已過時）**：實作後用「觀察+估計春野櫻」case 跑 · 必須出 character-driven response · 唔再 canned。
 
 ---
 

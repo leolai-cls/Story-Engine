@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kieio 輕核心重建 — 詳細計劃 + 交叉檢查</title>
+<style>
+  :root{--bg:#0f1115;--card:#171a21;--card2:#1d2129;--ink:#e7e9ee;--muted:#9aa1ad;--line:#2a2f3a;--accent:#8b7cf6;--accent2:#22d3ee;--good:#34d399;--warn:#fbbf24;--bad:#f87171}
+  *{box-sizing:border-box}
+  body{margin:0;background:linear-gradient(180deg,#0c0e12,#0f1115 240px);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;line-height:1.72;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:960px;margin:0 auto;padding:40px 22px 90px}
+  .kicker{color:var(--accent2);font-weight:700;letter-spacing:.14em;font-size:12px;text-transform:uppercase}
+  h1{font-size:27px;line-height:1.3;margin:8px 0 4px;font-weight:800}
+  h2{font-size:20px;margin:40px 0 6px;font-weight:800;display:flex;align-items:center;gap:10px}
+  h2 .n{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:8px;background:var(--accent);color:#0c0e12;font-size:13px;font-weight:900;flex:none}
+  h3{font-size:15.5px;margin:18px 0 4px;font-weight:700;color:#fff}
+  p{margin:8px 0;color:#d6d9e0}.sub{color:var(--muted);font-size:13.5px}
+  .tldr{background:rgba(139,124,246,.10);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:8px;padding:10px 14px;margin:8px 0 14px;font-size:13.5px;color:#c9cdd6}
+  .flow{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-top:12px;font-size:13px;font-family:ui-monospace,Menlo,Consolas,monospace;color:#cdd1d9;overflow-x:auto;white-space:nowrap}
+  .flow .cut{color:var(--bad);text-decoration:line-through;opacity:.7}
+  .flow .keep{color:var(--good)}.flow .chg{color:var(--warn)}.flow .arr{color:var(--muted);margin:0 4px}
+  table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13.5px}
+  th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:700;font-size:11.5px;letter-spacing:.04em;text-transform:uppercase}
+  td b{color:#fff} code{background:var(--card2);border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-size:12px;font-family:ui-monospace,Menlo,Consolas,monospace;color:#c4b5fd}
+  .tag{display:inline-block;font-size:10.5px;font-weight:800;padding:1px 7px;border-radius:6px}
+  .t-rm{background:rgba(248,113,113,.16);color:#fca5a5}.t-keep{background:rgba(52,211,153,.16);color:#6ee7b7}.t-chg{background:rgba(251,191,36,.16);color:#fcd34d}
+  .step{display:flex;gap:13px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--line)}
+  .step .k{flex:none;width:28px;height:28px;border-radius:8px;display:grid;place-items:center;font-weight:900;color:#0c0e12;font-size:13px}
+  .k.first{background:var(--bad)}.k.norm{background:var(--accent2)}.k.late{background:var(--good)}
+  .step .body{flex:1}.step .body .why{color:var(--muted);font-size:12.5px;margin-top:2px}
+  .land{background:rgba(248,113,113,.07);border:1px solid rgba(248,113,113,.3);border-radius:10px;padding:12px 14px;margin-top:10px}
+  .land b{color:#fca5a5}
+  .ask{background:rgba(34,211,238,.07);border:1px solid rgba(34,211,238,.28);border-radius:10px;padding:12px 14px;margin-top:10px}
+  .foot{color:var(--muted);font-size:12.5px;margin-top:28px;text-align:center}
+  ul{margin:6px 0;padding-left:20px}li{margin:4px 0;color:#d6d9e0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kicker">Kieio · 輕核心重建 · 詳細計劃 + 交叉檢查</div>
+  <h1>拎走四層 GM 干預、留住記憶、非成人轉 Claude</h1>
+  <div class="sub">2026-06-02 · 已對住真實 code 交叉檢查（file:line）· 目標：玩起上嚟似 raw LLM，最少干預，快 + 一致</div>
+
+  <div class="tldr"><b>一句講解：</b>而家每回合喺「講故事」之前要先過一個 Haiku「GM」做四層仲裁，慢、又會 over-reject、又令角色「唔聽支笛」。我哋將 GM 整個拎走，玩家輸入近乎直接落 narrator；非成人換 Claude 直連（真‧逐字串流 + 質素）；記憶系統照留。但 GM 喺 code 入面 connect 咗五樣嘢，要小心拆。</div>
+
+  <!-- 1 -->
+  <h2><span class="n">1</span>一個回合：而家 vs 之後</h2>
+  <h3>而家（重）</h3>
+  <div class="flow">審查 <span class="arr">→</span> 搵記憶 <span class="cut">→ callDirector (Haiku GM)</span> <span class="cut">→ 套用 npc_updates</span> <span class="cut">→ lorebook 用 hints 再搵</span> <span class="cut">→ 讀角色經歷(靠 GM 標 active)</span> <span class="cut">→ NPC L3 各自諗</span> <span class="cut">→ skill check</span> <span class="arr">→</span> Narrator(純文字) <span class="arr">→</span> onFinish[抽狀態(Haiku) · 法律檢查 · 入庫 · 背景寫記憶]</div>
+  <h3>之後（輕）— 非成人</h3>
+  <div class="flow"><span class="keep">審查</span> <span class="arr">→</span> <span class="keep">搵記憶</span> <span class="arr">→</span> <span class="chg">Narrator (Claude Sonnet/Opus · 真串流 · 文字+狀態一個 call)</span> <span class="arr">→</span> onFinish[<span class="keep">入庫 · 背景寫記憶</span>]</div>
+  <h3>之後（輕）— 成人</h3>
+  <div class="flow"><span class="keep">審查</span> <span class="arr">→</span> <span class="keep">搵記憶</span> <span class="arr">→</span> <span class="chg">Narrator (Grok · buffered + 前端假打字)</span> <span class="arr">→</span> onFinish[<span class="keep">抽狀態(Haiku) · 法律檢查 · 入庫 · 背景寫記憶</span>]</div>
+  <div class="sub" style="margin-top:8px">效果：拎走 1 個 blocking Haiku call（GM）+ 1-3 個 NPC call + lorebook 再搵 + 角色經歷讀取 → narrator 之前嗰排隊大幅縮短。非成人仲多咗真串流（Claude 直連），第一個字即刻浮。</div>
+
+  <!-- 2 -->
+  <h2><span class="n">2</span>交叉檢查：GM 連住嘅 5 樣嘢（拆之前要知）</h2>
+  <div class="tldr"><b>一句講解：</b>GM 唔淨止「判玩家指令」—— 佢仲偷偷 drive 緊「邊個角色今回合活躍」「擲唔擲骰」「lorebook 點再搵」。呢啲要逐個有交代，唔係 delete 咗就算。</div>
+  <table>
+    <tr><th>GM 輸出</th><th>而家連住乜（file:line）</th><th>拆法</th></tr>
+    <tr><td><b>verdict</b>（判決）</td><td>→ <code>verdictToContextNote</code> 注入 narrator（route ~808, 824）；reject 喺 PR2 已經 →""</td><td><span class="tag t-rm">拎走</span> 本身已經接近 no-op，直接刪</td></tr>
+    <tr><td><b>verdict = require_skill_check</b></td><td>→ 擲骰 <code>rollSkillCheck</code> + narrator 指示（route 792-806）</td><td><span class="tag t-rm">拎走</span> 擲骰移去將來「深模式」（你揀咗 c）</td></tr>
+    <tr><td><b>npcUpdates</b></td><td>→ 寫角色心情/好感（route 552+）<br>→ gate NPC L3（674-732）<br>→ <b>標「今回合活躍角色」去讀角色經歷記憶</b>（753）</td><td><span class="tag t-chg">改接線</span> 心情/好感改由 narrator 抽（已有）；NPC L3 移出核心；<b>「活躍角色」改由抽取器/全角色推導</b></td></tr>
+    <tr><td><b>memoryHints</b></td><td>→ <code>refineLorebookByHints</code> 第二次精搵 lorebook（route ~600）</td><td><span class="tag t-chg">改接線</span> 刪精搵；第一次 <code>retrieveMemory</code> 照 work，唔影響記憶</td></tr>
+    <tr><td><b>sceneBoundary / 入庫 verdict</b></td><td>→ 標場景結束 + 存 <code>turns.director_verdict</code></td><td><span class="tag t-rm">拎走</span> 場景結束改由抽取器或時間推導；唔再存 verdict</td></tr>
+  </table>
+
+  <!-- 3 -->
+  <h2><span class="n">3</span>留住嘅嘢（已確認唔靠 GM，安全）</h2>
+  <table>
+    <tr><th>系統</th><th>點解安全</th></tr>
+    <tr><td><span class="tag t-keep">記憶搜尋</span> <code>retrieveMemory</code></td><td>自己 embed 玩家輸入 + 查 3 個來源（摘要/RAG/lorebook），<b>唔靠 GM</b>。只有「第二次精搵」用 hints → 刪咗都唔影響第一次。</td></tr>
+    <tr><td><span class="tag t-keep">抽狀態</span> <code>extractTurnState</code>（Haiku）</td><td>讀 narrator 寫完嘅文字 → 出狀態/好感/flag。<b>本身就獨立於 GM</b>。拎走 GM 後，佢變成狀態同好感嘅<b>唯一來源</b>（剛好頂返 GM 嗰份）。</td></tr>
+    <tr><td><span class="tag t-keep">狀態面板/自適應介面</span></td><td>靠 <code>extractTurnState</code> 出嘅狀態 render，<b>唔靠 GM</b> → 面板照常更新。</td></tr>
+    <tr><td><span class="tag t-keep">背景寫記憶</span>（摘要/embed/lorebook/經歷）</td><td>全部喺 <code>after()</code> 背景跑，獨立觸發，唔阻出文。</td></tr>
+    <tr><td><span class="tag t-keep">成人法律底線</span>（post-hoc）</td><td>PR2 加嘅 onFinish 輸出檢查，獨立，照留。</td></tr>
+  </table>
+
+  <!-- 4 -->
+  <h2><span class="n">4</span>Model 改動（非成人 → Sonnet/Opus）</h2>
+  <table>
+    <tr><th>檔案</th><th>而家</th><th>要改成</th></tr>
+    <tr><td><code>tier-router.ts</code>:63-73</td><td>standard→deepseek/gemini · pro→sonnet/gpt</td><td><b>standard→claude-sonnet · pro→claude-opus</b>（中英都用同一隻，可刪中/英分支）· 成人→grok 不變</td></tr>
+    <tr><td><code>models.ts</code> MODELS</td><td>冇 Opus entry</td><td><b>加 <code>claude-opus</code></b>（anthropic 直連 · narrator · min_tier=pro）</td></tr>
+    <tr><td><code>models.ts</code>:74 Sonnet <code>min_tier</code></td><td><code>"adventurer"</code>（Pro 先用到）</td><td><b>改 <code>"free"</code></b> ⚠️ 否則 Standard 用戶撞 403（見地雷①）</td></tr>
+    <tr><td><code>models.ts</code>:194-197 TIER_POOLS</td><td>standard:[gemini,deepseek] pro:[sonnet,gpt]</td><td>standard:[sonnet] pro:[opus]（成人唔經呢度）</td></tr>
+    <tr><td><code>credits.ts</code> MODEL_PRICING</td><td>有 sonnet · <b>冇 opus</b></td><td><b>加 opus 定價</b> ⚠️ 唔加 = 跑 opus 即 500（見地雷②）</td></tr>
+    <tr><td><code>ChatControls.tsx</code>:29-33</td><td>顯示 deepseek/gemini…</td><td>更新揀 model 清單</td></tr>
+  </table>
+
+  <!-- 5 -->
+  <h2><span class="n">5</span>⚠️ 三個地雷（一定要 fix first，否則 play 即爆）</h2>
+  <div class="land"><b>地雷① Sonnet 嘅 tier gate</b> — 而家 Sonnet <code>min_tier="adventurer"</code>（Pro 先用到）。一旦 Standard 路由去 Sonnet，<code>userTierAllowsModel</code>（route:171）會即刻 <b>403</b> 擋住所有 Standard / 免費用戶。<b>必先</b>放寬 Sonnet 俾 Standard。</div>
+  <div class="land"><b>地雷② MODELS / MODEL_PRICING 雙表 drift</b> — 你之前撞過呢個 bug class（grok 漏 pricing → play 500）。Opus 一定要<b>同時</b>加入兩張表先好路由過去。</div>
+  <div class="land"><b>地雷③ 現有 playthrough 鎖死咗舊 model</b> — narrator model 係<b>逐個 playthrough 存喺 <code>pt.llm_model</code></b>（route:170,930），改 tier-router 只影響<b>新</b>故事。你而家啲故事仲寫住 <code>deepseek-v3-2</code>/<code>gemini</code> → 要一個 migration 將非成人舊 playthrough backfill 去 sonnet/opus（成人 grok 不動），或者 runtime override。</div>
+
+  <!-- 6 -->
+  <h2><span class="n">6</span>「先做乜」次序</h2>
+  <div class="step"><div class="k first">1</div><div class="body"><b>補好 model 兩張表 + tier gate</b>（地雷①②）<div class="why">加 Opus 入 MODELS + MODEL_PRICING；放寬 Sonnet min_tier。呢個係所有嘢嘅前提，唔做就一 route 過去即爆。</div></div></div>
+  <div class="step"><div class="k first">2</div><div class="body"><b>backfill 現有非成人 playthrough 嘅 <code>llm_model</code></b>（地雷③）<div class="why">migration：standard→sonnet · pro→opus · 成人 grok 不動。</div></div></div>
+  <div class="step"><div class="k norm">3</div><div class="body"><b>改 tier-router</b>：非成人 standard→sonnet · pro→opus<div class="why">新故事即刻行新 model。</div></div></div>
+  <div class="step"><div class="k norm">4</div><div class="body"><b>route 拆走 GM</b>：刪 <code>callDirector</code> 同 5 個 consumer，按第 2 節接線（好感改抽取器、活躍角色改推導、刪 lorebook 精搵 + NPC L3 + skill check）<div class="why">呢步最易整爛嘢，逐個 consumer 跟交叉檢查表拆。</div></div></div>
+  <div class="step"><div class="k norm">5</div><div class="body"><b>改寫 <code>narratorRulesFor</code></b>（turn-runner:40-214+）：拎走「四層優先 + 指令失敗 pushback」嗰套，<b>保留</b>寫作風格 + 反應式結尾 + 狀態工具<div class="why">變成「你係呢個世界嘅敘事者，順住世界同角色去寫玩家行動嘅後果」—— 似一個靚 system prompt，唔係仲裁階層。</div></div></div>
+  <div class="step"><div class="k late">6</div><div class="body"><b>(可選) 非成人合併文字+狀態做一個 call</b><div class="why">Claude 可靠地一次過出文字 + 工具（記憶有記載），可慳埋 Haiku 抽取嗰步。成人 Grok 維持「純文字 + Haiku 抽取」。第一版可先唔做，求穩。</div></div></div>
+  <div class="step"><div class="k late">7</div><div class="body"><b>更新揀 model UI + 落 staging 量數</b><div class="why">量「第一個字幾秒出」+「每回合真實成本」+ 確認記憶照記得、面板照更新、成人假打字 work。</div></div></div>
+
+  <!-- 7 -->
+  <h2><span class="n">7</span>決定已鎖定 ✓</h2>
+  <div class="ask"><b>① 內容審查 → 拎走 blocking pre-filter。</b> 非成人靠 Claude 自己拒絕違法內容；成人保留 PR2 嗰個「事後、背景、唔阻速度」嘅違法底線檢查（hard rule #6 照守，但唔拖慢）。</div>
+  <div class="ask"><b>② 擲骰 / 技能 → 移出核心，</b>留俾深模式。</div>
+  <div class="ask"><b>③ 角色靈魂 → MemPalace 式 MD + keyword 調用，排去 Wave 2。</b> Wave 1 角色卡暫時照「成日載入」（本身 work + 可快取）；Wave 2 先轉「每個角色一份 doc、提到先注入」。</div>
+  <div class="ask"><b>④ 成本 / token 審計 → 做。</b> 落 staging 量真實每回合 token + 美金，出報告，等 money tier 重計 credits 額度。</div>
+
+  <!-- 8 -->
+  <h2><span class="n">8</span>分兩波做</h2>
+  <table>
+    <tr><th>波</th><th>內容</th></tr>
+    <tr><td><b>Wave 1（而家）</b></td><td>拎走 GM / 四層 · 非成人轉 Sonnet（Standard）/ Opus（Pro）· 拎走 blocking pre-filter（成人保留事後法律檢查）· 擲骰移出 · 記憶照留（角色卡暫時成日載入）· 落 staging 量提速 + 成本</td></tr>
+    <tr><td><b>Wave 2（緊接）</b></td><td>角色 → MD + keyword 調用（MemPalace 式）· 大 cast 慳 token、prompt 唔被無關角色溝淡</td></tr>
+  </table>
+
+  <div class="foot">本計劃已對住真實 code 交叉檢查。落手會起 branch、逐步 ship、每步落 staging 量數，唔一次過大改。動到現有 playthrough 數據嘅 migration 會先攞 founder confirm 先 apply。</div>
+</div>
+</body>
+</html>

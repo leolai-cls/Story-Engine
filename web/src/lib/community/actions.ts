@@ -459,9 +459,9 @@ export async function forkStoryToPlaythrough(params: {
   // default_tier from profile · route to a pool model via pickModelForTier.
   // Legacy users (no default_tier yet) fall back to default_model · then to
   // Sonnet hard default.
-  // ADR-022 fallback · gemini-3-5-flash (Standard pool · free-tier 允許) ·
-  // 之前 hardcoded Sonnet · free user fork story 即時被 tier-gate reject.
-  let resolvedModel: string = params.llmModel ?? "gemini-3-5-flash";
+  // Session 17 (light-core · audit Q5 gap fix): 非成人 fork fallback 由 gemini →
+  // Claude Sonnet（而家 min_tier free · free user fork 唔會被 tier-gate reject）。
+  let resolvedModel: string = params.llmModel ?? "claude-sonnet-4-6";
   if (!params.llmModel) {
     const { data: profile } = await supabase
       .from("profiles")

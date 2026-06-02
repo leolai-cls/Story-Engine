@@ -10,12 +10,11 @@
  *   2. adultMode boolean (`adult_mode_enabled` self-attest 18+ · ADR-023 · NO KYC · 任何訂閱都可以開)
  *   3. context text (用嚟做 language detection)
  *
- * Decision:
+ * Decision (Session 17 · 2026-06-02 light-core pivot · 非成人全轉 Claude 直連):
  *   - adultMode=true → 一律 return ADULT_NSFW_MODEL ("grok-4-1" · ADR-024)
- *   - tier="standard" + 中文 dominant → "deepseek-v3-2" (2026-06-01 換 GLM)
- *   - tier="standard" + 英文 → "gemini-3-5-flash"
- *   - tier="pro" + 中文 dominant → "claude-sonnet-4-6"
- *   - tier="pro" + 英文 → "gpt-5-4-pro"
+ *   - tier="standard" (非成人) → "claude-sonnet-4-6" (Anthropic 直連 · 真串流 + cache)
+ *   - tier="pro" (非成人) → "claude-opus-4-7" (Anthropic 直連 · 旗艦)
+ *   - (舊 gemini/deepseek/gpt 中英分流已退役 · 留 MODELS 做 back-compat)
  *
  * Pool definitions live in lib/ai/models.ts TIER_POOLS const.
  */
@@ -58,20 +57,9 @@ export function pickModelForTier(
   }
   if (pool.length === 1) return pool[0];
 
-  const isCjk = options?.context ? isChineseContent(options.context) : true; // 繁中 default market
-
-  if (tier === "standard") {
-    // 中文 → DeepSeek V3.2 (2026-06-01 換 GLM · founder 試「個分別」· 強中文 + 平)
-    // English → Gemini Flash (long context · vendor diversity)
-    return isCjk ? "deepseek-v3-2" : "gemini-3-5-flash";
-  }
-
-  if (tier === "pro") {
-    // 中文 → Sonnet 4.6 (中文 #1 narrative)
-    // English → GPT-5.4 Pro (English #1 narrative · OpenRouter routed)
-    return isCjk ? "claude-sonnet-4-6" : "gpt-5-4-pro";
-  }
-
+  // Session 17 (2026-06-02 · light-core): 非成人 pools 各得一隻 Claude，上面
+  // length===1 已經 return 咗。唔再分中/英（Claude 中英都掂）。保留呢個 fallback
+  // 應付將來 pool 有多隻嘅情況。
   return pool[0];
 }
 

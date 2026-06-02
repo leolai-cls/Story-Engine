@@ -71,8 +71,27 @@ export const MODELS: Record<string, ModelEntry> = {
     role: "narrator",
     credit_multiplier: 2.5,
     allows_nsfw: false,
+    // Session 17 (2026-06-02 · light-core pivot): Sonnet 變成「非成人 Standard」
+    // narrator（Anthropic 直連 · 真逐字串流 + prompt cache）。min_tier 由 adventurer
+    // 放寬到 free，否則 Standard/免費用戶 route 過嚟即撞 userTierAllowsModel 403。
+    min_tier: "free",
+    description: "Standard tier · 非成人敘事（Claude 直連 · 真串流）。",
+    tier_pool: "standard",
+  },
+  // ─── Anthropic direct · 非成人 Pro narrator (Session 17 light-core) ──────
+  // Opus 4.7（$5/$25 · cached $0.5 · pricing 已喺 credits.ts MODEL_PRICING）。
+  // ⚠️ model_id "claude-opus-4-7" — staging 要驗證佢喺 Anthropic 直連 resolve 到；
+  //   若要 bump 去 4-8 必須同步 re-verify pricing（hard rule #4 · credits 要絕對啱）。
+  "claude-opus-4-7": {
+    id: "claude-opus-4-7",
+    provider: "anthropic",
+    model_id: "claude-opus-4-7",
+    display_name: "Claude Opus 4.7",
+    role: "narrator",
+    credit_multiplier: 5.0, // legacy/unused · 實際扣費經 MODEL_PRICING
+    allows_nsfw: false,
     min_tier: "adventurer",
-    description: "Pro tier · 中文敘事旗艦 · 情感細膩。",
+    description: "Pro tier · 非成人敘事旗艦（Claude 直連 · 真串流）。",
     tier_pool: "pro",
   },
 
@@ -191,9 +210,12 @@ export const MODELS: Record<string, ModelEntry> = {
  * via pickModelForTier 嗰個 adult-aware path。
  * Standard 中文 model 2026-06-01 由 glm-5-1 換做 deepseek-v3-2 (founder)。
  */
+// Session 17 (2026-06-02 · light-core): 非成人全部 Claude 直連（真串流 + cache）。
+// Standard=Sonnet · Pro=Opus。舊 gemini/deepseek/gpt 留喺 MODELS 做 back-compat
+// （現有 playthrough + MODEL_PRICING lookup）· 但唔再入新輪換。
 export const TIER_POOLS: Record<ModelTier, string[]> = {
-  standard: ["gemini-3-5-flash", "deepseek-v3-2"],
-  pro: ["claude-sonnet-4-6", "gpt-5-4-pro"],
+  standard: ["claude-sonnet-4-6"],
+  pro: ["claude-opus-4-7"],
 };
 
 /**
@@ -218,14 +240,11 @@ export const ADULT_NSFW_MODEL = "grok-4-1";
 export const DEFAULT_TIER: ModelTier = "standard";
 
 /** Back-compat exports · 漸進 migration 期間用.
- *  Founder explicit (2026-05-28): keep gemini-3-5-flash · agent 上次將
- *  「provider TOS violation」誤判做 Gemini safety filter · 未 verify 真正
- *  root cause. Plain Gemini fiction usage 玩戀愛 / 黑道題材本身冇問題.
- *  真正 root cause 可能係 OpenRouter privacy setting / request body
- *  param incompat / @ai-sdk middleware · 要直接 reproduce 同 inspect SSE
- *  error 先知.
+ *  Session 17 (2026-06-02 · light-core): 非成人 default narrator 由 gemini-3-5-flash
+ *  改做 Claude Sonnet（非成人全轉 Claude 直連 · 真串流）。story 創建時無 tier / model
+ *  偏好就 fall 落呢個 · 確保新故事都行 Sonnet 而唔係退役咗嘅 Gemini（audit Q5 gap）。
  */
-export const DEFAULT_NARRATOR = "gemini-3-5-flash";
+export const DEFAULT_NARRATOR = "claude-sonnet-4-6";
 export const DEFAULT_DIRECTOR = DIRECTOR_MODEL;
 
 export function getModel(id: string): ModelEntry {

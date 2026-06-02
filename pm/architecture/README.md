@@ -9,6 +9,19 @@
 
 ---
 
+## ⚠️ 2026-06-02 — LIGHT-CORE PIVOT 改寫咗呢個 folder 嘅前提
+
+呢個 folder 嘅文件係 Session 16「四層 GM + 角色靈魂」架構嘅完整設計。**但 Session 17（2026-06-02）founder 親手玩完之後做咗重大 pivot**（見 `decisions.md` ADR-006 + `CLAUDE.md` 頂部 banner）：
+
+- **GM / 四層仲裁 → 整個拎走**（`01-philosophy.md` 原則 2/3 廢除 · `02-turn-pipeline.md` 失效）。核心 = 單 Narrator 近乎直出（非成人 Claude / 成人 Grok）。
+- **角色靈魂沉澱 / 經歷寫入（`03-character-soul.md`）→ 推遲去 Wave 2**（角色 MD + keyword 調用 · MemPalace 式）。
+- **記憶（`04-memory.md`）→ 照留**，但由「護城河 #1」降做「衞生」。
+- **自適應介面 / panel（`06`）+ 故事自適應 mechanics（`05`）→ 維持**（擲骰等移去將來「深模式」）。
+
+**所以**：讀呢 folder 任何文件前，先讀 `decisions.md` ADR-006。凡衝突以 ADR-006 為準。下面文件保留作 Wave 2 參考 + 歷史記錄。
+
+---
+
 ## 點解呢個 folder 存在 (CTO note)
 
 Founder 定位：**記憶 + 角色靈魂 = 產品最重要嘅嘢**。
