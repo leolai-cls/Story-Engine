@@ -877,7 +877,7 @@ export function PlayClient({
         setStreaming(false);
       }
     },
-    [playthroughId, refreshState, streaming, turns],
+    [playthroughId, refreshState, streaming, turns, activeModel],
   );
 
   return (
