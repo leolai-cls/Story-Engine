@@ -14,15 +14,9 @@ import {
   extractTurnState,
   type TurnContext,
 } from "@/lib/ai/turn-runner";
-import { callDirector } from "@/lib/ai/director";
-import { verdictToContextNote } from "@/schemas/director";
 import { callNpcAgentsParallel } from "@/lib/ai/npc-agents";
 import { npcAgentToNarratorBlock, npcAgentsToThinkingBlock, NPC_L3_CREDITS_PER_NPC } from "@/schemas/npc-agent";
-import {
-  rollSkillCheck,
-  skillCheckToNarratorInstruction,
-  type SkillCheckResult,
-} from "@/lib/ai/skill-check";
+import { type SkillCheckResult } from "@/lib/ai/skill-check";
 import { deriveCurrentAct, type ArcContext } from "@/lib/ai/arc-dsl";
 import { applyDelta } from "@/schemas/state-delta";
 import { initialStateFromSchema, StateSchemaShape } from "@/schemas/state-schema";
@@ -300,13 +294,17 @@ export async function POST(
   // W1-MOD-H-03 + CLAUDE.md hard rule #6 still hold: action moderation happens
   // BEFORE any Director / Narrator call (those come later in the pipeline).
   // failClosed:true ensures transient API errors block.
-  const moderationPromise = moderateText(
-    action,
-    (story.content_rating as "sfw" | "soft" | "adult") ?? "sfw",
-    { failClosed: true },
-  )
-    .then((verdict) => ({ ok: true as const, verdict }))
-    .catch((e: unknown) => ({ ok: false as const, error: e }));
+  // Session 17 (light-core · decision #1): 非成人靠 Claude 自己拒絕違法內容 → 唔再
+  // blocking pre-filter（慳一個 call · 提速 · 唔合適嘅輸入由 Claude 自然喺敘事推走）。
+  // 成人用 Grok（唔會自我拒絕）→ 保留違法底線 input pre-filter（hard rule #6 · CSAM
+  // 等）· 加埋 onFinish 嘅 post-hoc 輸出檢查 = 雙重防線。
+  const adultContentRating =
+    (((story.content_rating as "sfw" | "soft" | "adult") ?? "sfw") === "adult");
+  const moderationPromise = adultContentRating
+    ? moderateText(action, "adult", { failClosed: true })
+        .then((verdict) => ({ ok: true as const, verdict }))
+        .catch((e: unknown) => ({ ok: false as const, error: e }))
+    : Promise.resolve(null);
 
   const [moderationResult, charactersResult, charStatesResult, recentTurnsResult] = await Promise.all([
     moderationPromise,
@@ -326,32 +324,35 @@ export async function POST(
   // Handle moderation verdict / error before continuing into the LLM pipeline
   // Wave 2 i18n cycle-3 fix (2026-05-28): drop hardcoded 繁中 `message`.
   // play-client renders body via play.errors.moderationConfigBody.
-  if (!moderationResult.ok) {
-    const err = moderationResult.error;
-    if (err instanceof ModerationConfigError) {
-      console.error("[turn] moderation config error:", err.message);
+  // 只有成人回合先有 moderationResult（非成人 = null · 跳過違法底線 input pre-filter）。
+  if (moderationResult) {
+    if (!moderationResult.ok) {
+      const err = moderationResult.error;
+      if (err instanceof ModerationConfigError) {
+        console.error("[turn] moderation config error:", err.message);
+        return NextResponse.json(
+          { error: "moderation_misconfigured" },
+          { status: 503 },
+        );
+      }
+      console.error("[turn] moderation threw unexpected:", err);
       return NextResponse.json(
-        { error: "moderation_misconfigured" },
+        { error: "moderation_failed" },
         { status: 503 },
       );
     }
-    console.error("[turn] moderation threw unexpected:", err);
-    return NextResponse.json(
-      { error: "moderation_failed" },
-      { status: 503 },
-    );
-  }
-  if (!moderationResult.verdict.allowed) {
-    console.warn(
-      `[turn] moderation blocked action on pt ${playthroughId} user ${user.id}: ${moderationResult.verdict.categories.join(", ")}`,
-    );
-    // Session 16 PM Review #2 (C-01 follow-up sweep): was returning
-    // verdict.reason (繁中-only). Now return stable code · client maps
-    // via errors.moderation.* catalog.
-    return NextResponse.json(
-      { error: "action_blocked", code: verdictToCode(moderationResult.verdict.categories) },
-      { status: 400 },
-    );
+    if (!moderationResult.verdict.allowed) {
+      console.warn(
+        `[turn] moderation blocked action on pt ${playthroughId} user ${user.id}: ${moderationResult.verdict.categories.join(", ")}`,
+      );
+      // Session 16 PM Review #2 (C-01 follow-up sweep): was returning
+      // verdict.reason (繁中-only). Now return stable code · client maps
+      // via errors.moderation.* catalog.
+      return NextResponse.json(
+        { error: "action_blocked", code: verdictToCode(moderationResult.verdict.categories) },
+        { status: 400 },
+      );
+    }
   }
 
   const characters = charactersResult.data;
@@ -508,35 +509,14 @@ export async function POST(
   // persisted into turns.director_verdict so postmortems can distinguish
   // "Director said allow" from "Director failed, defaulted to allow"
   let directorFailed = false;
-  try {
-    const directorResult = await callDirector(ctx, action);
-    verdict = directorResult.verdict;
-    directorUsage = directorResult.usage;
-    directorMemoryHints = directorResult.memoryHints;
-    directorNpcUpdates = directorResult.npcUpdates;
-    directorSceneBoundary = directorResult.sceneBoundary;
-    console.log(
-      `[turn] Director verdict: ${verdict.verdict} — ${verdict.reasoning.slice(0, 80)} ` +
-      `(in=${directorUsage.inputTokens ?? "?"} cached=${directorUsage.cachedInputTokens ?? "?"} out=${directorUsage.outputTokens ?? "?"})`,
-    );
-    if (directorMemoryHints.rooms_to_load.length > 0 || directorMemoryHints.wings_to_load.length > 0) {
-      console.log(
-        `[turn] Director memory hints: rooms=[${directorMemoryHints.rooms_to_load.join(",")}] wings=[${directorMemoryHints.wings_to_load.join(",")}]`,
-      );
-    }
-    if (directorNpcUpdates.length > 0) {
-      console.log(
-        `[turn] Director NPC updates: ${directorNpcUpdates.map((u) => `${u.character_name}(${u.emotional_shift}/${u.current_mood})`).join(", ")}`,
-      );
-    }
-  } catch (e) {
-    console.warn("[turn] Director failed, falling back to allow:", e instanceof Error ? e.message : e);
-    verdict = {
-      verdict: "allow" as const,
-      reasoning: "Director call failed; defaulting to allow.",
-    };
-    directorFailed = true; // AUDIT FIX F-03 · ops visibility for fallback path
-  }
+  // Session 17 (2026-06-02 · light-core pivot): GM/Director 拆走。玩家輸入近乎
+  // 直接落 Narrator（似 raw LLM · 最少干預）· 唔再每回合 call Haiku 仲裁 —— 慳一個
+  // blocking LLM call（速度）+ 移除四層 over-reject。verdict 永遠 allow（下游
+  // verdictToContextNote(allow)→"" · skill-check 唔觸發）· directorUsage / hints /
+  // npcUpdates / sceneBoundary / failed 維持上面嘅 inert 預設，令舊 consumer block
+  // 自然 no-op（gated-on-empty）。canonical 角色狀態改由 onFinish extractor 抽。
+  // 舊 Director scaffolding 嘅 dead block 留待 cleanup PR 一次過清。
+  verdict = { verdict: "allow" as const, reasoning: "" };
 
   // 4.2 PHASE 1 — NPC Level 2 dynamic state apply (in-memory)
   // Director emitted npc_updates · refresh ctx.characters[].dynamic_state so
@@ -750,19 +730,12 @@ export async function POST(
   // 相關經歷 · 組成 block 塞入 Narrator Tier 2。等角色反應基於累積經歷。
   // 重用 memory.queryEmbedding (慳一個 embed)。全 non-fatal · 失敗 = 空 block。
   try {
-    if (directorNpcUpdates.length > 0 && memory.queryEmbedding) {
-      const activeForRead = directorNpcUpdates
-        .map((upd) => {
-          const ch = ctx.characters.find(
-            (c) =>
-              c.card.name.trim().toLowerCase() ===
-              upd.character_name.trim().toLowerCase(),
-          );
-          return ch?.character_id
-            ? { character_id: ch.character_id, name: ch.card.name }
-            : null;
-        })
-        .filter((c): c is { character_id: string; name: string } => c !== null);
+    // Session 17 (light-core): 冇咗 Director 標「活躍角色」→ 改為對所有在場角色讀返
+    // 相關經歷記憶（用 user-action embedding query）· 保留角色累積記憶。
+    if (memory.queryEmbedding && ctx.characters.length > 0) {
+      const activeForRead = ctx.characters
+        .filter((c) => c.character_id)
+        .map((c) => ({ character_id: c.character_id as string, name: c.card.name }));
       ctx.characterExperiencesBlock = await loadCharacterExperiencesBlock({
         supabase,
         playthroughId,
@@ -787,26 +760,10 @@ export async function POST(
     storyBible.hard_locked.language === "en"
       ? storyBible.hard_locked.language
       : "zh-Hant";
-  let skillCheckResult: SkillCheckResult | null = null;
-  let directorInstruction: string;
-  if (verdict.verdict === "require_skill_check") {
-    skillCheckResult = rollSkillCheck({
-      state: currentState,
-      schema: stateSchema,
-      skill_key: verdict.skill_key,
-      difficulty: verdict.difficulty,
-    });
-    console.log(
-      `[turn] Skill check: ${verdict.skill_key} d20=${skillCheckResult.d20_roll} total=${skillCheckResult.total} vs ${verdict.difficulty} → ${skillCheckResult.outcome}`,
-    );
-    directorInstruction = skillCheckToNarratorInstruction(
-      skillCheckResult,
-      verdict.success_consequence_hint,
-      verdict.failure_consequence_hint,
-    );
-  } else {
-    directorInstruction = verdictToContextNote(verdict, directorLang);
-  }
+  // Session 17 (light-core): 擲骰 / skill-check 移出核心（→ 將來深模式）。verdict
+  // 永遠 allow → 冇 GM context note · directorInstruction 永遠空 · 唔擲骰。
+  const skillCheckResult: SkillCheckResult | null = null;
+  const directorInstruction = "";
 
   // 即興名冊 (角色升級階梯第 0 層 · 防 retcon)：parse 之前回合累積嘅 walk-on 名單 ·
   // 注入 Narrator context (內部 block) 等就算弱 model 都唔會改名 / 否認佢哋存在。

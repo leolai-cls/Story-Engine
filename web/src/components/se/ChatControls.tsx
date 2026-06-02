@@ -26,13 +26,12 @@ type SubTier = "free" | "adventurer" | "storyteller" | "legend";
 const SUB_ORDER: SubTier[] = ["free", "adventurer", "storyteller", "legend"];
 
 // Narrator models surfaced in the picker · order matters (cheap → premium).
-// 2026-06-01: glm-5-1 → deepseek-v3-2 (Standard 中文 換 DeepSeek)。成人向 model
-// (grok-4-1) 唔喺度 — 成人故事個 picker 會整個鎖死 (isAdult · 見下)。
+// Session 17 (2026-06-02 · light-core): 非成人全 Claude 直連 · Standard=Sonnet ·
+// Pro=Opus。舊 gemini/deepseek/gpt 退役（留 MODELS 做 back-compat · 唔再上 picker）。
+// 成人向 model (grok-4-1) 唔喺度 — 成人故事個 picker 會整個鎖死 (isAdult · 見下)。
 const PICKER_MODEL_IDS = [
-  "gemini-3-5-flash",
-  "deepseek-v3-2",
   "claude-sonnet-4-6",
-  "gpt-5-4-pro",
+  "claude-opus-4-7",
 ] as const;
 
 export function ChatControls({
