@@ -22,6 +22,18 @@ export function stripReasoningMarkers(text: string): string {
       .replace(/>?[ \t]*🔍[ \t]*\*\*[^*\n]*\*\*/g, "")
       // 兜底:整行淨係 "> 🔍 ..." (無 bold 嘅變體)
       .replace(/^[ \t]*>[ \t]*🔍[^\n]*$/gm, "")
+      // 2026-06-03 bug (founder · light-core): prose-only Narrator (而家 Claude · 好
+      // 聽 tool 指示) 偶然會將 tool call 當文字嘔出嚟,例如:
+      //     {"name":"update_state","input":{"ops":[{"op":"set",...}]}}
+      // 治本喺 narratorRulesFor (拎走「用 update_state tool」嘅舊指示);呢個係安全網,
+      // 確保 tool JSON 永不污染玩家畫面 / turns / 記憶。tool JSON 通常 append 喺 prose
+      // 之後 → 由第一個 tool-name marker 砍到尾。
+      .replace(
+        /\{\s*"name"\s*:\s*"(?:update_state|update_character_disposition|set_permanent_flag)"[\s\S]*$/,
+        "",
+      )
+      // 兜底:模型淨係嘔一個 ops object
+      .replace(/\{\s*"ops"\s*:\s*\[[\s\S]*?\]\s*\}/g, "")
       // 清走因移除 marker 而剩低嘅空 blockquote 行
       .replace(/^[ \t]*>[ \t]*$/gm, "")
       // 收拾多餘空行
