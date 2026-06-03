@@ -378,13 +378,16 @@ export function buildStableSystemPrompt(ctx: TurnContext): string {
   const lang = (ctx.story.story_bible.hard_locked.language ?? "zh-Hant") as StoryLanguage;
   const bible = bibleToSystemPrompt(ctx.story.story_bible);
   const chars = allCharactersStaticTemplate(ctx.characters);
+  // Session 17 (audit fix · light-core): header was "...referenced inside update_state"
+  // — but the prose-only narrator has no update_state tool, so that wording both named
+  // a dead tool AND invited structured/JSON output (the leak class). Reframed to
+  // "awareness only · never output".
   const schemaFieldsHeader =
     lang === "en"
-      ? "## State Schema Fields (these fields can be referenced inside update_state)"
+      ? "## World State Dimensions (for your AWARENESS ONLY — the system tracks these automatically from your narrative; NEVER output any field name, key, value, or JSON. Just narrate.)"
       : lang === "zh-Hans"
-        ? // Wave 1 audit H-1 fix: was Cantonese particles (喺 / 入面) — should be Mandarin.
-          "## State Schema Fields (这些字段可以在 update_state 中引用)"
-        : "## State Schema Fields (呢啲 fields 可以喺 update_state 入面 reference)";
+        ? "## 世界状态维度 (仅供你了解——系统会从你的叙事里自动追踪；绝对不要输出任何字段名、key、数值或 JSON。只管讲故事。)"
+        : "## 世界狀態維度 (淨係俾你了解——系統會喺你嘅敘事入面自動追蹤；絕對唔好輸出任何欄位名、key、數值或 JSON。只管講故事。)";
   // 2026-05-29: surface enum_chip allowed values to the Narrator. Without this
   // the model guessed out-of-enum values (e.g. status="混亂" when only
   // [平靜/警戒/受傷/疲憊/激昂/恐懼] are valid) → applyDelta skipped the op +
