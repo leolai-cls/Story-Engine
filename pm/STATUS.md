@@ -10,7 +10,7 @@
 **Brand**: 🆕 **Kieio** · 讀「KEE-yo」· domain **kieio.com** (marketing · Cloudflare registrar) · **app.kieio.com** (product · subdomain split done)
 **Phase**: **🟢 Function tier 全完 + 🟣 UI tier 全完 + 🟡 Money tier 全完 (Phase 4 Stripe + Phase 6 KYC · 3-wave audit converged) + 🌐 Marketing landing/pricing + 🌏 i18n Wave 2 (622 keys · 9-cycle audit converged) + 🆕 Brand locked · 🏁 落 final stage (5 條官方故事 + comprehensive E2E)**
 **Live URL**: https://kieio.com (marketing) · https://app.kieio.com (product) · auto-redirect 維持
-**Last updated**: 2026-06-01 (Session 17 — 修「AI 誤解/稀釋玩家指令」: 診斷→計劃→PR1 做緊 · 詳見下面 🔧 進行中 block。Session 16 後段 — 🧭 核心架構重設計 + 實作 · 詳見 `pm/architecture/`: (1) 開 architecture folder 完整概念架構 (哲學/turn pipeline/角色靈魂/記憶/自適應系統/介面/記憶清潔 + 6 ADR + 名詞表 + IMPLEMENTATION) · (2) GM 降做 prep 員 + 四層優先級 + 誠實失敗安全網 (PR #52 · 修好「眉頭微皺」launch blocker · 真兇 = turn route maxDuration 60→300s) · (3) 角色靈魂第二階段 M1-M6 全部實作+部署 (PR #53 · 經歷日誌+沉澱張力+信念圖譜+移除硬紅線+機械清潔 · migration 0047-0050) · (4) play 兩個 bug 修好 (skill 徽章 live + 生圖 fallback · PR #51))
+**Last updated**: 2026-06-03 (Session 17 cont. — **LIGHT-CORE + 兩批 founder follow-up 全部 SHIP 晒**：PR #68/#69 (Wave 1 + JSON-leak) · #70 (內部內容漏洞封一整類:prompt + 清洗 + 串流即時清洗) · #71 (刪故事掣 + Act DSL 幕轉場 strip + 揀model字眼 + 隱藏呃人 Agent掣/舊skill徽章) · #72 (重做回合掣 + 刪 1,600 行死碼 Director/NPC L3) · Migration 0058 apply 咗 prod (turns.state_before) · Opus/Sonnet/Haiku slug prod 驗 200 ✅ · founder 測試緊。原 Session 17 — 修「AI 誤解/稀釋玩家指令」: 診斷→計劃→PR1 做緊 · 詳見下面 🔧 進行中 block。Session 16 後段 — 🧭 核心架構重設計 + 實作 · 詳見 `pm/architecture/`: (1) 開 architecture folder 完整概念架構 (哲學/turn pipeline/角色靈魂/記憶/自適應系統/介面/記憶清潔 + 6 ADR + 名詞表 + IMPLEMENTATION) · (2) GM 降做 prep 員 + 四層優先級 + 誠實失敗安全網 (PR #52 · 修好「眉頭微皺」launch blocker · 真兇 = turn route maxDuration 60→300s) · (3) 角色靈魂第二階段 M1-M6 全部實作+部署 (PR #53 · 經歷日誌+沉澱張力+信念圖譜+移除硬紅線+機械清潔 · migration 0047-0050) · (4) play 兩個 bug 修好 (skill 徽章 live + 生圖 fallback · PR #51))
 
 **✅ Audit wave 1 完成 (PR #54 · 676179d)**: 3-agent 平行 audit (data/cost/regression) → fix wave → 收斂 audit (live DB 實測) = 0 blocker/HIGH/MEDIUM。修咗 pcs 欄位上鎖 (BLOCKER) + 失敗唔扣credit + 信念去重 + interaction_count atomic + experience credit reserve + M4 並行讀取。migration 0051-0053 已 apply prod。
 
@@ -18,11 +18,12 @@
 
 **🚀 進行中 (Session 17 · 2026-06-02) — LIGHT-CORE PIVOT**（取代 Session 16 四層架構）：founder 親手玩完發現**比 raw LLM 更慢 + 回合間更唔一致 + 感受唔到差異** → 重大方向修正。完整：`CLAUDE.md` 頂部 banner + `pm/architecture/decisions.md` ADR-006 + `rebuild-plan-light-core.html`。驗證：市場研究（`market-positioning-research.html`）+ 7 人策略委員會（`strategy-committee-*.html`）。
 - **輕核心**：拎走 GM / 四層仲裁（玩起似 raw LLM · 最少干預）· 非成人 → **Claude 直連**（Standard=Sonnet · Pro=Opus · 真逐字串流 + cache）· 成人 → **Grok 不變** · 記憶照留（**由護城河 #1 降做衞生**）· 擲骰移出核心。
-- **Wave 1 ✅ 實作完 + build 過 + 兩輪深度審計修好**（branch `feat/light-core-wave1` · 3 commit · **未 merge · 未部署測**）。審計捉到 3 個會 ship 嘅真 bug：① 真串流原本死咗（client 仲假打字食晒 Claude 嘅真 token）② CSAM 法律底線漏（非成人冇咗 pre-filter · hard rule #6）③ 信用 **cached token 雙收費**（pivot 引爆 · hard rule #4 · ~24% 多收）—— 全部修咗 + 驗證。
+- **Wave 1 ✅ SHIPPED**（PR #68 + JSON-leak hotfix #69 · 已部署 prod）。兩輪審計捉到 3 個會 ship 嘅真 bug：① 真串流原本死咗（client 假打字食晒 Claude 真 token）② CSAM 法律底線漏（非成人冇咗 pre-filter · hard rule #6）③ 信用 **cached token 雙收費**（hard rule #4 · ~24% 多收）—— 全部修咗。
 - **W3 migration `0057`** 寫好（升級現有非成人舊故事去 Claude · 成人不動 · idempotent）· **未 apply**（等 founder confirm）。
-- **Deferred**：角色靈魂「經歷寫入」（read 修咗 · write 仲綁住死咗嘅 Director）→ Wave 2 決定 · 死 Director scaffolding cleanup · narrator 舊「用 tool」指示。**Wave 2** = 角色 → MD + keyword 調用（MemPalace 式）。
+- **2026-06-03 follow-up ✅ ship 晒（3 PR）**：**#70** 內部內容漏洞封一整類（prompt 改「狀態維度純知 · 唔好輸出任何欄位/JSON」+ 清洗網加記憶/狀態/`<player_action>`/NPC POV marker + **串流即時清洗**修返閃一閃 regression）· **#71** 刪故事掣（/my · 二次確認 · cascade 清乾淨）+ Act DSL 幕轉場 cue strip + 揀model字眼（Director/Gemini/GLM→Sonnet/Opus）+ 隱藏呃人 Agent掣/舊 skill 徽章 · **#72** 重做回合掣（undo+resend · 服務角色刪last exchange + migration 0058 state_before 快照還原狀態 · 收費同正常回合）+ **刪 1,600 行死碼**（director.ts / npc-agents*.ts / schemas/director.ts / route NPC L3 block · 全部 gated-on-empty 死碼）。**narrator 舊「用 tool」指示（#69）+ Director scaffolding cleanup（#72）做晒。**
+- **Deferred**：角色靈魂「經歷寫入」（read 修咗 · write 仲綁住 directorNpcUpdates · 留咗做 inert no-op）→ **Wave 2** = 角色 → MD + keyword 調用（MemPalace 式）。
 
-**🔜 下一步（等 founder 話事）**：① **部署做法**（建議 push → Vercel preview → founder 開**新**非成人故事試真串流 + Sonnet 質素）② W3 apply confirm ③ Opus slug staging 驗（唔 work = Pro tier 靜靜壞）④ Opus 成本 / 「~235 回合」舊 marketing 文案（money tier）。
+**🔜 下一步（等 founder 話事）**：① **founder 而家測試緊**（redo 掣 + 刪故事掣 + 真串流/Sonnet 質素 · 開**新**故事試最乾淨 · redo 狀態還原只對部署後新回合生效）② **W3 migration 0057 仲未 apply**（升級舊非成人故事去 Claude · 要 confirm；0058 已 apply）③ Opus 成本 / 「~235 回合」舊 marketing 文案（money tier）④ Wave 2 角色 MD+keyword。（Opus/Sonnet/Haiku slug 已 prod 驗 200 OK ✅）
 
 ## 🎯 Founder priority rule（鎖死）
 
