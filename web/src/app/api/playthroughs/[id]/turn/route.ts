@@ -14,8 +14,10 @@ import {
   extractTurnState,
   type TurnContext,
 } from "@/lib/ai/turn-runner";
-import { callNpcAgentsParallel } from "@/lib/ai/npc-agents";
-import { npcAgentToNarratorBlock, npcAgentsToThinkingBlock, NPC_L3_CREDITS_PER_NPC } from "@/schemas/npc-agent";
+// light-core cleanup (2026-06-03): NPC L3 orchestration removed (dead since the
+// GM/Director was unwired — directorNpcUpdates is always empty). Only the
+// flat-rate credit constant survives, for telemetry (always × 0).
+import { NPC_L3_CREDITS_PER_NPC } from "@/schemas/npc-agent";
 import { type SkillCheckResult } from "@/lib/ai/skill-check";
 import { deriveCurrentAct, type ArcContext } from "@/lib/ai/arc-dsl";
 import { applyDelta } from "@/schemas/state-delta";
@@ -195,7 +197,9 @@ export async function POST(
   // If actual turn fires fewer NPCs, charge will be less than estimate.
   // Underestimate would cause post-stream charge to fail with insufficient
   // credits → "free turn" + reconciliation debt. Better to over-estimate.
-  const expectedL3Agents = ((pt as { npc_l3_enabled?: boolean }).npc_l3_enabled === true) ? 3 : 0;
+  // light-core: NPC L3 removed → never reserve the L3 add-on (was over-reserving
+  // for old playthroughs whose npc_l3_enabled is still true in the DB).
+  const expectedL3Agents = 0;
   // 2026-05-29: deep-thinking mode bumps narrator output (reasoning + story
   // text) → reserve more in the pre-charge gate (same over-estimate rationale
   // as L3 above). Defined once here · reused by the streamText block below.
@@ -609,118 +613,13 @@ export async function POST(
     }
   }
 
-  // 4.27 PHASE 1.5 — NPC L3 Agents (Storyteller tier exclusive · founder Q1-Q5)
-  // ─────────────────────────────────────────────────────────────────────────
-  // Parallel Haiku-tier model call per active NPC (max 3) emits POV inner_thought
-  // + intent · Narrator integrates via dynamic system prompt block.
-  //
-  // SKIP conditions (each saves cost · maintains narrative integrity):
-  //   (a) playthrough.npc_l3_enabled === false (opt-in flag · founder Q4)
-  //   (b) [REMOVED PR2 · decision 10] verdict 唔再 gate NPC L3 (reject 唔再 = NPC 拒絕)
-  //   (c) No active NPCs in Director's npc_updates (no one to model)
-  //   (d) directorFailed === true (skip extra LLM if Director already faltered)
-  //
-  // Tier-gate enforced 3-layer (Migration 0028 DB trigger + this server check +
-  // UI hides toggle for non-Storyteller). Belt-and-braces.
-  let npcL3SuccessfulAgents = 0;
-  let npcL3AgentDetails: Array<{
-    output: import("@/schemas/npc-agent").NpcAgentOutput | null;
-    modelId: string;
-    characterId: string;
-    error?: string;
-  }> = [];
-  const playthroughHasL3Flag = (pt as { npc_l3_enabled?: boolean }).npc_l3_enabled === true;
-
-  // Wave 2 fix CRIT-B: server-side tier recheck per turn.
-  // Migration 0028 trigger only fires on column WRITE · doesn't downgrade
-  // existing true row when user cancels subscription. Belt-and-braces with
-  // reusable tierCheck.tier from earlier (line ~158 · already fetched once
-  // for model tier gate · zero extra DB call).
-  const tierAllowsL3 = tierCheck.tier === "storyteller" || tierCheck.tier === "legend";
-  const npcL3EnabledOnPlaythrough = playthroughHasL3Flag && tierAllowsL3;
-  if (playthroughHasL3Flag && !tierAllowsL3) {
-    console.warn(
-      `[turn] NPC L3 flag is on but user tier=${tierCheck.tier} no longer eligible · skipping L3 (consider clearing flag via subscription webhook)`,
-    );
-  }
-
-  // PR2 (ADR-001 · decision 10): 移除 verdict==="reject" gate — verdict 唔再 gate
-  // NPC modeling (reject 唔再代表「NPC 拒絕」· 由 Narrator 按四層自決)。
-  const shouldRunNpcL3 =
-    npcL3EnabledOnPlaythrough &&
-    !directorFailed &&
-    directorNpcUpdates.length > 0;
-
-  if (shouldRunNpcL3) {
-    try {
-      // Map Director's npc_updates → active characters list (exact match by name).
-      // Cap at 3 (MAX_NPC_L3_AGENTS_PER_TURN · founder Q2 sign-off).
-      const activeCharsForL3 = directorNpcUpdates
-        .map((upd) => {
-          const ch = ctx.characters.find(
-            (c) =>
-              c.card.name.trim().toLowerCase() ===
-              upd.character_name.trim().toLowerCase(),
-          );
-          if (!ch || !ch.character_id) return null;
-          return {
-            id: ch.character_id,
-            card: ch.card,
-            disposition: ch.disposition,
-            permanent_flags: ch.permanent_flags,
-            dynamic_state: ch.dynamic_state,
-          };
-        })
-        .filter((c): c is NonNullable<typeof c> => c !== null)
-        .slice(0, 3);
-
-      if (activeCharsForL3.length > 0) {
-        // Wave 2 fix HIGH-06 (Agent A · storyLanguage validation):
-        // runtime narrow on storyBible.hard_locked.language · accept only known
-        // values · fall back to zh-Hant (primary market) for malformed bibles
-        const rawLang = storyBible.hard_locked.language;
-        const storyLanguage: "zh-Hant" | "zh-Hans" | "en" =
-          rawLang === "zh-Hans" || rawLang === "en" ? rawLang : "zh-Hant";
-
-        // Wave 2 fix HIGH-03 (Agent A · recentTurns memory waste):
-        // slice to last 4 BEFORE map · single object pass shared across all
-        // 3 parallel agents · was: full array × 3 NPCs duplicated allocation
-        const recentTurnsForL3 = turnsChronological.slice(-4).map((t) => ({
-          role: t.role as "user" | "ai",
-          text: t.text,
-        }));
-
-        const batchResult = await callNpcAgentsParallel({
-          supabase,
-          playthroughId,
-          activeCharacters: activeCharsForL3,
-          userAction: action,
-          verdict,
-          recentTurns: recentTurnsForL3,
-          storyLanguage,
-          // adult → NSFW-safe GLM (hard rule #5: no NSFW on Anthropic) · else Haiku
-          contentRating: (story.content_rating as "sfw" | "soft" | "adult") ?? "sfw",
-        });
-
-        npcL3SuccessfulAgents = batchResult.outputs.length;
-        npcL3AgentDetails = batchResult.details;
-
-        if (batchResult.outputs.length > 0) {
-          const innerStreamsBlock = npcAgentToNarratorBlock(batchResult.outputs);
-          ctx.npcInnerStreamsBlock = innerStreamsBlock;
-          console.log(
-            `[turn] NPC L3 active: ${batchResult.outputs.length} successful agents · creditsCharged=${batchResult.creditsCharged}`,
-          );
-        }
-      }
-    } catch (e) {
-      // Catch-all · graceful degrade. Narrator still runs without inner streams.
-      console.warn(
-        "[turn] NPC L3 batch exception, falling back to L2-only narration:",
-        e instanceof Error ? e.message : e,
-      );
-    }
-  }
+  // 4.27 — NPC L3 Agents REMOVED in light-core (2026-06-03 cleanup).
+  // The GM/Director was unwired (Session 17) so directorNpcUpdates is always
+  // empty → the whole per-NPC POV orchestration (callNpcAgentsParallel · tier
+  // gate · inner-stream block) was dead (gated-on-empty). npcL3SuccessfulAgents
+  // stays as an inert 0 so the downstream cost telemetry keeps compiling
+  // (always × 0). NPC POV returns as an opt-in "deep mode" later.
+  const npcL3SuccessfulAgents = 0;
 
   // ─── Character Soul M4 · 讀取角色經歷記憶 (pm/architecture/03 + 04) ───
   // 今回合 active 角色 (directorNpcUpdates) · 用 user-action embedding query 各自
@@ -1782,63 +1681,8 @@ export async function POST(
             });
           }
 
-          // PHASE 1.5 · NPC L3 inner_thoughts persist (Migration 0027)
-          // Service-role only RPC · embeds in same block to keep latency off
-          // user response · graceful "Migration 0027 missing" handling.
-          if (npcL3AgentDetails.length > 0) {
-            after(async () => {
-              try {
-                const serviceClient = createServiceRoleClient();
-                for (const detail of npcL3AgentDetails) {
-                  if (!detail.output || !detail.characterId) continue;
-                  // Embed the inner_thought for future "NPC remembers" feature.
-                  // Failure here is non-blocking — RPC accepts null embedding.
-                  let embedding: number[] | null = null;
-                  try {
-                    const result = await embedTextSafe(
-                      detail.output.inner_thought,
-                      "npc-l3:inner_thought",
-                    );
-                    embedding = result?.vector ?? null;
-                  } catch (e) {
-                    console.warn(
-                      `[turn] npc-l3 embed failed for ${detail.output.character_name}: ${e instanceof Error ? e.message : e}`,
-                    );
-                  }
-                  const { error: persistErr } = await serviceClient.rpc(
-                    "apply_npc_inner_thought",
-                    {
-                      p_playthrough_id: playthroughId,
-                      p_character_id: detail.characterId,
-                      p_turn_index: aiTurnIndex,
-                      p_inner_thought: detail.output.inner_thought,
-                      p_intent: detail.output.intent,
-                      p_reasoning_trace: detail.output.reasoning_trace,
-                      p_embedding: embedding,
-                      p_model_id: detail.modelId,
-                    },
-                  );
-                  if (persistErr) {
-                    const msg = String(persistErr.message ?? "");
-                    if (/does not exist|function .* does not exist/i.test(msg)) {
-                      console.warn(
-                        "[turn] apply_npc_inner_thought RPC missing — apply Migration 0027",
-                      );
-                      break;
-                    }
-                    console.warn(
-                      `[turn] apply_npc_inner_thought failed for ${detail.output.character_name}: ${msg}`,
-                    );
-                  }
-                }
-              } catch (e) {
-                console.warn(
-                  "[turn] NPC L3 inner_thought persist exception:",
-                  e instanceof Error ? e.message : e,
-                );
-              }
-            });
-          }
+          // NPC L3 inner_thoughts persist — REMOVED (light-core cleanup · L3 no
+          // longer runs · npcL3AgentDetails was always empty).
         } else if (technicalFailure && userTurnId && memory.queryEmbedding) {
           // AUDIT FIX (P2-UX-H-07): on refusal, the AI fallback narrative
           // shouldn't enter RAG (canned text has no signal). But the user
@@ -1885,16 +1729,8 @@ export async function POST(
   // 思考面板而家只顯示 NPC inner voices (L3) + Narrator 自己嘅 reasoning (Claude · 若有)。
   const gmThinking: string | null = null;
 
-  // 2026-05-30 (founder): when Agent mode fired NPC L3 agents this turn, surface
-  // their inner voices in the SAME 思考過程 panel so the player can SEE the agents
-  // working ("撳入去打開個過程"). Independent of the deep-thinking toggle — if you
-  // paid for Agent mode you see it regardless. Outputs were computed pre-narrator
-  // (npcL3AgentDetails); the player-facing block is built here.
-  const npcOutputs = npcL3AgentDetails
-    .map((d) => d.output)
-    .filter((o): o is NonNullable<typeof o> => o !== null);
-  const npcThinking =
-    npcOutputs.length > 0 ? npcAgentsToThinkingBlock(npcOutputs, storyLanguage) : null;
+  // NPC inner-voice thinking panel — REMOVED (light-core · L3 no longer runs).
+  const npcThinking: string | null = null;
 
   // Combined pre-narrator thinking (GM verdict + NPC inner voices), capped so it
   // fits comfortably inside an HTTP header.
