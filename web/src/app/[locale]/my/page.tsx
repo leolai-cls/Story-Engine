@@ -9,6 +9,7 @@ import { getCachedUser } from "@/lib/supabase/cached-user";
 import { getMyPlaythroughs, type MyPlaythroughRow } from "@/lib/community/queries";
 import { Play, Sparkles, Archive, Trash2, BookOpen, Plus, Lock, ArrowRight, Wand2 } from "lucide-react";
 import type { GenreKey } from "@/components/se/genre";
+import { DeletePlaythroughButton } from "./delete-playthrough-button";
 
 type RelTimeFn = (
   key: string,
@@ -232,8 +233,7 @@ function PlaythroughRow({
   // understands turn route will 403 until they re-enable adult mode.
   const isAdultLocked = p.story_content_rating === "adult" && !userAdultMode;
   return (
-    <Link
-      href={isAdultLocked ? (`/${locale}/settings` as never) : (`/${locale}/play/${p.id}` as never)}
+    <div
       className="flex gap-4 p-4 rounded-xl transition-all group"
       style={{
         background: "var(--se-surface)",
@@ -242,6 +242,10 @@ function PlaythroughRow({
         opacity: isAdultLocked ? 0.7 : 1,
       }}
     >
+      <Link
+        href={isAdultLocked ? (`/${locale}/settings` as never) : (`/${locale}/play/${p.id}` as never)}
+        className="flex gap-4 flex-1 min-w-0"
+      >
       <div style={{ width: 64, flex: "none" }}>
         <Cover
           storyId={p.story_id}
@@ -294,7 +298,8 @@ function PlaythroughRow({
           <span>{relativeTime(p.last_played_at, tLib, locale).toUpperCase()}</span>
         </div>
       </div>
-      <div className="flex items-center flex-none">
+      </Link>
+      <div className="flex items-center gap-1 flex-none">
         <span
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium se-cjk"
           style={{
@@ -306,8 +311,12 @@ function PlaythroughRow({
           <Play size={11} />
           {isActive ? tMy("row.resume") : tMy("row.review")}
         </span>
+        <DeletePlaythroughButton
+          playthroughId={p.id}
+          title={p.story_title || tLib("storyCard.untitled")}
+        />
       </div>
-    </Link>
+    </div>
   );
 }
 
