@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Link } from "@/i18n/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Send, Loader2, ArrowLeft, Coins, Lock, Shield, NotebookPen, Menu, Image as ImageIcon, Brain } from "lucide-react";
+import { Sparkles, Send, Loader2, RefreshCw, ArrowLeft, Coins, Lock, Shield, NotebookPen, Menu, Image as ImageIcon, Brain } from "lucide-react";
 import { DynamicStatePanel } from "@/components/state-panel";
 import type { StateSchema } from "@/schemas/state-schema";
 import { NpcCard } from "@/components/se/DispositionAxis";
@@ -20,6 +20,7 @@ import { ChatControls } from "@/components/se/ChatControls";
 import type { StyleKey } from "@/lib/ai/image-styles";
 import { estimateImageCredits } from "@/lib/ai/image-gen";
 import { generateScene } from "./visualize-actions";
+import { undoLastTurn } from "./actions";
 
 /**
  * NPC card data passed in from server.
@@ -426,6 +427,8 @@ export function PlayClient({
   const [state, setState] = useState<Record<string, unknown>>(initialState);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
+  // 2026-06-03 (founder): "redo the turn" — regenerate the last AI reply.
+  const [redoing, setRedoing] = useState(false);
   const [streamText, setStreamText] = useState("");
   const [error, setError] = useState<string | null>(null);
   // 2026-06-01 (ADR-001 原則 5): 技術失敗時記住啱啱嘅 action · 俾「再試」掣
@@ -884,6 +887,39 @@ export function PlayClient({
     [playthroughId, refreshState, streaming, turns, activeModel],
   );
 
+  // Redo = undo the last exchange (server deletes it + restores pre-turn state)
+  // then re-send the same input through the normal turn flow → fresh generation
+  // (charged like any turn · ChatGPT-style regenerate).
+  const redoLastTurn = useCallback(async () => {
+    if (streaming || redoing) return;
+    setError(null);
+    setRedoing(true);
+    try {
+      const res = await undoLastTurn(playthroughId);
+      if (!res.ok || !res.lastUserText) {
+        setError(tPlayErr("redoFailedBody"));
+        return;
+      }
+      // Drop the last exchange locally (from the most recent user turn onward).
+      // Functional update composes with sendAction's optimistic append below.
+      setTurns((prev) => {
+        let cut = prev.length;
+        for (let i = prev.length - 1; i >= 0; i--) {
+          if (prev[i].role === "user") {
+            cut = i;
+            break;
+          }
+        }
+        return prev.slice(0, cut);
+      });
+      await sendAction(res.lastUserText);
+    } catch {
+      setError(tPlayErr("redoFailedBody"));
+    } finally {
+      setRedoing(false);
+    }
+  }, [streaming, redoing, playthroughId, sendAction, tPlayErr]);
+
   return (
     <div className="h-dvh flex flex-col bg-background overflow-hidden">
       {/* Slim header — AUDIT FIX MG-UX-HIGH-03: mobile 360px viewport had
@@ -1048,6 +1084,36 @@ export function PlayClient({
                       PERMANENT · no retry · 4 outcomes (crit success / success
                       / failure / crit failure). */}
                   {turn.skillCheck && <SkillCheckInline check={turn.skillCheck} />}
+
+                  {/* 2026-06-03 (founder): redo · regenerate the latest AI reply
+                      from the same input. Only on the last AI turn · hidden mid-
+                      stream. undoLastTurn deletes the exchange + restores state. */}
+                  {turn.role === "ai" &&
+                    turn.index === turns[turns.length - 1]?.index &&
+                    !streaming && (
+                      <div className="mt-2.5">
+                        <button
+                          type="button"
+                          onClick={redoLastTurn}
+                          disabled={redoing}
+                          title={tPlay("redo.hint")}
+                          className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] se-cjk transition-colors hover:text-foreground"
+                          style={{
+                            color: "var(--se-fg-dim)",
+                            border: "1px solid var(--se-border)",
+                            background: "var(--se-surface)",
+                            opacity: redoing ? 0.6 : 1,
+                          }}
+                        >
+                          {redoing ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <RefreshCw className="h-3 w-3" />
+                          )}
+                          {tPlay("redo.button")}
+                        </button>
+                      </div>
+                    )}
 
                   {/* Phase 8 · cached scene images for this turn (inline thumbs) */}
                   {turn.role === "ai" && sceneImagesByTurn[turn.index]?.length > 0 && (

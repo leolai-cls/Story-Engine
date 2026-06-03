@@ -488,6 +488,10 @@
       "costEstimate": "≈ {credits} credits / turn",
       "l3Note": "+ NPC 内心戏"
     },
+    "redo": {
+      "button": "重做",
+      "hint": "用你上一句重新生成（会扣积分）"
+    },
     "chatControls": {
       "modelLabel": "叙事 AI Model",
       "modelDefault": "选 model",
@@ -525,7 +529,8 @@
       "adultModeRequiredBodyModel": "{model} 是 NSFW model · 需要先在 Settings 开启「成人模式」(KYC 后)。或者选其他 model 继续。",
       "adultModeRequiredBodyStory": "这个故事是 adult-rated · 需要先在 Settings 开启「成人模式」(KYC 后) 才能继续玩。",
       "adultModeRequiredCta": "去 Settings",
-      "httpError": "请求失败（HTTP {status}）"
+      "httpError": "请求失败（HTTP {status}）",
+      "redoFailedBody": "重做失败 · 请重试"
     },
     "permanentBadge": "PERMANENT · 不可重试",
     "permanentTooltip": "Hard rule #5 · 不可同一 turn 再试",

@@ -488,6 +488,10 @@
       "costEstimate": "≈ {credits} credits / turn",
       "l3Note": "+ NPC Inner Voices"
     },
+    "redo": {
+      "button": "Redo",
+      "hint": "Regenerate this reply from your last input (uses credits)"
+    },
     "chatControls": {
       "modelLabel": "Narrator model",
       "modelDefault": "Pick model",
@@ -525,7 +529,8 @@
       "adultModeRequiredBodyModel": "{model} is an NSFW model · enable Adult Mode in Settings first (KYC required). Or pick a different model to continue.",
       "adultModeRequiredBodyStory": "This story is adult-rated · enable Adult Mode in Settings first (KYC required) to keep playing.",
       "adultModeRequiredCta": "Go to Settings",
-      "httpError": "Request failed (HTTP {status})"
+      "httpError": "Request failed (HTTP {status})",
+      "redoFailedBody": "Couldn't redo this turn · please try again"
     },
     "permanentBadge": "PERMANENT · no retry",
     "permanentTooltip": "Hard rule #5 · can't retry the same turn",

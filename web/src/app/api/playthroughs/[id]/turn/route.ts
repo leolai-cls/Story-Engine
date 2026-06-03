@@ -823,6 +823,11 @@ export async function POST(
         turn_index: userTurnIndex,
         role: "user",
         text: action,
+        // Migration 0058 (redo): snapshot the pre-turn world state on the user
+        // turn so undoLastTurn can restore current_state cleanly (no compounding
+        // inc-ops). pt.current_state is read once at request start → it is the
+        // state BEFORE this turn, never mutated by this request.
+        state_before: (pt.current_state as Record<string, unknown> | null) ?? {},
       })
       .select("id")
       .single();
