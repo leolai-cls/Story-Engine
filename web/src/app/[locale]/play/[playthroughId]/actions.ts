@@ -270,3 +270,97 @@ export async function setThinkingMode(
   // reads thinking_mode_enabled fresh next turn). Avoids full-page reload.
   return { ok: true, enabled };
 }
+
+/**
+ * Undo the last exchange so the player can REDO the turn.
+ *
+ * 2026-06-03 (founder ask): "add a button for redo the turn". The client calls
+ * this, then re-submits the returned `lastUserText` through the normal turn
+ * endpoint → a fresh generation (charged like any turn). Keeping redo as
+ * "undo + resend" leaves the turn-generation path untouched.
+ *
+ * What it does:
+ *  - auth + owner check.
+ *  - Deletes every turn from the most recent USER turn onward (that user turn +
+ *    its AI reply, incl. any failed rows). turns is append-only — no client
+ *    DELETE policy (Migration 0002 → select+insert only) — so the delete runs
+ *    via service-role AFTER the ownership check. Child rows (turn embeddings,
+ *    NPC inner thoughts) cascade on turns delete.
+ *  - Resets playthroughs.turn_count to the freed base index (acquire_next_turn_pair
+ *    re-allocates it) + restores current_state from the user turn's state_before
+ *    snapshot (Migration 0058). Missing snapshot (pre-0058 / fallback turn) →
+ *    state restore skipped (soft) so redo still works.
+ *
+ * Note: derived memory (summaries / lorebook) from the discarded turn is NOT
+ * reverted — only the canonical current_state. Acceptable for a single redo.
+ */
+export async function undoLastTurn(
+  playthroughId: string,
+): Promise<{ ok: boolean; lastUserText?: string; error?: string }> {
+  if (!playthroughId || typeof playthroughId !== "string") {
+    return { ok: false, error: "invalid" };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "unauthorized" };
+
+  // Ownership check (RLS also scopes this to the owner).
+  const { data: pt, error: ptErr } = await supabase
+    .from("playthroughs")
+    .select("id, user_id")
+    .eq("id", playthroughId)
+    .single();
+  if (ptErr || !pt) return { ok: false, error: "not_found" };
+  if (pt.user_id !== user.id) return { ok: false, error: "forbidden" };
+
+  // Most recent turns (desc) → latest USER turn + its pre-turn snapshot.
+  const { data: turns, error: turnsErr } = await supabase
+    .from("turns")
+    .select("turn_index, role, text, state_before")
+    .eq("playthrough_id", playthroughId)
+    .order("turn_index", { ascending: false })
+    .limit(10);
+  if (turnsErr) {
+    console.error("[undoLastTurn] turns read failed:", turnsErr.message);
+    return { ok: false, error: "read_failed" };
+  }
+  const lastUser = (turns ?? []).find((t) => t.role === "user");
+  if (!lastUser) return { ok: false, error: "no_user_turn" };
+
+  const lastUserText = lastUser.text as string;
+  const restoreState =
+    (lastUser as { state_before?: unknown }).state_before ?? null;
+
+  const service = createServiceRoleClient();
+
+  // Delete the whole last exchange (user turn + everything after it).
+  const { error: delErr } = await service
+    .from("turns")
+    .delete()
+    .eq("playthrough_id", playthroughId)
+    .gte("turn_index", lastUser.turn_index);
+  if (delErr) {
+    console.error("[undoLastTurn] delete failed:", delErr.message);
+    return { ok: false, error: "delete_failed" };
+  }
+
+  // Reset turn_count to the freed base index; restore pre-turn state if we have
+  // the snapshot (else leave current_state as-is · soft).
+  const update: Record<string, unknown> = { turn_count: lastUser.turn_index };
+  if (restoreState != null && typeof restoreState === "object") {
+    update.current_state = restoreState;
+  }
+  const { error: updErr } = await service
+    .from("playthroughs")
+    .update(update)
+    .eq("id", playthroughId);
+  if (updErr) {
+    console.error("[undoLastTurn] playthrough reset failed:", updErr.message);
+    return { ok: false, error: "reset_failed" };
+  }
+
+  return { ok: true, lastUserText };
+}
