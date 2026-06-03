@@ -751,7 +751,7 @@
     },
     "tierPicker": {
       "title": "Narrator AI Tier",
-      "subtitle": "Pick a tier · we route the best model (language + vendor availability). Director always uses Haiku 4.5.",
+      "subtitle": "Pick a tier — we route the best model for it automatically.",
       "saved": "Saved",
       "saveFailed": "Save failed",
       "saveFailedWithError": "Save failed · {error}",
@@ -763,8 +763,8 @@
         "pro": "Pro"
       },
       "blurbs": {
-        "standard": "Fast · cheap · fluent Chinese · Gemini Flash / GLM-5 routed",
-        "pro": "Deepest narration · emotional detail · Claude Sonnet routed"
+        "standard": "Fast · great for most stories · Claude Sonnet",
+        "pro": "Deepest narration · emotional detail · Claude Opus"
       },
       "subTierLabels": {
         "free": "Free",
@@ -846,6 +846,14 @@
     "subtitleEmpty": "You haven't started any stories — pick a scenario to begin your adventure.",
     "adultLockBadge": "Adult mode off",
     "adultLockTooltip": "This story is adult-rated. Re-enable adult mode in Settings to continue, or archive this story.",
+    "delete": {
+      "button": "Delete",
+      "confirm": "Delete permanently?",
+      "yes": "Delete",
+      "cancel": "Cancel",
+      "failed": "Delete failed · try again",
+      "aria": "Delete {title}"
+    },
     "lobby": {
       "welcomeNamed": "Welcome, {name}",
       "welcomeAnon": "Welcome to Kieio",

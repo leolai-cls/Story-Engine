@@ -751,7 +751,7 @@
     },
     "tierPicker": {
       "title": "叙事 AI Tier",
-      "subtitle": "选 tier · 我们帮你选最合适的 model（语言 + vendor availability）。Director 永远用 Haiku 4.5。",
+      "subtitle": "选 tier · 我们自动帮你配最合适的 model。",
       "saved": "已保存",
       "saveFailed": "保存失败",
       "saveFailedWithError": "保存失败 · {error}",
@@ -763,8 +763,8 @@
         "pro": "Pro"
       },
       "blurbs": {
-        "standard": "快 · 便宜 · 中文流畅 · Gemini Flash / GLM-5 路由",
-        "pro": "最深层叙事 · 情感细腻 · Claude Sonnet 路由"
+        "standard": "快 · 适合大部分故事 · Claude Sonnet",
+        "pro": "最深层叙事 · 情感细腻 · Claude Opus"
       },
       "subTierLabels": {
         "free": "Free",
@@ -846,6 +846,14 @@
     "subtitleEmpty": "你还没开始任何故事 — 选一个 scenario 开始你的冒险。",
     "adultLockBadge": "成人模式已关",
     "adultLockTooltip": "此为成人故事。去 Settings 重新开启成人模式继续玩 · 或 archive 此故事。",
+    "delete": {
+      "button": "删除",
+      "confirm": "确定永久删除？",
+      "yes": "删除",
+      "cancel": "取消",
+      "failed": "删除失败 · 请重试",
+      "aria": "删除 {title}"
+    },
     "subtitleCount": "共 {total} 个 playthrough · {active} 个进行中",
     "tabs": {
       "all": "全部",

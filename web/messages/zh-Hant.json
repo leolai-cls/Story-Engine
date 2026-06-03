@@ -751,7 +751,7 @@
     },
     "tierPicker": {
       "title": "敘事 AI Tier",
-      "subtitle": "揀 tier · 我哋幫你揀最啱嘅 model（語言 + vendor availability）。Director 永遠用 Haiku 4.5。",
+      "subtitle": "揀 tier · 我哋自動幫你配最啱嘅 model。",
       "saved": "已儲存",
       "saveFailed": "儲存失敗",
       "saveFailedWithError": "儲存失敗 · {error}",
@@ -763,8 +763,8 @@
         "pro": "Pro"
       },
       "blurbs": {
-        "standard": "快 · 平 · 中文流暢 · Gemini Flash / GLM-5 路由",
-        "pro": "最深層敘事 · 情感細膩 · Claude Sonnet 路由"
+        "standard": "快 · 啱大部分故事 · Claude Sonnet",
+        "pro": "最深層敘事 · 情感細膩 · Claude Opus"
       },
       "subTierLabels": {
         "free": "Free",
@@ -846,6 +846,14 @@
     "subtitleEmpty": "你仲未開始任何故事 — 揀一個 scenario 開始你嘅冒險。",
     "adultLockBadge": "成人模式關咗",
     "adultLockTooltip": "呢個係成人故事。去 Settings 重開成人模式繼續玩 · 或者 archive 呢個故事。",
+    "delete": {
+      "button": "刪除",
+      "confirm": "確定永久刪除？",
+      "yes": "刪除",
+      "cancel": "取消",
+      "failed": "刪除失敗 · 請再試",
+      "aria": "刪除 {title}"
+    },
     "lobby": {
       "welcomeNamed": "你好，{name}",
       "welcomeAnon": "歡迎嚟到 Kieio",

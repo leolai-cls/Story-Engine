@@ -129,7 +129,7 @@ export function bibleToSystemPrompt(bible: StoryBible): string {
   const acts = sg.story_arc
     .map(
       (a) =>
-        `  Act ${a.act}. ${a.name} — ${a.narrative_intent} (transitions when: ${a.transition_condition})`,
+        `  Act ${a.act} · ${a.name} — ${a.narrative_intent} (internal cue · advance once: ${a.transition_condition})`,
     )
     .join("\n");
   const themes = hl.themes_required.length
@@ -149,6 +149,6 @@ Tone: ${hl.tone}${themes}${setting}
 World invariants (hard rules):
 ${hl.world_invariants.map((r) => `  - ${r}`).join("\n")}
 
-Story arc (guidance — pacing is flexible):
-${acts}${sg.pacing_hint ? `\n\nPacing hint: ${sg.pacing_hint}` : ""}`;
+Story arc — internal pacing guidance for you ONLY. Let the player feel these beats through the story itself; NEVER write act numbers, act names, or the "advance once" cues into the narrative:
+${acts}${sg.pacing_hint ? `\n\nPacing hint (internal · do not quote): ${sg.pacing_hint}` : ""}`;
 }

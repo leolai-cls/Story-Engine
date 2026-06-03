@@ -44,6 +44,11 @@ export function stripReasoningMarkers(text: string): string {
       )
       .replace(/<\/?player_action>/gi, "")
       .replace(/\*\*(?:inner_thought|intent)\*\*[^\n]*/gi, "")
+      // 2026-06-03 (audit): Story Bible 嘅 Act 結構 pacing cue —— bible.ts 將每幕嘅
+      // transition_condition 包成 "(internal cue · advance once: …)" 餵 Narrator 知幾時
+      // 推進。萬一 Narrator 照抄,整段引擎式 cue (連舊 "(transitions when: …)" 寫法) 都
+      // strip 走。呢啲括號 cue 喺真實故事敘事唔會出現。
+      .replace(/\((?:internal cue[^)]*|transitions?\s+when:[^)]*)\)/gi, "")
       // 清走因移除 marker 而剩低嘅空 blockquote 行
       .replace(/^[ \t]*>[ \t]*$/gm, "")
       // 收拾多餘空行
