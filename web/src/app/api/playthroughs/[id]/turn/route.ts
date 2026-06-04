@@ -42,7 +42,6 @@ import { maybeRunSummarization } from "@/lib/ai/memory/summarizer";
 import { runLorebookExtraction } from "@/lib/ai/memory/lorebook";
 import {
   writeCharacterExperiences,
-  loadCharacterExperiencesBlock,
   SOUL_UPGRADE_THRESHOLD,
 } from "@/lib/ai/character/experience-writer";
 import {
@@ -498,6 +497,37 @@ export async function POST(
     language: storyLanguage,
   });
   ctx.memoryContextString = memory.contextString;
+
+  // Consistency v3 (2026-06-04) · cumulative running digest — ALWAYS-present
+  // "story so far" (plot + character relationships as prose · Claude-compact
+  // shape). Fenced as internal reference (don't quote verbatim · narrator weaves
+  // it). Empty until the first compact (~turn 8). Read in a SEPARATE guarded
+  // query (NOT the main pt select) so the turn degrades gracefully if migration
+  // 0060 isn't applied yet (column missing → no digest · hard rule #12 decoupling)
+  // instead of 500-ing the whole turn. Built with the story language so the
+  // fence header matches; consumed by buildDynamicSystemPrompt. The fence line
+  // starts with "[INTERNAL CONTEXT" + "DO NOT QUOTE" so the existing leak
+  // sanitizer recognises it if the narrator ever echoes it (no new output filter).
+  {
+    const { data: rsRow, error: rsErr } = await supabase
+      .from("playthroughs")
+      .select("running_summary")
+      .eq("id", playthroughId)
+      .single();
+    const runningSummary = rsErr
+      ? ""
+      : (((rsRow as { running_summary?: string | null } | null)?.running_summary ?? "").trim());
+    if (runningSummary) {
+      const fence =
+        storyLanguage === "en"
+          ? `[INTERNAL CONTEXT · story so far · for your continuity · DO NOT QUOTE verbatim — weave it into the prose]\n## Story so far\n${runningSummary}`
+          : storyLanguage === "zh-Hans"
+            ? `[INTERNAL CONTEXT · 故事前情 · 供你连戏 · DO NOT QUOTE · 不要逐字照抄入正文，自然融入]\n## 故事前情（到目前为止）\n${runningSummary}`
+            : `[INTERNAL CONTEXT · 故事前情 · 供你連戲 · DO NOT QUOTE · 唔好逐字照抄入正文，自然融入]\n## 故事前情（到目前為止）\n${runningSummary}`;
+      ctx.runningSummaryBlock = fence;
+    }
+  }
+
   if (memory.contextString) {
     // AUDIT FIX (P2-UX-L-14): include top similarity scores per source so
     // we can tune thresholds from real playthrough data + diagnose
@@ -705,30 +735,15 @@ export async function POST(
   // 0 when voices off / no active NPC / all agents failed.
   const npcL3SuccessfulAgents = npcOutputs.length;
 
-  // ─── Character Soul M4 · 讀取角色經歷記憶 (pm/architecture/03 + 04) ───
-  // 今回合 active 角色 (directorNpcUpdates) · 用 user-action embedding query 各自
-  // 相關經歷 · 組成 block 塞入 Narrator Tier 2。等角色反應基於累積經歷。
-  // 重用 memory.queryEmbedding (慳一個 embed)。全 non-fatal · 失敗 = 空 block。
-  try {
-    // Session 17 (light-core): 冇咗 Director 標「活躍角色」→ 改為對所有在場角色讀返
-    // 相關經歷記憶（用 user-action embedding query）· 保留角色累積記憶。
-    if (memory.queryEmbedding && ctx.characters.length > 0) {
-      const activeForRead = ctx.characters
-        .filter((c) => c.character_id)
-        .map((c) => ({ character_id: c.character_id as string, name: c.card.name }));
-      ctx.characterExperiencesBlock = await loadCharacterExperiencesBlock({
-        supabase,
-        playthroughId,
-        activeCharacters: activeForRead,
-        queryEmbedding: memory.queryEmbedding,
-      });
-    }
-  } catch (e) {
-    console.warn(
-      "[turn] character experience read exception (non-fatal):",
-      e instanceof Error ? e.message : e,
-    );
-  }
+  // ─── Character Soul · RETIRED (Consistency v3 · 2026-06-04) ───
+  // The per-character "experiences" fact-injection (loadCharacterExperiencesBlock)
+  // is retired: extracting facts and re-injecting them made the Narrator FIXATE
+  // on those facts (over-steering · "spotlight") — characters became mechanical.
+  // Character soul now lives INSIDE the cumulative running digest as natural
+  // prose (set above as ctx.runningSummaryBlock), so the model weights it like
+  // story, not like a directive. The dormant write chain (experiences / sediment
+  // / beliefs · gated on the always-empty directorNpcUpdates) writes only to
+  // tables nobody reads anymore — inert · left for a later cleanup PR.
 
   // 4.5 SKILL CHECK — Phase 1.5.2: if Director required a check, roll dice now.
   // 2026-06-01 (ADR-001 · GM 唔做判官 · PR2): 除咗 skill check 外，verdict 唔再推動
@@ -1433,8 +1448,10 @@ export async function POST(
               // Estimated background work — these run via after() shortly
               // after charge. Variance absorbed by 2× markup buffer.
               lorebook: { inputTokens: 2000, outputTokens: 500 },
-              // Summarizer is amortized 1/20 turns (~250 in, 40 out per rollup)
-              summarizer: { inputTokens: 13, outputTokens: 2 },
+              // Consistency v3: running digest every ~11 turns on a cumulative
+              // input (~6000 in / 700 out per compact) → amortized ~1/11 ≈ 600/70
+              // per turn (adult → Grok rate via pickUtilityModel · honest costing).
+              summarizer: { inputTokens: 600, outputTokens: 70 },
               embedTokens: 400,
               // Character Soul (Audit HIGH-1 fix): 經歷日誌+信念背景 Haiku call ·
               // 只喺今回合有 active 角色 (可能升級) 先 reserve。charge 喺 after()

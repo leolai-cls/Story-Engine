@@ -355,6 +355,24 @@ export async function undoLastTurn(
   if (restoreState != null && typeof restoreState === "object") {
     update.current_state = restoreState;
   }
+
+  // Consistency v3: if the running digest covered into the now-deleted range,
+  // clamp running_summary_through back so the next compact re-folds the freed
+  // turns (else the digest stalls / "remembers" an undone turn). Guarded read —
+  // skip silently if the column doesn't exist yet (migration 0060 not applied).
+  {
+    const { data: rs, error: rsErr } = await supabase
+      .from("playthroughs")
+      .select("running_summary_through")
+      .eq("id", playthroughId)
+      .single();
+    const currentThrough = rsErr
+      ? null
+      : ((rs as { running_summary_through?: number } | null)?.running_summary_through ?? 0);
+    if (currentThrough !== null && currentThrough > lastUser.turn_index) {
+      update.running_summary_through = lastUser.turn_index;
+    }
+  }
   const { error: updErr } = await service
     .from("playthroughs")
     .update(update)

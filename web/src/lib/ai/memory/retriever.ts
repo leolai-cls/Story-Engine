@@ -128,7 +128,13 @@ export type RetrieverConfig = {
 };
 
 const DEFAULT_CONFIG: RetrieverConfig = {
-  summariesK: 3,
+  // Consistency v3 (2026-06-04): per-block + relevance-retrieved summaries are
+  // RETIRED in favour of the single cumulative running digest
+  // (playthroughs.running_summary · injected always-present by the turn route).
+  // summariesK=0 stops pulling old per-block fragments (which could contradict
+  // the running digest for pre-migration playthroughs). RAG-over-turns +
+  // lorebook remain the deep backstop.
+  summariesK: 0,
   ragTurnsK: 5,
   lorebookK: 3,
   excludeOverlappingSummaries: true,
@@ -462,12 +468,15 @@ export async function retrieveMemory(params: {
     matchedLorebookResult,
     alwaysOnLorebookResult,
   ] = await Promise.allSettled([
-    supabase.rpc("match_memory_summaries", {
-      p_playthrough_id: playthroughId,
-      p_query_embedding: queryEmbedding,
-      p_match_count: cfg.summariesK,
-      p_min_similarity: cfg.summariesMinSimilarity,
-    }),
+    // Per-block summaries retired (Consistency v3) — skip the RPC when K=0.
+    cfg.summariesK > 0
+      ? supabase.rpc("match_memory_summaries", {
+          p_playthrough_id: playthroughId,
+          p_query_embedding: queryEmbedding,
+          p_match_count: cfg.summariesK,
+          p_min_similarity: cfg.summariesMinSimilarity,
+        })
+      : Promise.resolve({ data: [], error: null }),
     supabase.rpc("match_turn_embeddings", {
       p_playthrough_id: playthroughId,
       p_query_embedding: queryEmbedding,

@@ -338,6 +338,14 @@ export type TurnContext = {
    */
   memoryContextString?: string;
   /**
+   * Consistency v3 (2026-06-04) — the cumulative "story so far" running digest
+   * (playthroughs.running_summary), pre-fenced by the turn route in the story
+   * language. ALWAYS present (not relevance-retrieved). This is the Claude-compact
+   * through-line: plot + character relationships woven as prose. Empty until the
+   * first compact fires (~turn 8).
+   */
+  runningSummaryBlock?: string;
+  /**
    * Phase 1.5 — NPC L3 inner streams block (formatted by npcAgentToNarratorBlock).
    * Pre-formatted markdown wrapped in [INTERNAL CONTEXT — DO NOT QUOTE] header.
    * Empty string when L3 not active, all agents failed, or verdict=reject.
@@ -448,6 +456,10 @@ function stripInternalKeys(
 export function buildDynamicSystemPrompt(ctx: TurnContext): string {
   const visibleState = stripInternalKeys(ctx.current_state);
   const charsDynamic = allCharactersDynamicState(ctx.characters);
+  // Consistency v3 · cumulative running digest · always-present · the "story so
+  // far" foundation (placed first so it sets the stage before everything else).
+  const running = ctx.runningSummaryBlock?.trim();
+  const runningBlock = running ? running + "\n\n" : "";
   const memory = ctx.memoryContextString?.trim();
   const memoryBlock = memory ? memory + "\n\n" : "";
 
@@ -479,7 +491,7 @@ export function buildDynamicSystemPrompt(ctx: TurnContext): string {
         `- ${k}: ${v === null || typeof v !== "object" ? String(v) : JSON.stringify(v)}`,
     )
     .join("\n");
-  return `${memoryBlock}${rosterBlock}${charExpBlock}${innerStreamsBlock}## Current Game State (READ-ONLY reference — do NOT repeat or output this; write story prose only)
+  return `${runningBlock}${memoryBlock}${rosterBlock}${charExpBlock}${innerStreamsBlock}## Current Game State (READ-ONLY reference — do NOT repeat or output this; write story prose only)
 ${stateLines}
 
 ${charsDynamic}`;
