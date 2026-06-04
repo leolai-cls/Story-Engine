@@ -1,27 +1,30 @@
 import { z } from "zod";
 
 /**
- * NPC Agent L3 schemas — Story Engine Phase 1.5 generative agent layer.
+ * NPC Agent schemas — Story Engine "NPC 內心戲" (Deep Mode) generative agent layer.
  *
- * Each active NPC spawns a parallel agent call (Standard tier model via
- * tier-router · default GLM-5.1 for CJK / Gemini Flash for EN). The agent
- * follows MIRROR-inspired 3-step CoT:
+ * Each active NPC spawns a parallel agent call. Model routing is via
+ * pickUtilityModel(contentRating, "structured"): non-adult → Anthropic Haiku
+ * (reliable structured output · accepted internal exception), adult → Grok via
+ * CrazyRouter (hard rule #5 · never NSFW on Anthropic). The agent follows a
+ * MIRROR-inspired 3-step CoT:
  *   1. memories_recalled — relevant past events from POV-scoped memory
  *   2. reactions_predicted — 1-level Theory of Mind (no recursive nesting)
  *   3. motivation — synthesis grounded in character.core_motivation
  *
- * Output is wrapped as inner_thought + intent for Narrator to weave into
- * the canonical narrative. NPC agents CANNOT change state — that flows
- * exclusively through Director verdict + Narrator state_delta tool call.
+ * Output is wrapped as inner_thought + intent for the Narrator to weave into
+ * the canonical narrative. NPC agents CANNOT change state — they are POV-only;
+ * canonical state flows exclusively through the post-turn extractor (light-core
+ * removed the GM/Director · the Narrator decides outcomes per the four layers).
  *
  * COHERENCE GUARANTEE:
- *   - Director is the single decision-maker for outcomes
- *   - Narrator is the sole integrator (NO synthesizer agent)
+ *   - The Narrator is the sole integrator (NO synthesizer agent)
  *   - NPC inner_thought + intent are POV-only · read-only for state
  *   - Conflicting intents become dramatic tension · NOT contradictory outcomes
  *
- * Storyteller subscription tier exclusive · playthroughs.npc_l3_enabled flag
- * gates per-playthrough activation · DB trigger enforces tier (Migration 0028).
+ * Per-playthrough opt-in via playthroughs.npc_l3_enabled. Tiered by subscription
+ * (npcVoicesCapForTier · Standard 1 NPC/turn · Pro 3) · app-layer gate + DB
+ * trigger enforce paid-tier (Migration 0059 · supersedes 0028 storyteller gate).
  */
 
 // ─── ReasoningTrace · MIRROR 3-step CoT structure ───────────────────────────

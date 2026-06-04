@@ -381,6 +381,7 @@ export function PlayClient({
   sidebarPlaythroughs = [],
   sidebarTotalCount = 0,
   npcL3Enabled = false,
+  npcL3Available = false,
   thinkingModeEnabled = false,
   subscriptionTier = "free",
   playthroughModel = null,
@@ -401,8 +402,11 @@ export function PlayClient({
   sidebarPlaythroughs?: SidebarPlaythrough[];
   /** Total playthrough count (sidebar shows "see all" link if > visible). */
   sidebarTotalCount?: number;
-  /** Session 14: NPC L3 Agents opt-in flag (Storyteller tier exclusive). */
+  /** Session 14: NPC L3 Agents opt-in flag (per-playthrough toggle state). */
   npcL3Enabled?: boolean;
+  /** Deep Mode (2026-06-04): show the 內心戲 toggle · true only for Pro-eligible
+   *  subscribers (adventurer+). Non-Pro users don't see the button. */
+  npcL3Available?: boolean;
   /** 2026-05-29: deep-thinking opt-in flag (no tier gate · founder rule). */
   thinkingModeEnabled?: boolean;
   /** Session 14: user's subscription tier · controls toggle visibility. */
@@ -1308,6 +1312,7 @@ export function PlayClient({
               subscriptionTier={subscriptionTier}
               isAdult={storyContentRating === "adult"}
               npcL3Enabled={activeNpcL3}
+              npcL3Available={npcL3Available}
               thinkingEnabled={activeThinking}
               onModelChange={setActiveModel}
               onNpcL3Change={setActiveNpcL3}

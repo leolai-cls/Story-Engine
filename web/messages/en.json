@@ -501,8 +501,8 @@
       "modelLocked": "Upgrade your tier to use this model",
       "adultLocked": "Adult mode · locked to Grok",
       "agentMode": "NPC Inner Voices",
-      "agentTooltip": "Each NPC gets its own POV + inner monologue this turn (Storyteller tier · ~6 credits/NPC)",
-      "agentTierRequired": "NPC Inner Voices need Storyteller tier — upgrade to unlock",
+      "agentTooltip": "Each on-stage character gets their own inner monologue + intent this turn (Standard 1 · Pro up to 3 · ~6 credits each)",
+      "agentTierRequired": "NPC Inner Voices need a paid plan — upgrade to unlock",
       "thinkingMode": "Deep Thinking",
       "thinkingTooltip": "The AI reasons through plot + characters before writing — richer narration · costs more credits, a few seconds slower (billed on actual usage)"
     },
@@ -1030,8 +1030,8 @@
     "play": {
       "playthroughNotFound": "Playthrough not found.",
       "playthroughNotOwner": "You're not the owner of this playthrough.",
-      "npcL3TierRequired": "NPC inner thoughts are a Storyteller-tier feature (you're on {tier} · upgrade to Storyteller to unlock).",
-      "npcL3TierRequiredGeneric": "NPC inner thoughts require a Storyteller subscription.",
+      "npcL3TierRequired": "NPC Inner Voices need a paid plan — upgrade to unlock (Standard: 1 character/turn · Pro: up to 3).",
+      "npcL3TierRequiredGeneric": "NPC Inner Voices require a paid plan.",
       "modelTierRequired": "{model} needs a higher tier — upgrade to use it.",
       "saveFailed": "Save failed. Please try again later."
     },

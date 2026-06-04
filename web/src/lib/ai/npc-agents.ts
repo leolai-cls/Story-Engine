@@ -10,40 +10,39 @@ import {
   type NpcAgentOutput,
 } from "@/schemas/npc-agent";
 import { characterCardStaticTemplate, type CharacterCard, type Disposition, type NpcDynamicState } from "@/schemas/character";
-// Deep-mode rebuild (2026-06-04): the GM/Director was removed in light-core, so
-// schemas/director.ts is gone. `verdict` was already DECOUPLED from the agent
-// prompt earlier (ADR-001 · see verdictToAgentSummary-removed notes below) — it
-// is now pure vestigial threading. Minimal local type keeps the module valid;
-// the field is dropped entirely when the turn route is rewired to the new
-// GM-free active-NPC trigger.
-type Verdict = { verdict: string; reasoning?: string };
+// Deep-mode rebuild (2026-06-04): the GM/Director was removed in light-core.
+// The old `verdict` arg (a Director judgement once threaded through here) was
+// already DECOUPLED from the agent prompt by ADR-001 — NPC agents react to the
+// player's ATTEMPT, never to a verdict (see buildAgentUserMessage's attemptFrame).
+// It is now fully dropped: the GM-free active-NPC trigger has no verdict to pass.
 import { formatPovMemoriesBlock, retrieveNpcPovMemories, type PovMemory } from "./npc-agents-retrieval";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 /**
- * NPC Agent L3 orchestration — Story Engine Phase 1.5.
+ * NPC Agent orchestration — Story Engine "NPC 內心戲" (Deep Mode · 2026-06-04).
  *
- * For each active NPC (max 3 · founder Q2 sign-off), spawn a parallel Standard
- * tier model call that emits POV inner_thought + intent. Narrator integrates
- * all POVs into ONE canonical narrative (no synthesizer agent).
+ * For each active NPC (capped per tier · Standard 1 / Pro 3), spawn a parallel
+ * model call that emits POV inner_thought + intent. The Narrator integrates all
+ * POVs into ONE canonical narrative (no synthesizer agent).
  *
- * ARCHITECTURE (per pm/research-npc-agent-l3.md + implementation-plan.html):
- *   - Parallel via Promise.allSettled (1.8s vs 5.4s sequential for 3 NPCs)
- *   - Standard tier (CJK → GLM-5.1 · EN → Gemini 3.5 Flash) per founder Q1
+ * ARCHITECTURE:
+ *   - Parallel via Promise.allSettled (tolerates 1-of-N failure)
+ *   - Model via pickUtilityModel(contentRating,"structured"): non-adult → Haiku
+ *     (reliable structured output) · adult → Grok/CrazyRouter (hard rule #5)
  *   - MIRROR 3-step CoT (memories_recalled → reactions_predicted → motivation)
  *   - Shallow ToM (each NPC sees others' L2 state · no recursive belief)
  *   - POV memory scoped via walk_lorebook_graph (Migration 0025)
  *   - Per-agent 8s timeout (NPC_AGENT_TIMEOUT_MS) · degraded narrative still works
  *
  * COHERENCE GUARANTEE:
- *   NPC agents output POV-only · cannot change state. Director verdict +
- *   Narrator state_delta tool call are the sole canonical sources of truth.
- *   Conflicting intents (A wants X · B wants opposite Y) become dramatic
- *   tension in Narrator's output · NOT contradictory outcomes.
+ *   NPC agents output POV-only · cannot change state. The Narrator decides
+ *   outcomes (light-core · four-layer priority · no GM/Director) and the
+ *   post-turn extractor persists canonical state. Conflicting intents (A wants
+ *   X · B wants opposite Y) become dramatic tension · NOT contradictory outcomes.
  *
- * COST (Standard tier · no cache on OpenRouter):
- *   ~$0.0029 per agent · 3 NPCs = $0.0087 + Narrator overhead $0.0035 = ~$0.013/turn
- *   Charged 6 credits per NPC (founder Q3 · 2× markup convention).
+ * COST: charged a flat 6 credits per SUCCESSFUL agent (founder Q3 · failed = free).
+ *   ⚠️ adult agents run on Grok ($3/$15 · ~2.6× Haiku) — the flat fee may
+ *   under-cover real token cost on adult; pricing tuning is a money-tier item.
  */
 
 // ─── System prompt template (per-NPC · 3-locale) ────────────────────────────
@@ -219,7 +218,6 @@ type AgentBuildContext = {
     dynamic_state?: NpcDynamicState;
   }>;
   userAction: string;
-  verdict: Verdict;
   povMemories: PovMemory[];
   recentTurns: Array<{ role: "user" | "ai"; text: string }>;
   language: StoryLanguage;
@@ -345,7 +343,6 @@ async function callSingleNpcAgent(params: {
   character: AgentBuildContext["character"] & { id: string };
   otherActiveCharacters: AgentBuildContext["otherActiveCharacters"];
   userAction: string;
-  verdict: Verdict;
   povMemories: PovMemory[];
   recentTurns: AgentBuildContext["recentTurns"];
   storyLanguage: "zh-Hant" | "zh-Hans" | "en";
@@ -355,7 +352,6 @@ async function callSingleNpcAgent(params: {
     character,
     otherActiveCharacters,
     userAction,
-    verdict,
     povMemories,
     recentTurns,
     storyLanguage,
@@ -378,7 +374,6 @@ async function callSingleNpcAgent(params: {
     character,
     otherActiveCharacters,
     userAction,
-    verdict,
     povMemories,
     recentTurns,
     language: storyLanguage,
@@ -443,9 +438,9 @@ export type NpcAgentBatchInput = {
   supabase: SupabaseClient;
   playthroughId: string;
   /**
-   * Active characters this turn (from Director's npc_updates list · already
-   * filtered to existing characters by turn route). Each one will get its
-   * own parallel agent call.
+   * Active characters this turn (from the GM-free active-NPC trigger ·
+   * deriveActiveCharacters · already filtered to carded characters). Each one
+   * gets its own parallel agent call.
    *
    * Caller should cap to MAX_NPC_L3_AGENTS_PER_TURN before passing here.
    */
@@ -457,7 +452,6 @@ export type NpcAgentBatchInput = {
     dynamic_state?: NpcDynamicState;
   }>;
   userAction: string;
-  verdict: Verdict;
   recentTurns: Array<{ role: "user" | "ai"; text: string }>;
   storyLanguage: "zh-Hant" | "zh-Hans" | "en";
   /** Story content rating · adult → NSFW-safe model (hard rule #5) · else Haiku */
@@ -484,7 +478,7 @@ export type NpcAgentBatchResult = {
 export async function callNpcAgentsParallel(
   input: NpcAgentBatchInput,
 ): Promise<NpcAgentBatchResult> {
-  const { activeCharacters, userAction, verdict, recentTurns, storyLanguage, contentRating, supabase, playthroughId } = input;
+  const { activeCharacters, userAction, recentTurns, storyLanguage, contentRating, supabase, playthroughId } = input;
 
   if (activeCharacters.length === 0) {
     return { outputs: [], details: [], creditsCharged: 0 };
@@ -534,7 +528,6 @@ export async function callNpcAgentsParallel(
         .filter((_, otherIdx) => otherIdx !== idx)
         .map((o) => ({ card: o.card, dynamic_state: o.dynamic_state })),
       userAction,
-      verdict,
       povMemories: povMemoriesPerChar[idx] ?? [],
       recentTurns,
       storyLanguage,

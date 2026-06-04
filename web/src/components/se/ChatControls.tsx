@@ -90,8 +90,9 @@ export function ChatControls({
   }, [menuOpen]);
 
   const userIdx = SUB_ORDER.indexOf(subscriptionTier);
-  const isTierEligibleForL3 =
-    subscriptionTier === "storyteller" || subscriptionTier === "legend";
+  // Deep Mode (2026-06-04): NPC 內心戲 = Pro-tier feature. Pro unlocks at
+  // adventurer (TIER_GATE.pro) — matches the turn route + setNpcL3Enabled gate.
+  const isTierEligibleForL3 = userIdx >= SUB_ORDER.indexOf(TIER_GATE.pro);
 
   function tierUnlocks(modelId: string): boolean {
     const m = MODELS[modelId];
