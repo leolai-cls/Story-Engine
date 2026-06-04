@@ -156,13 +156,15 @@ export async function generateSceneImage(
   const primaryResult = await callImageProvider(apiKey, chain.primary, req);
   if (primaryResult.ok) return primaryResult;
 
-  // Only fall back on TRANSIENT failures · don't retry on content_filter (the
-  // content is the issue, not the provider) or config_error / unknown (deeper
-  // problem · let the signal surface).
+  // Fall back on ANY failure except content_filter (same content would fail
+  // again) and config_error (missing key · fallback won't help). 2026-06-04:
+  // widened from provider_unavailable|rate_limited only — a primary that fails
+  // with "unknown" (e.g. provider returned no image data) should still let the
+  // proven cross-provider fallback try, instead of dead-ending.
   const shouldFallback =
     !!chain.fallback &&
-    (primaryResult.reason === "provider_unavailable" ||
-      primaryResult.reason === "rate_limited");
+    primaryResult.reason !== "content_filter" &&
+    primaryResult.reason !== "config_error";
   if (!shouldFallback) return primaryResult;
 
   console.warn(
@@ -254,6 +256,12 @@ async function callImageProvider(
     const errMsg = errBody.error?.message ?? `HTTP ${response.status}`;
     const errType = errBody.error?.type ?? "";
     const errCode = errBody.error?.code ?? "";
+    // 2026-06-04 (founder debug · "can't generate image"): log the EXACT
+    // CrazyRouter response so a non-adult image failure is diagnosable (the
+    // client used to swallow this into a generic "failed").
+    console.error(
+      `[scene-image] ${modelId} → HTTP ${response.status} · type=${errType} code=${errCode} · ${errMsg}`.slice(0, 400),
+    );
 
     // Map common errors via keyword detection (Wave 3 fix AI-HIGH-03 ·
     // drop blanket 400→content_filter mapping · CrazyRouter returns 400 for

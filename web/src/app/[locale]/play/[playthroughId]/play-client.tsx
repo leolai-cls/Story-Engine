@@ -533,6 +533,12 @@ export function PlayClient({
             );
           } else {
             setBalance((b) => b + cost); // server already refunded · keep display honest
+            // 2026-06-04 (founder debug): surface the REAL provider error code +
+            // message so we can see WHICH model/status failed (was hidden behind
+            // a generic "failed" placeholder).
+            setError(
+              `生圖失敗 (${res.error})${res.message ? " · " + res.message : ""}`,
+            );
             setSceneImages((prev) =>
               prev.map((e) =>
                 e.id === tempId ? { ...e, pending: false, failed: true } : e,
@@ -540,8 +546,11 @@ export function PlayClient({
             );
           }
         })
-        .catch(() => {
+        .catch((err) => {
           setBalance((b) => b + cost);
+          setError(
+            `生圖例外: ${err instanceof Error ? err.message : String(err)}`,
+          );
           setSceneImages((prev) =>
             prev.map((e) =>
               e.id === tempId ? { ...e, pending: false, failed: true } : e,
