@@ -1,5 +1,4 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { NPC_L3_CREDITS_PER_NPC } from "@/schemas/npc-agent";
 // pickUtilityModel = single source of truth for 「成人向背景步驟用邊隻 model」。
 // 計費 call 返佢 · 確保「跑邊隻」同「收邊隻」唔會 drift (PR #62 follow-up QC)。
 // (tier-router → models · 純 catalog · 冇 import credits · 無 circular。)
@@ -279,17 +278,15 @@ export type TurnUsage = {
   experience?: { inputTokens?: number; outputTokens?: number };
   embedTokens?: number;
   /**
-   * Phase 1.5 · NPC L3 Agents (Storyteller tier exclusive · founder Q3).
-   * Count of successful NPC agent calls this turn (failed agents are free per
-   * UX policy). Each successful agent charges NPC_L3_CREDITS_PER_NPC (=6)
-   * credits ON TOP of the actual model usage cost which also flows through
-   * narrator usage (NPC inner streams block adds ~450 tokens to Narrator input).
-   *
-   * Pattern: flat-rate add-on per NPC. Real cost ~$0.0044/NPC (GLM-5.1 no cache
-   * + Narrator overhead share). At 1 credit = $0.001 + 2× markup ≈ 8.8 credits
-   * raw · founder Q3 rounded to 6 for value perception. ~9% credit burn add-on
-   * for 3-NPC scene · ~8% reduction in monthly turn budget for Storyteller.
+   * Deep Mode · NPC 內心戲 — charged by ACTUAL token usage (founder 2026-06-04:
+   * "照跟 API 收費去扣 token"). One entry per SUCCESSFUL agent (failed agents
+   * are free per UX policy); each is billed through computeCredits at its own
+   * model's rate × markup — exactly like the narrator — so we never run a margin
+   * loss regardless of model (adult Grok ~2.6× Haiku is auto-covered). Replaces
+   * the old flat 6-credits/NPC (GLM-era · could under-cover Grok).
    */
+  npcAgents?: Array<{ modelId: string; inputTokens?: number; outputTokens?: number }>;
+  /** Telemetry only · count of successful agents (NOT used for the charge). */
   npcL3SuccessfulAgents?: number;
 };
 
@@ -352,9 +349,20 @@ export function computeTurnCredits(usage: TurnUsage): number {
       })
     : 0;
 
-  // Phase 1.5 · NPC L3 Agents flat-rate add-on (founder Q3 sign-off)
-  // 6 credits per successful agent · 0 for failed (UX: don't charge on failure)
-  const npcL3Credits = (usage.npcL3SuccessfulAgents ?? 0) * NPC_L3_CREDITS_PER_NPC;
+  // Deep Mode · NPC 內心戲 — bill each successful agent by its ACTUAL tokens at
+  // its own model rate × markup (founder 2026-06-04). Same path as the narrator,
+  // so margin is always correct (no flat-rate guess · adult Grok auto-covered).
+  // Failed agents are not in this array (free per UX).
+  const npcAgentCredits = (usage.npcAgents ?? []).reduce(
+    (sum, a) =>
+      sum +
+      computeCredits({
+        modelId: a.modelId,
+        inputTokens: a.inputTokens ?? 0,
+        outputTokens: a.outputTokens ?? 0,
+      }),
+    0,
+  );
 
   return (
     narratorCredits +
@@ -363,18 +371,17 @@ export function computeTurnCredits(usage: TurnUsage): number {
     summarizerCredits +
     embedCredits +
     experienceCredits +
-    npcL3Credits
+    npcAgentCredits
   );
 }
-
-// NPC_L3_CREDITS_PER_NPC imported from @/schemas/npc-agent (single source of truth)
 
 /**
  * Pre-turn cost estimate for UI display ("呢個 turn 大概用 ~32 credits").
  * Based on typical token usage observed in production. Adjust as patterns evolve.
  *
- * Phase 1.5: optional `npcL3ExpectedAgents` projects NPC L3 add-on
- * (~6 credits per active NPC). UI passes 2-3 when L3 enabled · 0 otherwise.
+ * Deep Mode: `npcL3ExpectedAgents` reserves the NPC 內心戲 add-on by ESTIMATED
+ * tokens per agent (at the rating's utility model · adult Grok auto-priced) —
+ * symmetric with the actual token charge. Over-reserve is the safe direction.
  */
 export function estimateTurnCredits(
   narratorModelId: string,
@@ -414,7 +421,18 @@ export function estimateTurnCredits(
     // 有升級角色 → 經歷 Haiku call。pre-charge 估算唔加會令 low-balance user 過 gate
     // 後少收 ~6 credit (方向安全·唔會多收·但對稱性更乾淨)。保守當有 (略高估)。
     experience: { inputTokens: 1500, outputTokens: 300 },
-    npcL3SuccessfulAgents: npcL3ExpectedAgents,
+    // NPC 內心戲 reserve · one estimated agent call per expected NPC, at the
+    // rating's structured-utility model (adult → Grok · else Haiku). Conservative
+    // per-agent token estimate so the reserve ≥ the actual token charge: input
+    // (char card static template + POV memories + 4 recent turns + MIRROR
+    // instructions) reserved HIGH at 4000; output is hard-capped at 800
+    // (maxOutputTokens in npc-agents). Over-reserve is the safe direction
+    // (hard rule #4 · never let a low-balance user pass the gate then under-charge).
+    npcAgents: Array.from({ length: Math.max(0, npcL3ExpectedAgents) }, () => ({
+      modelId: pickUtilityModel(utilityContentRating, "structured"),
+      inputTokens: 4000,
+      outputTokens: 800,
+    })),
   });
 }
 

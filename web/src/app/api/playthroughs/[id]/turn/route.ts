@@ -20,7 +20,6 @@ import {
 // surfaced to the player as 心聲. Adult playthroughs route agents to Grok via
 // pickUtilityModel inside npc-agents (hard rule #5 · never NSFW on Anthropic).
 import {
-  NPC_L3_CREDITS_PER_NPC,
   npcAgentToNarratorBlock,
   npcAgentsToThinkingBlock,
   type NpcAgentOutput,
@@ -644,8 +643,9 @@ export async function POST(
   // POV agent (Promise.allSettled · per-agent 8s timeout · degrades gracefully).
   // Outputs feed the Narrator as internal context (npcInnerStreamsBlock) AND the
   // player-facing 心聲 panel (npcThinking · via X-Think-Preamble header below).
-  // npcOutputs is read again at credit-charge time (× NPC_L3_CREDITS_PER_NPC).
+  // npcAgentUsage drives the charge — by ACTUAL tokens, like the narrator.
   let npcOutputs: NpcAgentOutput[] = [];
+  let npcAgentUsage: Array<{ modelId: string; inputTokens?: number; outputTokens?: number }> = [];
   if (npcVoicesEnabled) {
     try {
       const activeForVoices = deriveActiveCharacters(
@@ -672,6 +672,17 @@ export async function POST(
           contentRating: (story.content_rating as "sfw" | "soft" | "adult") ?? "sfw",
         });
         npcOutputs = batch.outputs;
+        // Bill ONLY successful agents, by ACTUAL tokens (founder 2026-06-04 · 照跟
+        // API 收費 · same path as narrator · margin always correct). Floor to a
+        // conservative estimate if a provider omitted usage (CrazyRouter can) so
+        // we never under-charge. Failed agents are absent here (free · UX).
+        npcAgentUsage = batch.details
+          .filter((d) => d.output)
+          .map((d) => ({
+            modelId: d.modelId,
+            inputTokens: d.usage?.inputTokens ?? 3000,
+            outputTokens: d.usage?.outputTokens ?? 800,
+          }));
         // npcAgentToNarratorBlock wraps in [INTERNAL CONTEXT — DO NOT QUOTE];
         // buildDynamicSystemPrompt already consumes ctx.npcInnerStreamsBlock.
         ctx.npcInnerStreamsBlock = npcAgentToNarratorBlock(npcOutputs);
@@ -690,8 +701,8 @@ export async function POST(
       );
     }
   }
-  // Charge only for agents that actually succeeded (failed = free · UX · hard
-  // rule #4). 0 when voices off / no active NPC / all agents failed.
+  // Successful-agent count · telemetry only (charge is by npcAgentUsage tokens).
+  // 0 when voices off / no active NPC / all agents failed.
   const npcL3SuccessfulAgents = npcOutputs.length;
 
   // ─── Character Soul M4 · 讀取角色經歷記憶 (pm/architecture/03 + 04) ───
@@ -1433,8 +1444,9 @@ export async function POST(
                 directorNpcUpdates.length > 0
                   ? { inputTokens: 1500, outputTokens: 300 }
                   : undefined,
-              // Phase 1.5 · NPC L3 flat-rate add-on (6 credits per successful agent · founder Q3)
-              npcL3SuccessfulAgents,
+              // Deep Mode · NPC 內心戲 — billed by ACTUAL tokens per successful
+              // agent (founder 2026-06-04 · same path as narrator · never lossy).
+              npcAgents: npcAgentUsage,
             });
             // Back out narrator-only for the metadata log
             narratorCredits = computeCredits({
@@ -1459,10 +1471,19 @@ export async function POST(
                 background_credits: backgroundCredits, // P3-COST-H-05 reserve
                 narrator_model: pt.llm_model ?? "claude-sonnet-4-6",
                 refusal: technicalFailure,
-                // Phase 1.5 · NPC L3 telemetry for cost analytics + audit trail
-                // Wave 2 fix CRIT-C: use NPC_L3_CREDITS_PER_NPC constant
+                // Deep Mode · NPC 內心戲 telemetry (analytics + audit trail).
+                // Credits = actual tokens × rate (same path as narrator · founder 2026-06-04).
                 npc_l3_active_agents: npcL3SuccessfulAgents,
-                npc_l3_credits: npcL3SuccessfulAgents * NPC_L3_CREDITS_PER_NPC,
+                npc_l3_credits: npcAgentUsage.reduce(
+                  (s, a) =>
+                    s +
+                    computeCredits({
+                      modelId: a.modelId,
+                      inputTokens: a.inputTokens ?? 0,
+                      outputTokens: a.outputTokens ?? 0,
+                    }),
+                  0,
+                ),
               },
             });
             if (chargeResult.ok) {
