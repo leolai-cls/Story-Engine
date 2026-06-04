@@ -14,10 +14,19 @@ import {
   extractTurnState,
   type TurnContext,
 } from "@/lib/ai/turn-runner";
-// light-core cleanup (2026-06-03): NPC L3 orchestration removed (dead since the
-// GM/Director was unwired — directorNpcUpdates is always empty). Only the
-// flat-rate credit constant survives, for telemetry (always × 0).
-import { NPC_L3_CREDITS_PER_NPC } from "@/schemas/npc-agent";
+// Deep Mode · NPC 內心戲 (2026-06-04): re-wired as a Pro-tier opt-in. Active
+// NPCs are derived GM-free (deriveActiveCharacters · pure string scan), then
+// each gets a parallel POV agent → fed to the Narrator (internal context) +
+// surfaced to the player as 心聲. Adult playthroughs route agents to Grok via
+// pickUtilityModel inside npc-agents (hard rule #5 · never NSFW on Anthropic).
+import {
+  npcAgentToNarratorBlock,
+  npcAgentsToThinkingBlock,
+  type NpcAgentOutput,
+} from "@/schemas/npc-agent";
+import { callNpcAgentsParallel } from "@/lib/ai/npc-agents";
+import { deriveActiveCharacters } from "@/lib/ai/active-characters";
+import type { Disposition, NpcDynamicState } from "@/schemas/character";
 import { type SkillCheckResult } from "@/lib/ai/skill-check";
 import { deriveCurrentAct, type ArcContext } from "@/lib/ai/arc-dsl";
 import { applyDelta } from "@/schemas/state-delta";
@@ -57,7 +66,7 @@ import {
 // ─── Phase 5 Wave 2 moderation (W1-MOD-H-03 audit fix) ──────────────────
 import { ModerationConfigError, moderateText, verdictToCode, checkOutputLegalFloor } from "@/lib/moderation/openai-moderation";
 // ─── Phase 6 non-money function: adult mode gate ────────────────────────
-import { MODELS, tierForModel, recentTurnsLimitForTier, ADULT_NSFW_MODEL } from "@/lib/ai/models";
+import { MODELS, tierForModel, recentTurnsLimitForTier, ADULT_NSFW_MODEL, npcVoicesCapForTier } from "@/lib/ai/models";
 import { stripReasoningMarkers } from "@/lib/sanitize-narration";
 
 /**
@@ -180,6 +189,17 @@ export async function POST(
     );
   }
 
+  // Deep Mode · NPC 內心戲 gate (per-playthrough opt-in toggle · tiered cap).
+  // 故意 gate 喺用戶**訂閱 tier**（唔係 narrator model 嘅 tier_pool）—— 成人
+  // playthrough 個 narrator 係 Grok（tier_pool=null → tierForModel 會 fallback
+  // standard），但要睇用戶真實訂閱。founder 2026-06-04: 付費用戶都試到,但分層 —
+  // Standard($9.99) 每回合最多 1 個 NPC · Pro($19.99) 最多 3 個 · 免費 0(隱藏)。
+  // tierCheck.tier 啱啱由 userTierAllowsModel 攞咗（active subscription · 已防
+  // downgrade race）。cap > 0 ⇒ 呢個 tier 用到。
+  const npcL3FlagOn = (pt as { npc_l3_enabled?: boolean }).npc_l3_enabled === true;
+  const npcVoicesCap = npcVoicesCapForTier(tierCheck.tier);
+  const npcVoicesEnabled = npcL3FlagOn && npcVoicesCap > 0;
+
   // Phase 6 non-money function — adult mode gate (CLAUDE.md hard rule #5
   // LLM isolation). Two enforcement layers:
   //   (a) NSFW model gate: allows_nsfw=true model + !adult_mode_enabled → 403
@@ -197,9 +217,12 @@ export async function POST(
   // If actual turn fires fewer NPCs, charge will be less than estimate.
   // Underestimate would cause post-stream charge to fail with insufficient
   // credits → "free turn" + reconciliation debt. Better to over-estimate.
-  // light-core: NPC L3 removed → never reserve the L3 add-on (was over-reserving
-  // for old playthroughs whose npc_l3_enabled is still true in the DB).
-  const expectedL3Agents = 0;
+  // Deep Mode · NPC 內心戲: when voices are on, reserve the tier cap (Standard 1
+  // / Pro 3) × 6 credits. Actual charge is the # that actually fired (successful
+  // only) — fewer is fine (we over-reserve so a low-balance user can't pass the
+  // gate then hit post-stream insufficient_credits). Off → reserve nothing
+  // (hard rule #4 · exact).
+  const expectedL3Agents = npcVoicesEnabled ? npcVoicesCap : 0;
   // 2026-05-29: deep-thinking mode bumps narrator output (reasoning + story
   // text) → reserve more in the pre-charge gate (same over-estimate rationale
   // as L3 above). Defined once here · reused by the streamText block below.
@@ -613,13 +636,74 @@ export async function POST(
     }
   }
 
-  // 4.27 — NPC L3 Agents REMOVED in light-core (2026-06-03 cleanup).
-  // The GM/Director was unwired (Session 17) so directorNpcUpdates is always
-  // empty → the whole per-NPC POV orchestration (callNpcAgentsParallel · tier
-  // gate · inner-stream block) was dead (gated-on-empty). npcL3SuccessfulAgents
-  // stays as an inert 0 so the downstream cost telemetry keeps compiling
-  // (always × 0). NPC POV returns as an opt-in "deep mode" later.
-  const npcL3SuccessfulAgents = 0;
+  // 4.27 — NPC 內心戲 (Deep Mode · Pro opt-in · 2026-06-04 rebuild).
+  // GM-free trigger: derive on-stage characters from the player's action + the
+  // last AI narrative (deriveActiveCharacters · pure string scan · NOT a GM ·
+  // accepts 1-turn lag for brand-new arrivals). Each active NPC runs a parallel
+  // POV agent (Promise.allSettled · per-agent 8s timeout · degrades gracefully).
+  // Outputs feed the Narrator as internal context (npcInnerStreamsBlock) AND the
+  // player-facing 心聲 panel (npcThinking · via X-Think-Preamble header below).
+  // npcAgentUsage drives the charge — by ACTUAL tokens, like the narrator.
+  let npcOutputs: NpcAgentOutput[] = [];
+  let npcAgentUsage: Array<{ modelId: string; inputTokens?: number; outputTokens?: number }> = [];
+  if (npcVoicesEnabled) {
+    try {
+      const activeForVoices = deriveActiveCharacters(
+        ctx.characters,
+        action,
+        ctx.recent_turns,
+        npcVoicesCap, // tier cap: Standard 1 · Pro 3
+      );
+      if (activeForVoices.length > 0) {
+        const batch = await callNpcAgentsParallel({
+          supabase,
+          playthroughId,
+          activeCharacters: activeForVoices.map((c) => ({
+            id: c.character_id as string,
+            card: c.card,
+            disposition: c.disposition as Disposition,
+            permanent_flags: c.permanent_flags,
+            dynamic_state: c.dynamic_state as NpcDynamicState | undefined,
+          })),
+          userAction: action,
+          recentTurns: ctx.recent_turns,
+          storyLanguage,
+          // adult → Grok inside pickUtilityModel (hard rule #5) · else Haiku.
+          contentRating: (story.content_rating as "sfw" | "soft" | "adult") ?? "sfw",
+        });
+        npcOutputs = batch.outputs;
+        // Bill ONLY successful agents, by ACTUAL tokens (founder 2026-06-04 · 照跟
+        // API 收費 · same path as narrator · margin always correct). Floor to a
+        // conservative estimate if a provider omitted usage (CrazyRouter can) so
+        // we never under-charge. Failed agents are absent here (free · UX).
+        npcAgentUsage = batch.details
+          .filter((d) => d.output)
+          .map((d) => ({
+            modelId: d.modelId,
+            inputTokens: d.usage?.inputTokens ?? 3000,
+            outputTokens: d.usage?.outputTokens ?? 800,
+          }));
+        // npcAgentToNarratorBlock wraps in [INTERNAL CONTEXT — DO NOT QUOTE];
+        // buildDynamicSystemPrompt already consumes ctx.npcInnerStreamsBlock.
+        ctx.npcInnerStreamsBlock = npcAgentToNarratorBlock(npcOutputs);
+        console.log(
+          `[turn] NPC 內心戲: ${npcOutputs.length}/${activeForVoices.length} agent(s) ok · active=[${activeForVoices
+            .map((c) => c.card.name)
+            .join(", ")}]`,
+        );
+      }
+    } catch (e) {
+      // Non-fatal: a failed voices batch must never block the turn. Narrator
+      // just runs without inner-stream context (degraded · still a full turn).
+      console.warn(
+        "[turn] NPC 內心戲 orchestration failed (non-fatal):",
+        e instanceof Error ? e.message : e,
+      );
+    }
+  }
+  // Successful-agent count · telemetry only (charge is by npcAgentUsage tokens).
+  // 0 when voices off / no active NPC / all agents failed.
+  const npcL3SuccessfulAgents = npcOutputs.length;
 
   // ─── Character Soul M4 · 讀取角色經歷記憶 (pm/architecture/03 + 04) ───
   // 今回合 active 角色 (directorNpcUpdates) · 用 user-action embedding query 各自
@@ -1360,8 +1444,9 @@ export async function POST(
                 directorNpcUpdates.length > 0
                   ? { inputTokens: 1500, outputTokens: 300 }
                   : undefined,
-              // Phase 1.5 · NPC L3 flat-rate add-on (6 credits per successful agent · founder Q3)
-              npcL3SuccessfulAgents,
+              // Deep Mode · NPC 內心戲 — billed by ACTUAL tokens per successful
+              // agent (founder 2026-06-04 · same path as narrator · never lossy).
+              npcAgents: npcAgentUsage,
             });
             // Back out narrator-only for the metadata log
             narratorCredits = computeCredits({
@@ -1386,10 +1471,19 @@ export async function POST(
                 background_credits: backgroundCredits, // P3-COST-H-05 reserve
                 narrator_model: pt.llm_model ?? "claude-sonnet-4-6",
                 refusal: technicalFailure,
-                // Phase 1.5 · NPC L3 telemetry for cost analytics + audit trail
-                // Wave 2 fix CRIT-C: use NPC_L3_CREDITS_PER_NPC constant
+                // Deep Mode · NPC 內心戲 telemetry (analytics + audit trail).
+                // Credits = actual tokens × rate (same path as narrator · founder 2026-06-04).
                 npc_l3_active_agents: npcL3SuccessfulAgents,
-                npc_l3_credits: npcL3SuccessfulAgents * NPC_L3_CREDITS_PER_NPC,
+                npc_l3_credits: npcAgentUsage.reduce(
+                  (s, a) =>
+                    s +
+                    computeCredits({
+                      modelId: a.modelId,
+                      inputTokens: a.inputTokens ?? 0,
+                      outputTokens: a.outputTokens ?? 0,
+                    }),
+                  0,
+                ),
               },
             });
             if (chargeResult.ok) {
@@ -1729,15 +1823,30 @@ export async function POST(
   // 思考面板而家只顯示 NPC inner voices (L3) + Narrator 自己嘅 reasoning (Claude · 若有)。
   const gmThinking: string | null = null;
 
-  // NPC inner-voice thinking panel — REMOVED (light-core · L3 no longer runs).
-  const npcThinking: string | null = null;
+  // NPC 內心戲 (Deep Mode) · player-facing 心聲 panel. npcAgentsToThinkingBlock
+  // renders 〈角色心聲〉 with each NPC's 心聲 / 打算 / 考量 — distinct from the
+  // internal npcInnerStreamsBlock fed to the Narrator. The client decodes
+  // X-Think-Preamble (below) into the collapsible 思考過程 panel regardless of
+  // deep-thinking mode. inner_thought is shown here ON PURPOSE (it's the panel)
+  // but is NEVER allowed into prose (leak-class · sanitizer + Narrator rules).
+  const npcThinking: string | null =
+    npcOutputs.length > 0
+      ? npcAgentsToThinkingBlock(npcOutputs, storyLanguage)
+      : null;
 
-  // Combined pre-narrator thinking (GM verdict + NPC inner voices), capped so it
-  // fits comfortably inside an HTTP header.
-  const thinkingPreamble = [gmThinking, npcThinking]
-    .filter(Boolean)
-    .join("\n\n")
-    .slice(0, 2000);
+  // Combined pre-narrator thinking (GM verdict + NPC inner voices). Budget by
+  // BASE64 byte size, NOT char count — a 3-NPC all-CJK 心聲 block can be ~2.3k
+  // chars ≈ 8KB base64, near some proxies' per-header ceiling (the panel would
+  // silently drop · prose is unaffected). Trim until the encoded header ≤ 6KB.
+  let thinkingPreamble = [gmThinking, npcThinking].filter(Boolean).join("\n\n");
+  const MAX_PREAMBLE_B64 = 6000;
+  let thinkingPreambleB64 = thinkingPreamble
+    ? Buffer.from(thinkingPreamble, "utf8").toString("base64")
+    : "";
+  while (thinkingPreambleB64.length > MAX_PREAMBLE_B64 && thinkingPreamble.length > 0) {
+    thinkingPreamble = thinkingPreamble.slice(0, Math.floor(thinkingPreamble.length * 0.85));
+    thinkingPreambleB64 = Buffer.from(thinkingPreamble, "utf8").toString("base64");
+  }
 
   // 2026-05-31 (founder · "thinking mode no output"): deliver the GM/NPC thinking
   // via a RESPONSE HEADER — do NOT wrap the narrator in createUIMessageStream.
@@ -1749,8 +1858,8 @@ export async function POST(
   // (base64 UTF-8) to seed the 思考過程 panel; the narrator's own reasoning
   // (Claude · sendReasoning) still streams as reasoning-delta frames and appends.
   const headers: Record<string, string> = { "X-Accel-Buffering": "no" };
-  if (thinkingPreamble) {
-    headers["X-Think-Preamble"] = Buffer.from(thinkingPreamble, "utf8").toString("base64");
+  if (thinkingPreambleB64) {
+    headers["X-Think-Preamble"] = thinkingPreambleB64;
   }
 
   // 2026-06-01 (founder bug): the skill-check badge + Director amber border only

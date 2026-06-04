@@ -205,7 +205,12 @@ export default async function PlayPage({
       npcs={npcs}
       sidebarPlaythroughs={sidebarPlaythroughs}
       sidebarTotalCount={totalPlaythroughCount ?? sidebarPlaythroughs.length}
-      npcL3Enabled={false}
+      npcL3Enabled={(pt as { npc_l3_enabled?: boolean }).npc_l3_enabled ?? false}
+      npcL3Available={
+        subscriptionTier === "adventurer" ||
+        subscriptionTier === "storyteller" ||
+        subscriptionTier === "legend"
+      }
       thinkingModeEnabled={(pt as { thinking_mode_enabled?: boolean }).thinking_mode_enabled ?? false}
       subscriptionTier={subscriptionTier}
       playthroughModel={(pt.llm_model as string) ?? null}

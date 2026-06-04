@@ -501,8 +501,8 @@
       "modelLocked": "升级 tier 才能用这个 model",
       "adultLocked": "成人模式锁定 · 固定用 Grok",
       "agentMode": "NPC 内心戏",
-      "agentTooltip": "这个 turn 每个 NPC 有自己 POV + 内心独白（Storyteller tier · 每个 NPC ~6 credits）",
-      "agentTierRequired": "NPC 内心戏需要 Storyteller tier — 升级才解锁",
+      "agentTooltip": "这个回合每个出场角色都有自己的内心独白和打算（Standard 1 个 · Pro 最多 3 个 · 每个约 6 credits）",
+      "agentTierRequired": "NPC 内心戏需要付费方案 — 升级即可解锁",
       "thinkingMode": "深度思考",
       "thinkingTooltip": "AI 想清楚剧情同人物先落笔 · 叙事更深 · 会多烧 credits、慢几秒（按实际用量计）"
     },
@@ -1022,8 +1022,8 @@
     "play": {
       "playthroughNotFound": "找不到这个 playthrough。",
       "playthroughNotOwner": "你不是这个 playthrough 的主人。",
-      "npcL3TierRequired": "NPC 内心戏是 Storyteller 订阅独享（你现在是 {tier} tier · 升级至 Storyteller 即可解锁）。",
-      "npcL3TierRequiredGeneric": "NPC 内心戏需要 Storyteller 订阅。",
+      "npcL3TierRequired": "NPC 内心戏需要付费方案才玩到 · 升级即可解锁（Standard 每回合 1 个角色 · Pro 最多 3 个）。",
+      "npcL3TierRequiredGeneric": "NPC 内心戏需要付费方案。",
       "modelTierRequired": "{model} 需要更高 tier — 升级才能用。",
       "saveFailed": "保存失败，请稍后再试。"
     },

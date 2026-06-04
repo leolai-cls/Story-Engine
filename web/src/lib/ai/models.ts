@@ -310,3 +310,30 @@ export function recentTurnsLimitForTier(tier: ModelTier): number {
       return 12;
   }
 }
+
+/**
+ * Deep Mode · NPC 內心戲 — per-turn NPC cap by SUBSCRIPTION tier
+ * (founder 2026-06-04). Tiered so paying users can all taste the feature while
+ * the top plan stays differentiated:
+ *   - free        → 0  (toggle hidden · locked)
+ *   - adventurer  → 1  ("Standard" $9.99 · 試到個味 · 1 NPC inner voice/turn)
+ *   - storyteller → 3  ("Pro" $19.99 · full group-scene depth · multi-POV)
+ *   - legend      → 3  (legacy top tier · same as Pro)
+ *
+ * The returned cap MUST stay ≤ MAX_NPC_L3_AGENTS_PER_TURN (=3 · schemas/npc-agent),
+ * which callNpcAgentsParallel re-clamps defensively. 0 means the feature is off
+ * for this tier (used as the gate: cap > 0 ⇒ eligible).
+ */
+export function npcVoicesCapForTier(
+  tier: "free" | "adventurer" | "storyteller" | "legend",
+): number {
+  switch (tier) {
+    case "free":
+      return 0;
+    case "adventurer":
+      return 1;
+    case "storyteller":
+    case "legend":
+      return 3;
+  }
+}

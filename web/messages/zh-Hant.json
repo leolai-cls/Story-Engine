@@ -501,8 +501,8 @@
       "modelLocked": "升級 tier 先用到呢個 model",
       "adultLocked": "成人模式鎖定 · 固定用 Grok",
       "agentMode": "NPC 內心戲",
-      "agentTooltip": "今個 turn 每個 NPC 有自己 POV + 內心獨白（Storyteller tier · 每個 NPC ~6 credits）",
-      "agentTierRequired": "NPC 內心戲需要 Storyteller tier — 升級先解鎖",
+      "agentTooltip": "今個回合每個出場角色都有自己嘅內心獨白同打算（Standard 1 個 · Pro 最多 3 個 · 每個約 6 credits）",
+      "agentTierRequired": "NPC 內心戲需要付費方案 — 升級即可解鎖",
       "thinkingMode": "深度思考",
       "thinkingTooltip": "AI 諗清楚劇情同人物先落筆 · 敘事更深 · 會多燒 credits、慢幾秒（按實際用量計）"
     },
@@ -1030,8 +1030,8 @@
     "play": {
       "playthroughNotFound": "搵唔到呢個 playthrough。",
       "playthroughNotOwner": "你唔係呢個 playthrough 嘅主人。",
-      "npcL3TierRequired": "NPC 內心戲係 Storyteller 訂閱獨享（你而家係 {tier} tier · 升級至 Storyteller 即可解鎖）。",
-      "npcL3TierRequiredGeneric": "NPC 內心戲需要 Storyteller 訂閱。",
+      "npcL3TierRequired": "NPC 內心戲需要付費方案先玩到 · 升級即可解鎖（Standard 每回合 1 個角色 · Pro 最多 3 個）。",
+      "npcL3TierRequiredGeneric": "NPC 內心戲需要付費方案。",
       "modelTierRequired": "{model} 需要更高 tier — 升級先用到。",
       "saveFailed": "儲存失敗 · 請稍後再試。"
     },

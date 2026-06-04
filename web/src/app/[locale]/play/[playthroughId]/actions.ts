@@ -72,18 +72,18 @@ export async function setNpcL3Enabled(
   }
 
   // Tier check ONLY on enable path. Disable always allowed (cancel-aware UX).
+  // Deep Mode (2026-06-04): NPC 內心戲 = Pro-tier · unlocks at adventurer
+  // (TIER_GATE.pro). Use getActiveTier (active subscription · status
+  // active/trialing) NOT stale profile.subscription_tier, so a cancelled /
+  // downgraded user can't keep flipping it on. Matches the turn route gate.
   if (enabled) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("subscription_tier")
-      .eq("id", user.id)
-      .single();
-    const tier = (profile?.subscription_tier ?? "free") as string;
-    if (tier !== "storyteller" && tier !== "legend") {
+    const activeTier = await getActiveTier(supabase, user.id);
+    const order = ["free", "adventurer", "storyteller", "legend"] as const;
+    if (order.indexOf(activeTier) < order.indexOf(TIER_GATE.pro)) {
       return {
         ok: false,
         errorCode: "play.npcL3TierRequired",
-        errorParams: { tier },
+        errorParams: { tier: activeTier },
         code: "tier_required",
       };
     }
@@ -97,8 +97,10 @@ export async function setNpcL3Enabled(
 
   if (updErr) {
     const msg = String(updErr.message ?? "");
-    // Trigger raised exception · surface as tier-required (DB-side gate)
-    if (/Storyteller subscription/i.test(msg)) {
+    // Trigger raised exception · surface as tier-required (DB-side gate).
+    // Match both the new Pro-gate message (migration 0059) + the old
+    // Storyteller one (pre-0059 rollout window · defence-in-depth).
+    if (/Pro subscription|Storyteller subscription/i.test(msg)) {
       return {
         ok: false,
         errorCode: "play.npcL3TierRequiredGeneric",
