@@ -38,6 +38,12 @@ type ContentRating = "sfw" | "soft" | "adult";
  * turn falling out of the raw window and entering the digest. (Old value 20 >
  * 12 left a growing RAG-only gap.) First compact fires a bit earlier (8) so the
  * memory layer engages within the first session.
+ *
+ * ⚠️ HARD COUPLING (drift risk · CLAUDE.md hard rule #8/#36): this MUST stay
+ * STRICTLY ≤ the SMALLEST recentTurnsLimitForTier value in lib/ai/models.ts
+ * (currently 12 for both tiers · margin = 1 row). If anyone bumps this ≥ 13, or
+ * drops a tier's window < 12, the RAG-only blind band silently reopens. The two
+ * constants live in different files — keep them in sync.
  */
 const TURNS_PER_BLOCK = 11;
 const FIRST_BLOCK_TURNS = 8;
@@ -80,7 +86,7 @@ Someone with ONLY your recap + the last few turns — and none of the older raw 
 
 ## How to update (anti-drift)
 - PRESERVE everything already established — real names, key decisions, relationships — VERBATIM in substance. Only ADD new developments and UPDATE what changed. Do NOT re-interpret or quietly drop established facts (that causes telephone-game drift).
-- Recency gradient: recent developments in more detail; compress older arcs more as the story grows. Keep the whole recap to a few tight paragraphs.
+- Recency gradient: recent developments in more detail; compress older arcs more as the story grows. Keep the whole recap to a few tight paragraphs. If you are running low on room, compress the OLDEST arcs harder — NEVER cut off mid-sentence and never drop the most recent developments.
 
 ## FORM — this is critical
 - Flowing second-person PROSE ("you…"), like a novel's "Previously…".
@@ -107,7 +113,7 @@ Return ONLY the updated recap prose.`;
 
 ## 怎么更新（防走音）
 - 已确立的一切 —— 实名、关键决定、关系 —— 实质上要逐字保留。只【新增】新发展、【更新】有变化的。不要重新演绎或悄悄丢掉已确立的事实（那会像传话游戏越传越歪）。
-- 近详远略：近期写详细，故事越长，越旧的越压缩。整份保持几段紧凑。
+- 近详远略：近期写详细，故事越长，越旧的越压缩。整份保持几段紧凑。若快没空间，就把最旧的部分压得更狠 —— 绝不中途断句、绝不丢掉最近的发展。
 
 ## 形式 —— 极重要
 - 流畅的第二人称【散文】（「你…」），似小说「前情提要」。
@@ -134,7 +140,7 @@ Return ONLY the updated recap prose.`;
 
 ## 點更新（防走音）
 - 已確立嘅一切 —— 實名、關鍵決定、關係 —— 實質上要逐字保住。只係【新增】新發展、【更新】有變化嘅。唔好重新演繹或者靜靜雞丟咗已確立嘅事實（嗰個會好似傳話遊戲越傳越歪）。
-- 近詳遠略：近期寫詳細，故事越長，越舊嘅越壓縮。整份保持幾段緊湊。
+- 近詳遠略：近期寫詳細，故事越長，越舊嘅越壓縮。整份保持幾段緊湊。若快冇空間，就將最舊嗰部分壓得更狠 —— 絕不中途斷句、絕不丟掉最近嘅發展。
 
 ## 形式 —— 極重要
 - 流暢嘅第二人稱【散文】（「你…」），似小說「前情提要」。
@@ -330,14 +336,28 @@ export async function updateRunningSummary(params: {
       system: runningDigestSystemPrompt(language),
       prompt: userPrompt,
       temperature: 0.3,
-      // Cumulative digest grows with the story but stays bounded — a few tight
-      // paragraphs. 1200 gives headroom for a long-story recap without bloat.
-      maxOutputTokens: 1200,
+      // The digest is meant to stay bounded (a few tight paragraphs · the prompt
+      // tells the model to compress older arcs). 2000 gives comfortable headroom
+      // for a rich long-story recap so truncation is rare; the finishReason guard
+      // below is the safety net.
+      maxOutputTokens: 2000,
     });
 
     const summaryText = llmResult.text.trim();
     if (!summaryText) {
       console.warn("[summarizer] LLM returned empty digest");
+      return false;
+    }
+    // HIGH-2 guard (audit cycle 2): if the model hit the output cap the digest is
+    // truncated mid-sentence. Do NOT persist/advance — the next compact's
+    // "preserve established facts verbatim" would launder the truncation forward
+    // and quietly amputate the most recent memory. Keep the previous good digest;
+    // the model is instructed to compress older arcs to fit, so this should be
+    // near-impossible at 2000 — if it fires, it's a signal to compress harder.
+    if (llmResult.finishReason === "length") {
+      console.warn(
+        "[summarizer] digest hit maxOutputTokens (truncated) — keeping previous digest, not advancing through",
+      );
       return false;
     }
 
