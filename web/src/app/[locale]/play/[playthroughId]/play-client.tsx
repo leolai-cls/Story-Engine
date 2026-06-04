@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Link } from "@/i18n/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Send, Loader2, RefreshCw, ArrowLeft, Coins, Lock, Shield, NotebookPen, Menu, Image as ImageIcon, Brain } from "lucide-react";
+import { Sparkles, Send, Loader2, RefreshCw, ArrowLeft, Coins, Lock, Shield, Menu, Image as ImageIcon, Brain } from "lucide-react";
 import { DynamicStatePanel } from "@/components/state-panel";
 import type { StateSchema } from "@/schemas/state-schema";
 import { NpcCard } from "@/components/se/DispositionAxis";
@@ -970,20 +970,10 @@ export function PlayClient({
             <span className="truncate min-w-0">{storyTitle}</span>
           </div>
           <div className="ml-auto flex items-center gap-2 sm:gap-3 flex-none">
-            <Link
-              href={`/play/${playthroughId}/memory` as never}
-              className="inline-flex items-center gap-1.5 px-1.5 sm:px-3 py-1.5 rounded-md text-xs font-medium"
-              style={{
-                background: "var(--se-surface)",
-                border: "1px solid var(--se-border)",
-                color: "var(--se-fg-2)",
-              }}
-              aria-label={tPlay("header.ariaMemory")}
-              title={tPlay("header.memoryTooltip")}
-            >
-              <NotebookPen className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">{tPlay("header.memory")}</span>
-            </Link>
+            {/* Memory Journal page removed (2026-06-04 · Consistency v3): the moat
+                is felt THROUGH the narrative (the always-present running digest
+                keeps the story consistent), not via a separate list/dashboard
+                page (CLAUDE.md hard rule #19 · founder decision B). */}
             {/* "Playing as: characterName" — desktop-only (mobile hides to save ~100px) */}
             <div className="hidden lg:block text-xs text-muted-foreground">
               {tPlay("header.playingAs")}<span className="font-medium text-foreground">{characterName}</span>
