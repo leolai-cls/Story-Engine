@@ -62,29 +62,14 @@ export type ImageGenResult =
 /**
  * Pick a CrazyRouter image model chain (primary + optional fallback).
  *
- * Founder rule revision (2026-06-01 — replaces the 2026-05-29 "all gpt-image-2"
- * rule, after gpt-image-2 started timing out at 90s for everyone): use the
- * SLOW model only where its strength (CJK text-in-image) matters, and use the
- * FAST model everywhere else. Always have a fallback so a transient provider
- * outage on one model doesn't kill all image gen.
+ * Founder rule (2026-06-04 — reverts the 2026-06-01 nano-banana experiment that
+ * silently broke non-adult image gen):
+ *   non-adult (any imageType) →  gpt-image-2    (proven · no fallback · keep it simple)
+ *   adult (any imageType)     →  grok-4-image   (only NSFW-capable · no fallback)
  *
- *   illustration / wallpaper  →  nano-banana-2   (3-10s · newer Gemini Flash Image · $0.037)
- *                                 fallback: gpt-image-2 (cross-provider resilience)
- *   comic                     →  gpt-image-2     (30-90s · best CJK in-image text · $0.038)
- *                                 fallback: nano-banana-pro (premium Gemini · best CJK fallback · $0.074)
- *   adult (any imageType)     →  grok-4-image    (only NSFW-capable, no fallback)
- *
- * Model picks 2026-06-01 (founder): use the upgraded Google Gemini family
- * (nano-banana-2 standard · nano-banana-pro premium) instead of the basic
- * nano-banana ($0.021) — the small COGS gain isn't worth the visible quality
- * drop on a paid platform. gpt-image-2 stays primary for comic (CJK in-image
- * text) until a better-CJK model is verified · qwen-image-max and
- * doubao-seedream-4-5 are candidates for a future test pass.
- *
- * Cross-provider fallback intentionally: Google (nano-banana-*) ↔ OpenAI
- * (gpt-image-2) sit on different upstream infrastructures, so a CrazyRouter
- * routing failure on one provider doesn't take both down. grok-4-image has no
- * peer for adult content, so adult never falls back.
+ * History: 2026-05-29 = "all gpt-image-2 · only NSFW grok"; 2026-06-01 (PR #51)
+ * tried nano-banana-2/pro for speed but that path never produced a non-adult
+ * image; 2026-06-04 founder reverted to gpt-image-2 only.
  */
 export type ImageModelChain = {
   primary: string;
@@ -93,15 +78,15 @@ export type ImageModelChain = {
 
 export function pickImageModelChain(
   contentRating: "sfw" | "soft" | "adult",
-  imageType: ImageType,
+  _imageType: ImageType,
 ): ImageModelChain {
+  // Founder rule (2026-06-04): non-adult images use gpt-image-2 ONLY. The
+  // 2026-06-01 nano-banana experiment (PR #51) silently broke non-adult image
+  // gen — gpt-image-2 is the proven model that actually produced images. No
+  // fallback (founder: keep it simple · gpt-image-2 only). Adult (NSFW) still
+  // needs grok-4-image — gpt-image-2 can't render explicit content.
   if (contentRating === "adult") return { primary: "grok-4-image" };
-  if (imageType === "comic") {
-    // Comic has CJK speech bubbles → gpt-image-2 leads · premium Gemini fallback
-    return { primary: "gpt-image-2", fallback: "nano-banana-pro" };
-  }
-  // illustration / wallpaper: no CJK in-image text → fast Google Gemini leads
-  return { primary: "nano-banana-2", fallback: "gpt-image-2" };
+  return { primary: "gpt-image-2" };
 }
 
 /**
