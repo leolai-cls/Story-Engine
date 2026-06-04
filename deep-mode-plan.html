@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>深模式計劃 · Kieio</title>
+<style>
+  :root{
+    --bg:#0b0d12; --bg2:#11141b; --card:#151922; --card2:#1a1f29;
+    --line:#252b38; --line2:#323a4b;
+    --fg:#eef1f6; --fg2:#c4ccda; --dim:#8a95a8; --faint:#5f6a7d;
+    --accent:#7aa2ff; --accent2:#a786ff; --gold:#e0b15a;
+    --green:#5dd6a0; --rose:#f08a8a; --amber:#e6b860;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:linear-gradient(180deg,#0a0c11,#0d1017 40%,#0b0d12);color:var(--fg);
+    font-family:-apple-system,"PingFang HK","Noto Sans CJK TC","Microsoft JhengHei",system-ui,sans-serif;
+    line-height:1.7;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:920px;margin:0 auto;padding:56px 24px 100px}
+  .kicker{font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--accent);font-weight:700}
+  h1{font-size:38px;line-height:1.2;margin:14px 0 8px;letter-spacing:-.02em}
+  h1 .sub{color:var(--accent2)}
+  .lede{font-size:17px;color:var(--fg2);max-width:680px}
+  .meta{margin-top:18px;font-size:12.5px;color:var(--faint);letter-spacing:.04em}
+  h2{font-size:24px;margin:54px 0 4px;letter-spacing:-.01em;display:flex;align-items:center;gap:10px}
+  h2 .n{font-size:13px;color:var(--bg);background:var(--accent);width:26px;height:26px;border-radius:8px;
+    display:inline-flex;align-items:center;justify-content:center;font-weight:800;flex:none}
+  h2.crit .n{background:var(--rose)}
+  .h2sub{color:var(--dim);font-size:14px;margin:2px 0 20px 36px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px 24px;margin:16px 0;
+    box-shadow:0 6px 22px rgba(0,0,0,.22)}
+  .card h3{margin:0 0 6px;font-size:17px;letter-spacing:-.01em}
+  .card p{margin:6px 0;color:var(--fg2);font-size:15px}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:720px){.grid3,.grid2{grid-template-columns:1fr}}
+  .pill{display:inline-block;font-size:11.5px;padding:3px 10px;border-radius:999px;font-weight:700;letter-spacing:.03em}
+  .pill.a{background:rgba(122,162,255,.14);color:var(--accent);border:1px solid rgba(122,162,255,.3)}
+  .pill.c{background:rgba(167,134,255,.14);color:var(--accent2);border:1px solid rgba(167,134,255,.3)}
+  .pill.gold{background:rgba(224,177,90,.13);color:var(--gold);border:1px solid rgba(224,177,90,.3)}
+  .pill.rose{background:rgba(240,138,138,.13);color:var(--rose);border:1px solid rgba(240,138,138,.3)}
+  .pill.green{background:rgba(93,214,160,.13);color:var(--green);border:1px solid rgba(93,214,160,.3)}
+  .num{font-variant-numeric:tabular-nums}
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:14px}
+  th,td{text-align:left;padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--dim);font-weight:600;font-size:12.5px;letter-spacing:.04em}
+  td{color:var(--fg2)}
+  td b,th b{color:var(--fg)}
+  .reco{background:linear-gradient(180deg,rgba(93,214,160,.08),rgba(93,214,160,.03));
+    border:1px solid rgba(93,214,160,.28);border-radius:14px;padding:16px 20px;margin:14px 0}
+  .reco .tag{color:var(--green);font-weight:800;font-size:12.5px;letter-spacing:.06em}
+  .warn{background:linear-gradient(180deg,rgba(230,184,96,.07),rgba(230,184,96,.02));
+    border:1px solid rgba(230,184,96,.28);border-radius:14px;padding:16px 20px;margin:14px 0}
+  .warn .tag{color:var(--amber);font-weight:800;font-size:12.5px;letter-spacing:.06em}
+  ul.clean{margin:8px 0;padding-left:18px}
+  ul.clean li{margin:6px 0;color:var(--fg2);font-size:14.5px}
+  .eg{color:var(--dim);font-style:normal;font-size:13.5px;background:var(--bg2);border-left:2px solid var(--accent2);
+    padding:8px 12px;border-radius:0 8px 8px 0;margin:8px 0}
+  .step{display:flex;gap:14px;align-items:flex-start;margin:14px 0}
+  .step .dot{flex:none;width:30px;height:30px;border-radius:9px;background:var(--bg2);border:1px solid var(--line2);
+    display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--accent);font-size:14px}
+  .step .body h3{margin:2px 0 4px;font-size:16px}
+  .q{border-left:3px solid var(--accent);padding:4px 0 4px 16px;margin:16px 0}
+  .q .qt{font-weight:700;color:var(--fg);font-size:15.5px}
+  .q .qo{color:var(--dim);font-size:14px;margin-top:4px}
+  hr{border:0;border-top:1px solid var(--line);margin:40px 0}
+  .foot{color:var(--faint);font-size:13px;margin-top:48px;border-top:1px solid var(--line);padding-top:20px}
+  code{background:var(--bg2);padding:1px 6px;border-radius:5px;font-size:13px;color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="kicker">Kieio · 內部計劃</div>
+  <h1>深模式 <span class="sub">Deep Mode</span></h1>
+  <p class="lede">輕模式（而家嘅預設）= 人人玩到、快、似同 AI 傾故事。<b style="color:var(--fg)">深模式</b> = 一個畀肯氪嘅玩家開嘅「世界真係活起嚟」嘅 opt-in 體驗：NPC 識自己諗嘢、世界有擲骰／機制、有任務線。</p>
+  <p class="meta">2026-06-04 · 對住現狀（light-core）重新設計 · 取代舊 NPC L3 設計（嗰個靠 GM，GM 已拆）</p>
+
+  <div class="reco" style="margin-top:20px">
+    <span class="tag">✅ 已鎖實（2026-06-04 · founder 拍板）</span>
+    <ul class="clean" style="margin-top:6px">
+      <li><b style="color:var(--fg)">NPC 內心戲（agent mode）= 唯一玩家掣 · Pro 層先有</b> · 開咗每回合收多分 · 可撳開心聲面板（決定 B）</li>
+      <li><b style="color:var(--fg)">擲骰／機制 + 任務 = 人人玩到</b>（任何 tier）· 唔係掣 · 跟故事本質（故事生成時定，D&D 有骰／戀愛冇）</li>
+      <li><b style="color:var(--fg)">做嘅次序：① NPC 內心戲 → ② 擲骰機制 → ③ 任務系統</b>（一樣一樣整，唔一鑊過）</li>
+      <li>即係話「深模式」唔係一個大 mode，而係「NPC 內心戲呢個 Pro 掣」+「跟故事天然嘅擲骰／任務（人人玩到）」</li>
+    </ul>
+  </div>
+
+  <!-- 0 -->
+  <h2><span class="n">0</span>點解要重新諗</h2>
+  <div class="h2sub">舊 agent mode 唔係冇做 — 係佢嘅「開關掣」喺 light-core 拆咗</div>
+  <div class="card">
+    <p>舊 agent mode（NPC 內心戲）本身整好咗：每個活躍 NPC 有自己一個 AI 喺度諗「我記得啲咩 → 我估佢哋會點 → 所以我想點」，再餵畀講故事嗰個 AI。<b>機器本身冇問題。</b></p>
+    <p>但係邊個 NPC「而家喺場、要諗嘢」，舊設計係靠 <b>GM</b>（嗰個每回合仲裁嘅 AI）話畀佢知。我哋 light-core 拆咗 GM → 個開關掣冇咗訊號源 → agent mode 變成「撳極都唔郁」→ 跟手清理咗段死碼。</p>
+    <div class="warn"><span class="tag">所以核心問題只有一個</span><br/>
+      <b style="color:var(--fg)">冇咗 GM，系統點知「邊個 NPC 而家活躍、要諗嘢」、幾時要擲骰、幾時開任務？</b> 解決咗呢個，其餘嘅嘢大半可以由 git 撈返舊碼接返。</div>
+  </div>
+
+  <!-- 1 -->
+  <h2><span class="n">1</span>深模式包含咩</h2>
+  <div class="h2sub">你揀咗「完整深模式」= 三大部件一齊（之前傾嘅 a + c 全套）</div>
+  <div class="grid3">
+    <div class="card">
+      <span class="pill a">部件 A</span>
+      <h3 style="margin-top:10px">NPC 內心戲</h3>
+      <p>每個在場 NPC 有自己嘅 AI 諗私密心理：記憶、估你同其他人會點、自己嘅動機。佢哋唔改劇情，只係令講故事嗰個 AI 寫得出「呢個角色真係有自己諗法」。</p>
+      <div class="eg">阿明表面笑住應酬你，但佢心入面「上次你出賣咗我 → 今次唔會再信」→ 故事就會寫到佢笑得有距離、答嘢留一手。</div>
+    </div>
+    <div class="card">
+      <span class="pill c">部件 C1</span>
+      <h3 style="margin-top:10px">擲骰／機制</h3>
+      <p>每個故事 AI 喺創作時生成自己一套機制（D&D 擲 d20、戀愛冇骰、寵物捕捉、推理對質⋯）。講故事嗰個 AI 自己識「呢下要擲骰」就叫個系統擲，再照結果寫落去。</p>
+      <div class="eg">你話「我跳過個峽谷」→ AI 自己叫擲敏捷骰 → 擲到 6 → 故事寫你險險踩空、抓住藤條吊喺半空。</div>
+    </div>
+    <div class="card">
+      <span class="pill gold">部件 C2</span>
+      <h3 style="margin-top:10px">任務系統</h3>
+      <p>故事有可追蹤嘅目標／章節線：開任務、推進、完成。畀玩家有「我喺度追緊一條主線」嘅感覺，唔係散修修。</p>
+      <div class="eg">「搵返失蹤嘅妹妹」會喺一個唔搶戲嘅地方顯示進度，唔係彈一格數字出嚟。</div>
+    </div>
+  </div>
+  <p class="meta" style="margin-top:14px">⚠️ 老實講：C1 同 C2 喺現狀其實係<b style="color:var(--amber)">新嘢</b>（舊嘅擲骰只係 GM 預判，已廢；機制生成從來未起）。所以三件嘢入面，A 最快（撈返舊碼接新掣），C1 中等，C2 最大（要由零設計任務嘅資料結構）。</p>
+
+  <!-- 2 -->
+  <h2 class="crit"><span class="n">!</span>最關鍵嘅一個決定</h2>
+  <div class="h2sub">冇咗 GM，「邊個 NPC 活躍」靠咩訊號？呢個揀錯，成個深模式都會怪</div>
+  <div class="card">
+    <p>我哋已經有幾個現成、唔使 GM 嘅訊號可以用：</p>
+    <table>
+      <tr><th>方法</th><th>點 work</th><th>好處</th><th>缺點</th></tr>
+      <tr><td><b>認名（現有）</b></td><td>掃描啱啱寫完嗰段故事，邊個角色名出現過就當佢活躍（生圖功能已經咁做）</td><td class="num">零成本 · 已驗證 · 唔使 GM</td><td>慢一個回合（睇上一段）· 中文單字名易漏</td></tr>
+      <tr><td><b>回合整理員（現有）</b></td><td>每回合之後本身已經有個 AI 整理「今回合邊個出場」（餵走馬燈名單嗰個）</td><td class="num">AI 判斷準 · 已經行緊 · 零額外成本</td><td>一樣慢一個回合 · 要對返角色卡</td></tr>
+      <tr><td>開講之前掃一掃（新）</td><td>講故事之前，先用平 AI 掃一掃邊個 NPC 要諗</td><td class="num">即時、唔慢回合</td><td class="num">= 變相起返個迷你 GM（正正係 light-core 想拆嘅嘢）· 又貴又慢</td></tr>
+    </table>
+    <div class="reco"><span class="tag">✅ 我建議</span><br/>
+      用<b style="color:var(--fg)">「回合整理員 + 認名」</b>（兩個都係現成、零額外 AI 成本、唔使 GM）。代價係 NPC 嘅內心戲係<b>反應上一回合啱啱發生嘅事</b> —— 但呢個其實好自然（人都係事後先有反應），唔似 bug。<b style="color:var(--fg)">堅決唔好</b>為咗即時而加返「開講前掃一掃」，因為嗰個就係 light-core 特登拆走嘅干預層，會令深模式又慢返、又貴返、又走返轉頭。</div>
+  </div>
+
+  <!-- 3 -->
+  <h2><span class="n">3</span>玩家會見到啲咩</h2>
+  <div class="h2sub">守住沉浸感原則 — 唔好變 dashboard / 唔好裸數字</div>
+  <div class="grid2">
+    <div class="card">
+      <h3>NPC 內心戲</h3>
+      <p>主要透過<b>故事文字</b>流露（角色語氣、行動體現佢心入面諗緊咩）。另外深模式可以有個<b>可摺埋嘅「心聲」面板</b>（撳開先睇到佢哋諗緊咩），似 ChatGPT 嗰個思考過程 —— opt-in 撳開、預設收埋、永遠唔會漏入正文。</p>
+    </div>
+    <div class="card">
+      <h3>擲骰 / 任務</h3>
+      <p>擲骰結果融入敘事（「你險險⋯」），加一個輕量結果提示。任務／機制狀態用 <b>AI 自己揀嘅自適應面板</b>（質性顯示，唔係裸好感度數字條）。現有嗰啲裸數字條會喺呢步一齊換走。</p>
+    </div>
+  </div>
+  <div class="warn"><span class="tag">紅線</span> 內心戲<b>永遠唔可以</b>原文漏入正文（啱啱先修完一整類「後台嘢漏入故事」嘅問題）· 任何顯示都係 opt-in 撳開 · 唔做列表式 journal / dashboard。</div>
+
+  <!-- 4 -->
+  <h2><span class="n">4</span>成本同收費</h2>
+  <div class="h2sub">點解深模式一定要 opt-in / 收多啲</div>
+  <div class="card">
+    <table>
+      <tr><th>模式</th><th>每回合 AI 工作量</th><th>速度</th><th>每回合額外成本</th></tr>
+      <tr><td><b>輕模式</b>（預設）</td><td>1 個 AI（講故事）</td><td class="num">最快</td><td class="num">—</td></tr>
+      <tr><td><b style="color:var(--accent2)">深模式</b></td><td>1 個講故事 + 最多 3 個 NPC 各自諗（並行）+ 擲骰／任務</td><td class="num">慢少少</td><td class="num">~18 分／回合（3 個 NPC × 6 分）</td></tr>
+    </table>
+    <p style="margin-top:10px">所以深模式天然係一個 <b>opt-in 掣</b>（似而家嘅「深度思考」掣），開咗收多啲分。3 個 NPC 並行 ≈ 多 1.8 秒（唔係逐個排隊嘅 5.4 秒）。失敗嘅 NPC 唔收費（hard rule #4）。</p>
+    <div class="warn"><span class="tag">硬規矩</span> 成人故事嘅 NPC／機制 AI 一定要行 Grok（CrazyRouter），<b>永不</b>行 Claude／Haiku（hard rule #5：成人流量上 Anthropic 會封成個平台）。呢條路由現有 <code>pickUtilityModel</code> 已經做緊，直接重用。</div>
+  </div>
+
+  <!-- 5 -->
+  <h2><span class="n">5</span>分階段落地</h2>
+  <div class="h2sub">由細到大、每步都自己 work · 唔好一鑊過</div>
+  <div class="step"><div class="dot">1</div><div class="body">
+    <h3>NPC 內心戲（撈返舊碼 + 接新掣）<span class="pill a" style="margin-left:6px">~1 session</span></h3>
+    <p style="color:var(--fg2);font-size:14.5px;margin:2px 0">由 git 撈返舊 NPC agent 碼（機器本身好地地）→ 接「回合整理員 + 認名」做新觸發 → 接返記憶 + 心聲面板 + 收費。呢步完 = agent mode 真係 work。</p>
+  </div></div>
+  <div class="step"><div class="dot">2</div><div class="body">
+    <h3>擲骰 / 機制（畀講故事 AI 識自己叫機制）<span class="pill c" style="margin-left:6px">~1–2 session</span></h3>
+    <p style="color:var(--fg2);font-size:14.5px;margin:2px 0">創作時順手生成「呢個故事有咩機制」→ 講故事嗰個 AI 識自己叫擲骰／機制 → 後台計結果 → 照結果寫。擲骰回歸做機制之一（唔係全域開關）。</p>
+  </div></div>
+  <div class="step"><div class="dot">3</div><div class="body">
+    <h3>任務系統（最大、要由零設計）<span class="pill gold" style="margin-left:6px">~1–2 session</span></h3>
+    <p style="color:var(--fg2);font-size:14.5px;margin:2px 0">定義任務嘅資料結構（目標／狀態／完成條件）+ 講故事 AI 點開／推進／完成任務 + 自適應面板顯示進度。文檔暫時只當佢係一個「面板」，真正嘅任務邏輯要新設計。</p>
+  </div></div>
+  <div class="reco" style="margin-top:8px"><span class="tag">建議次序</span> 先做 <b style="color:var(--fg)">階段 1（NPC 內心戲）</b> —— 最快、最大差異化賣點、撈返舊碼。行得通、你玩過滿意，先逐步加 C1 → C2。每階段都係一個可以即刻 demo 嘅完整功能。</div>
+
+  <!-- 6 -->
+  <h2><span class="n">6</span>要你拍板嘅決定</h2>
+  <div class="h2sub">我落手之前想 confirm 嘅幾樣 — 其餘技術細節我自己搞掂</div>
+  <div class="q"><div class="qt">① 深模式係一個掣，定三個獨立掣？</div>
+    <div class="qo">一個「深模式」掣同時開 NPC 內心戲＋擲骰＋任務?　定係玩家可以分開揀（例:淨開內心戲）?<b style="color:var(--fg2)">（我傾向：一個掣全開，簡單）</b></div></div>
+  <div class="q"><div class="qt">② 深模式點賣？</div>
+    <div class="qo">Pro 層先有嘅掣?　定係任何人都開到、但開咗每回合收多分（似「深度思考」掣）?<b style="color:var(--fg2)">（我傾向：人人開到、收多分 — 對齊現有「深度思考」做法）</b></div></div>
+  <div class="q"><div class="qt">③ NPC 內心戲畀唔畀玩家撳開睇？</div>
+    <div class="qo">A：只喺故事文字流露（最沉浸）。　B：另加一個可摺埋面板，撳開睇到 NPC 心聲（= 你之前想要嘅「睇到 agent 喺度做嘢」）。<b style="color:var(--fg2)">（我傾向：B，因為係付費差異化嘅「睇得見」賣點，但預設收埋＋永不漏入正文）</b></div></div>
+  <div class="q"><div class="qt">④ 階段次序 OK 嗎？</div>
+    <div class="qo">先 NPC 內心戲 → 再擲骰 → 再任務?　定係你想换次序（例:擲骰你覺得更重要）?</div></div>
+
+  <div class="foot">
+    <b style="color:var(--fg2)">現狀盤點（可以撈返用嘅嘢）：</b> 舊 NPC agent 碼喺 git（commit <code>2235f26^</code>）· NPC 輸出格式 <code>schemas/npc-agent.ts</code> 仲喺度冇刪 · 資料庫 migration 0027（NPC 內心記錄）／0028（層級閘）仲喺 · 收費常數（每 NPC 6 分）仲喺 · <code>npc_l3_enabled</code> 欄位仲喺。即係話階段 1 大半係「接返線」而唔係「由零起」。<br/><br/>
+    <span style="color:var(--faint)">呢份 plan 對住 light-core 現狀寫 · 唔係舊 GM 設計 · 由真實 code + 鎖咗嘅架構文檔 distill 出嚟。</span>
+  </div>
+
+</div>
+</body>
+</html>
