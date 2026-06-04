@@ -355,6 +355,29 @@ export async function undoLastTurn(
   if (restoreState != null && typeof restoreState === "object") {
     update.current_state = restoreState;
   }
+
+  // Consistency v3: if the running digest covered INTO the now-deleted range
+  // (only possible if the player redoes right after a compact boundary), the
+  // digest prose describes undone events. Since the prose is monolithic we can't
+  // surgically drop the [R,T) part — so do a clean FULL reset (null + through=0):
+  // the next compact rebuilds the whole digest from the surviving raw turns, with
+  // no contradiction and no history loss. Guarded read — skip silently if the
+  // column doesn't exist yet (migration 0060 not applied). Common case (digest
+  // lags behind the undone turn · through ≤ turn_index) needs no change.
+  {
+    const { data: rs, error: rsErr } = await supabase
+      .from("playthroughs")
+      .select("running_summary_through")
+      .eq("id", playthroughId)
+      .single();
+    const currentThrough = rsErr
+      ? null
+      : ((rs as { running_summary_through?: number } | null)?.running_summary_through ?? 0);
+    if (currentThrough !== null && currentThrough > lastUser.turn_index) {
+      update.running_summary = null;
+      update.running_summary_through = 0;
+    }
+  }
   const { error: updErr } = await service
     .from("playthroughs")
     .update(update)

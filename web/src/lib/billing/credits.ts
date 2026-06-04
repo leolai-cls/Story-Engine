@@ -415,7 +415,11 @@ export function estimateTurnCredits(
       outputTokens: 400,
     },
     lorebook: { inputTokens: 2000, outputTokens: 500 },
-    summarizer: { inputTokens: 250, outputTokens: 40 }, // amortized 1/20
+    // Consistency v3 (2026-06-04): the running digest fires every ~11 turns (was
+    // 20) on a CUMULATIVE input (prev digest + ~11 raw turns ≈ 6000 in / 700 out
+    // per compact). Amortized ~1/11 ≈ 600 in / 70 out per turn (adult → Grok rate
+    // via pickUtilityModel · honest costing · hard rule #4/#20).
+    summarizer: { inputTokens: 600, outputTokens: 70 },
     embedTokens: 400,
     // Audit LOW fix: 對稱於 actual charge 嘅 experience reserve。中後期 turn 通常
     // 有升級角色 → 經歷 Haiku call。pre-charge 估算唔加會令 low-balance user 過 gate
