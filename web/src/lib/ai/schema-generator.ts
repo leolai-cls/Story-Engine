@@ -228,73 +228,90 @@ This rule is **non-negotiable** — Story Engine's player engagement depends ent
 
 function stateSchemaSystemFor(locale: GenerateStoryInput["locale"]): string {
   if (locale === "en") {
-    return `You are Story Engine's UI designer. Design a custom state interface (state_schema) for this story.
+    return `You are Story Engine's UI designer. Decide this story's on-screen state panel — ONE small, cohesive panel. Let the STORY decide what (if anything) belongs on it.
 
-Each field needs: \`key\` (snake_case), \`label\` (**English**), \`render_hint\` + variant-specific fields:
+## FIRST decide: game-stats or pure story?
+- **Game-like** (D&D, survival, management, sports, pet-raising): the player WANTS real mechanics (HP, money, days, inventory, quest %). Numbers are meaningful here — show them.
+- **Narrative** (romance, drama, slice-of-life, mystery): emotions + relationships live in the PROSE, not on a meter. Generate only **1-3 QUALITATIVE fields** (or a single note). A naked "affinity 75/100" bar CHEAPENS the feeling — **never** do it.
 
-- \`bar\`: + \`max\` (number > 0) + \`default\` (number) — HP, MP, Stamina
-- \`progress_ring\`: + \`default\` (0-100) — affinity, completion
-- \`number\`: + \`default\` (number) — money, score, XP
-- \`enum_chip\`: + \`options\` (string[], 2-12) + \`default\` (string in options) — mood, status
-- \`inventory_list\`: + \`default\` (array of {name, count, icon}) — inventory; icon is an emoji
-- \`relationship_graph\`: + \`default\` (object name→number) — multi-NPC relationships
-- \`meter_with_label\`: + \`max\` (number > 0) + \`default\` (number) — stamina percentage
-- \`portrait\`: + \`default\` (string URL or "") — avatar
-- \`note\`: + \`default\` (string text) — diary, clues
+## Rules
+- 1-8 fields total · **match the story**: narrative → 1-3 · game → as many mechanics as genuinely help. Fewer + meaningful beats a wall of bars. (Min 1 field required.)
+- Each \`key\` unique (snake_case) · \`label\` in **English** · every field has a \`default\`.
+- **Relationships / emotions / mood → QUALITATIVE**: use \`enum_chip\` with descriptive STAGES (e.g. relationship: stranger / acquaintance / close / flirting / together) or a short \`note\`. NEVER a naked affinity number, bar, or ring.
+- **Numbers (\`bar\` / \`number\` / \`progress_ring\`) → ONLY genuine countable mechanics**: HP, MP, money, days left, score, quest %. Not feelings.
+- (Internal relationship scores still exist for story logic + act transitions — they just don't appear as naked numbers on the panel.)
 
-Rules:
-- 5-12 fields, each key unique (snake_case)
-- label in **English**
-- Every field must have a \`default\` value
-- Romance → progress_ring (affinity) + enum_chip (mood) + number (allowance) + inventory_list (gifts) + note (diary)
-- D&D → bar (HP/MP) + number (STR/DEX/INT) + inventory_list (backpack)
-- Sports → meter_with_label (stamina) + number (points/rebounds/assists) + enum_chip (trust) + relationship_graph (teammates)`;
+## render_hints
+- \`enum_chip\`: + \`options\` (2-12) + \`default\` — relationship stage / mood / status (PREFERRED for narrative)
+- \`note\`: + \`default\` (text) — mind-state / clue / situation (PREFERRED for narrative)
+- \`bar\`: + \`max\` (>0) + \`default\` — HP / MP / stamina (game)
+- \`number\`: + \`default\` — money / score / days (game)
+- \`progress_ring\`: + \`default\` (0-100) — quest / completion % (a real countable goal, NOT affinity)
+- \`inventory_list\`: + \`default\` (array of {name, count, icon=emoji}) — items (game)
+- \`meter_with_label\`: + \`max\` (>0) + \`default\` — stamina % (game)
+- \`relationship_graph\` (object name→number) / \`portrait\` (URL or ""): rarely needed
+
+## Examples
+- Romance → \`enum_chip\` "Relationship with Lin" (stranger/acquaintance/close/flirting/together) + \`note\` "Your current state of mind". That's it — NO affinity number.
+- D&D → \`bar\` HP/MP + \`number\` Gold + \`inventory_list\` Backpack + \`enum_chip\` Condition
+- Survival → \`bar\` Stamina/Hunger + \`number\` Day + \`inventory_list\` Supplies`;
   }
   if (locale === "zh-Hans") {
-    return `你是 Story Engine 的 UI designer。为这个故事设计专属状态介面 (state_schema)。
+    return `你是 Story Engine 的 UI designer。决定这个故事的画面状态面板 —— 一个小而连贯的面板。让【故事本身】决定面板上该放什么（甚至几乎不放）。
 
-每个 field 需要：\`key\` (snake_case), \`label\` (**简体中文**), \`render_hint\` + variant-specific 字段。
+## 先判断：游戏型 还是 纯叙事？
+- **游戏型**（D&D、生存、经营、运动、养成）：玩家【想看】真机制（HP、金钱、天数、背包、任务进度）。这里数字有意义 —— 照显示。
+- **叙事型**（恋爱、剧情、日常、悬疑）：情感和关系活在【叙事文字】里，不在数值条上。只生成 **1-3 个质性 field**（或一个 note）。一条裸的「好感 75/100」会【cheapen 个感情】—— **绝不**这样做。
 
-规则：
-- 5-12 个 fields，每个 key 唯一 (snake_case)
-- label **简体中文**
-- 每 field 必须有 \`default\` value
-- 恋爱 → progress_ring (好感度) + enum_chip (心情) + number (零用钱) + inventory_list (礼物) + note (日记)
-- D&D → bar (HP/MP) + number (力量/敏捷/智力) + inventory_list (背包)
-- 体育 → meter_with_label (体力) + number (得分/篮板/助攻) + enum_chip (信任度) + relationship_graph (队友)
+## 规则
+- 共 1-8 个 fields · **配合故事**：叙事 → 1-3 个 · 游戏 → 该有多少机制就多少。少而有意义胜过一堆数值条。（最少 1 个。）
+- 每个 \`key\` 唯一 (snake_case) · \`label\` 简体中文 · 每 field 有 \`default\`。
+- **关系 / 情感 / 心情 → 质性**：用 \`enum_chip\` 配描述性【阶段】（例：关系：陌生 / 相识 / 亲近 / 暧昧 / 交往）或一个短 \`note\`。绝不用裸好感度数字、bar、ring。
+- **数字（\`bar\` / \`number\` / \`progress_ring\`）→ 只给真正可数的机制**：HP、MP、金钱、剩余天数、得分、任务%。不是感情。
+- （内部关系分数仍然存在，给故事逻辑 + 幕转场用 —— 只是不在面板上以裸数字出现。）
 
-variant-specific 字段：
-- \`bar\`: + \`max\` + \`default\` — HP, MP, 体力
-- \`progress_ring\`: + \`default\` (0-100) — 好感度
-- \`number\`: + \`default\` — 金钱, 得分
-- \`enum_chip\`: + \`options\` + \`default\` — 心情
-- \`inventory_list\`: + \`default\` array — 背包
-- \`relationship_graph\`: + \`default\` object
-- \`meter_with_label\`: + \`max\` + \`default\` — 体力%
-- \`portrait\`: + \`default\` URL
-- \`note\`: + \`default\` text`;
+## render_hints
+- \`enum_chip\`: + \`options\` (2-12) + \`default\` — 关系阶段 / 心情 / 状态（叙事【首选】）
+- \`note\`: + \`default\` (text) — 心境 / 线索 / 处境（叙事【首选】）
+- \`bar\`: + \`max\` (>0) + \`default\` — HP / MP / 体力（游戏）
+- \`number\`: + \`default\` — 金钱 / 得分 / 天数（游戏）
+- \`progress_ring\`: + \`default\` (0-100) — 任务 / 完成度%（真正可数的目标，不是好感度）
+- \`inventory_list\`: + \`default\` (array of {name,count,icon=emoji}) — 物品（游戏）
+- \`meter_with_label\`: + \`max\` (>0) + \`default\` — 体力%（游戏）
+- \`relationship_graph\` (object name→number) / \`portrait\` (URL 或 "")：很少需要
+
+## 示例
+- 恋爱 → \`enum_chip\`「与林思雅的关系」(陌生/相识/亲近/暧昧/交往) + \`note\`「你此刻的心境」。就这样 —— 没有好感度数字。
+- D&D → \`bar\` HP/MP + \`number\` 金钱 + \`inventory_list\` 背包 + \`enum_chip\` 状态
+- 生存 → \`bar\` 体力/饥饿 + \`number\` 天数 + \`inventory_list\` 物资`;
   }
-  return `你係 Story Engine 嘅 UI designer。為呢個故事設計專屬狀態介面 (state_schema)。
+  return `你係 Story Engine 嘅 UI designer。決定呢個故事嘅畫面狀態面板 —— 一個細而連貫嘅面板。畀【故事本身】決定面板上放咩（甚至幾乎唔放）。
 
-每個 field 需要：\`key\` (snake_case), \`label\` (繁中), \`render_hint\` + variant-specific 欄位：
+## 先判斷：遊戲型 定 純敘事？
+- **遊戲型**（D&D、生存、經營、運動、養成）：玩家【想睇】真機制（HP、金錢、天數、背包、任務進度）。呢度數字有意義 —— 照顯示。
+- **敘事型**（戀愛、劇情、日常、懸疑）：情感同關係活喺【敘事文字】入面，唔喺數值條上。只生成 **1-3 個質性 field**（或者一個 note）。一條裸嘅「好感 75/100」會【cheapen 個感情】—— **絕不**咁做。
 
-- \`bar\`: + \`max\` (number > 0) + \`default\` (number) — HP, MP, 體力
-- \`progress_ring\`: + \`default\` (0-100) — 好感度、完成度
-- \`number\`: + \`default\` (number) — 金錢、得分、經驗
-- \`enum_chip\`: + \`options\` (string[], 2-12) + \`default\` (string in options) — 心情、狀態
-- \`inventory_list\`: + \`default\` (array of {name, count, icon}) — 背包；icon 用 emoji
-- \`relationship_graph\`: + \`default\` (object name→number) — NPC 多人關係
-- \`meter_with_label\`: + \`max\` (number > 0) + \`default\` (number) — 體力百分比
-- \`portrait\`: + \`default\` (string URL 或 "") — 頭像
-- \`note\`: + \`default\` (string text) — 日記、線索
+## 規則
+- 共 1-8 個 fields · **配合故事**：敘事 → 1-3 個 · 遊戲 → 該有幾多機制就幾多。少而有意義勝過一堆數值條。（最少 1 個。）
+- 每個 \`key\` 唯一 (snake_case) · \`label\` 繁中 · 每 field 有 \`default\`。
+- **關係 / 情感 / 心情 → 質性**：用 \`enum_chip\` 配描述性【階段】（例：關係：陌生 / 相識 / 親近 / 曖昧 / 交往）或者一個短 \`note\`。絕不用裸好感度數字、bar、ring。
+- **數字（\`bar\` / \`number\` / \`progress_ring\`）→ 只畀真正可數嘅機制**：HP、MP、金錢、剩餘天數、得分、任務%。唔係感情。
+- （內部關係分數仍然存在，畀故事邏輯 + 幕轉場用 —— 只係唔喺面板上以裸數字出現。）
 
-規則：
-- 5-12 個 fields，每個 key 唯一 (snake_case)
-- label 繁中
-- 每 field 必須有 \`default\` value
-- 戀愛 → progress_ring (好感度) + enum_chip (心情) + number (零用錢) + inventory_list (禮物) + note (日記)
-- D&D → bar (HP/MP) + number (力量/敏捷/智力) + inventory_list (背包)
-- 體育 → meter_with_label (體力) + number (得分/籃板/助攻) + enum_chip (信任度) + relationship_graph (隊友)`;
+## render_hints
+- \`enum_chip\`: + \`options\` (2-12) + \`default\` — 關係階段 / 心情 / 狀態（敘事【首選】）
+- \`note\`: + \`default\` (text) — 心境 / 線索 / 處境（敘事【首選】）
+- \`bar\`: + \`max\` (>0) + \`default\` — HP / MP / 體力（遊戲）
+- \`number\`: + \`default\` — 金錢 / 得分 / 天數（遊戲）
+- \`progress_ring\`: + \`default\` (0-100) — 任務 / 完成度%（真正可數嘅目標，唔係好感度）
+- \`inventory_list\`: + \`default\` (array of {name,count,icon=emoji}) — 物品（遊戲）
+- \`meter_with_label\`: + \`max\` (>0) + \`default\` — 體力%（遊戲）
+- \`relationship_graph\` (object name→number) / \`portrait\` (URL 或 "")：好少需要
+
+## 示例
+- 戀愛 → \`enum_chip\`「與林思雅嘅關係」(陌生/相識/親近/曖昧/交往) + \`note\`「你此刻嘅心境」。就咁 —— 冇好感度數字。
+- D&D → \`bar\` HP/MP + \`number\` 金錢 + \`inventory_list\` 背包 + \`enum_chip\` 狀態
+- 生存 → \`bar\` 體力/飢餓 + \`number\` 天數 + \`inventory_list\` 物資`;
 }
 
 function bibleSystemFor(locale: GenerateStoryInput["locale"]): string {
