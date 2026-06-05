@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest, after } from "next/server";
-import { streamText } from "ai";
+import { streamText, tool, stepCountIs } from "ai";
+import { z } from "zod";
 import { getProviderModel } from "@/lib/ai/providers";
 import { createClient } from "@/lib/supabase/server";
 // Migration 0018 (Phase 2 memory lockdown) — memory table mutation
@@ -27,7 +28,8 @@ import {
 import { callNpcAgentsParallel } from "@/lib/ai/npc-agents";
 import { deriveActiveCharacters } from "@/lib/ai/active-characters";
 import type { Disposition, NpcDynamicState } from "@/schemas/character";
-import { type SkillCheckResult } from "@/lib/ai/skill-check";
+import { type SkillCheckResult, rollSkillCheck, numericSkillKeys } from "@/lib/ai/skill-check";
+import { type GameSystem } from "@/schemas/game-system";
 import { deriveCurrentAct, type ArcContext } from "@/lib/ai/arc-dsl";
 import { applyDelta } from "@/schemas/state-delta";
 import { initialStateFromSchema, StateSchemaShape } from "@/schemas/state-schema";
@@ -769,13 +771,81 @@ export async function POST(
   );
   ctx.mentionRosterBlock = formatMentionRosterBlock(currentRoster, knownMainNames);
 
-  // 5. Stream Narrator response with prompt caching + Director instruction
-  // 2026-06-01: directorInstruction 可能係空 string（allow case · GM 唔加嘢）·
-  // 只喺有內容時先 append · 避免多餘空行污染 prompt。
+  // ─── Deep Mode ② · 擲骰模式 (dice · story-intrinsic · GM-free) ───────────
+  // Read the story's game_system declaration (guarded · resilient if migration
+  // 0061 isn't applied → no dice). Enable the roll_check tool ONLY when: the
+  // story is a dice/mixed mechanic AND the narrator is Claude (Anthropic · the
+  // blank-turn-via-tool problem was CrazyRouter-only · adult Grok degrades to
+  // narrator-judged) AND deep-thinking is off (keep tools + extended-thinking
+  // from co-occurring for v1). The roll's STATE effect flows through the prose →
+  // the post-turn extractor (the tool doesn't mutate state directly).
+  let gameSystem: GameSystem | null = null;
+  {
+    const { data: gsRow, error: gsErr } = await supabase
+      .from("stories")
+      .select("game_system")
+      .eq("id", pt.story_id)
+      .single();
+    if (!gsErr && gsRow) {
+      gameSystem = (gsRow as { game_system?: GameSystem | null }).game_system ?? null;
+    }
+  }
+  const diceNarratorIsAnthropic =
+    MODELS[pt.llm_model ?? "claude-sonnet-4-6"]?.provider === "anthropic";
+  const diceEnabled =
+    diceNarratorIsAnthropic &&
+    !thinkingEnabled &&
+    (gameSystem?.mechanic === "dice" || gameSystem?.mechanic === "mixed");
+  const diceSkillKeys = diceEnabled ? numericSkillKeys(stateSchema) : [];
+
+  const rollCheckTool = tool({
+    description:
+      "Roll a d20 skill check for a player action with REAL uncertainty (combat, a risky or contested attempt). Returns the outcome — you MUST narrate it faithfully: a failure stays a failure, a success stays a success; the dice already decided. Do NOT roll for trivial/guaranteed actions, pure dialogue, or observation.",
+    inputSchema: z.object({
+      skill_key: z
+        .string()
+        .describe(
+          diceSkillKeys.length > 0
+            ? `the stat being tested · pick one of: ${diceSkillKeys.join(", ")}`
+            : "the stat being tested",
+        ),
+      difficulty: z
+        .number()
+        .int()
+        .min(1)
+        .max(30)
+        .describe("difficulty class · 5 trivial · 10 moderate · 15 hard · 20 very hard · 25 extreme"),
+      reason: z.string().max(80).describe("short note on what is being attempted"),
+    }),
+    execute: async ({ skill_key, difficulty }) => {
+      const r = rollSkillCheck({ state: currentState, schema: stateSchema, skill_key, difficulty });
+      console.log(
+        `[turn] roll_check: ${skill_key} d20=${r.d20_roll}+${r.skill_value} vs DC${difficulty} → ${r.outcome}`,
+      );
+      return {
+        outcome: r.outcome,
+        d20_roll: r.d20_roll,
+        skill_value: r.skill_value,
+        total: r.total,
+        difficulty: r.difficulty,
+      };
+    },
+  });
+
+  const diceDirective = !diceEnabled
+    ? ""
+    : storyLanguage === "en"
+      ? `## Skill-check mode (this story rolls dice)\nWhen the player attempts something with REAL uncertainty (combat · a risky/contested action), call \`roll_check\`, then narrate the outcome faithfully (a failed roll = the attempt fails). Don't roll for trivial/guaranteed actions, dialogue, or observation.${diceSkillKeys.length ? ` Stats: ${diceSkillKeys.join(", ")}.` : ""}`
+      : storyLanguage === "zh-Hans"
+        ? `## 掷骰模式（这个故事用掷骰判定）\n当玩家尝试一个**有真实不确定性**的行动（战斗 · 有风险/对抗的尝试），call \`roll_check\` 掷骰，然后**忠实 narrate 结果**（骰失败＝尝试失败）。纯对白 / 观察 / 必成功的不用掷。${diceSkillKeys.length ? `可用属性：${diceSkillKeys.join("、")}。` : ""}`
+        : `## 擲骰模式（呢個故事用擲骰判定）\n當玩家嘗試一個**有真實不確定性**嘅行動（戰鬥 · 有風險/對抗嘅嘗試），call \`roll_check\` 擲骰，然後**忠實 narrate 結果**（骰失敗＝嘗試失敗）。純對白 / 觀察 / 必成功嘅唔使擲。${diceSkillKeys.length ? `可用屬性：${diceSkillKeys.join("、")}。` : ""}`;
+
+  // 5. Stream Narrator response with prompt caching.
+  // directorInstruction is always "" (GM removed). dynamicSystem appends the
+  // dice directive when the dice tool is enabled.
   const stableSystem = buildStableSystemPrompt(ctx);
-  const dynamicSystem = directorInstruction.trim()
-    ? buildDynamicSystemPrompt(ctx) + "\n\n" + directorInstruction
-    : buildDynamicSystemPrompt(ctx);
+  const dynamicSystem =
+    buildDynamicSystemPrompt(ctx) + (diceDirective ? "\n\n" + diceDirective : "");
   const messages = buildMessages(ctx.recent_turns, action, directorLang);
 
   // AUDIT FIX (AI-C-03 / DB-H-03): atomic turn pair acquisition via RPC.
@@ -918,11 +988,19 @@ export async function POST(
       },
       ...messages,
     ],
-    // 2026-05-29: NO tools on the Narrator. Gemini/GLM via CrazyRouter often
-    // returned finish_reason=tool_calls with EMPTY prose (escaping into the
-    // tool instead of writing) → blank turns. Narrator now writes PROSE ONLY;
-    // state changes are extracted afterwards by a separate Haiku call
-    // (extractTurnState) which does structured output reliably.
+    // Deep Mode ② · dice: enable the roll_check tool ONLY for Claude dice
+    // stories (diceEnabled gates on Anthropic + dice mechanic + thinking-off).
+    // stopWhen lets Claude call the tool then continue writing the outcome
+    // (multi-step). Default (no dice / adult Grok / narrative) = NO tools.
+    ...(diceEnabled
+      ? { tools: { roll_check: rollCheckTool }, stopWhen: stepCountIs(4) }
+      : {}),
+    // 2026-05-29: NO tools on the Narrator by default. Gemini/GLM via CrazyRouter
+    // often returned finish_reason=tool_calls with EMPTY prose (escaping into the
+    // tool instead of writing) → blank turns. Narrator writes PROSE ONLY; state
+    // changes are extracted afterwards by a separate Haiku call (extractTurnState)
+    // which does structured output reliably. (The dice tool above is the lone
+    // exception · Claude-only · Claude does prose+tools reliably.)
     // Anthropic extended thinking forces temperature internally — passing a
     // value makes the SDK strip it + warn every turn (log noise). Omit it on
     // that path; otherwise keep 0.85.
@@ -976,8 +1054,21 @@ export async function POST(
         // ignore
       }
     },
-    onFinish: async ({ text, usage }) => {
+    onFinish: async ({ text, usage, steps, totalUsage }) => {
       try {
+        // Deep Mode ② dice = a MULTI-STEP stream (Claude writes prose → calls
+        // roll_check → continues writing the outcome). AI SDK v6 onFinish `text`
+        // and `usage` are the LAST STEP ONLY; the full narrative is spread across
+        // steps[] and the real token cost is `totalUsage`. So persist/extract from
+        // the JOINED steps text (else a dice turn is truncated · loses early prose
+        // + its state effect) and charge `totalUsage` (else under-charge · hard
+        // rule #4). Single-step turns (narrative) → steps.length===1 → identical
+        // to the old behaviour, so this is universally safe.
+        const fullText =
+          steps && steps.length > 1
+            ? steps.map((s) => s.text ?? "").join("")
+            : text ?? "";
+        const billedUsage = totalUsage ?? usage;
         // L-08 fix: detect LLM refusal + substitute in-fiction fallback.
         // AUDIT FIX (AI-M-07): pass story language so fallback matches locale
         // instead of forcing 繁中 on 簡中 / EN stories.
@@ -989,7 +1080,7 @@ export async function POST(
         // turns 之前做 → finalText (落 turns + 餵 summarizer/lorebook/experience 記憶)
         // 永不帶 reasoning 垃圾 (founder/Codex)。治本嘅 provider 壓制待驗證。
         const cleanText = stripReasoningMarkers(
-          (text ?? "").replace(/^\s*```(?:json)?\s*\{[\s\S]*?\}\s*```\s*/i, ""),
+          fullText.replace(/^\s*```(?:json)?\s*\{[\s\S]*?\}\s*```\s*/i, ""),
         );
         // 2026-06-01 (ADR-001 原則 5 · 技術失敗要誠實 · 唔好假扮故事):
         // 失敗判斷 **只睇有冇實質文字出到** · 唔再用 isLLMRefusal 內容分析。
@@ -1367,8 +1458,8 @@ export async function POST(
             // reconciliation against OpenRouter invoices.
             llm_provider: MODELS[pt.llm_model ?? "claude-sonnet-4-6"]?.provider ?? "anthropic",
             model: pt.llm_model ?? "claude-sonnet-4-6",
-            input_tokens: usage?.inputTokens,
-            output_tokens: usage?.outputTokens,
+            input_tokens: billedUsage?.inputTokens,
+            output_tokens: billedUsage?.outputTokens,
             // AUDIT FIX (AI-H-02): capture Director token usage too. Without
             // this, Phase 4 billing would undercount by ~30% per turn.
             director_input_tokens: directorUsage.inputTokens,
@@ -1431,9 +1522,9 @@ export async function POST(
               contentRating: (story.content_rating as "sfw" | "soft" | "adult") ?? "sfw",
               narrator: {
                 modelId: pt.llm_model ?? "claude-sonnet-4-6",
-                inputTokens: usage?.inputTokens ?? 0,
-                outputTokens: usage?.outputTokens ?? 0,
-                cachedInputTokens: usage?.cachedInputTokens,
+                inputTokens: billedUsage?.inputTokens ?? 0,
+                outputTokens: billedUsage?.outputTokens ?? 0,
+                cachedInputTokens: billedUsage?.cachedInputTokens,
               },
               director: {
                 // Director + state-extractor are both Haiku calls — combine
@@ -1468,9 +1559,9 @@ export async function POST(
             // Back out narrator-only for the metadata log
             narratorCredits = computeCredits({
               modelId: pt.llm_model ?? "claude-sonnet-4-6",
-              inputTokens: usage?.inputTokens ?? 0,
-              outputTokens: usage?.outputTokens ?? 0,
-              cachedInputTokens: usage?.cachedInputTokens,
+              inputTokens: billedUsage?.inputTokens ?? 0,
+              outputTokens: billedUsage?.outputTokens ?? 0,
+              cachedInputTokens: billedUsage?.cachedInputTokens,
             });
             backgroundCredits = fullTurnCredits - narratorCredits - directorCredits;
           }

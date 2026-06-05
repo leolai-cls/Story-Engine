@@ -23,6 +23,8 @@ const InputSchema = z.object({
   prompt: z.string().min(20).max(2000),
   protagonist_hint: z.string().max(280).optional(),
   content_rating: z.enum(["sfw", "soft", "adult"]).default("sfw"),
+  // Deep Mode ②③ · player-chosen game mode (auto = AI decides · default).
+  game_mode: z.enum(["auto", "narrative", "dice"]).default("auto"),
 });
 
 /**
@@ -94,6 +96,7 @@ export async function createStoryFromPrompt(
     prompt: formData.get("prompt"),
     protagonist_hint: formData.get("protagonist_hint") || undefined,
     content_rating: formData.get("content_rating") || "sfw",
+    game_mode: formData.get("game_mode") || "auto",
   });
   if (!parsed.success) {
     return {
@@ -257,6 +260,7 @@ export async function createStoryFromPrompt(
       locale: locale as "zh-Hant" | "zh-Hans" | "en",
       content_rating: parsed.data.content_rating,
       protagonist_hint: parsed.data.protagonist_hint,
+      game_mode: parsed.data.game_mode,
     });
   } catch (e) {
     // AUDIT FIX (SEC-M-04): don't leak raw Anthropic / model error text to
@@ -309,6 +313,23 @@ export async function createStoryFromPrompt(
     // Wave 1: switched to i18n error code (was hardcoded 繁中).
     console.error("[createStory] story insert failed", storyErr);
     return { ok: false, errorCode: "createStory.storyInsertFailed" };
+  }
+
+  // Deep Mode ②③ · store the per-story game_system declaration in a SEPARATE
+  // guarded update (NOT the main insert) so story creation still succeeds if
+  // migration 0061 hasn't been applied yet (column missing → skip · hard rule
+  // #12 decoupling). Consumed by dice (②) + quest tracking (③) once they land.
+  {
+    const { error: gsErr } = await supabase
+      .from("stories")
+      .update({ game_system: generated.game_system })
+      .eq("id", story.id);
+    if (gsErr) {
+      console.warn(
+        "[createStory] game_system store skipped (apply migration 0061?):",
+        gsErr.message,
+      );
+    }
   }
 
   // Insert characters

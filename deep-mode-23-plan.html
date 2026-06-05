@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>深模式 ②擲骰 / ③任務 · 設計計劃 · Kieio</title>
+<style>
+  :root{
+    --bg:#0b0d12; --bg2:#11141b; --card:#151922; --card2:#1a1f29;
+    --line:#252b38; --line2:#323a4b;
+    --fg:#eef1f6; --fg2:#c4ccda; --dim:#8a95a8; --faint:#5f6a7d;
+    --accent:#7aa2ff; --accent2:#a786ff; --gold:#e0b15a;
+    --green:#5dd6a0; --rose:#f08a8a; --amber:#e6b860;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:linear-gradient(180deg,#0a0c11,#0d1017 40%,#0b0d12);color:var(--fg);
+    font-family:-apple-system,"PingFang HK","Noto Sans CJK TC","Microsoft JhengHei",system-ui,sans-serif;
+    line-height:1.7;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:920px;margin:0 auto;padding:56px 24px 100px}
+  .kicker{font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--accent);font-weight:700}
+  h1{font-size:36px;line-height:1.2;margin:14px 0 8px;letter-spacing:-.02em}
+  h1 .sub{color:var(--accent2)}
+  .lede{font-size:17px;color:var(--fg2);max-width:710px}
+  .meta{margin-top:18px;font-size:12.5px;color:var(--faint);letter-spacing:.04em}
+  h2{font-size:23px;margin:52px 0 4px;letter-spacing:-.01em;display:flex;align-items:center;gap:10px}
+  h2 .n{font-size:13px;color:var(--bg);background:var(--accent);width:26px;height:26px;border-radius:8px;
+    display:inline-flex;align-items:center;justify-content:center;font-weight:800;flex:none}
+  h2.crit .n{background:var(--rose)} h2.ok .n{background:var(--green)}
+  .h2sub{color:var(--dim);font-size:14px;margin:2px 0 18px 36px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 22px;margin:14px 0;
+    box-shadow:0 6px 22px rgba(0,0,0,.22)}
+  .card h3{margin:0 0 6px;font-size:16.5px;letter-spacing:-.01em}
+  .card p{margin:6px 0;color:var(--fg2);font-size:14.5px}
+  .pill{display:inline-block;font-size:11.5px;padding:3px 10px;border-radius:999px;font-weight:700}
+  .pill.a{background:rgba(122,162,255,.14);color:var(--accent);border:1px solid rgba(122,162,255,.3)}
+  .pill.green{background:rgba(93,214,160,.13);color:var(--green);border:1px solid rgba(93,214,160,.3)}
+  .pill.gold{background:rgba(224,177,90,.13);color:var(--gold);border:1px solid rgba(224,177,90,.3)}
+  .pill.rose{background:rgba(240,138,138,.13);color:var(--rose);border:1px solid rgba(240,138,138,.3)}
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:14px}
+  th,td{text-align:left;padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--dim);font-weight:600;font-size:12.5px;letter-spacing:.04em}
+  td{color:var(--fg2)} td b,th b{color:var(--fg)}
+  .reco{background:linear-gradient(180deg,rgba(93,214,160,.08),rgba(93,214,160,.03));
+    border:1px solid rgba(93,214,160,.28);border-radius:14px;padding:16px 20px;margin:14px 0}
+  .reco .tag{color:var(--green);font-weight:800;font-size:12.5px;letter-spacing:.06em}
+  .warn{background:linear-gradient(180deg,rgba(230,184,96,.07),rgba(230,184,96,.02));
+    border:1px solid rgba(230,184,96,.28);border-radius:14px;padding:16px 20px;margin:14px 0}
+  .warn .tag{color:var(--amber);font-weight:800;font-size:12.5px;letter-spacing:.06em}
+  ul.clean{margin:8px 0;padding-left:18px} ul.clean li{margin:6px 0;color:var(--fg2);font-size:14.5px}
+  .flow{background:#0e1117;border:1px solid var(--line2);border-radius:10px;padding:11px 14px;margin:8px 0;
+    font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:12.5px;color:var(--fg2);overflow-x:auto;white-space:nowrap}
+  .flow .c{color:var(--rose);text-decoration:line-through;opacity:.7} .flow .g{color:var(--green)} .flow .y{color:var(--amber)} .flow .d{color:var(--faint);margin:0 3px}
+  hr{border:0;border-top:1px solid var(--line);margin:40px 0}
+  .foot{color:var(--faint);font-size:13px;margin-top:48px;border-top:1px solid var(--line);padding-top:20px}
+  code{background:var(--bg2);padding:1px 6px;border-radius:5px;font-size:13px;color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="kicker">Kieio · 內部計劃</div>
+  <h1>深模式 <span class="sub">②擲骰 / ③任務</span></h1>
+  <p class="lede">兩個都係<b style="color:var(--fg)">跟故事本質、人人玩到、唔係付費掣</b>(D&D 有骰、戀愛冇)。而且由 <b style="color:var(--fg)">AI 喺故事建立時決定</b> —— 就同啱啱整好嗰個「AI 按故事決定面板」一模一樣嘅 pattern。呢份拆設計 + 一個要你拍板嘅關鍵叉路(擲骰幾時觸發)。</p>
+  <p class="meta">2026-06-04 · 對住真實 code + 架構 05 查實 · 起點 = AI-decides 已上 prod</p>
+
+  <!-- 1 -->
+  <h2 class="crit"><span class="n">1</span>關鍵叉路:冇 GM 之下,擲骰幾時觸發?</h2>
+  <div class="h2sub">架構 05 原意係「Narrator call tool 擲骰」,但 light-core 為防空白回合,特登整咗 Narrator 純文字、冇 tool。呢個衝突要解。</div>
+  <div class="warn"><span class="tag">背景</span> light-core 拎走 Narrator 嘅 tool,係因為 <b>CrazyRouter 嘅 model(Gemini/GLM/Grok)</b>成日「逃入 tool call、交白卷」→ 空白回合。但 <b style="color:var(--fg)">而家非成人 narrator 係 Claude 直連</b> —— Claude 出文字 + 工具好穩(嗰個空白問題係 CrazyRouter 獨有,唔關 Claude 事)。所以叉路嘅答案同「邊隻 model」直接相關。</div>
+
+  <table>
+    <tr><th>方案</th><th>點 work</th><th>真‧骰 feel</th><th>技術風險</th></tr>
+    <tr><td><b>A · Narrator call tool</b><br>(架構 05 原意)</td><td>Narrator(Claude)遇到唔確定嘅行動 → 自己 call <code>roll_check</code> → 後台擲 → 結果返 → 繼續寫</td><td>✅ 真骰(骰定成敗)· 可見 d20</td><td>Claude 穩;成人 Grok 唔穩 → 退化成「敘事判斷」</td></tr>
+    <tr><td><b>B · 敘事判斷</b><br>(最簡 · 純文字)</td><td>冇骰冇 tool · Narrator 睇住角色數值,自己寫個合理結果</td><td>❌ 冇可見骰 · 成敗係 AI 主觀(唔隨機唔公平)</td><td>零(所有 model 都得)</td></tr>
+    <tr><td><b>C · 玩家明擲</b><br>(prose-only + UI)</td><td>骰故事入面,玩家行動觸發一個<b>可見骰</b> · 結果塞入 narrator context · narrator 純文字照寫結果</td><td>✅ 真骰 · 可見</td><td>低(narrator 仍純文字)· 但要解「邊個回合先擲」+ UI</td></tr>
+  </table>
+
+  <div class="reco"><span class="tag">我推薦 · A(非成人)+ 敘事判斷(成人)</span>
+    <ul class="clean" style="margin-top:6px">
+      <li><b>非成人(Claude)→ 方案 A</b>:嗰個空白回合問題係 CrazyRouter 獨有,Claude 出 prose + 一個簡單 <code>roll_check</code> tool **好穩**。而且骰遊戲(D&D/JRPG)<b>幾乎全部非成人</b> → 啱晒 Claude。呢個正正係架構 05 嘅「Narrator 自決何時 call · 冇預判層」(跟原則 2)。</li>
+      <li><b>成人(Grok · 骰遊戲罕見)→ 方案 B</b>:退化成敘事判斷,唔加 tool,避開 Grok 嘅 tool 不穩。</li>
+      <li>骰引擎(d20 + 技能值 vs 難度)<b>現成</b>(<code>skill-check.ts</code>),接返就得。</li>
+    </ul>
+  </div>
+  <div class="flow"><span class="g">搵記憶</span> <span class="d">→</span> <span class="y">Narrator (Claude · 遇唔確定行動自己 call roll_check → 後台擲 → 結果返 → 寫成敗)</span> <span class="d">→</span> <span class="g">onFinish 抽狀態</span></div>
+
+  <!-- 2 -->
+  <h2><span class="n">2</span>地基(兩個方案 + 任務都要):故事建立時宣告 game_system</h2>
+  <div class="h2sub">同「AI 按故事決定面板」一樣 —— 故事生成時,AI 多宣告一個「呢個故事有咩 mechanic」。</div>
+  <div class="card">
+    <p>擴展 <code>schema-generator</code>(就係我啱啱改面板嗰度),AI 喺建立故事時宣告:</p>
+    <ul class="clean">
+      <li><b>mechanic 類型</b>:純敘事 / 擲骰 / 回合制戰鬥 / 捕捉 …(AI 按故事內容揀,戀愛 → 純敘事、D&D → 擲骰)</li>
+      <li><b>擲骰配置</b>(若有):邊幾個數值算「技能」(已可由 state schema 嘅數字 field 推導)· 難度傾向</li>
+      <li><b>任務線</b>(③ 用):開場有咩目標</li>
+    </ul>
+    <p style="color:var(--dim);font-size:13px">呢個宣告係<b>聲明式、runtime-agnostic</b> —— 唔論揀方案 A/B/C 都用得着,所以可以即刻安全咁起。</p>
+  </div>
+
+  <!-- 3 -->
+  <h2 class="ok"><span class="n">3</span>③ 任務系統(較唔 forky · 可先行)</h2>
+  <div class="h2sub">任務唔似擲骰有「幾時觸發」難題 —— 任務進度本質係「發生咗咩」,事後抽就啱。</div>
+  <div class="card">
+    <div class="flow"><span class="g">故事建立</span> <span class="d">→</span> 宣告目標(e.g.「查出走私頭目」「儲夠 1000 蚊」) <span class="d">→</span> 每回合 <span class="g">onFinish 抽取器(現成 Haiku)</span> 順手判斷「邊個目標推進咗 / 完成咗」 <span class="d">→</span> <span class="y">任務日誌 UI</span></div>
+    <ul class="clean">
+      <li><b>觸發乾淨</b>:抽取器本身每回合都跑(抽狀態),加判任務進度 = 搭順風車,唔加新 call(留意 schema grammar · hard rule #10)。</li>
+      <li><b>顯示</b>:一個細任務清單(進行中 / 完成),跟 #19 —— 質性、唔好變數字 dashboard。</li>
+      <li>跟故事本質:戀愛故事可以冇任務(或者軟目標),冒險故事先有明確任務線。</li>
+    </ul>
+  </div>
+
+  <!-- 4 -->
+  <h2><span class="n">4</span>分階段</h2>
+  <table>
+    <tr><th>階段</th><th>內容</th><th>狀態</th></tr>
+    <tr><td><b>地基</b></td><td>故事生成 game_system 宣告(§2)</td><td><span class="pill gold">可即刻安全起</span></td></tr>
+    <tr><td><b>②a 擲骰</b></td><td>按拍板嘅方案接骰引擎(Claude tool / 敘事判斷 / 玩家明擲)+ 結果入敘事 + 可見骰 UI</td><td><span class="pill rose">等你揀觸發方案</span></td></tr>
+    <tr><td><b>③ 任務</b></td><td>抽取器判任務進度 + 任務日誌 UI</td><td><span class="pill a">地基後可起</span></td></tr>
+  </table>
+
+  <!-- 5 -->
+  <h2 class="crit"><span class="n">5</span>要你拍板嘅一樣嘢</h2>
+  <div class="warn"><span class="tag">擲骰觸發方案</span> A(Claude call tool · 真骰 · 我推薦)· B(敘事判斷 · 最簡冇可見骰)· C(玩家明擲 · 真骰但要 UI + 解「邊回合擲」)。<br><b style="color:var(--fg)">我推薦 A(非成人)+ B(成人退化)。</b> 你揀完我即刻接。</div>
+  <div class="reco"><span class="tag">我而家做緊(唔使等你)</span> §2 嘅 <b>game_system 宣告地基</b> —— 兩個方案 + 任務都用得着,零 rework 風險。你測緊產品嘅同時,呢part會 build 好。</div>
+
+  <div class="foot">
+    Kieio · Story Engine — 深模式 ②擲骰 / ③任務 設計 · 2026-06-04 · 對住 <code>05-game-system.md</code> + <code>skill-check.ts</code>(骰引擎現成)+ light-core prose-only 約束查實。AI-decides 面板已上 prod 做 pattern 範本。
+  </div>
+
+</div>
+</body>
+</html>
