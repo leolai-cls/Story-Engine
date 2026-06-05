@@ -99,6 +99,12 @@ export type GenerateStoryInput = {
   locale: "zh-Hant" | "zh-Hans" | "en";
   content_rating: "sfw" | "soft" | "adult";
   protagonist_hint?: string;
+  /**
+   * Deep Mode ②③ · player-chosen game mode at creation. "auto" → the AI decides
+   * the mechanic from the prompt; a specific mode OVERRIDES the AI's choice
+   * (e.g. a romance prompt + "dice" → a romance that rolls). Default "auto".
+   */
+  game_mode?: "auto" | "narrative" | "dice";
 };
 
 // ─── Focused system prompts per sub-call ────────────────────────────────
@@ -617,6 +623,14 @@ export async function generateStory(
     );
   }
 
+  // Deep Mode ②③ · apply the player's chosen game mode (overrides the AI's
+  // mechanic). "auto" / unset → keep the AI's choice. A specific mode keeps the
+  // AI-generated objectives but forces the mechanic.
+  const finalGameSystem =
+    input.game_mode && input.game_mode !== "auto"
+      ? { ...meta.game_system, mechanic: input.game_mode }
+      : meta.game_system;
+
   return {
     title: meta.title,
     description: meta.description,
@@ -626,7 +640,7 @@ export async function generateStory(
     state_schema: state.state_schema,
     story_bible: forcedBible,
     characters: characters.characters,
-    game_system: meta.game_system,
+    game_system: finalGameSystem,
     // AUDIT FIX (P3-LOGIC-H-04): return real usage for accurate charging.
     usage: {
       inputTokens: usageTotals.input,

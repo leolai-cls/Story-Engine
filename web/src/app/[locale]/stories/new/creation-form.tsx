@@ -54,6 +54,8 @@ export function CreationForm({
   const [prompt, setPrompt] = useState(initialPrompt);
   const [protagonist, setProtagonist] = useState("");
   const [rating, setRating] = useState<"sfw" | "soft" | "adult">("sfw");
+  // Deep Mode ②③ · player-chosen game mode at creation (auto = AI decides).
+  const [mode, setMode] = useState<"auto" | "narrative" | "dice">("auto");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   // 2026-05-29 (founder mobile test): story creation takes ~30-70s (4 parallel
@@ -178,6 +180,35 @@ export function CreationForm({
               })}
               <input type="hidden" name="content_rating" value={rating} />
             </div>
+          </div>
+
+          {/* Deep Mode ②③ · game mode picker (auto = AI decides · then narrative / dice;
+              turn-based · capture coming soon). */}
+          <div className="space-y-2">
+            <Label>{tForm("modeLabel")}</Label>
+            <div className="flex gap-2 flex-wrap">
+              {(["auto", "narrative", "dice"] as const).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setMode(m)}
+                  disabled={isPending}
+                  className={`px-3 py-2.5 rounded-md text-xs font-medium border transition ${
+                    mode === m
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-card text-muted-foreground border-border hover:border-primary/40"
+                  }`}
+                >
+                  {m === "auto"
+                    ? tForm("modeAuto")
+                    : m === "narrative"
+                      ? tForm("modeNarrative")
+                      : tForm("modeDice")}
+                </button>
+              ))}
+              <input type="hidden" name="game_mode" value={mode} />
+            </div>
+            <p className="text-xs text-muted-foreground">{tForm("modeHint")}</p>
           </div>
 
           {error && (

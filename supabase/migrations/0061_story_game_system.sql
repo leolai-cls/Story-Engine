@@ -9,7 +9,9 @@
 -- nullable jsonb — existing stories (no declaration) default to pure narrative
 -- at read time. Shape (validated app-side by GameSystemSchema):
 --   { mechanic: "narrative"|"dice"|"combat"|"capture"|"mixed",
---     skill_keys?: string[], objectives?: string[] }
+--     objectives: string[] }
+-- (skill stats for dice are derived at runtime from the state_schema's numeric
+--  fields · numericSkillKeys · NOT stored here.)
 --
 -- REQUIRES: 0001 (stories)
 -- =========================================================================
