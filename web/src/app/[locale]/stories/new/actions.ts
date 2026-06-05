@@ -311,6 +311,23 @@ export async function createStoryFromPrompt(
     return { ok: false, errorCode: "createStory.storyInsertFailed" };
   }
 
+  // Deep Mode ②③ · store the per-story game_system declaration in a SEPARATE
+  // guarded update (NOT the main insert) so story creation still succeeds if
+  // migration 0061 hasn't been applied yet (column missing → skip · hard rule
+  // #12 decoupling). Consumed by dice (②) + quest tracking (③) once they land.
+  {
+    const { error: gsErr } = await supabase
+      .from("stories")
+      .update({ game_system: generated.game_system })
+      .eq("id", story.id);
+    if (gsErr) {
+      console.warn(
+        "[createStory] game_system store skipped (apply migration 0061?):",
+        gsErr.message,
+      );
+    }
+  }
+
   // Insert characters
   const characterRows = generated.characters.map((c) => ({
     story_id: story.id,

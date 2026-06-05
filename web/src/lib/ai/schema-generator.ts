@@ -16,6 +16,7 @@ import { anthropicProvider } from "./providers";
 import { StateSchemaShape } from "@/schemas/state-schema";
 import { StoryBibleSchema } from "@/schemas/bible";
 import { CharacterCardSchema } from "@/schemas/character";
+import { GameSystemSchema } from "@/schemas/game-system";
 
 /**
  * Schema generator — the LLM service that designs a complete story package.
@@ -51,6 +52,9 @@ const MetaAndOpeningSchema = z.object({
   genre: z.string().min(2).max(40),
   tags: z.array(z.string().min(2).max(20)).max(6),
   opening_narrative: z.string().min(100).max(1500),
+  // Deep Mode ②③ — the per-story game_system 「藍圖」 (pm/architecture/05).
+  // Folded into the (grammar-light) meta call · skill stats derived at runtime.
+  game_system: GameSystemSchema,
 });
 
 const StateSchemaWrap = z.object({ state_schema: StateSchemaShape });
@@ -70,6 +74,7 @@ const StoryGenerationResultSchema = z.object({
   story_bible: StoryBibleSchema,
   characters: z.array(CharacterCardSchema),
   opening_narrative: z.string(),
+  game_system: GameSystemSchema,
 });
 
 type StoryGenerationBase = z.infer<typeof StoryGenerationResultSchema>;
@@ -164,7 +169,11 @@ The last 1-2 sentences MUST be one of these — to trigger player reaction:
 - Directly asking the player what to do ("What do you want to do?", "How will you choose?")
 - Listing options ("You can A or B or C")
 
-This rule is **non-negotiable** — Story Engine's player engagement depends entirely on the ending triggering a reaction.`;
+This rule is **non-negotiable** — Story Engine's player engagement depends entirely on the ending triggering a reaction.
+
+### game_system — declare this story's mechanics (let the story decide)
+- \`mechanic\`: pick ONE that fits — \`narrative\` (pure story · romance/drama/slice-of-life · MOST stories) · \`dice\` (skill-check rolls · D&D/TRPG) · \`combat\` (turn-based battle · JRPG) · \`capture\` (collection · pet-monster) · \`mixed\`. A romance is \`narrative\`; a dungeon crawl is \`dice\`. Never force mechanics onto a story that doesn't want them.
+- \`objectives\`: 0-5 short opening quest lines. Adventure/mystery → clear objectives. Romance/slice-of-life → few or none (\`[]\` is fine).`;
   }
   if (locale === "zh-Hans") {
     return `你是 Story Engine 的 story designer。设计故事的基本资料 + 开场叙事。
@@ -189,7 +198,11 @@ This rule is **non-negotiable** — Story Engine's player engagement depends ent
 - 直接问玩家做什么
 - 列出选项
 
-这个 rule **不可违反** — Story Engine 的 player engagement 完全 depend on 结尾触发 reaction。`;
+这个 rule **不可违反** — Story Engine 的 player engagement 完全 depend on 结尾触发 reaction。
+
+### game_system —声明这个故事的机制（让故事自己决定）
+- \`mechanic\`: 选一个最配的 — \`narrative\`（纯故事 · 恋爱/剧情/日常 · 大部分故事）· \`dice\`（技能检定掷骰 · D&D/TRPG）· \`combat\`（回合制战斗 · JRPG）· \`capture\`（收集 · 宠物精灵）· \`mixed\`。恋爱是 \`narrative\`；地下城探险是 \`dice\`。绝不硬塞机制给不需要的故事。
+- \`objectives\`: 0-5 条简短开场任务线。冒险/悬疑 → 明确目标。恋爱/日常 → 很少或没有（\`[]\` 可以）。`;
   }
   return `你係 Story Engine 嘅 story designer。設計故事嘅基本資料 + 開場敘事。
 
@@ -223,7 +236,11 @@ This rule is **non-negotiable** — Story Engine's player engagement depends ent
 - 直接問玩家做咩（e.g.「你想點做？」、「你會點選擇？」）
 - 列出選項（e.g.「你可以 A 或 B 或 C」）
 
-呢個 rule **不可違反** — Story Engine 嘅 player engagement 完全 depend on 結尾觸發 reaction。`;
+呢個 rule **不可違反** — Story Engine 嘅 player engagement 完全 depend on 結尾觸發 reaction。
+
+### game_system —宣告呢個故事嘅機制（畀故事自己決定）
+- \`mechanic\`: 揀一個最配嘅 — \`narrative\`（純故事 · 戀愛/劇情/日常 · 大部分故事）· \`dice\`（技能檢定擲骰 · D&D/TRPG）· \`combat\`（回合制戰鬥 · JRPG）· \`capture\`（收集 · 寵物小精靈）· \`mixed\`。戀愛係 \`narrative\`；地下城探險係 \`dice\`。絕不硬塞機制畀唔需要嘅故事。
+- \`objectives\`: 0-5 條簡短開場任務線。冒險/懸疑 → 明確目標。戀愛/日常 → 好少或者冇（\`[]\` 可以）。`;
 }
 
 function stateSchemaSystemFor(locale: GenerateStoryInput["locale"]): string {
@@ -609,6 +626,7 @@ export async function generateStory(
     state_schema: state.state_schema,
     story_bible: forcedBible,
     characters: characters.characters,
+    game_system: meta.game_system,
     // AUDIT FIX (P3-LOGIC-H-04): return real usage for accurate charging.
     usage: {
       inputTokens: usageTotals.input,
