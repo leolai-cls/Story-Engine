@@ -80,13 +80,18 @@ export function pickImageModelChain(
   contentRating: "sfw" | "soft" | "adult",
   _imageType: ImageType,
 ): ImageModelChain {
-  // Founder rule (2026-06-04): non-adult images use gpt-image-2 ONLY. The
-  // 2026-06-01 nano-banana experiment (PR #51) silently broke non-adult image
-  // gen — gpt-image-2 is the proven model that actually produced images. No
-  // fallback (founder: keep it simple · gpt-image-2 only). Adult (NSFW) still
-  // needs grok-4-image — gpt-image-2 can't render explicit content.
+  // 2026-06-07 (founder · "still can't generate image" · Vercel-log-confirmed):
+  // CrazyRouter returns a non-200 for `gpt-image-2` (the !response.ok error path
+  // fired). The API key is fine (adult Grok narrator + embeddings + other
+  // CrazyRouter calls all work), so `gpt-image-2` is simply NOT a valid/working
+  // CrazyRouter image slug (same failure class as the nano-banana-2 experiment).
+  // The only CONFIRMED-working image model is grok-4-image. So non-adult now
+  // FALLS BACK to grok-4-image: keep gpt-image-2 as primary (cheap·SFW·founder's
+  // pick · in case CrazyRouter adds it), but a fast 4xx instantly fails over to
+  // grok-4-image so images ALWAYS render. If founder finds the real SFW slug
+  // (gpt-image / dall-e / flux …) on their CrazyRouter dashboard, swap primary.
   if (contentRating === "adult") return { primary: "grok-4-image" };
-  return { primary: "gpt-image-2" };
+  return { primary: "gpt-image-2", fallback: "grok-4-image" };
 }
 
 /**
@@ -111,7 +116,11 @@ function timeoutMsFor(modelId: string): number {
   if (modelId === "nano-banana-pro") return 90_000; // premium may be slower
   if (modelId === "nano-banana") return 60_000; // legacy fallback ref
   if (modelId === "grok-4-image") return 120_000;
-  return 180_000; // gpt-image-2 + anything else (bumped from 90s · 2026-06-01)
+  // 2026-06-07: gpt-image-2 fails fast (CrazyRouter rejects the slug · ~instant
+  // 4xx), but cap at 60s so a hang fails over to the grok-4-image fallback well
+  // inside the 300s lambda budget (60 + 120 grok + ~15 upload = ~195s).
+  if (modelId === "gpt-image-2") return 60_000;
+  return 180_000; // anything else
 }
 
 /**
