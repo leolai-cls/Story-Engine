@@ -396,13 +396,18 @@ export function estimateTurnCredits(
     contentRating: utilityContentRating,
     narrator: {
       modelId: narratorModelId,
-      inputTokens: 3000,
+      // 2026-06-07 (audit): bumped 3000→4000 to cover the bigger per-turn context
+      // (always-present digest + NPC inner-streams) AND a dice turn's multi-step
+      // re-send of the message history (roll_check loops re-send input per step).
+      inputTokens: 4000,
       // 2026-05-29: deep-thinking mode runs a reasoning pass before the story
       // text, so the turn route bumps maxOutputTokens 1500→4000. The pre-charge
       // estimate must reserve more or a low-balance user passes the gate then
       // hits post-stream insufficient_credits (free turn + reconciliation debt).
+      // 2026-06-07 (audit): non-thinking bumped 800→1500 — the narrator cap is
+      // 3000 and rich turns run ~1000-1500 out; 800 under-reserved long turns.
       // Over-estimate on purpose (same rationale as the L3 add-on projection).
-      outputTokens: thinkingEnabled ? 3500 : 800,
+      outputTokens: thinkingEnabled ? 3500 : 1500,
       cachedInputTokens: 2000, // assume 67% cache hit in steady state
     },
     // Session 17 (light-core): GM Director 拆走 · 呢個 Haiku reserve 而家 model 緊
