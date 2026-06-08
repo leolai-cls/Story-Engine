@@ -126,11 +126,12 @@ function languageLabel(lang: HardLocked["language"]): string {
 export function bibleToSystemPrompt(bible: StoryBible): string {
   const hl = bible.hard_locked;
   const sg = bible.soft_guided;
+  // B2 (2026-06-08): the act now advances by qualitative AI judgement (the state
+  // extractor reads the prose), so we no longer surface the old transition_condition
+  // DSL to the narrator — it referenced state fields the schema never had and is
+  // now ignored at runtime. Show only act · name · narrative intent.
   const acts = sg.story_arc
-    .map(
-      (a) =>
-        `  Act ${a.act} · ${a.name} — ${a.narrative_intent} (internal cue · advance once: ${a.transition_condition})`,
-    )
+    .map((a) => `  Act ${a.act} · ${a.name} — ${a.narrative_intent}`)
     .join("\n");
   const themes = hl.themes_required.length
     ? `\nThemes: ${hl.themes_required.join(", ")}`

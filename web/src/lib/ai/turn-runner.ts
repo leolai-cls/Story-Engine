@@ -646,6 +646,11 @@ export const TurnExtractionSchema = z.object({
   // 嘅人名 (walk-on 路人)。只攞名 · 唔攞描述 (keep schema grammar 細 · 保護呢個關鍵
   // extractor 唔爆 grammar ceiling · hard rule #10)。
   mentioned_characters: z.array(z.string().min(1).max(40)).max(8),
+  // B2 (2026-06-08 · 藍圖一致性): the story's CURRENT act, judged qualitatively
+  // from the prose + the act list (replaces the old hardcoded transition_condition
+  // DSL that referenced state fields the schema never had → arcs were frozen at
+  // act 1 platform-wide). One small scalar · negligible grammar cost (hard rule #10).
+  current_act: z.number().int().min(1).max(20),
 });
 
 export async function extractTurnState(
@@ -656,6 +661,7 @@ export async function extractTurnState(
   dispositionChanges: DispositionChange[];
   flags: PermanentFlagToSet[];
   mentionedCharacters: string[];
+  currentAct: number;
   usage: { inputTokens?: number; outputTokens?: number; cachedInputTokens?: number };
 }> {
   const fields = ctx.story.state_schema.fields
@@ -675,6 +681,26 @@ export async function extractTurnState(
     .join("\n");
   const charNames = ctx.characters.map((c) => c.card.name).join(", ") || "(none)";
   const visibleState = stripInternalKeys(ctx.current_state);
+
+  // B2 — qualitative act tracking. Give the extractor the act list + the act the
+  // story is currently in, and let it judge (from the prose) which act we're in
+  // now. Replaces arc-dsl's hardcoded condition evaluation.
+  const storyArc = ctx.story.story_bible?.soft_guided?.story_arc ?? [];
+  const currentActAnchor =
+    typeof (ctx.current_state as Record<string, unknown>).__act === "number"
+      ? ((ctx.current_state as Record<string, unknown>).__act as number)
+      : 1;
+  const actsBlock =
+    storyArc.length > 0
+      ? `\n\n## Story acts (for act tracking)\n${storyArc
+          .map(
+            (a: { act: number; name: string; narrative_intent: string }) =>
+              `- Act ${a.act} — ${a.name}: ${a.narrative_intent}`,
+          )
+          .join(
+            "\n",
+          )}\nThe story is CURRENTLY in Act ${currentActAnchor}. From THIS turn's narrative + the overall progression, output \`current_act\` = the act the story is now in. It moves FORWARD only when an act's intent is SUBSTANTIALLY fulfilled — most turns stay in the same act, and it NEVER goes backward (output ≥ ${currentActAnchor}). When unsure, keep ${currentActAnchor}.`
+      : `\n\n## Act tracking\nThis story has no defined acts — output \`current_act\`: ${currentActAnchor}.`;
 
   const system = `You convert a story turn's narrative into structured STATE CHANGES. Read the narrative + the current state, then output ONLY the changes the narrative actually implies.
 
@@ -701,7 +727,7 @@ If the narrative changes how an NPC feels toward the player, emit one change: ch
 Only for story-defining moments (rescue / betrayal / vow / sacrifice). Most turns: empty.
 
 ## Other named people (mentioned_characters[])
-List the NAMES of any specific named people who appear or are mentioned in this turn's narrative but are NOT in the main cast above (${charNames}). Walk-on characters, people referred to by name in passing, newly-introduced minor characters. Names only — no description. This keeps names consistent across turns (so a name introduced once is never denied or changed later). Empty if no other named people appeared.
+List the NAMES of any specific named people who appear or are mentioned in this turn's narrative but are NOT in the main cast above (${charNames}). Walk-on characters, people referred to by name in passing, newly-introduced minor characters. Names only — no description. This keeps names consistent across turns (so a name introduced once is never denied or changed later). Empty if no other named people appeared.${actsBlock}
 
 Return empty arrays for anything that did not change. Do NOT invent changes the narrative does not support.`;
 
@@ -719,6 +745,7 @@ Return empty arrays for anything that did not change. Do NOT invent changes the 
     dispositionChanges: obj.disposition_changes,
     flags: obj.flags,
     mentionedCharacters: obj.mentioned_characters,
+    currentAct: obj.current_act,
     usage: {
       inputTokens: result.usage?.inputTokens,
       outputTokens: result.usage?.outputTokens,

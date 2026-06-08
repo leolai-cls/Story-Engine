@@ -30,7 +30,6 @@ import { deriveActiveCharacters } from "@/lib/ai/active-characters";
 import type { Disposition, NpcDynamicState } from "@/schemas/character";
 import { type SkillCheckResult, rollSkillCheck, numericSkillKeys } from "@/lib/ai/skill-check";
 import { type GameSystem } from "@/schemas/game-system";
-import { deriveCurrentAct, type ArcContext } from "@/lib/ai/arc-dsl";
 import { applyDelta } from "@/schemas/state-delta";
 import { initialStateFromSchema, StateSchemaShape } from "@/schemas/state-schema";
 import { StoryBibleSchema } from "@/schemas/bible";
@@ -1356,59 +1355,30 @@ export async function POST(
           }
         }
 
-        // ─── Arc transition check (Phase 1.5.3) ────────────────────────────
-        // Build ArcContext from new state + updated character dispositions
-        const updatedCharStates = new Map<
-          string,
-          { disposition: Record<string, number>; permanent_flags: string[] }
-        >();
-        for (const c of characters ?? []) {
-          const cs = charStates?.find((s) => s.character_id === c.id);
-          updatedCharStates.set(c.name, {
-            disposition: (cs?.disposition as Record<string, number>) ?? {},
-            permanent_flags: (cs?.permanent_flags as string[]) ?? [],
-          });
-        }
-        // Apply this turn's disposition changes to the in-memory map (DB is async).
-        // M-02 fuzzy match: resolve narrator name → canonical DB name before lookup.
-        for (const change of dispositionChanges) {
-          const dbChar = resolveCharacter(change.character_name);
-          if (!dbChar) continue;
-          const cur = updatedCharStates.get(dbChar.name);
-          if (!cur) continue;
-          const newValue = Math.max(
-            -100,
-            Math.min(100, (cur.disposition[change.axis] ?? 0) + change.delta),
-          );
-          cur.disposition = { ...cur.disposition, [change.axis]: newValue };
-        }
-        // Add this turn's flags
-        for (const flagOp of permanentFlags) {
-          const dbChar = resolveCharacter(flagOp.character_name);
-          if (!dbChar) continue;
-          const cur = updatedCharStates.get(dbChar.name);
-          if (!cur) continue;
-          if (!cur.permanent_flags.includes(flagOp.flag)) {
-            cur.permanent_flags = [...cur.permanent_flags, flagOp.flag];
-          }
-        }
-        const arcCtx: ArcContext = {
-          state: newState,
-          characters: updatedCharStates,
-        };
+        // ─── Arc transition (B2 2026-06-08 · qualitative · AI-judged) ──────
+        // The current act is judged by the state extractor from the prose
+        // (extraction.currentAct) — this REPLACES the old hardcoded
+        // transition_condition DSL (arc-dsl.ts), which evaluated conditions like
+        // `state.dice_experiments >= 3` against state fields the schema-generator
+        // never produced (the arc + the schema are independent generations) → the
+        // condition was always false → arcs froze at Act 1 platform-wide. Aligns
+        // with philosophy 原則 1 (emergent / AI-judged over hardcoded). Kept
+        // MONOTONIC (never regress) and capped to the arc length.
+        const storyArcDef = ctx.story.story_bible.soft_guided.story_arc ?? [];
         const persistedAct =
           typeof (newState as Record<string, unknown>).__act === "number"
             ? ((newState as Record<string, unknown>).__act as number)
             : 1;
-        const arcResult = deriveCurrentAct({
-          story_arc: ctx.story.story_bible.soft_guided.story_arc,
-          ctx: arcCtx,
-          persisted_act: persistedAct,
-        });
-        if (arcResult.act > persistedAct) {
-          (newState as Record<string, unknown>).__act = arcResult.act;
+        const maxArcAct = storyArcDef.length
+          ? Math.max(...storyArcDef.map((a) => a.act))
+          : 1;
+        const judgedAct = extraction?.currentAct ?? persistedAct;
+        const nextAct = Math.min(maxArcAct, Math.max(persistedAct, judgedAct));
+        if (nextAct > persistedAct) {
+          (newState as Record<string, unknown>).__act = nextAct;
+          const advancedTo = storyArcDef.find((a) => a.act === nextAct);
           console.log(
-            `[turn] Story advanced to Act ${arcResult.act}: ${arcResult.just_advanced_to?.name ?? ""}`,
+            `[turn] Story advanced to Act ${nextAct}: ${advancedTo?.name ?? ""}`,
           );
         }
 
