@@ -1539,10 +1539,11 @@ export async function POST(
               // Estimated background work — these run via after() shortly
               // after charge. Variance absorbed by 2× markup buffer.
               lorebook: { inputTokens: 2000, outputTokens: 500 },
-              // Consistency v3: running digest every ~11 turns on a cumulative
-              // input (~6000 in / 700 out per compact) → amortized ~1/11 ≈ 600/70
-              // per turn (adult → Grok rate via pickUtilityModel · honest costing).
-              summarizer: { inputTokens: 600, outputTokens: 70 },
+              // Consistency v3 (digest→Sonnet 2026-06-08): running digest every
+              // ~11 turns on a cumulative input (~7500 in / 1400 out per compact on
+              // Sonnet) → amortized ~1/11 ≈ 700/140 per turn (non-adult Sonnet ·
+              // adult Grok · priced via digestModelForRating · honest costing).
+              summarizer: { inputTokens: 700, outputTokens: 140 },
               embedTokens: 400,
               // Character Soul (Audit HIGH-1 fix): 經歷日誌+信念背景 Haiku call ·
               // 只喺今回合有 active 角色 (可能升級) 先 reserve。charge 喺 after()

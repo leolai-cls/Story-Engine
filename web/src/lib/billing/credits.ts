@@ -3,6 +3,19 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 // 計費 call 返佢 · 確保「跑邊隻」同「收邊隻」唔會 drift (PR #62 follow-up QC)。
 // (tier-router → models · 純 catalog · 冇 import credits · 無 circular。)
 import { pickUtilityModel } from "@/lib/ai/tier-router";
+import { ADULT_NSFW_MODEL, DEFAULT_NARRATOR } from "@/lib/ai/models";
+
+/**
+ * Model the running-summary digest actually runs on — MUST mirror
+ * `pickDigestModel` in lib/ai/memory/summarizer.ts so the charge matches the
+ * call (hard rule #4 · no billing drift). 2026-06-08: the digest moved off Haiku
+ * onto Sonnet (non-adult · Haiku ignored the length budget → death-spiral);
+ * adult stays on Grok (hard rule #5). Kept inline (not imported from summarizer)
+ * to avoid a billing→AI module dependency.
+ */
+function digestModelForRating(cr: "sfw" | "soft" | "adult"): string {
+  return cr === "adult" ? ADULT_NSFW_MODEL : DEFAULT_NARRATOR;
+}
 
 /**
  * Credit meter — Phase 3 monetization foundation per ADR-009 / CLAUDE.md.
@@ -325,7 +338,9 @@ export function computeTurnCredits(usage: TurnUsage): number {
 
   const summarizerCredits = usage.summarizer
     ? computeCredits({
-        modelId: pickUtilityModel(cr, "text"),
+        // 2026-06-08: digest runs on Sonnet (non-adult) / Grok (adult) · NOT the
+        // Haiku utility model — bill at the real rate (hard rule #4).
+        modelId: digestModelForRating(cr),
         inputTokens: usage.summarizer.inputTokens ?? 0,
         outputTokens: usage.summarizer.outputTokens ?? 0,
       })
@@ -420,11 +435,12 @@ export function estimateTurnCredits(
       outputTokens: 400,
     },
     lorebook: { inputTokens: 2000, outputTokens: 500 },
-    // Consistency v3 (2026-06-04): the running digest fires every ~11 turns (was
-    // 20) on a CUMULATIVE input (prev digest + ~11 raw turns ≈ 6000 in / 700 out
-    // per compact). Amortized ~1/11 ≈ 600 in / 70 out per turn (adult → Grok rate
-    // via pickUtilityModel · honest costing · hard rule #4/#20).
-    summarizer: { inputTokens: 600, outputTokens: 70 },
+    // Consistency v3 (2026-06-04 · digest→Sonnet 2026-06-08): the running digest
+    // fires every ~11 turns on a CUMULATIVE input (prev digest ~1800 + ~11 raw
+    // turns ≈ 7500 in / 1400 out per compact on Sonnet). Amortized ~1/11 ≈ 700 in
+    // / 140 out per turn (non-adult Sonnet · adult Grok · honest costing · hard
+    // rule #4/#20 · over-reserve is the safe direction).
+    summarizer: { inputTokens: 700, outputTokens: 140 },
     embedTokens: 400,
     // Audit LOW fix: 對稱於 actual charge 嘅 experience reserve。中後期 turn 通常
     // 有升級角色 → 經歷 Haiku call。pre-charge 估算唔加會令 low-balance user 過 gate
