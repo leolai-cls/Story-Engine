@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 // 計費 call 返佢 · 確保「跑邊隻」同「收邊隻」唔會 drift (PR #62 follow-up QC)。
 // (tier-router → models · 純 catalog · 冇 import credits · 無 circular。)
 import { pickUtilityModel } from "@/lib/ai/tier-router";
-import { ADULT_NSFW_MODEL, DEFAULT_NARRATOR } from "@/lib/ai/models";
+import { ADULT_NSFW_MODEL, DEFAULT_NARRATOR, DIRECTOR_MODEL, TIER_POOLS } from "@/lib/ai/models";
 
 /**
  * Model the running-summary digest actually runs on — MUST mirror
@@ -205,6 +205,32 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
     outputPerMillion: 2.0,
   },
 };
+
+// 2026-06-08 (audit · hard rule #28 two-catalog drift): fail LOUD if a
+// runtime-CRITICAL model is missing from MODEL_PRICING. Every narrator a turn
+// can actually run on (tier pools + adult + the Haiku director/extractor +
+// the default narrator) MUST be priced — an unpriced one makes computeCredits
+// throw mid-turn → play/turn 500 (the grok-4-1 history above). This module-load
+// check converts that into an immediate boot/test failure for the critical set.
+// We intentionally do NOT assert the whole MODELS catalog (legacy back-compat
+// ids may be intentionally unpriced); those would surface via computeCredits's
+// own throw if ever used.
+{
+  const criticalModels = [
+    ...TIER_POOLS.standard,
+    ...TIER_POOLS.pro,
+    ADULT_NSFW_MODEL,
+    DIRECTOR_MODEL,
+    DEFAULT_NARRATOR,
+  ];
+  const unpriced = criticalModels.filter((id) => !MODEL_PRICING[id]);
+  if (unpriced.length > 0) {
+    throw new Error(
+      `MODEL_PRICING is missing runtime-critical model(s): ${unpriced.join(", ")}. ` +
+        `Every tier-pool / adult / director / default-narrator model MUST be priced (hard rule #28).`,
+    );
+  }
+}
 
 /**
  * Compute credit cost for a single LLM call. Always positive integer (use

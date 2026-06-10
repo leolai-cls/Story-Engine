@@ -456,12 +456,13 @@ export async function createStoryFromPrompt(
   }
 
   // AUDIT FIX (P3-LOGIC-H-04 / P3-COST-M-06): charge ACTUAL schema-gen
-  // cost using real token usage returned from generateStory. Previously
-  // charged a flat estimate that was 30-50% off depending on prompt
-  // complexity and retry behavior. Now: real input/output/cached tokens
-  // flow into computeCredits → fair charge to user, accurate margin to us.
+  // cost using real token usage returned from generateStory.
+  // 2026-06-08 (audit fix · hard rule #4): the charge model was hardcoded
+  // Sonnet but generateStory actually runs on Haiku (schema-generator MODEL =
+  // claude-haiku-4-5) → users were over-charged ~3× on story creation. Charge
+  // at the model that actually ran. Keep this in sync if MODEL there changes.
   const actualStoryCost = computeCredits({
-    modelId: "claude-sonnet-4-6",
+    modelId: "claude-haiku-4-5",
     inputTokens: generated.usage.inputTokens,
     outputTokens: generated.usage.outputTokens,
     cachedInputTokens: generated.usage.cachedInputTokens,

@@ -29,7 +29,7 @@ import { callNpcAgentsParallel } from "@/lib/ai/npc-agents";
 import { deriveActiveCharacters } from "@/lib/ai/active-characters";
 import type { Disposition, NpcDynamicState } from "@/schemas/character";
 import { type SkillCheckResult, rollSkillCheck, numericSkillKeys } from "@/lib/ai/skill-check";
-import { type GameSystem } from "@/schemas/game-system";
+import { GameSystemSchema, type GameSystem } from "@/schemas/game-system";
 import { applyDelta } from "@/schemas/state-delta";
 import { initialStateFromSchema, StateSchemaShape } from "@/schemas/state-schema";
 import { StoryBibleSchema } from "@/schemas/bible";
@@ -786,7 +786,13 @@ export async function POST(
       .eq("id", pt.story_id)
       .single();
     if (!gsErr && gsRow) {
-      gameSystem = (gsRow as { game_system?: GameSystem | null }).game_system ?? null;
+      // 2026-06-08 (audit · hard rule #16): Zod-validate at the DB boundary
+      // instead of a bare `as` cast — a malformed game_system jsonb degrades to
+      // "no dice" rather than feeding junk into numericSkillKeys / the dice gate.
+      const gsParsed = GameSystemSchema.safeParse(
+        (gsRow as { game_system?: unknown }).game_system,
+      );
+      gameSystem = gsParsed.success ? gsParsed.data : null;
     }
   }
   const diceNarratorIsAnthropic =
@@ -1454,7 +1460,16 @@ export async function POST(
           playthroughUpdate.turn_count = pt.turn_count + 2;
           playthroughUpdate.last_played_at = new Date().toISOString();
         }
-        await supabase
+        // 2026-06-08 (audit · security): current_state / mention_roster /
+        // turn_count are SERVER-MANAGED columns now locked from direct user
+        // writes by the protect_playthrough_server_columns trigger (they're
+        // injected verbatim into the narrator prompt; a user editing their own
+        // current_state could push unmoderated text to Anthropic — hr#5 bypass).
+        // Persist via service-role (ownership already verified at the top of this
+        // route · `.eq(id)` scopes to the one owned row · same trust model as the
+        // after() embed/summarizer writes).
+        const svcPersist = createServiceRoleClient();
+        await svcPersist
           .from("playthroughs")
           .update(playthroughUpdate)
           .eq("id", playthroughId);
@@ -1589,11 +1604,35 @@ export async function POST(
                 }
               }
             } else if (chargeResult.error === "insufficient_credits") {
-              // Should NOT happen because pre-check passed, but defensive log.
-              // Phase 3 Wave 2 will add refund saga; for now flag for admin review.
-              console.error(
-                `[turn] post-charge insufficient_credits (current=${chargeResult.currentBalance}, needed=${chargeResult.needed}) — turn already streamed; flagging for refund/review`,
-              );
+              // The pre-charge gate passed on an ESTIMATE but the real turn cost
+              // exceeded it (long context / cache miss / NPC group scene), and the
+              // atomic RPC refused the full charge (would go negative). 2026-06-08
+              // (audit · hard rule #4): rather than give the whole turn away free,
+              // CLAMP-charge the remaining balance (drains to 0) so the user pays
+              // what they have. Bounded one-time under-charge (= the reserve gap),
+              // never a fully free turn. The user is then at 0 → next turn is gated.
+              const remaining = chargeResult.currentBalance ?? 0;
+              if (remaining > 0) {
+                const clamp = await chargeCredits(supabase, {
+                  userId: user.id,
+                  delta: -remaining,
+                  reason: "turn_charge",
+                  refType: "turn",
+                  refId: aiTurnIdForCharge,
+                  metadata: {
+                    clamped: true,
+                    intended: totalCredits,
+                    narrator_model: pt.llm_model ?? "claude-sonnet-4-6",
+                  },
+                });
+                console.warn(
+                  `[turn] post-charge insufficient (needed ${totalCredits}, had ${remaining}) — clamp-charged ${remaining} to 0 (no free turn). clamp ok=${clamp.ok}`,
+                );
+              } else {
+                console.warn(
+                  `[turn] post-charge insufficient and balance already 0 — turn served, nothing to clamp.`,
+                );
+              }
             } else if (chargeResult.error === "forbidden") {
               // Should be impossible because RPC checks auth.uid() = p_user_id
               // and we pass user.id from getUser() — but log loudly if it ever fires.
