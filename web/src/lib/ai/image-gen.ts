@@ -346,35 +346,31 @@ async function callImageProvider(
 /**
  * Estimate credits to charge per image gen.
  *
- * Wave 3 audit (2026-05-28) verified real OpenRouter cost:
- *   Gemini 2.5 Flash Image: token-based ~$0.005/image
- *   GPT-5.4-image-2:        token-based ~$0.024/image (Pro ~$0.045)
- *   Grok Imagine:           $0.05/image flat
+ * 2026-06-08 (audit · hard rule #36 spec-vs-code): the old SFW prices assumed a
+ * cheap Gemini provider ($0.005), but `gpt-image-2` is a non-working CrazyRouter
+ * slug so ALL non-adult images actually fall back to grok-4-image (~$0.05/image,
+ * the same provider+cost as adult). The 50/80-credit SFW prices were therefore
+ * ~0% margin. Re-priced to match the real Grok cost (parity with adult), keeping
+ * the platform's standard ~2× markup. If a genuinely cheaper SFW slug is found,
+ * restore the lower numbers + the cheap-provider routing together.
  *
- * Pricing (margin 50-90%):
- *   SFW illustration (Gemini $0.005)        → 50 credits ($0.05) · 90% margin
- *   SFW wallpaper (Gemini $0.005)           → 80 credits ($0.08) · 94% margin
- *   SFW comic (GPT-5.4-image-2 $0.024)      → 100 credits ($0.10) · 76% margin
- *   SFW comic Pro (GPT-5.4-image-2 $0.045)  → 200 credits ($0.20) · 78% margin
- *   Adult illustration (Grok Imagine $0.05) → 100 credits ($0.10) · 50% margin
- *   Adult wallpaper (Grok Imagine $0.05)    → 120 credits ($0.12) · 58% margin
- *   Adult comic (GPT-5.4-image-2 · routed)  → 200 credits (Pro pricing)
- *   Character portrait (provider-matched)   → 40 credits
+ * Real cost (CrazyRouter): grok-4-image ~$0.05/image · GPT-5.4-image-2 ~$0.045 (comic).
+ * Pricing (≈2× markup):
+ *   illustration (Grok $0.05) → 100 credits ($0.10)
+ *   wallpaper    (Grok $0.05) → 120 credits ($0.12)
+ *   comic        (GPT/Grok)   → 100 / Pro 200 credits
+ *   Character portrait        → 40 credits
  */
 export function estimateImageCredits(
   contentRating: "sfw" | "soft" | "adult",
   imageType: ImageType,
   proQuality: boolean = false,
 ): number {
-  if (contentRating === "adult") {
-    // Adult+comic uses GPT-5.4-image-2 Pro routing (CJK text rendering)
-    if (imageType === "comic") return 200;
-    return imageType === "wallpaper" ? 120 : 100;
-  }
-  if (imageType === "illustration") return 50;
-  if (imageType === "wallpaper") return 80;
-  // comic (SFW/soft)
-  return proQuality ? 200 : 100;
+  // Non-adult now runs on grok-4-image (same provider+cost as adult) — price at
+  // parity rather than the retired cheap-Gemini assumption.
+  if (imageType === "comic") return contentRating === "adult" || proQuality ? 200 : 100;
+  if (imageType === "wallpaper") return 120;
+  return 100; // illustration (all ratings · Grok)
 }
 
 /** Cost to generate one character portrait. Same for all providers. */

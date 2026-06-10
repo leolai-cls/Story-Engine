@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { getActiveTier } from "@/lib/billing/credits";
-import { MODELS, TIER_GATE, type ModelTier } from "@/lib/ai/models";
+import { MODELS, TIER_GATE, SUBSCRIPTION_TIER_ORDER, type ModelTier } from "@/lib/ai/models";
 
 /**
  * Session 14 · Server action for NPC L3 opt-in toggle (founder Q4 sign-off).
@@ -78,8 +78,10 @@ export async function setNpcL3Enabled(
   // downgraded user can't keep flipping it on. Matches the turn route gate.
   if (enabled) {
     const activeTier = await getActiveTier(supabase, user.id);
-    const order = ["free", "adventurer", "storyteller", "legend"] as const;
-    if (order.indexOf(activeTier) < order.indexOf(TIER_GATE.pro)) {
+    if (
+      SUBSCRIPTION_TIER_ORDER.indexOf(activeTier) <
+      SUBSCRIPTION_TIER_ORDER.indexOf(TIER_GATE.pro)
+    ) {
       return {
         ok: false,
         errorCode: "play.npcL3TierRequired",
@@ -182,8 +184,10 @@ export async function setPlaythroughModel(
   // Tier gate · active tier must unlock the model's pool
   const activeTier = await getActiveTier(supabase, user.id);
   const requiredSub = TIER_GATE[model.tier_pool as ModelTier];
-  const order = ["free", "adventurer", "storyteller", "legend"] as const;
-  if (order.indexOf(activeTier) < order.indexOf(requiredSub)) {
+  if (
+    SUBSCRIPTION_TIER_ORDER.indexOf(activeTier) <
+    SUBSCRIPTION_TIER_ORDER.indexOf(requiredSub)
+  ) {
     return {
       ok: false,
       errorCode: "play.modelTierRequired",

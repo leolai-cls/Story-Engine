@@ -635,8 +635,8 @@
     "cardTitle": "NPC inner voices",
     "upsellBody": "Every NPC gets their own POV + inner monologue · richer dialogue · Storyteller-tier exclusive.",
     "upsellCta": "Upgrade to Storyteller →",
-    "activeDescription": "Active · each NPC has POV · ~{cost} credits / NPC (up to {max} per turn)",
-    "inactiveDescription": "When enabled, each active NPC gets their own inner monologue · ~{cost} credits / NPC (up to {max} per turn)",
+    "activeDescription": "Active · each NPC has POV · billed by actual usage",
+    "inactiveDescription": "When enabled, each active NPC gets their own inner monologue · billed by actual usage",
     "buttonOn": "Disable NPC inner voices",
     "buttonOff": "Enable NPC inner voices",
     "buttonPending": "Processing..."

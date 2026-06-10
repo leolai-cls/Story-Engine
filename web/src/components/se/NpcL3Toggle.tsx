@@ -4,7 +4,6 @@ import { useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { Drama } from "lucide-react";
 import { setNpcL3Enabled } from "@/app/[locale]/play/[playthroughId]/actions";
-import { NPC_L3_CREDITS_PER_NPC, MAX_NPC_L3_AGENTS_PER_TURN } from "@/schemas/npc-agent";
 
 /**
  * Session 14 · NPC L3 Agents opt-in toggle (founder Q4 sign-off: button-click only).
@@ -97,7 +96,9 @@ export function NpcL3Toggle({
   }
 
   // Storyteller / Legend tier — toggle
-  const maxCost = MAX_NPC_L3_AGENTS_PER_TURN * NPC_L3_CREDITS_PER_NPC;
+  // 2026-06-08 (audit · hard rule #4 UI≠ledger): NPC voices are billed by ACTUAL
+  // tokens (turn route npcAgentUsage), not a flat per-NPC rate — the copy now says
+  // usage-based instead of quoting a fixed number that understated adult/Grok cost.
   return (
     <div
       className="rounded-lg border p-3"
@@ -128,9 +129,7 @@ export function NpcL3Toggle({
             )}
           </div>
           <div className="text-xs leading-relaxed mb-2" style={{ color: "var(--se-fg-dim)" }}>
-            {enabled
-              ? tCard("activeDescription", { cost: NPC_L3_CREDITS_PER_NPC, max: maxCost })
-              : tCard("inactiveDescription", { cost: NPC_L3_CREDITS_PER_NPC, max: maxCost })}
+            {enabled ? tCard("activeDescription") : tCard("inactiveDescription")}
           </div>
           <button
             type="button"

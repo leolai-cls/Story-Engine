@@ -635,8 +635,8 @@
     "cardTitle": "NPC 内心戏",
     "upsellBody": "每个 NPC 都有自己的 POV + 心理活动 · 对话更深层 · Storyteller 订阅独享 feature。",
     "upsellCta": "升级 Storyteller 解锁 →",
-    "activeDescription": "Active · 每个 NPC 有 POV · 多 ~{cost} credits / NPC (up to {max} per turn)",
-    "inactiveDescription": "启动后每个 active NPC 都有自己的内心戏 · 多 ~{cost} credits / NPC (up to {max} per turn)",
+    "activeDescription": "Active · 每个 NPC 有 POV · 按实际用量计费",
+    "inactiveDescription": "启动后每个 active NPC 都有自己的内心戏 · 按实际用量计费",
     "buttonOn": "关闭 NPC 内心戏",
     "buttonOff": "启动 NPC 内心戏",
     "buttonPending": "处理中..."

@@ -65,16 +65,6 @@ export type LorebookEntry = {
   hybrid_score?: number;
 };
 
-/**
- * Phase 1 — MemoryHints input from Director.
- * Mirrors `MemoryHintsSchema` in @/schemas/director · duplicated here to avoid
- * circular dependency (director.ts → retriever.ts via ctx).
- */
-export type RetrieverMemoryHints = {
-  rooms_to_load: string[];
-  wings_to_load: string[];
-};
-
 export type MemoryRetrievalResult = {
   /** Recent turns the caller already loaded — passed through for completeness. */
   recentTurns: RecentTurn[];
@@ -276,113 +266,14 @@ function applyHybridScoring(
     .sort((a, b) => (b.hybrid_score ?? 0) - (a.hybrid_score ?? 0));
 }
 
-/**
- * Phase 1 — refine lorebook retrieval given Director's memory hints.
- *
- * Called by turn route AFTER Director returns hints (if non-empty). Replaces
- * the initial semantic top-K matched lorebook with hint-guided selective
- * retrieval. Hybrid scored + trimmed to config K.
- *
- * Returns empty array if RPCs fail (caller keeps original retrieval).
- *
- * Reuses the SAME queryEmbedding from the first retrieval pass · no extra
- * embedding API call.
- */
-export async function refineLorebookByHints(params: {
-  supabase: SupabaseClient;
-  playthroughId: string;
-  queryEmbedding: number[];
-  userAction: string;
-  hints: RetrieverMemoryHints;
-  config?: Partial<RetrieverConfig>;
-}): Promise<LorebookEntry[]> {
-  const cfg = { ...DEFAULT_CONFIG, ...params.config };
-  const { supabase, playthroughId, queryEmbedding, userAction, hints } = params;
+// C2 cleanup (2026-06-08 · audit): refineLorebookByHints + rebuildContextString
+// (the Director memory-hints selective-retrieval refinement pass) removed — their
+// only caller was the turn route's hints block, gated on the GM's memory hints,
+// inert since the light-core pivot (ADR-006). The match_lorebook_by_rooms RPC
+// stays in the DB (Wave-2 candidate · harmless unused).
 
-  if (hints.rooms_to_load.length === 0 && hints.wings_to_load.length === 0) {
-    return [];
-  }
-
-  try {
-    const { data, error } = await supabase.rpc("match_lorebook_by_rooms", {
-      p_playthrough_id: playthroughId,
-      p_query_embedding: queryEmbedding,
-      p_wings: hints.wings_to_load,
-      p_rooms: hints.rooms_to_load,
-      p_match_count: cfg.lorebookK * 2,
-      p_min_similarity: cfg.lorebookMinSimilarity,
-    });
-    if (error) {
-      const msg = String(error.message ?? "");
-      if (/does not exist/i.test(msg)) {
-        console.warn("[retriever] match_lorebook_by_rooms RPC missing — apply Migration 0023");
-      }
-      return [];
-    }
-    const candidates = (data as LorebookEntry[]) ?? [];
-    if (candidates.length === 0) return [];
-
-    // Enrich with keywords + updated_at for hybrid scoring
-    const ids = candidates.map((e) => e.id);
-    const { data: enrichRows } = await supabase
-      .from("lorebook_entries")
-      .select("id, keywords, updated_at")
-      .in("id", ids);
-    const enrichById = new Map<string, { keywords: string[] | null; updated_at: string }>();
-    for (const row of enrichRows ?? []) {
-      enrichById.set(row.id as string, {
-        keywords: (row.keywords as string[] | null) ?? null,
-        updated_at: row.updated_at as string,
-      });
-    }
-    const enriched = candidates.map((e) => {
-      const enr = enrichById.get(e.id);
-      return {
-        ...e,
-        keywords: enr?.keywords ?? [],
-        updated_at: enr?.updated_at,
-      };
-    });
-
-    const userTokens = new Set(extractTokens(userAction));
-    return applyHybridScoring(enriched, userTokens).slice(0, cfg.lorebookK);
-  } catch (e) {
-    console.warn("[retriever] refineLorebookByHints failed:", e instanceof Error ? e.message : e);
-    return [];
-  }
-}
-
-/**
- * Phase 1 — re-build the memory context string given a swapped lorebook set.
- * Exposed for turn route to call after refineLorebookByHints.
- */
-/**
- * Phase 1 — re-build the memory context string given a swapped lorebook set.
- * Exposed for turn route to call after refineLorebookByHints.
- *
- * Wave 1 audit C-03 fix (2026-05-27): accepts `language` so the LTM block
- * headers + anti-quote preamble appear in the story's language. Previously
- * hardcoded 繁中 → EN / zh-Hans stories had a 200+ char Cantonese system
- * preamble + Cantonese section headers injected into Narrator + Director
- * context every turn → code-switching risk + token waste.
- */
+/** Story language for locale-aware LTM block headers (Wave 1 audit C-03). */
 type LtmLanguage = "zh-Hant" | "zh-Hans" | "en";
-
-export function rebuildContextString(parts: {
-  alwaysOnLorebook: LorebookEntry[];
-  matchedLorebook: LorebookEntry[];
-  summaries: SummaryMatch[];
-  ragTurns: TurnMatch[];
-  language?: LtmLanguage;
-}): string {
-  return buildContextString({
-    alwaysOnLorebook: parts.alwaysOnLorebook,
-    matchedLorebook: parts.matchedLorebook,
-    summaries: parts.summaries,
-    ragTurns: parts.ragTurns,
-    language: parts.language,
-  });
-}
 
 // ─── Main retriever ─────────────────────────────────────────────────────────
 
@@ -393,15 +284,6 @@ export async function retrieveMemory(params: {
   recentTurns: RecentTurn[];
   config?: Partial<RetrieverConfig>;
   /**
-   * Phase 1 — optional memory hints from Director.
-   * If present (rooms_to_load or wings_to_load non-empty), retriever uses
-   * `match_lorebook_by_rooms` RPC for selective retrieval. Otherwise falls
-   * back to top-K semantic match.
-   *
-   * Empty arrays = unconstrained (semantic top-K · default behavior).
-   */
-  memoryHints?: RetrieverMemoryHints;
-  /**
    * Wave 1 audit C-03 fix (2026-05-27): story language for locale-aware LTM
    * block headers + anti-quote preamble. Defaults to "zh-Hant" for callers
    * who haven't been updated yet (legacy preserves original 繁中 behavior).
@@ -409,7 +291,7 @@ export async function retrieveMemory(params: {
   language?: LtmLanguage;
 }): Promise<MemoryRetrievalResult> {
   const cfg = { ...DEFAULT_CONFIG, ...params.config };
-  const { supabase, playthroughId, userAction, recentTurns, memoryHints, language } = params;
+  const { supabase, playthroughId, userAction, recentTurns, language } = params;
 
   // Pre-tokenize user action ONCE · reused across hybrid scoring loops.
   const userTokenSet = new Set(extractTokens(userAction));
@@ -438,29 +320,17 @@ export async function retrieveMemory(params: {
   // AUDIT FIX (P2-UX-C-02): pass per-source similarity floor so low-quality
   // matches don't bloat the prompt with irrelevant noise.
   // AUDIT FIX (P2-PERF-H-07): cap always_on count + sort by recent-update.
-  // PHASE 1: if memoryHints specified → use match_lorebook_by_rooms (selective);
-  //          else fall back to match_lorebook_entries (semantic top-K).
-  //          Pull 2x lorebook candidates so hybrid scoring has room to re-rank.
-  const useHints =
-    !!memoryHints &&
-    (memoryHints.rooms_to_load.length > 0 || memoryHints.wings_to_load.length > 0);
+  // Pull 2x lorebook candidates so hybrid scoring has room to re-rank.
+  // (C2 cleanup 2026-06-08: the Director memoryHints → match_lorebook_by_rooms
+  // selective branch removed — hints were inert since light-core · ADR-006.)
   const lorebookCandidateCount = cfg.lorebookK * 2;
 
-  const lorebookRpcCall = useHints
-    ? supabase.rpc("match_lorebook_by_rooms", {
-        p_playthrough_id: playthroughId,
-        p_query_embedding: queryEmbedding,
-        p_wings: memoryHints!.wings_to_load,
-        p_rooms: memoryHints!.rooms_to_load,
-        p_match_count: lorebookCandidateCount,
-        p_min_similarity: cfg.lorebookMinSimilarity,
-      })
-    : supabase.rpc("match_lorebook_entries", {
-        p_playthrough_id: playthroughId,
-        p_query_embedding: queryEmbedding,
-        p_match_count: lorebookCandidateCount,
-        p_min_similarity: cfg.lorebookMinSimilarity,
-      });
+  const lorebookRpcCall = supabase.rpc("match_lorebook_entries", {
+    p_playthrough_id: playthroughId,
+    p_query_embedding: queryEmbedding,
+    p_match_count: lorebookCandidateCount,
+    p_min_similarity: cfg.lorebookMinSimilarity,
+  });
 
   const [
     summariesResult,

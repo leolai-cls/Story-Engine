@@ -1,25 +1,14 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { generateText } from "ai";
 import { getProviderModel } from "../providers";
-import { ADULT_NSFW_MODEL, DEFAULT_NARRATOR } from "../models";
+// pickDigestModel lives in models.ts (single source for BOTH this call AND the
+// billing rate in credits.ts · audit dedupe 2026-06-08 · hard rule #4). Why
+// Sonnet not Haiku: real prod data proved Haiku ignores the length budget and
+// won't compress an already-large digest (骰子覺醒 1322→2273 chars on one fold,
+// then truncated forever — the death-spiral). Adult stays on Grok (hard rule #5).
+import { pickDigestModel } from "../models";
 
 type ContentRating = "sfw" | "soft" | "adult";
-
-/**
- * Model for the running digest — the memory BACKBONE, so length-adherence +
- * compression quality matter more than raw cheapness.
- *
- * 2026-06-08 (founder · death-spiral root cause): the digest used to route via
- * pickUtilityModel → Haiku. Real prod data proved Haiku IGNORES the length budget
- * and won't compress an already-large digest (骰子覺醒 grew 1322→2273 chars on a
- * single fold, then truncated forever). Sonnet follows "keep it ≤1800 chars +
- * compress old arcs" reliably → no spiral. Adult MUST stay on Grok (hard rule #5
- * · never run NSFW prose through Anthropic). Cost: digest fires ~every 11 turns ·
- * Sonnet ≈ $0.05/call ≈ +$0.005/turn amortized · negligible for the backbone.
- */
-function pickDigestModel(contentRating: ContentRating): string {
-  return contentRating === "adult" ? ADULT_NSFW_MODEL : DEFAULT_NARRATOR;
-}
 
 /**
  * Summarizer — Consistency engine (2026-06-04 · v3 "running compact").

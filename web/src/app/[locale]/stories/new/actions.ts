@@ -8,12 +8,13 @@ import type { Disposition } from "@/schemas/character";
 import { redirect } from "@/i18n/navigation";
 import { getLocale } from "next-intl/server";
 import { revalidatePath } from "next/cache";
-import { DEFAULT_NARRATOR, MODELS, type ModelTier } from "@/lib/ai/models";
+import { DEFAULT_NARRATOR, MODELS, npcVoicesCapForTier, type ModelTier } from "@/lib/ai/models";
 import { pickModelForTier } from "@/lib/ai/tier-router";
 import {
   chargeCredits,
   computeCredits,
   estimateStoryCreationCredits,
+  getActiveTier,
   getBalanceAndCheck,
   userTierAllowsModel,
 } from "@/lib/billing/credits";
@@ -395,6 +396,33 @@ export async function createStoryFromPrompt(
     return { ok: false, errorCode: "createStory.playthroughInsertFailed" };
   }
 
+  // PART C (2026-06-08 · founder): NPC 內心戲 auto-ON by default for any paid
+  // tier that can use it (npcVoicesCapForTier > 0 · adventurer+ · matches the
+  // toggle gate in setNpcL3Enabled + the turn-route gate). Set via a SEPARATE
+  // guarded update (not the main insert) so a DB tier-trigger reject or a missing
+  // column can never fail story creation (hard rule #12). The user can still
+  // toggle it off in-play.
+  try {
+    const activeTier = await getActiveTier(supabase, user.id);
+    if (npcVoicesCapForTier(activeTier) > 0) {
+      const { error: npcErr } = await supabase
+        .from("playthroughs")
+        .update({ npc_l3_enabled: true })
+        .eq("id", playthrough.id);
+      if (npcErr) {
+        console.warn(
+          "[createStory] NPC L3 default-on skipped (tier trigger / column):",
+          npcErr.message,
+        );
+      }
+    }
+  } catch (e) {
+    console.warn(
+      "[createStory] NPC L3 default-on threw (non-fatal):",
+      e instanceof Error ? e.message : e,
+    );
+  }
+
   // Initialize per-character disposition states
   const charStates = insertedChars.map((c) => ({
     playthrough_id: playthrough.id,
@@ -428,12 +456,13 @@ export async function createStoryFromPrompt(
   }
 
   // AUDIT FIX (P3-LOGIC-H-04 / P3-COST-M-06): charge ACTUAL schema-gen
-  // cost using real token usage returned from generateStory. Previously
-  // charged a flat estimate that was 30-50% off depending on prompt
-  // complexity and retry behavior. Now: real input/output/cached tokens
-  // flow into computeCredits → fair charge to user, accurate margin to us.
+  // cost using real token usage returned from generateStory.
+  // 2026-06-08 (audit fix · hard rule #4): the charge model was hardcoded
+  // Sonnet but generateStory actually runs on Haiku (schema-generator MODEL =
+  // claude-haiku-4-5) → users were over-charged ~3× on story creation. Charge
+  // at the model that actually ran. Keep this in sync if MODEL there changes.
   const actualStoryCost = computeCredits({
-    modelId: "claude-sonnet-4-6",
+    modelId: "claude-haiku-4-5",
     inputTokens: generated.usage.inputTokens,
     outputTokens: generated.usage.outputTokens,
     cachedInputTokens: generated.usage.cachedInputTokens,

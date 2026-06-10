@@ -6,7 +6,6 @@ import {
   NpcAgentOutputSchema,
   MAX_NPC_L3_AGENTS_PER_TURN,
   NPC_AGENT_TIMEOUT_MS,
-  NPC_L3_CREDITS_PER_NPC,
   type NpcAgentOutput,
 } from "@/schemas/npc-agent";
 import { characterCardStaticTemplate, type CharacterCard, type Disposition, type NpcDynamicState } from "@/schemas/character";
@@ -463,8 +462,6 @@ export type NpcAgentBatchResult = {
   outputs: NpcAgentOutput[];
   /** Per-agent detailed results (for telemetry + DB persist with model_id) */
   details: NpcAgentResult[];
-  /** Total credits to charge (founder Q3 · 6 credits per successful agent) */
-  creditsCharged: number;
 };
 
 /**
@@ -472,8 +469,10 @@ export type NpcAgentBatchResult = {
  * Promise.allSettled → tolerates 1-of-N failure (F-03 mitigation).
  * Returns successful outputs + per-agent details (for DB persist).
  *
- * COST: ~$0.0029 per agent · creditsCharged = successfulAgents × 6.
- * Founder rule: only successful agents charged · failed agents free (UX).
+ * BILLING: by ACTUAL tokens per successful agent — the turn route reads
+ * `details[].usage` into npcAgentUsage → computeTurnCredits (founder 2026-06-04 ·
+ * the old flat-6-credits return was dead and removed · C2 cleanup 2026-06-08).
+ * Failed agents are free (UX).
  */
 export async function callNpcAgentsParallel(
   input: NpcAgentBatchInput,
@@ -481,7 +480,7 @@ export async function callNpcAgentsParallel(
   const { activeCharacters, userAction, recentTurns, storyLanguage, contentRating, supabase, playthroughId } = input;
 
   if (activeCharacters.length === 0) {
-    return { outputs: [], details: [], creditsCharged: 0 };
+    return { outputs: [], details: [] };
   }
 
   if (activeCharacters.length > MAX_NPC_L3_AGENTS_PER_TURN) {
@@ -563,16 +562,11 @@ export async function callNpcAgentsParallel(
     }
   }
 
-  // Credit charge · only successful agents · founder Q3 sign-off
-  // (failed agents = free per UX consideration · don't charge for service failure)
-  // Wave 2 fix CRIT-C: use NPC_L3_CREDITS_PER_NPC constant (single source of truth)
-  const creditsCharged = outputs.length * NPC_L3_CREDITS_PER_NPC;
-
   console.log(
-    `[npc-agents] ${outputs.length}/${capped.length} succeeded · creditsCharged=${creditsCharged} · models=[${[
+    `[npc-agents] ${outputs.length}/${capped.length} succeeded · models=[${[
       ...new Set(details.map((d) => d.modelId)),
     ].join(",")}]`,
   );
 
-  return { outputs, details, creditsCharged };
+  return { outputs, details };
 }

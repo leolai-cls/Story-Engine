@@ -29,26 +29,14 @@ import { callNpcAgentsParallel } from "@/lib/ai/npc-agents";
 import { deriveActiveCharacters } from "@/lib/ai/active-characters";
 import type { Disposition, NpcDynamicState } from "@/schemas/character";
 import { type SkillCheckResult, rollSkillCheck, numericSkillKeys } from "@/lib/ai/skill-check";
-import { type GameSystem } from "@/schemas/game-system";
+import { GameSystemSchema, type GameSystem } from "@/schemas/game-system";
 import { applyDelta } from "@/schemas/state-delta";
 import { initialStateFromSchema, StateSchemaShape } from "@/schemas/state-schema";
 import { StoryBibleSchema } from "@/schemas/bible";
 // ─── Phase 2 memory layer ────────────────────────────────────────────────
-import {
-  retrieveMemory,
-  refineLorebookByHints,
-  rebuildContextString,
-} from "@/lib/ai/memory/retriever";
+import { retrieveMemory } from "@/lib/ai/memory/retriever";
 import { maybeRunSummarization } from "@/lib/ai/memory/summarizer";
 import { runLorebookExtraction } from "@/lib/ai/memory/lorebook";
-import {
-  writeCharacterExperiences,
-  SOUL_UPGRADE_THRESHOLD,
-} from "@/lib/ai/character/experience-writer";
-import {
-  parsePendingTensions,
-  accumulateTensions,
-} from "@/lib/ai/character/sediment";
 import {
   parseMentionRoster,
   mergeMentionRoster,
@@ -57,6 +45,7 @@ import {
 import { embedTextSafe } from "@/lib/ai/embed";
 // ─── Phase 3 credits ─────────────────────────────────────────────────────
 import {
+  BACKGROUND_RESERVE_TOKENS,
   chargeCredits,
   computeCredits,
   computeTurnCredits,
@@ -150,7 +139,10 @@ export async function POST(
     .select(
       // Wave 2 fix CRIT-A: include npc_l3_enabled · was missing → L3 path dead
       // 2026-05-29: include thinking_mode_enabled (founder deep-thinking toggle · Migration 0046)
-      "id, user_id, story_id, character_name, current_state, llm_model, turn_count, npc_l3_enabled, thinking_mode_enabled, mention_roster",
+      // 2026-06-08 (audit perf): running_summary folded into this select — was a
+      // separate guarded query for migration-0060 decoupling; 0060 is live in prod,
+      // so the split only cost an extra serial round-trip per turn.
+      "id, user_id, story_id, character_name, current_state, llm_model, turn_count, npc_l3_enabled, thinking_mode_enabled, mention_roster, running_summary",
     )
     .eq("id", playthroughId)
     .single();
@@ -287,7 +279,9 @@ export async function POST(
 
   const { data: story, error: storyErr } = await supabase
     .from("stories")
-    .select("title, description, state_schema, story_bible, content_rating")
+    // 2026-06-08 (audit perf): game_system folded into this select — was a
+    // separate guarded query for migration-0061 decoupling; 0061 is live in prod.
+    .select("title, description, state_schema, story_bible, content_rating, game_system")
     .eq("id", pt.story_id)
     .single();
   if (storyErr || !story) {
@@ -502,22 +496,16 @@ export async function POST(
   // Consistency v3 (2026-06-04) · cumulative running digest — ALWAYS-present
   // "story so far" (plot + character relationships as prose · Claude-compact
   // shape). Fenced as internal reference (don't quote verbatim · narrator weaves
-  // it). Empty until the first compact (~turn 8). Read in a SEPARATE guarded
-  // query (NOT the main pt select) so the turn degrades gracefully if migration
-  // 0060 isn't applied yet (column missing → no digest · hard rule #12 decoupling)
-  // instead of 500-ing the whole turn. Built with the story language so the
-  // fence header matches; consumed by buildDynamicSystemPrompt. The fence line
-  // starts with "[INTERNAL CONTEXT" + "DO NOT QUOTE" so the existing leak
-  // sanitizer recognises it if the narrator ever echoes it (no new output filter).
+  // it). Empty until the first compact (~turn 8). 2026-06-08 (audit perf): read
+  // from the main pt select (migration 0060 live in prod · the old separate
+  // guarded query cost an extra serial round-trip per turn). Built with the
+  // story language so the fence header matches; consumed by
+  // buildDynamicSystemPrompt. The fence line starts with "[INTERNAL CONTEXT" +
+  // "DO NOT QUOTE" so the existing leak sanitizer recognises it if echoed.
   {
-    const { data: rsRow, error: rsErr } = await supabase
-      .from("playthroughs")
-      .select("running_summary")
-      .eq("id", playthroughId)
-      .single();
-    const runningSummary = rsErr
-      ? ""
-      : (((rsRow as { running_summary?: string | null } | null)?.running_summary ?? "").trim());
+    const runningSummary = (
+      ((pt as { running_summary?: string | null }).running_summary ?? "")
+    ).trim();
     if (runningSummary) {
       const fence =
         storyLanguage === "en"
@@ -546,19 +534,6 @@ export async function POST(
   // persist Director token spend in the turn ledger.
   let verdict;
   let directorUsage: { inputTokens?: number; outputTokens?: number; cachedInputTokens?: number } = {};
-  // Phase 1 — MemPalace memory hints + NPC Level 2 dynamic state
-  // (persistence wired in P1.4 · for now log + structurally available)
-  let directorMemoryHints: { rooms_to_load: string[]; wings_to_load: string[] } = {
-    rooms_to_load: [],
-    wings_to_load: [],
-  };
-  let directorNpcUpdates: Array<{
-    character_name: string;
-    emotional_shift: "positive" | "neutral" | "negative";
-    current_goal: string;
-    current_mood: string;
-    topic_focus: string;
-  }> = [];
   let directorSceneBoundary = false; // Phase 1 — Director marks scene-end
   // AUDIT FIX F-03 (Wave 2): track Director failure for ops/audit visibility ·
   // persisted into turns.director_verdict so postmortems can distinguish
@@ -573,99 +548,11 @@ export async function POST(
   // 舊 Director scaffolding 嘅 dead block 留待 cleanup PR 一次過清。
   verdict = { verdict: "allow" as const, reasoning: "" };
 
-  // 4.2 PHASE 1 — NPC Level 2 dynamic state apply (in-memory)
-  // Director emitted npc_updates · refresh ctx.characters[].dynamic_state so
-  // Narrator's prompt sees the updated mood / goal / focus / trajectory.
-  // Persistence to DB happens in after() block (non-blocking · Migration 0024
-  // apply_npc_dynamic_state RPC). If RPC missing, in-memory update still
-  // benefits THIS turn's Narrator quality.
-  //
-  // PR2 (ADR-001 · GM 唔做判官): 移除舊 reject-gate。verdict 唔再決定 NPC 反應方向。
-  // npc_updates 而家只係**今回合 prep hint** (transitional · decision 12) — Director
-  // 預估 NPC 當下心情餵俾 Narrator。canonical NPC 狀態應改由 final narrative / extractor
-  // 後處理更新 (follow-up · 見 play-command-fix-plan.md)。reject 唔再 skip / 清空。
-  const shouldApplyNpcUpdates = directorNpcUpdates.length > 0;
-  if (shouldApplyNpcUpdates) {
-    for (const upd of directorNpcUpdates) {
-      const ch = ctx.characters.find(
-        (c) => c.card.name.trim().toLowerCase() === upd.character_name.trim().toLowerCase(),
-      );
-      if (!ch) continue; // Director hallucinated an NPC name · skip silently
-      const prev = (ch.dynamic_state ?? {}) as Record<string, unknown>;
-      type TrajectoryEntry = {
-        shift: "positive" | "neutral" | "negative";
-        turn: number;
-        mood: string;
-      };
-      const isValidShift = (s: unknown): s is TrajectoryEntry["shift"] =>
-        s === "positive" || s === "neutral" || s === "negative";
-      const prevTrajectoryRaw = Array.isArray(prev.emotional_trajectory)
-        ? (prev.emotional_trajectory as Array<{ shift?: unknown; turn?: unknown; mood?: unknown }>)
-        : [];
-      const prevTrajectory: TrajectoryEntry[] = prevTrajectoryRaw
-        .filter(
-          (t): t is TrajectoryEntry =>
-            isValidShift(t.shift) &&
-            typeof t.turn === "number" &&
-            typeof t.mood === "string",
-        );
-      const newTrajectory: TrajectoryEntry[] = [
-        ...prevTrajectory,
-        { shift: upd.emotional_shift, turn: pt.turn_count + 1, mood: upd.current_mood },
-      ].slice(-8); // keep last 8
-      ch.dynamic_state = {
-        ...prev,
-        current_mood: upd.current_mood,
-        current_goal: upd.current_goal,
-        topic_focus: upd.topic_focus,
-        last_emotional_shift: upd.emotional_shift,
-        last_updated_turn: pt.turn_count + 1,
-        emotional_trajectory: newTrajectory,
-      };
-    }
-  }
-
-  // 4.25 PHASE 1 — MemPalace selective retrieval refinement
-  // If Director provided memory_hints AND we have a queryEmbedding from
-  // first-pass retrieval · re-fetch lorebook with hint-guided RPC + hybrid
-  // scoring (semantic + keyword + temporal). Replaces matched lorebook in
-  // the Narrator's memory context · no extra embedding call (reuses pass-1
-  // embedding) · ~1 RPC + 1 SELECT roundtrip cost.
-  const hintsActive =
-    directorMemoryHints.rooms_to_load.length > 0 ||
-    directorMemoryHints.wings_to_load.length > 0;
-  if (hintsActive && memory.queryEmbedding && memory.pgvectorAvailable) {
-    try {
-      const refinedLorebook = await refineLorebookByHints({
-        supabase,
-        playthroughId,
-        queryEmbedding: memory.queryEmbedding,
-        userAction: action,
-        hints: directorMemoryHints,
-      });
-      if (refinedLorebook.length > 0) {
-        const newContextString = rebuildContextString({
-          alwaysOnLorebook: memory.alwaysOnLorebook,
-          matchedLorebook: refinedLorebook,
-          summaries: memory.summaries,
-          ragTurns: memory.ragTurns,
-          // Wave 1 audit C-03 fix: thread story language through refined LTM rebuild.
-          language: storyLanguage,
-        });
-        memory.matchedLorebook = refinedLorebook;
-        memory.contextString = newContextString;
-        ctx.memoryContextString = newContextString;
-        console.log(
-          `[turn] memory refined by Director hints: ${refinedLorebook.length} lorebook entries (top hybrid ${refinedLorebook[0].hybrid_score?.toFixed(3) ?? "—"})`,
-        );
-      }
-    } catch (e) {
-      console.warn(
-        "[turn] memory refinement failed, keeping initial retrieval:",
-        e instanceof Error ? e.message : e,
-      );
-    }
-  }
+  // C2 cleanup (2026-06-08 · audit): the old Director NPC-Level-2 dynamic-state
+  // apply block and the MemPalace memory-hints lorebook-refine block lived here.
+  // Both were gated on directorNpcUpdates / directorMemoryHints, which are inert
+  // [] / {} since the light-core pivot removed the GM (ADR-006) → they never ran.
+  // Removed (with refineLorebookByHints / rebuildContextString in retriever.ts).
 
   // 4.27 — NPC 內心戲 (Deep Mode · Pro opt-in · 2026-06-04 rebuild).
   // GM-free trigger: derive on-stage characters from the player's action + the
@@ -771,23 +658,21 @@ export async function POST(
   ctx.mentionRosterBlock = formatMentionRosterBlock(currentRoster, knownMainNames);
 
   // ─── Deep Mode ② · 擲骰模式 (dice · story-intrinsic · GM-free) ───────────
-  // Read the story's game_system declaration (guarded · resilient if migration
-  // 0061 isn't applied → no dice). Enable the roll_check tool ONLY when: the
-  // story is a dice/mixed mechanic AND the narrator is Claude (Anthropic · the
-  // blank-turn-via-tool problem was CrazyRouter-only · adult Grok degrades to
-  // narrator-judged) AND deep-thinking is off (keep tools + extended-thinking
-  // from co-occurring for v1). The roll's STATE effect flows through the prose →
-  // the post-turn extractor (the tool doesn't mutate state directly).
+  // Enable the roll_check tool ONLY when: the story is a dice/mixed mechanic AND
+  // the narrator is Claude (Anthropic · the blank-turn-via-tool problem was
+  // CrazyRouter-only · adult Grok degrades to narrator-judged) AND deep-thinking
+  // is off (keep tools + extended-thinking from co-occurring for v1). The roll's
+  // STATE effect flows through the prose → the post-turn extractor (the tool
+  // doesn't mutate state directly).
+  // 2026-06-08 (audit · hard rule #16 + perf): game_system comes from the main
+  // story select (migration 0061 live) and is Zod-validated at the boundary —
+  // malformed jsonb degrades to "no dice" rather than feeding junk downstream.
   let gameSystem: GameSystem | null = null;
   {
-    const { data: gsRow, error: gsErr } = await supabase
-      .from("stories")
-      .select("game_system")
-      .eq("id", pt.story_id)
-      .single();
-    if (!gsErr && gsRow) {
-      gameSystem = (gsRow as { game_system?: GameSystem | null }).game_system ?? null;
-    }
+    const gsParsed = GameSystemSchema.safeParse(
+      (story as { game_system?: unknown }).game_system,
+    );
+    gameSystem = gsParsed.success ? gsParsed.data : null;
   }
   const diceNarratorIsAnthropic =
     MODELS[pt.llm_model ?? "claude-sonnet-4-6"]?.provider === "anthropic";
@@ -1454,7 +1339,16 @@ export async function POST(
           playthroughUpdate.turn_count = pt.turn_count + 2;
           playthroughUpdate.last_played_at = new Date().toISOString();
         }
-        await supabase
+        // 2026-06-08 (audit · security): current_state / mention_roster /
+        // turn_count are SERVER-MANAGED columns now locked from direct user
+        // writes by the protect_playthrough_server_columns trigger (they're
+        // injected verbatim into the narrator prompt; a user editing their own
+        // current_state could push unmoderated text to Anthropic — hr#5 bypass).
+        // Persist via service-role (ownership already verified at the top of this
+        // route · `.eq(id)` scopes to the one owned row · same trust model as the
+        // after() embed/summarizer writes).
+        const svcPersist = createServiceRoleClient();
+        await svcPersist
           .from("playthroughs")
           .update(playthroughUpdate)
           .eq("id", playthroughId);
@@ -1507,22 +1401,12 @@ export async function POST(
                   (directorUsage.cachedInputTokens ?? 0) + (extractorUsage.cachedInputTokens ?? 0),
               },
               // Estimated background work — these run via after() shortly
-              // after charge. Variance absorbed by 2× markup buffer.
-              lorebook: { inputTokens: 2000, outputTokens: 500 },
-              // Consistency v3 (digest→Sonnet 2026-06-08): running digest every
-              // ~11 turns on a cumulative input (~7500 in / 1400 out per compact on
-              // Sonnet) → amortized ~1/11 ≈ 700/140 per turn (non-adult Sonnet ·
-              // adult Grok · priced via digestModelForRating · honest costing).
-              summarizer: { inputTokens: 700, outputTokens: 140 },
-              embedTokens: 400,
-              // Character Soul (Audit HIGH-1 fix): 經歷日誌+信念背景 Haiku call ·
-              // 只喺今回合有 active 角色 (可能升級) 先 reserve。charge 喺 after()
-              // 升級判斷之前 · 所以保守：有 active 角色就 reserve (略高估好過唔收 ·
-              // hard rule #20)。估 ~1500 in / 300 out (大部分 turn entries:[] 但 input 照付)。
-              experience:
-                directorNpcUpdates.length > 0
-                  ? { inputTokens: 1500, outputTokens: 300 }
-                  : undefined,
+              // after charge. Variance absorbed by 2× markup buffer. Shared with
+              // estimateTurnCredits via BACKGROUND_RESERVE_TOKENS (audit dedupe
+              // 2026-06-08 · gate and charge can never desync · hard rule #4).
+              lorebook: BACKGROUND_RESERVE_TOKENS.lorebook,
+              summarizer: BACKGROUND_RESERVE_TOKENS.summarizer,
+              embedTokens: BACKGROUND_RESERVE_TOKENS.embedTokens,
               // Deep Mode · NPC 內心戲 — billed by ACTUAL tokens per successful
               // agent (founder 2026-06-04 · same path as narrator · never lossy).
               npcAgents: npcAgentUsage,
@@ -1589,11 +1473,35 @@ export async function POST(
                 }
               }
             } else if (chargeResult.error === "insufficient_credits") {
-              // Should NOT happen because pre-check passed, but defensive log.
-              // Phase 3 Wave 2 will add refund saga; for now flag for admin review.
-              console.error(
-                `[turn] post-charge insufficient_credits (current=${chargeResult.currentBalance}, needed=${chargeResult.needed}) — turn already streamed; flagging for refund/review`,
-              );
+              // The pre-charge gate passed on an ESTIMATE but the real turn cost
+              // exceeded it (long context / cache miss / NPC group scene), and the
+              // atomic RPC refused the full charge (would go negative). 2026-06-08
+              // (audit · hard rule #4): rather than give the whole turn away free,
+              // CLAMP-charge the remaining balance (drains to 0) so the user pays
+              // what they have. Bounded one-time under-charge (= the reserve gap),
+              // never a fully free turn. The user is then at 0 → next turn is gated.
+              const remaining = chargeResult.currentBalance ?? 0;
+              if (remaining > 0) {
+                const clamp = await chargeCredits(supabase, {
+                  userId: user.id,
+                  delta: -remaining,
+                  reason: "turn_charge",
+                  refType: "turn",
+                  refId: aiTurnIdForCharge,
+                  metadata: {
+                    clamped: true,
+                    intended: totalCredits,
+                    narrator_model: pt.llm_model ?? "claude-sonnet-4-6",
+                  },
+                });
+                console.warn(
+                  `[turn] post-charge insufficient (needed ${totalCredits}, had ${remaining}) — clamp-charged ${remaining} to 0 (no free turn). clamp ok=${clamp.ok}`,
+                );
+              } else {
+                console.warn(
+                  `[turn] post-charge insufficient and balance already 0 — turn served, nothing to clamp.`,
+                );
+              }
             } else if (chargeResult.error === "forbidden") {
               // Should be impossible because RPC checks auth.uid() = p_user_id
               // and we pass user.id from getUser() — but log loudly if it ever fires.
@@ -1685,177 +1593,18 @@ export async function POST(
             }
           });
 
-          // PHASE 1 · Migration 0024 — persist NPC Level 2 dynamic state
-          // (mood / goal / focus / emotional_trajectory). Director output was
-          // already applied IN-MEMORY pre-Narrator so this turn's prompt sees
-          // it · this block just durably writes it for next turn's retrieval.
-          //
-          // Service-role only (apply_npc_dynamic_state grant restricted ·
-          // see Migration 0024 grants section).
-          if (directorNpcUpdates.length > 0) {
-            after(async () => {
-              try {
-                const serviceClient = createServiceRoleClient();
-                for (const upd of directorNpcUpdates) {
-                  const ch = ctx.characters.find(
-                    (c) =>
-                      c.card.name.trim().toLowerCase() ===
-                      upd.character_name.trim().toLowerCase(),
-                  );
-                  if (!ch?.character_id) continue;
-                  const { error: npcErr } = await serviceClient.rpc(
-                    "apply_npc_dynamic_state",
-                    {
-                      p_playthrough_id: playthroughId,
-                      p_character_id: ch.character_id,
-                      p_current_mood: upd.current_mood,
-                      p_current_goal: upd.current_goal,
-                      p_topic_focus: upd.topic_focus,
-                      p_emotional_shift: upd.emotional_shift,
-                      p_turn_index: aiTurnIndex,
-                    },
-                  );
-                  if (npcErr) {
-                    const msg = String(npcErr.message ?? "");
-                    if (/does not exist|function .* does not exist/i.test(msg)) {
-                      console.warn(
-                        "[turn] apply_npc_dynamic_state RPC missing — apply Migration 0024",
-                      );
-                      break; // no point retrying for other NPCs in same loop
-                    }
-                    console.warn(
-                      `[turn] apply_npc_dynamic_state failed for ${upd.character_name}: ${msg}`,
-                    );
-                  }
-                }
-              } catch (e) {
-                console.warn(
-                  "[turn] NPC dynamic state persist exception:",
-                  e instanceof Error ? e.message : e,
-                );
-              }
-            });
-          }
+          // C2 cleanup (2026-06-08 · audit): the Migration-0024 NPC-Level-2
+          // dynamic-state persist block was here, gated on the always-empty
+          // directorNpcUpdates (GM removed · ADR-006) → never ran. Removed. The
+          // apply_npc_dynamic_state RPC + table stay (Wave-2 reuse).
 
-          // ─── Character Soul M1 · 經歷日誌 (pm/architecture/03 + IMPLEMENTATION) ───
-          // 今回合 active 角色 (directorNpcUpdates) → bump interaction_count →
-          // 揾出已升級 (>= SOUL_UPGRADE_THRESHOLD) 嘅 → 寫經歷日誌 (背景 AI call)。
-          // 動態升級 (founder #2): 路人甲 (出場一次) 永遠唔升級 · 慳 call + 慳儲存。
-          // 失敗全部 non-fatal · 唔影響已 save 嘅 turn。
-          if (directorNpcUpdates.length > 0) {
-            after(async () => {
-              try {
-                const serviceClient = createServiceRoleClient();
-                // active 角色 name → character_id
-                const activeChars = directorNpcUpdates
-                  .map((upd) => {
-                    const ch = ctx.characters.find(
-                      (c) =>
-                        c.card.name.trim().toLowerCase() ===
-                        upd.character_name.trim().toLowerCase(),
-                    );
-                    return ch?.character_id
-                      ? { character_id: ch.character_id, name: ch.card.name }
-                      : null;
-                  })
-                  .filter((c): c is { character_id: string; name: string } => c !== null);
-                if (activeChars.length === 0) return;
-
-                // Bump interaction_count atomically (Audit HIGH-1 + M-1 fix):
-                // bump_interaction_count RPC (0053) 係 insert-or-increment 一個
-                // statement · race-safe (跨 instance 並行 turn 唔會 lost update) ·
-                // 自動處理 first-row missing · returning 新 count 俾升級 gate。
-                const upgraded: Array<{ character_id: string; name: string }> = [];
-                for (const ac of activeChars) {
-                  const { data: newCount, error: bumpErr } = await serviceClient.rpc(
-                    "bump_interaction_count",
-                    {
-                      p_playthrough_id: playthroughId,
-                      p_character_id: ac.character_id,
-                    },
-                  );
-                  if (bumpErr) {
-                    console.warn(
-                      `[turn] bump_interaction_count failed for ${ac.name}: ${bumpErr.message}`,
-                    );
-                    continue;
-                  }
-                  if ((newCount as number) >= SOUL_UPGRADE_THRESHOLD) upgraded.push(ac);
-                }
-
-                // 為已升級角色寫經歷日誌 (一個 AI call · bias toward 冇 entry)
-                if (upgraded.length > 0) {
-                  const expResult = await writeCharacterExperiences({
-                    serviceClient,
-                    playthroughId,
-                    turnIndex: aiTurnIndex,
-                    upgraded,
-                    turnText: finalText,
-                    playerAction: action,
-                    language: (storyBible.hard_locked.language === "zh-Hans" ||
-                      storyBible.hard_locked.language === "en"
-                      ? storyBible.hard_locked.language
-                      : "zh-Hant") as "zh-Hant" | "zh-Hans" | "en",
-                    contentRating: (story.content_rating as "sfw" | "soft" | "adult") ?? "sfw",
-                  });
-
-                  // ─── M2 沉澱張力：累加經歷 → 超 threshold 轉 sediment (演化) ───
-                  // 純邏輯 · 無 AI call。pending_tensions 獨立 column (無 RPC race)。
-                  const byChar = new Map<string, typeof expResult.perCharacter>();
-                  for (const e of expResult.perCharacter) {
-                    const arr = byChar.get(e.character_id) ?? [];
-                    arr.push(e);
-                    byChar.set(e.character_id, arr);
-                  }
-                  for (const [charId, exps] of byChar) {
-                    if (exps.length === 0) continue;
-                    // 攞角色 volatility (story_characters · fallback 0.5) + 現有 pending_tensions
-                    const { data: scRow } = await serviceClient
-                      .from("story_characters")
-                      .select("volatility")
-                      .eq("id", charId)
-                      .maybeSingle();
-                    const volatility = (scRow?.volatility as number | null) ?? 0.5;
-                    const { data: ptRow } = await serviceClient
-                      .from("playthrough_character_states")
-                      .select("pending_tensions")
-                      .eq("playthrough_id", playthroughId)
-                      .eq("character_id", charId)
-                      .maybeSingle();
-                    const current = parsePendingTensions(ptRow?.pending_tensions);
-                    const { next, newSediments } = accumulateTensions(
-                      current,
-                      exps.map((e) => ({
-                        weight: e.weight,
-                        affects: e.affects,
-                        what_happened: e.what_happened,
-                        turn_index: aiTurnIndex,
-                      })),
-                      volatility,
-                    );
-                    await serviceClient
-                      .from("playthrough_character_states")
-                      .update({ pending_tensions: next })
-                      .eq("playthrough_id", playthroughId)
-                      .eq("character_id", charId);
-                    if (newSediments.length > 0) {
-                      console.log(
-                        `[turn] character ${charId} 沉澱演化: ${newSediments.map((s) => s.axis).join(", ")}`,
-                      );
-                    }
-                  }
-                }
-              } catch (e) {
-                console.warn(
-                  "[turn] character experience write exception:",
-                  e instanceof Error ? e.message : e,
-                );
-              }
-            });
-          }
-
-          // NPC L3 inner_thoughts persist — REMOVED (light-core cleanup · L3 no
-          // longer runs · npcL3AgentDetails was always empty).
+          // C2 cleanup (2026-06-08 · audit): the Character-Soul write chain
+          // (bump_interaction_count → writeCharacterExperiences → sediment/belief)
+          // was here, gated on the always-empty directorNpcUpdates → never ran
+          // (ADR-006 deferred experience-writing to Wave 2). Removed. The
+          // character_experiences / _beliefs / pending_tensions tables + the
+          // bump_interaction_count RPC stay for Wave 2.
+          // (NPC L3 inner_thoughts persist was already removed in the light-core pass.)
         } else if (technicalFailure && userTurnId && memory.queryEmbedding) {
           // AUDIT FIX (P2-UX-H-07): on refusal, the AI fallback narrative
           // shouldn't enter RAG (canned text has no signal). But the user

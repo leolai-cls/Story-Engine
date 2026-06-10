@@ -8,7 +8,7 @@ import {
   setNpcL3Enabled,
   setThinkingMode,
 } from "@/app/[locale]/play/[playthroughId]/actions";
-import { MODELS, TIER_GATE, type ModelTier } from "@/lib/ai/models";
+import { MODELS, TIER_GATE, SUBSCRIPTION_TIER_ORDER, type ModelTier } from "@/lib/ai/models";
 
 /**
  * Inline chat controls (2026-05-29 founder rule · ChatGPT-style):
@@ -23,7 +23,8 @@ import { MODELS, TIER_GATE, type ModelTier } from "@/lib/ai/models";
 
 type SubTier = "free" | "adventurer" | "storyteller" | "legend";
 
-const SUB_ORDER: SubTier[] = ["free", "adventurer", "storyteller", "legend"];
+// Single source of truth (audit dedupe 2026-06-08) — was a hand-copied array.
+const SUB_ORDER: readonly SubTier[] = SUBSCRIPTION_TIER_ORDER;
 
 // Narrator models surfaced in the picker · order matters (cheap → premium).
 // Session 17 (2026-06-02 · light-core): 非成人全 Claude 直連 · Standard=Sonnet ·
