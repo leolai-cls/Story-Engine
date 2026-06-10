@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { MODELS, DEFAULT_NARRATOR, TIER_GATE, type ModelTier } from "@/lib/ai/models";
+import { MODELS, DEFAULT_NARRATOR, TIER_GATE, SUBSCRIPTION_TIER_ORDER, type ModelTier } from "@/lib/ai/models";
 import { userTierAllowsModel } from "@/lib/billing/credits";
 import { revalidatePath } from "next/cache";
 
@@ -218,8 +218,10 @@ export async function setDefaultTier(
     .single();
   const userSubTier = profile?.subscription_tier ?? "free";
   const requiredSubTier = TIER_GATE[tier];
-  const tierOrder = ["free", "adventurer", "storyteller", "legend"] as const;
-  if (tierOrder.indexOf(userSubTier as (typeof tierOrder)[number]) < tierOrder.indexOf(requiredSubTier)) {
+  if (
+    SUBSCRIPTION_TIER_ORDER.indexOf(userSubTier as (typeof SUBSCRIPTION_TIER_ORDER)[number]) <
+    SUBSCRIPTION_TIER_ORDER.indexOf(requiredSubTier)
+  ) {
     // Wave 2 i18n cycle-6 fix (2026-05-28): drop hardcoded 廣東話 error string.
     // Client (tier-picker) renders body via tier-picker.requiresSubTier with
     // {tier} param. Server only sends code + structured data.

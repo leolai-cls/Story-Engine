@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { tool, generateObject } from "ai";
+import { generateObject } from "ai";
 import { anthropicProvider } from "./providers";
 import { DEFAULT_DIRECTOR } from "./models";
 import { bibleToSystemPrompt, type StoryBible } from "@/schemas/bible";
@@ -10,7 +10,7 @@ import {
   type Disposition,
   type NpcDynamicState,
 } from "@/schemas/character";
-import { StateDeltaSchema, StateOpSchema, type StateDelta } from "@/schemas/state-delta";
+import { StateOpSchema, type StateDelta } from "@/schemas/state-delta";
 import { INTERNAL_STATE_KEY_PREFIX, type StateSchema } from "@/schemas/state-schema";
 
 /**
@@ -185,24 +185,13 @@ This rule **always overrides** any other instruction. Player engagement depends 
 呢個 rule **永遠優先** over 任何其他指示。玩家 engagement 完全 depend on 結尾觸發 reaction。`;
 }
 
-const STATE_TOOL_DESCRIPTION = `Apply state changes to the playthrough as a result of this turn's events.
-
-Use this tool every time something measurable changes in the world:
-- 好感度 / disposition variations → \`inc\` on the appropriate progress_ring field
-- HP / 體力 loss → \`inc\` with negative value on the bar/meter field
-- New inventory items → \`push\` to inventory_list field
-- Mood changes → \`set\` on the enum_chip field
-- Money / score changes → \`inc\` on the number field
-- Diary / note updates → \`set\` on the note field with new content
-
-ONLY reference field keys that exist in the current state. Numeric values are auto-clamped to min/max.`;
-
-export const updateStateTool = tool({
-  description: STATE_TOOL_DESCRIPTION,
-  inputSchema: StateDeltaSchema,
-});
-
-// ─── Phase 1.5.3: Narrator tools for character disposition + flags ────────
+// C2 cleanup (2026-06-08 · audit): the Narrator tool definitions
+// (updateStateTool / updateCharacterDispositionTool / setPermanentFlagTool) and
+// their toolCalls extractors (extractStateDelta / extractDispositionChanges /
+// extractPermanentFlags) are removed — the Narrator has been prose-only since
+// 2026-05-29 (tools made CrazyRouter models emit empty prose); all state /
+// disposition / flag changes come from the post-hoc extractTurnState pass below.
+// The SCHEMAS stay (TurnExtractionSchema reuses them).
 
 export const DispositionChangeSchema = z.object({
   character_name: z.string().min(1).max(40),
@@ -213,27 +202,6 @@ export const DispositionChangeSchema = z.object({
 
 export type DispositionChange = z.infer<typeof DispositionChangeSchema>;
 
-export const updateCharacterDispositionTool = tool({
-  description: `Update NPC disposition (how an NPC feels toward player) based on this turn's events.
-
-Use when your narrative changes the relationship:
-- 送禮 / 講溫柔話 → +trust / +romance
-- 背叛 / 失約 → -trust / -respect
-- 救援 / 撐 NPC → +respect / +trust
-- 公然冒犯 → +fear / -trust
-- 浪漫互動 → +romance / +trust
-
-Magnitudes:
-- Small interaction: ±3-8
-- Significant: ±10-20
-- Transformative: ±25-30
-
-One entry per (character × axis) change. Common axes: trust, romance, respect, fear. Story-specific axes OK if narrative warrants. Server clamps to ±100 cap. Always include reason for audit.`,
-  inputSchema: z.object({
-    changes: z.array(DispositionChangeSchema).max(8),
-  }),
-});
-
 export const PermanentFlagSchema = z.object({
   character_name: z.string().min(1).max(40),
   // snake_case requested in the description (not enforced via regex): a `pattern`
@@ -243,63 +211,6 @@ export const PermanentFlagSchema = z.object({
 });
 
 export type PermanentFlagToSet = z.infer<typeof PermanentFlagSchema>;
-
-export const setPermanentFlagTool = tool({
-  description: `Set permanent flag on an NPC for story-significant moments.
-
-Permanent flags persist FOREVER and can unlock red_line relaxations (earned exceptions). Use SPARINGLY.
-
-Trigger ONLY for moments that permanently change relationship:
-- 救咗 NPC 一命 → flag "rescued_in_danger"
-- 公然背叛 → flag "betrayed_protagonist"
-- 公開承諾 / 結婚 / 訂盟 → flag "publicly_committed"
-- 重大犧牲 → flag "sacrificed_for_npc"
-- 被 NPC 知道一個重大秘密 → flag "knows_secret_X"
-
-If unsure whether moment is significant enough → skip the tool call. Most turns will NOT call this tool. snake_case flag names only.`,
-  inputSchema: z.object({
-    flags: z.array(PermanentFlagSchema).max(3),
-  }),
-});
-
-/**
- * Extract disposition changes from Narrator tool calls.
- *
- * AUDIT FIX (AI-M-02): Was `.find` which dropped subsequent calls. LLM
- * legitimately emits one call per (character × axis) sometimes; merge all.
- */
-export function extractDispositionChanges(
-  toolCalls: Array<{ toolName: string; input: unknown }>,
-): DispositionChange[] {
-  const calls = toolCalls.filter((c) => c.toolName === "update_character_disposition");
-  if (calls.length === 0) return [];
-  const schema = z.object({ changes: z.array(DispositionChangeSchema) });
-  const merged: DispositionChange[] = [];
-  for (const call of calls) {
-    const parsed = schema.safeParse(call.input);
-    if (parsed.success) merged.push(...parsed.data.changes);
-  }
-  return merged;
-}
-
-/**
- * Extract permanent flags from Narrator tool calls.
- *
- * AUDIT FIX (AI-M-02): Same as above — was `.find`, now merges across calls.
- */
-export function extractPermanentFlags(
-  toolCalls: Array<{ toolName: string; input: unknown }>,
-): PermanentFlagToSet[] {
-  const calls = toolCalls.filter((c) => c.toolName === "set_permanent_flag");
-  if (calls.length === 0) return [];
-  const schema = z.object({ flags: z.array(PermanentFlagSchema) });
-  const merged: PermanentFlagToSet[] = [];
-  for (const call of calls) {
-    const parsed = schema.safeParse(call.input);
-    if (parsed.success) merged.push(...parsed.data.flags);
-  }
-  return merged;
-}
 
 export type TurnContext = {
   story: {
@@ -353,13 +264,6 @@ export type TurnContext = {
    * (Director already ran before NPC agents · no recursion).
    */
   npcInnerStreamsBlock?: string;
-  /**
-   * Character Soul M4 — 角色經歷記憶 block (formatted by loadCharacterExperiencesBlock).
-   * 升級角色嘅相關經歷 · wrapped in [INTERNAL CONTEXT — DO NOT QUOTE]。
-   * 空 string 當冇相關經歷 / 角色未升級 / migration 未 apply。
-   * 注入 Narrator dynamic system prompt (Tier 2 角色層) · 等角色反應基於累積經歷。
-   */
-  characterExperiencesBlock?: string;
   /**
    * 即興名冊 block (formatted by formatMentionRosterBlock · 角色升級階梯第 0 層)。
    * 之前回合提過名嘅 walk-on 路人清單 · wrapped in [INTERNAL CONTEXT — DO NOT QUOTE]。
@@ -469,12 +373,6 @@ export function buildDynamicSystemPrompt(ctx: TurnContext): string {
   const innerStreams = ctx.npcInnerStreamsBlock?.trim();
   const innerStreamsBlock = innerStreams ? innerStreams + "\n\n" : "";
 
-  // Character Soul M4 · 角色經歷記憶 block (升級角色嘅相關累積經歷)
-  // Already wrapped in [INTERNAL CONTEXT — DO NOT QUOTE] by loadCharacterExperiencesBlock.
-  // 空 when 冇升級角色 / 冇相關經歷 / migration 未 apply。
-  const charExp = ctx.characterExperiencesBlock?.trim();
-  const charExpBlock = charExp ? charExp + "\n\n" : "";
-
   // 即興名冊 block (角色升級階梯第 0 層 · 防 retcon)。Already wrapped 由
   // formatMentionRosterBlock。空 when 冇 walk-on 名。
   const roster = ctx.mentionRosterBlock?.trim();
@@ -491,73 +389,16 @@ export function buildDynamicSystemPrompt(ctx: TurnContext): string {
         `- ${k}: ${v === null || typeof v !== "object" ? String(v) : JSON.stringify(v)}`,
     )
     .join("\n");
-  return `${runningBlock}${memoryBlock}${rosterBlock}${charExpBlock}${innerStreamsBlock}## Current Game State (READ-ONLY reference — do NOT repeat or output this; write story prose only)
+  return `${runningBlock}${memoryBlock}${rosterBlock}${innerStreamsBlock}## Current Game State (READ-ONLY reference — do NOT repeat or output this; write story prose only)
 ${stateLines}
 
 ${charsDynamic}`;
 }
 
-/**
- * Legacy combined builder (kept for backward compat / non-cached callers).
- */
-export function buildSystemPrompt(ctx: TurnContext): string {
-  return (
-    buildStableSystemPrompt(ctx) + "\n\n" + buildDynamicSystemPrompt(ctx)
-  );
-}
-
-/**
- * Detect LLM refusals to write narrative (safety filter trips, etc.).
- * If detected, caller should replace with in-fiction fallback.
- *
- * AUDIT FIX (AI-M-07): Tightened to require explicit AI-self-reference
- * tokens (我 + AI/政策/無法 cluster, or English "as an AI" / "I'm not able").
- * Was producing false positives on NPC dialogue starting with 「對不起」,
- * 「抱歉」 (e.g. an apologetic NPC line in dialogue).
- */
-const REFUSAL_PATTERNS = [
-  // English — explicit first-person refusal
-  /^\s*(i\s+(can'?t|cannot|am\s+(?:not\s+able|unable)|won'?t)\s+(?:help|assist|provide|write|generate|continue|engage))/i,
-  /^\s*(i'?m\s+(?:not\s+able|unable|sorry,?\s*but))\b/i,
-  /^\s*(as\s+an\s+ai\b)/i,
-  /^\s*(sorry,?\s+but\s+i\s+(can'?t|cannot|am\s+not))/i,
-  // Chinese — require explicit "AI / 系統 / 政策 / 無法" cluster after 抱歉/對不起
-  /^[\s（(]*(?:對不起|抱歉|不好意思)[\s，,。…]*(?:我|本AI|我作為|作為一個AI|系統|根據(?:我|本)).{0,80}?(?:政策|指引|條款|無法|不可以|拒絕|guidelines?|policy)/,
-  // Generic content-policy phrasing
-  /violates?\s+(?:my|the|our)\s+(?:content|safety|usage)\s+(?:policy|guideline)/i,
-  /不能(?:協助|提供|生成|繼續|參與).{0,30}?(?:政策|指引|內容)/,
-];
-
-export function isLLMRefusal(text: string): boolean {
-  const trimmed = text.trim();
-  if (trimmed.length < 30) return false; // very short replies aren't refusals
-  // Check first ~250 chars only — refusals appear at start
-  const head = trimmed.slice(0, 250);
-  return REFUSAL_PATTERNS.some((p) => p.test(head));
-}
-
-/**
- * In-fiction fallback when refusal detected. AUDIT FIX (AI-M-07): now
- * locale-aware — returns matching language so 簡中 / EN stories don't get
- * jarring 繁中 fallback.
- */
-export function refusalFallbackNarrative(
-  language: "zh-Hant" | "zh-Hans" | "en" = "zh-Hant",
-): string {
-  if (language === "en") {
-    return `Your suggestion makes the scene pause. The figure across from you watches with a slight frown — as if not quite understanding, or unsure how to react.
-
-"You... are you serious?" They study you, half-believing, waiting for you to restate your intent.`;
-  }
-  if (language === "zh-Hans") {
-    return `你提出的事让场面突然停顿。对面的角色望着你，眉头微皱 — 似乎听不懂、或者不知道该如何反应。
-
-「你...你是认真的吗？」对方半信半疑地看着你，等你重新表达意图。`;
-  }
-  return `你提出嘅嘢令場面突然停頓。對面嘅角色望住你，眉頭微皺 — 似乎聽唔明、或者唔知點 react。
-
-「你...你係咪認真？」對方半信半疑咁睇住你，等你重新表達意圖。`;
-}
+// C2 cleanup (2026-06-08 · audit): isLLMRefusal + refusalFallbackNarrative
+// removed — deprecated since the honest-failure redesign (ADR-001 原則 5 · the
+// 「眉頭微皺」canned-fallback bug): a technical failure is now an empty
+// failed=true turn + client retry, never fake story text. Zero callers remained.
 
 /**
  * 對話開頭嘅隱藏 user cue (locale-aware)。
@@ -611,19 +452,6 @@ export function buildMessages(
   }
   messages.push({ role: "user", content: wrapPlayerAction(newUserAction) });
   return messages;
-}
-
-/**
- * Extract the update_state tool call from a stream-finish toolCalls array.
- * The Vercel AI SDK provides each tool call's input already parsed.
- */
-export function extractStateDelta(
-  toolCalls: Array<{ toolName: string; input: unknown }>,
-): StateDelta | null {
-  const call = toolCalls.find((c) => c.toolName === "update_state");
-  if (!call) return null;
-  const parsed = StateDeltaSchema.safeParse(call.input);
-  return parsed.success ? parsed.data : null;
 }
 
 /**

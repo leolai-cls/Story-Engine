@@ -3,19 +3,16 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 // 計費 call 返佢 · 確保「跑邊隻」同「收邊隻」唔會 drift (PR #62 follow-up QC)。
 // (tier-router → models · 純 catalog · 冇 import credits · 無 circular。)
 import { pickUtilityModel } from "@/lib/ai/tier-router";
-import { ADULT_NSFW_MODEL, DEFAULT_NARRATOR, DIRECTOR_MODEL, TIER_POOLS } from "@/lib/ai/models";
-
-/**
- * Model the running-summary digest actually runs on — MUST mirror
- * `pickDigestModel` in lib/ai/memory/summarizer.ts so the charge matches the
- * call (hard rule #4 · no billing drift). 2026-06-08: the digest moved off Haiku
- * onto Sonnet (non-adult · Haiku ignored the length budget → death-spiral);
- * adult stays on Grok (hard rule #5). Kept inline (not imported from summarizer)
- * to avoid a billing→AI module dependency.
- */
-function digestModelForRating(cr: "sfw" | "soft" | "adult"): string {
-  return cr === "adult" ? ADULT_NSFW_MODEL : DEFAULT_NARRATOR;
-}
+// pickDigestModel: SINGLE source for the digest's run-model AND charge-model
+// (audit dedupe 2026-06-08 · was a byte-identical copy here · hard rule #4).
+import {
+  ADULT_NSFW_MODEL,
+  DEFAULT_NARRATOR,
+  DIRECTOR_MODEL,
+  TIER_POOLS,
+  pickDigestModel,
+  SUBSCRIPTION_TIER_ORDER,
+} from "@/lib/ai/models";
 
 /**
  * Credit meter — Phase 3 monetization foundation per ADR-009 / CLAUDE.md.
@@ -309,12 +306,6 @@ export type TurnUsage = {
   contentRating?: "sfw" | "soft" | "adult";
   lorebook?: { inputTokens?: number; outputTokens?: number };
   summarizer?: { inputTokens?: number; outputTokens?: number };
-  /**
-   * Character Soul (Audit HIGH-1 fix) · 經歷日誌 + 信念抽取背景 Haiku call ·
-   * 只喺有升級角色 (interaction_count>=3) 嘅 turn 跑。固定 reserve (似 lorebook ·
-   * 因為 call 喺 charge 之後先 fire · 用估計 token · 2× markup 吸收 variance)。
-   */
-  experience?: { inputTokens?: number; outputTokens?: number };
   embedTokens?: number;
   /**
    * Deep Mode · NPC 內心戲 — charged by ACTUAL token usage (founder 2026-06-04:
@@ -366,7 +357,7 @@ export function computeTurnCredits(usage: TurnUsage): number {
     ? computeCredits({
         // 2026-06-08: digest runs on Sonnet (non-adult) / Grok (adult) · NOT the
         // Haiku utility model — bill at the real rate (hard rule #4).
-        modelId: digestModelForRating(cr),
+        modelId: pickDigestModel(cr),
         inputTokens: usage.summarizer.inputTokens ?? 0,
         outputTokens: usage.summarizer.outputTokens ?? 0,
       })
@@ -380,15 +371,8 @@ export function computeTurnCredits(usage: TurnUsage): number {
       })
     : 0;
 
-  // Character Soul (Audit HIGH-1 fix) · 經歷日誌 + 信念抽取 (structured)。
-  // adult → Grok 計費 (同 runtime · 防 drift)。
-  const experienceCredits = usage.experience
-    ? computeCredits({
-        modelId: pickUtilityModel(cr, "structured"),
-        inputTokens: usage.experience.inputTokens ?? 0,
-        outputTokens: usage.experience.outputTokens ?? 0,
-      })
-    : 0;
+  // (C2 cleanup 2026-06-08: the character-soul experience charge slot removed —
+  // the dead write chain was deleted; nothing runs, nothing is charged.)
 
   // Deep Mode · NPC 內心戲 — bill each successful agent by its ACTUAL tokens at
   // its own model rate × markup (founder 2026-06-04). Same path as the narrator,
@@ -411,7 +395,6 @@ export function computeTurnCredits(usage: TurnUsage): number {
     lorebookCredits +
     summarizerCredits +
     embedCredits +
-    experienceCredits +
     npcAgentCredits
   );
 }
@@ -424,6 +407,31 @@ export function computeTurnCredits(usage: TurnUsage): number {
  * tokens per agent (at the rating's utility model · adult Grok auto-priced) —
  * symmetric with the actual token charge. Over-reserve is the safe direction.
  */
+
+/**
+ * Estimated background-work token reserves — SINGLE source of truth shared by
+ * estimateTurnCredits (the pre-charge gate) AND the turn route's actual-charge
+ * computeTurnCredits call (audit dedupe 2026-06-08 · drift pair #4: the two
+ * sites hand-duplicated these literals; tuning one without the other silently
+ * desyncs the gate from the charge — hard rule #4/#8 class).
+ *
+ * lorebook: per-turn Haiku/Grok extraction. summarizer: the running digest fires
+ * every ~11 turns on a cumulative input (~7500 in / 1400 out per compact on
+ * Sonnet) → amortized ~1/11 ≈ 700/140 per turn. embed: text-embedding-3-small.
+ *
+ * NOTE (founder decision 2026-06-08 · product audit H-2): the per-turn
+ * moderation Haiku call (input check · adult turns also run the output
+ * legal-floor check) is deliberately NOT billed/reserved — it's a platform
+ * safety cost ABSORBED by the 2× markup (subscription economics verified safe
+ * at full credit burn). If moderation cost ever grows (model upgrade / longer
+ * prompts), revisit instead of silently widening the margin leak.
+ */
+export const BACKGROUND_RESERVE_TOKENS = {
+  lorebook: { inputTokens: 2000, outputTokens: 500 },
+  summarizer: { inputTokens: 700, outputTokens: 140 },
+  embedTokens: 400,
+} as const;
+
 export function estimateTurnCredits(
   narratorModelId: string,
   npcL3ExpectedAgents: number = 0,
@@ -460,18 +468,13 @@ export function estimateTurnCredits(
       inputTokens: 4000,
       outputTokens: 400,
     },
-    lorebook: { inputTokens: 2000, outputTokens: 500 },
-    // Consistency v3 (2026-06-04 · digest→Sonnet 2026-06-08): the running digest
-    // fires every ~11 turns on a CUMULATIVE input (prev digest ~1800 + ~11 raw
-    // turns ≈ 7500 in / 1400 out per compact on Sonnet). Amortized ~1/11 ≈ 700 in
-    // / 140 out per turn (non-adult Sonnet · adult Grok · honest costing · hard
-    // rule #4/#20 · over-reserve is the safe direction).
-    summarizer: { inputTokens: 700, outputTokens: 140 },
-    embedTokens: 400,
-    // Audit LOW fix: 對稱於 actual charge 嘅 experience reserve。中後期 turn 通常
-    // 有升級角色 → 經歷 Haiku call。pre-charge 估算唔加會令 low-balance user 過 gate
-    // 後少收 ~6 credit (方向安全·唔會多收·但對稱性更乾淨)。保守當有 (略高估)。
-    experience: { inputTokens: 1500, outputTokens: 300 },
+    // Shared background reserves (see BACKGROUND_RESERVE_TOKENS doc above —
+    // single source with the turn route's actual-charge call · hard rule #4).
+    lorebook: BACKGROUND_RESERVE_TOKENS.lorebook,
+    summarizer: BACKGROUND_RESERVE_TOKENS.summarizer,
+    embedTokens: BACKGROUND_RESERVE_TOKENS.embedTokens,
+    // (C2 cleanup 2026-06-08: experience reserve removed — the dead soul-write
+    // chain was deleted · actual charge never included it · exactness > padding.)
     // NPC 內心戲 reserve · one estimated agent call per expected NPC, at the
     // rating's structured-utility model (adult → Grok · else Haiku). Conservative
     // per-agent token estimate so the reserve ≥ the actual token charge: input
@@ -720,9 +723,8 @@ export async function userTierAllowsModel(
   if (!model.min_tier) {
     return { allowed: true, tier };
   }
-  const order = ["free", "adventurer", "storyteller", "legend"] as const;
-  const userIdx = order.indexOf(tier);
-  const modelIdx = order.indexOf(model.min_tier);
+  const userIdx = SUBSCRIPTION_TIER_ORDER.indexOf(tier);
+  const modelIdx = SUBSCRIPTION_TIER_ORDER.indexOf(model.min_tier);
   if (userIdx < modelIdx) {
     return { allowed: false, tier, reason: "tier_too_low" };
   }

@@ -247,18 +247,41 @@ export const DEFAULT_TIER: ModelTier = "standard";
 export const DEFAULT_NARRATOR = "claude-sonnet-4-6";
 export const DEFAULT_DIRECTOR = DIRECTOR_MODEL;
 
+/**
+ * Subscription tier ladder (low → high) — SINGLE source of truth for tier
+ * comparisons. 2026-06-08 (audit dedupe): was hand-repeated in credits.ts +
+ * twice here + play actions; a tier add/reorder had 4 places to drift.
+ */
+export const SUBSCRIPTION_TIER_ORDER = ["free", "adventurer", "storyteller", "legend"] as const;
+export type SubscriptionTier = (typeof SUBSCRIPTION_TIER_ORDER)[number];
+
+/**
+ * Model the running-summary digest runs on — the memory BACKBONE, so
+ * length-adherence + compression quality matter more than raw cheapness.
+ *
+ * 2026-06-08 (Session 18 death-spiral root cause): Haiku IGNORES the length
+ * budget and won't compress an already-large digest → Sonnet for non-adult;
+ * adult stays on Grok (hard rule #5 · never NSFW prose on Anthropic).
+ *
+ * SINGLE source of truth for BOTH the summarizer call (summarizer.ts) AND the
+ * billing rate (credits.ts) — previously two byte-identical copies in those
+ * files (audit drift-pair #2 · hard rule #4: run-model must equal charge-model).
+ */
+export function pickDigestModel(contentRating: "sfw" | "soft" | "adult"): string {
+  return contentRating === "adult" ? ADULT_NSFW_MODEL : DEFAULT_NARRATOR;
+}
+
 export function getModel(id: string): ModelEntry {
   const m = MODELS[id];
   if (!m) throw new Error(`Unknown model id: ${id}`);
   return m;
 }
 
-export function modelsForTier(tier: "free" | "adventurer" | "storyteller" | "legend"): ModelEntry[] {
-  const tierOrder = ["free", "adventurer", "storyteller", "legend"] as const;
-  const userIdx = tierOrder.indexOf(tier);
+export function modelsForTier(tier: SubscriptionTier): ModelEntry[] {
+  const userIdx = SUBSCRIPTION_TIER_ORDER.indexOf(tier);
   return Object.values(MODELS).filter((m) => {
     if (!m.min_tier) return true;
-    const modelIdx = tierOrder.indexOf(m.min_tier);
+    const modelIdx = SUBSCRIPTION_TIER_ORDER.indexOf(m.min_tier);
     return modelIdx <= userIdx;
   });
 }

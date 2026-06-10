@@ -183,33 +183,11 @@ export function npcAgentsToThinkingBlock(
   return `${L.head}\n${blocks.join("\n\n")}`;
 }
 
-// ─── Helper · estimate NPC L3 credit charge ────────────────────────────────
-
-/**
- * Credits charged per active NPC L3 agent.
- *
- * Founder Q3 decision (Session 12 sign-off):
- *   - Per-NPC real cost ≈ $0.003 (GLM-5.1 Standard tier · no cache via OpenRouter)
- *     + Narrator input/output overhead share (~$0.0014/NPC)
- *     ≈ $0.0044 per NPC actual
- *   - Story Engine 2× markup convention (1 credit = $0.001 · markup 2.0×):
- *     0.0044 × 2 × 1000 = 8.8 credits per NPC
- *   - Rounded down to 6 credits per NPC (slightly under-margin to keep value
- *     perception · still net positive · founder explicit decision)
- *
- * Per turn (3 NPCs max): 3 × 6 = 18 credits add-on (~9% above 200-credit
- * Opus baseline · ~8% reduction in monthly turn budget for Storyteller users).
- */
-export const NPC_L3_CREDITS_PER_NPC = 6;
-
-/**
- * Compute total NPC L3 credit charge for a turn.
- * Pure function · safe to call from estimateTurnCredits + computeTurnCredits.
- */
-export function computeNpcL3Credits(activeNpcCount: number): number {
-  if (activeNpcCount <= 0) return 0;
-  return activeNpcCount * NPC_L3_CREDITS_PER_NPC;
-}
+// C2 cleanup (2026-06-08 · audit): the flat-6-credits-per-NPC pricing
+// (NPC_L3_CREDITS_PER_NPC + computeNpcL3Credits) is removed — NPC voices have
+// been billed by ACTUAL tokens per agent since 2026-06-04 (turn route
+// npcAgentUsage → computeTurnCredits) and the UI copy now says usage-based.
+// The flat constant was a latent under-charge footgun for adult/Grok agents.
 
 // ─── Constants exposed for orchestration module ────────────────────────────
 
