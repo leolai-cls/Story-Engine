@@ -535,6 +535,33 @@ export async function forkStoryToPlaythrough(params: {
     return { ok: false, error: "fork_returned_empty" };
   }
 
+  // PART C (2026-06-08 · founder): NPC 內心戲 auto-ON for any paid tier that can
+  // use it (npcVoicesCapForTier > 0 · adventurer+ · matches setNpcL3Enabled +
+  // turn-route gate). Guarded post-fork update — a tier-trigger reject can never
+  // fail the fork (hard rule #12). User can toggle off in-play.
+  try {
+    const { getActiveTier } = await import("@/lib/billing/credits");
+    const { npcVoicesCapForTier } = await import("@/lib/ai/models");
+    const activeTier = await getActiveTier(supabase, user.id);
+    if (npcVoicesCapForTier(activeTier) > 0) {
+      const { error: npcErr } = await supabase
+        .from("playthroughs")
+        .update({ npc_l3_enabled: true })
+        .eq("id", row.playthrough_id as string);
+      if (npcErr) {
+        console.warn(
+          "[forkStoryToPlaythrough] NPC L3 default-on skipped (tier trigger / column):",
+          npcErr.message,
+        );
+      }
+    }
+  } catch (e) {
+    console.warn(
+      "[forkStoryToPlaythrough] NPC L3 default-on threw (non-fatal):",
+      e instanceof Error ? e.message : e,
+    );
+  }
+
   revalidatePath("/library");
   return { ok: true, data: { playthroughId: row.playthrough_id as string } };
 }

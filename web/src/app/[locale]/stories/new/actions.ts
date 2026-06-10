@@ -8,12 +8,13 @@ import type { Disposition } from "@/schemas/character";
 import { redirect } from "@/i18n/navigation";
 import { getLocale } from "next-intl/server";
 import { revalidatePath } from "next/cache";
-import { DEFAULT_NARRATOR, MODELS, type ModelTier } from "@/lib/ai/models";
+import { DEFAULT_NARRATOR, MODELS, npcVoicesCapForTier, type ModelTier } from "@/lib/ai/models";
 import { pickModelForTier } from "@/lib/ai/tier-router";
 import {
   chargeCredits,
   computeCredits,
   estimateStoryCreationCredits,
+  getActiveTier,
   getBalanceAndCheck,
   userTierAllowsModel,
 } from "@/lib/billing/credits";
@@ -393,6 +394,33 @@ export async function createStoryFromPrompt(
     console.error("[createStory] playthrough insert failed", ptErr);
     await cleanup(story.id);
     return { ok: false, errorCode: "createStory.playthroughInsertFailed" };
+  }
+
+  // PART C (2026-06-08 · founder): NPC 內心戲 auto-ON by default for any paid
+  // tier that can use it (npcVoicesCapForTier > 0 · adventurer+ · matches the
+  // toggle gate in setNpcL3Enabled + the turn-route gate). Set via a SEPARATE
+  // guarded update (not the main insert) so a DB tier-trigger reject or a missing
+  // column can never fail story creation (hard rule #12). The user can still
+  // toggle it off in-play.
+  try {
+    const activeTier = await getActiveTier(supabase, user.id);
+    if (npcVoicesCapForTier(activeTier) > 0) {
+      const { error: npcErr } = await supabase
+        .from("playthroughs")
+        .update({ npc_l3_enabled: true })
+        .eq("id", playthrough.id);
+      if (npcErr) {
+        console.warn(
+          "[createStory] NPC L3 default-on skipped (tier trigger / column):",
+          npcErr.message,
+        );
+      }
+    }
+  } catch (e) {
+    console.warn(
+      "[createStory] NPC L3 default-on threw (non-fatal):",
+      e instanceof Error ? e.message : e,
+    );
   }
 
   // Initialize per-character disposition states
