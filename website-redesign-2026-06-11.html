@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KIEIO · 寫一句說話，活出一段人生</title>
+<!--
+  Kieio marketing landing · taste-skill redesign mockup · 2026-06-11 (rev 2)
+  Mode: Redesign-Preserve (IA + brand kept · visuals recomposed)
+  Dials: VARIANCE 7 · MOTION 7 · DENSITY 3
+  Brand kept: near-black bg · brand purple #552583 (LILA override: brand IS purple) · (o) KIEIO mark
+  Signature interaction RESTORED (rev 2): the scroll-pinned「folder → cursor click →
+  poster burst」set piece (GSAP ScrollTrigger pin+scrub · canonical start:"top top" ·
+  desktop + motion-OK only · mobile/reduced-motion degrade to a static grid).
+  Mockup fonts: Geist + Noto Sans TC via Google Fonts (prod uses next/font Termina/Gimbal for brand marks)
+  NOTE for prod port: story-cover tiles below are stylised gradient art standing in for
+  REAL AI-generated cover images (the product generates real covers; use those).
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0a0c; --bg2:#121216; --bg3:#17171c;
+    --fg:#f5f4f7;
+    --mist:rgba(245,244,247,.66);
+    --dim:rgba(245,244,247,.42);
+    --line:rgba(255,255,255,.08);
+    --brand:#552583;          /* fills · buttons */
+    --brand-mid:#7c4dab;      /* borders · hover */
+    --brand-hi:#b794e0;       /* accent text on dark (AA 7.9:1) */
+    --glow:rgba(85,37,131,.32);
+    --radius:16px;            /* shape lock: cards 16 · pills full */
+    --sans:'Geist','Noto Sans TC',-apple-system,BlinkMacSystemFont,sans-serif;
+    --tc:'Noto Sans TC','Geist',sans-serif;
+    --mono:'Geist Mono',ui-monospace,monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--fg);font-family:var(--sans);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  ::selection{background:var(--brand);color:#fff}
+  a{color:inherit;text-decoration:none}
+  img{display:block;max-width:100%}
+  .wrap{max-width:1240px;margin:0 auto;padding:0 32px}
+  @media(max-width:768px){.wrap{padding:0 20px}}
+
+  /* ─── reveal on scroll (reduced-motion safe) ─── */
+  .rv{opacity:0;transform:translateY(26px);transition:opacity .8s cubic-bezier(.16,1,.3,1),transform .8s cubic-bezier(.16,1,.3,1)}
+  .rv.in{opacity:1;transform:none}
+  @media(prefers-reduced-motion:reduce){
+    .rv{opacity:1;transform:none;transition:none}
+    .msg{animation:none!important;opacity:1!important;transform:none!important}
+    .typing i{animation:none!important}
+  }
+
+  /* ════════ NAV ════════ */
+  nav{position:fixed;top:0;left:0;right:0;z-index:50;height:68px;display:flex;align-items:center;
+      transition:background .3s,border-color .3s;border-bottom:1px solid transparent}
+  nav.scrolled{background:rgba(10,10,12,.82);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-bottom-color:var(--line)}
+  .nav-in{max-width:1240px;margin:0 auto;padding:0 32px;width:100%;display:flex;align-items:center;gap:34px}
+  .logo{font-weight:800;font-size:19px;letter-spacing:-.04em;display:flex;align-items:center;gap:.35em;white-space:nowrap}
+  .logo .mark{color:var(--brand-hi);font-weight:400}
+  .nav-links{display:flex;gap:28px;font-size:14px;color:var(--mist);margin-left:auto}
+  .nav-links a:hover{color:var(--fg)}
+  .nav-cta{padding:10px 20px;background:var(--brand);color:#fff;border-radius:999px;font-size:14px;font-weight:600;white-space:nowrap;transition:background .2s,transform .15s}
+  .nav-cta:hover{background:var(--brand-mid)}
+  .nav-cta:active{transform:scale(.98)}
+  @media(max-width:860px){.nav-links{display:none}}
+
+  /* ════════ HERO · asymmetric split ════════ */
+  .hero{min-height:100dvh;display:flex;align-items:center;position:relative;padding-top:88px;padding-bottom:64px;
+        background:
+          radial-gradient(1100px 520px at 78% 12%, rgba(85,37,131,.20), transparent 62%),
+          radial-gradient(700px 420px at 8% 88%, rgba(85,37,131,.10), transparent 60%),
+          var(--bg)}
+  .hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:64px;align-items:center;width:100%}
+  @media(max-width:980px){.hero-grid{grid-template-columns:1fr;gap:44px}}
+  .hero h1{font-family:var(--tc);font-weight:900;font-size:clamp(40px,5.6vw,72px);line-height:1.12;letter-spacing:-.02em}
+  .hero h1 .hi{color:var(--brand-hi)}
+  .hero .sub{margin-top:22px;font-family:var(--tc);font-size:17px;line-height:1.85;color:var(--mist);max-width:30em}
+  .cta-row{margin-top:34px;display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+  .btn-p{padding:15px 30px;background:var(--brand);color:#fff;border-radius:999px;font-size:16px;font-weight:700;font-family:var(--tc);
+         box-shadow:0 10px 36px var(--glow);transition:background .2s,transform .15s;white-space:nowrap}
+  .btn-p:hover{background:var(--brand-mid)}
+  .btn-p:active{transform:translateY(1px) scale(.99)}
+  .btn-s{padding:15px 26px;border:1px solid var(--line);border-radius:999px;font-size:15px;font-weight:500;font-family:var(--tc);color:var(--mist);transition:border-color .2s,color .2s;white-space:nowrap}
+  .btn-s:hover{border-color:var(--brand-mid);color:var(--fg)}
+
+  /* hero chat preview = mini version of the real product UI */
+  .chat{background:rgba(18,18,22,.88);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;
+        box-shadow:0 28px 90px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.02), 0 24px 80px var(--glow);
+        transform:rotate(.6deg)}
+  @media(max-width:980px){.chat{transform:none}}
+  .chat-bar{display:flex;align-items:center;gap:10px;padding:13px 18px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.02)}
+  .chat-bar .t{font-family:var(--tc);font-size:13px;color:var(--mist);font-weight:500}
+  .chat-bar .live{margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--brand-hi);letter-spacing:.12em;display:flex;align-items:center;gap:6px}
+  .chat-bar .live::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--brand-hi)}
+  .chat-body{padding:20px 18px;display:flex;flex-direction:column;gap:14px;min-height:380px}
+  .msg{max-width:92%;opacity:0;transform:translateY(12px);animation:msgIn .6s cubic-bezier(.16,1,.3,1) forwards}
+  .msg .who{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--dim);margin-bottom:6px}
+  .msg .bub{font-family:var(--tc);font-size:14.5px;line-height:1.8;color:var(--fg);background:rgba(255,255,255,.035);border:1px solid var(--line);border-radius:12px;padding:12px 15px}
+  .msg.you{align-self:flex-end;text-align:right}
+  .msg.you .bub{background:rgba(85,37,131,.20);border-color:rgba(124,77,171,.35)}
+  .msg .mem{margin-top:7px;font-family:var(--mono);font-size:10px;color:var(--brand-hi);letter-spacing:.06em}
+  .msg:nth-child(1){animation-delay:.4s}
+  .msg:nth-child(2){animation-delay:1.3s}
+  .msg:nth-child(3){animation-delay:2.2s}
+  .msg:nth-child(4){animation-delay:3.2s}
+  @keyframes msgIn{to{opacity:1;transform:none}}
+  .chat-input{display:flex;align-items:center;gap:10px;margin:0 18px 18px;border:1px solid var(--line);border-radius:12px;padding:12px 16px;color:var(--dim);font-family:var(--tc);font-size:13.5px;background:rgba(255,255,255,.02)}
+  .typing{margin-left:auto;display:flex;gap:3px}
+  .typing i{width:4px;height:4px;border-radius:50%;background:var(--brand-hi);animation:tp 1.2s infinite}
+  .typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+  @keyframes tp{0%,60%,100%{opacity:.25}30%{opacity:1}}
+
+  /* ════════ section base ════════ */
+  section{padding:128px 0}
+  @media(max-width:768px){section{padding:84px 0}}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--brand-hi);margin-bottom:18px}
+  h2{font-family:var(--tc);font-weight:900;font-size:clamp(30px,3.8vw,52px);line-height:1.2;letter-spacing:-.015em}
+  h2 .hi{color:var(--brand-hi)}
+  .lede{margin-top:18px;font-family:var(--tc);font-size:16.5px;line-height:1.9;color:var(--mist);max-width:36em}
+
+  /* ════════ STORIES · scroll-pinned folder → poster burst ════════ */
+  .stories{padding:0}
+  .stage{min-height:100dvh;display:flex;flex-direction:column;justify-content:center;position:relative;overflow:hidden;padding:96px 0 64px}
+  .stage .head{max-width:760px;margin-bottom:44px}
+  .folder{position:absolute;left:50%;top:56%;transform:translate(-50%,-50%);z-index:5;opacity:0;pointer-events:none}
+  .folder .body{width:150px;height:108px;border-radius:14px;position:relative;
+                background:linear-gradient(165deg,#2a2333,#171221);border:1px solid rgba(183,148,224,.35);
+                box-shadow:0 24px 70px rgba(0,0,0,.55), 0 0 60px var(--glow)}
+  .folder .body::before{content:"";position:absolute;top:-13px;left:12px;width:58px;height:18px;border-radius:8px 8px 0 0;
+                background:linear-gradient(165deg,#2a2333,#1c1626);border:1px solid rgba(183,148,224,.3);border-bottom:none}
+  .folder .lab{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+               font-family:var(--tc);font-weight:700;font-size:17px;color:var(--brand-hi)}
+  .folder .ring{position:absolute;left:50%;top:50%;width:170px;height:170px;border-radius:50%;transform:translate(-50%,-50%) scale(.4);
+                border:1.5px solid var(--brand-hi);opacity:0}
+  .cursorx{position:absolute;z-index:6;width:26px;height:26px;left:0;top:0;opacity:0;pointer-events:none;
+           filter:drop-shadow(0 4px 14px rgba(0,0,0,.6))}
+  .pgrid{display:grid;grid-template-columns:repeat(5,minmax(0,176px));gap:18px;justify-content:center}
+  @media(max-width:860px){
+    .stage{min-height:0;padding:84px 0}
+    .folder,.cursorx{display:none}
+    .pgrid{grid-template-columns:repeat(2,1fr);gap:14px}
+  }
+  .poster{aspect-ratio:198/282;border-radius:14px;position:relative;overflow:hidden;
+          border:1px solid rgba(255,255,255,.09);transition:transform .35s cubic-bezier(.16,1,.3,1)}
+  .poster:hover{transform:translateY(-8px)}
+  .poster .glyph{position:absolute;right:-12px;top:2px;font-family:var(--tc);font-weight:900;font-size:150px;line-height:1;opacity:.14;color:#fff}
+  .poster .meta{position:absolute;left:0;right:0;bottom:0;padding:38px 16px 14px;
+                background:linear-gradient(180deg,transparent,rgba(0,0,0,.78))}
+  .poster .zh{font-family:var(--tc);font-weight:700;font-size:16.5px}
+  .poster .en{font-family:var(--mono);font-size:9.5px;color:rgba(255,255,255,.62);margin-top:4px;letter-spacing:.06em}
+  /* story-cover art (stand-ins for real AI-generated covers) */
+  .a1{background:linear-gradient(155deg,#2b1a10,#0d0b0f 58%),radial-gradient(420px 220px at 80% 8%,rgba(255,122,40,.5),transparent 60%);background-blend-mode:screen}
+  .a2{background:linear-gradient(160deg,#1d1410,#0b0a0d 60%),radial-gradient(300px 300px at 22% 18%,rgba(255,196,110,.4),transparent 65%);background-blend-mode:screen}
+  .a3{background:linear-gradient(150deg,#101622,#0a0b10 62%),radial-gradient(360px 260px at 75% 80%,rgba(96,150,255,.35),transparent 60%);background-blend-mode:screen}
+  .a4{background:linear-gradient(165deg,#1a2030,#0a0a0c 55%),radial-gradient(340px 220px at 25% 85%,rgba(110,200,190,.28),transparent 60%);background-blend-mode:screen}
+  .a5{background:linear-gradient(150deg,#241026,#0c0a0f 60%),radial-gradient(380px 260px at 78% 16%,rgba(228,92,200,.34),transparent 62%);background-blend-mode:screen}
+  .a6{background:linear-gradient(158deg,#10201a,#0a0c0b 58%),radial-gradient(320px 240px at 70% 78%,rgba(110,228,168,.3),transparent 60%);background-blend-mode:screen}
+  .a7{background:linear-gradient(152deg,#241616,#0d0a0a 60%),radial-gradient(340px 240px at 30% 16%,rgba(255,96,96,.3),transparent 62%);background-blend-mode:screen}
+  .a8{background:linear-gradient(160deg,#1c1430,#0b0a10 58%),radial-gradient(360px 260px at 72% 20%,rgba(150,110,255,.38),transparent 60%);background-blend-mode:screen}
+  .a9{background:linear-gradient(150deg,#202016,#0c0c0a 62%),radial-gradient(340px 220px at 26% 80%,rgba(214,220,120,.26),transparent 60%);background-blend-mode:screen}
+  .a10{background:linear-gradient(156deg,#102024,#0a0c0d 58%),radial-gradient(360px 260px at 76% 82%,rgba(80,210,235,.3),transparent 62%);background-blend-mode:screen}
+
+  /* ════════ HOW · vertical 3 acts on a line ════════ */
+  .how{background:linear-gradient(180deg,var(--bg) 0%,#0d0c11 50%,var(--bg) 100%)}
+  .how .head{max-width:640px;margin-bottom:72px}
+  .acts{position:relative;max-width:900px;margin:0 auto}
+  .acts::before{content:"";position:absolute;left:31px;top:8px;bottom:8px;width:1px;
+                background:linear-gradient(180deg,transparent,var(--brand-mid) 12%,var(--brand-mid) 88%,transparent)}
+  .act{position:relative;padding-left:96px;display:grid;grid-template-columns:1fr 1fr;gap:36px;align-items:center}
+  .act+.act{margin-top:84px}
+  .act .num{position:absolute;left:0;top:0;width:62px;height:62px;border-radius:50%;background:var(--bg);border:1px solid var(--brand-mid);
+            display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:15px;color:var(--brand-hi)}
+  .act h3{font-family:var(--tc);font-weight:900;font-size:26px;letter-spacing:-.01em}
+  .act p{margin-top:12px;font-family:var(--tc);font-size:15.5px;line-height:1.9;color:var(--mist)}
+  .act .panel{background:var(--bg2);border:1px solid var(--line);border-radius:var(--radius);padding:20px 22px;
+              font-family:var(--tc);font-size:14px;line-height:1.85;color:var(--mist);
+              box-shadow:0 16px 50px rgba(0,0,0,.35)}
+  .act .panel .tag{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--brand-hi);margin-bottom:10px}
+  .act .panel .choice{margin-top:9px;border:1px solid var(--line);border-radius:10px;padding:9px 13px;font-size:13.5px;color:var(--fg);transition:border-color .2s,background .2s;cursor:default}
+  .act .panel .choice:hover{border-color:var(--brand-mid);background:rgba(85,37,131,.10)}
+  @media(max-width:860px){
+    .act{grid-template-columns:1fr;padding-left:64px}
+    .acts::before{left:23px}
+    .act .num{width:46px;height:46px}
+  }
+
+  /* ════════ MEMORY · bento ════════ */
+  .memory .head{max-width:700px;margin-bottom:60px}
+  .bento{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  .cell{background:var(--bg2);border:1px solid var(--line);border-radius:var(--radius);padding:30px 28px;position:relative;overflow:hidden;
+        transition:transform .35s cubic-bezier(.16,1,.3,1),border-color .3s}
+  .cell:hover{transform:translateY(-5px);border-color:rgba(124,77,171,.4)}
+  .cell.big{grid-column:span 2;background:
+        radial-gradient(560px 300px at 88% -10%, rgba(85,37,131,.26), transparent 60%),var(--bg2)}
+  .cell h3{font-family:var(--tc);font-weight:700;font-size:20px;margin-bottom:12px}
+  .cell .k{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--brand-hi);display:block;margin-bottom:14px}
+  .cell p{font-family:var(--tc);font-size:14.5px;line-height:1.85;color:var(--mist)}
+  .cell .frag{margin-top:18px;border-left:2px solid var(--brand-mid);padding:10px 14px;background:rgba(85,37,131,.08);
+              font-family:var(--tc);font-size:13.5px;line-height:1.8;color:var(--fg);border-radius:0 10px 10px 0}
+  .cell .frag .m{font-family:var(--mono);font-size:10px;color:var(--brand-hi);display:block;margin-top:8px}
+  @media(max-width:900px){.bento{grid-template-columns:1fr}.cell.big{grid-column:span 1}}
+
+  /* ════════ AGENTS · offset thought cards ════════ */
+  .agents{background:linear-gradient(180deg,var(--bg),#0e0b13 55%,var(--bg))}
+  .agents .head{max-width:680px}
+  .pro-pill{display:inline-flex;align-items:center;gap:8px;margin-top:20px;padding:7px 16px;border-radius:999px;
+            background:rgba(85,37,131,.18);border:1px solid rgba(124,77,171,.4);font-family:var(--tc);font-size:12.5px;color:var(--brand-hi);font-weight:500}
+  .thoughts{margin-top:64px;display:grid;grid-template-columns:repeat(3,1fr);gap:22px;align-items:start}
+  .thought{background:var(--bg2);border:1px solid var(--line);border-radius:var(--radius);padding:26px 24px;
+           transition:transform .35s cubic-bezier(.16,1,.3,1)}
+  .thought:hover{transform:translateY(-6px)}
+  .thought:nth-child(2){margin-top:44px}
+  .thought:nth-child(3){margin-top:88px}
+  .thought .who{font-family:var(--tc);font-weight:700;font-size:15.5px;margin-bottom:14px;display:flex;align-items:center;gap:10px}
+  .thought .who::before{content:"";width:30px;height:30px;border-radius:50%;flex-shrink:0;
+                        background:radial-gradient(circle at 32% 30%,var(--brand-mid),var(--brand) 70%)}
+  .thought p{font-family:var(--tc);font-size:14px;line-height:1.9;color:var(--mist)}
+  .thought p b{color:var(--fg);font-weight:600}
+  @media(max-width:900px){.thoughts{grid-template-columns:1fr}.thought:nth-child(2),.thought:nth-child(3){margin-top:0}}
+
+  /* ════════ ADAPTIVE · 1 large + 2 small ════════ */
+  .adaptive .head{max-width:700px;margin-bottom:60px}
+  .panels{display:grid;grid-template-columns:1.25fr 1fr;grid-template-rows:auto auto;gap:18px}
+  .panelx{background:var(--bg2);border:1px solid var(--line);border-radius:var(--radius);padding:26px;position:relative;overflow:hidden}
+  .panelx.main{grid-row:span 2;background:
+       radial-gradient(480px 320px at 12% -8%, rgba(85,37,131,.22), transparent 58%),var(--bg2)}
+  .panelx .tag{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--brand-hi);margin-bottom:18px}
+  .row{display:flex;justify-content:space-between;align-items:center;font-family:var(--tc);font-size:14px;padding:11px 2px;border-bottom:1px dashed rgba(255,255,255,.07)}
+  .row:last-child{border-bottom:none}
+  .row .lab{color:var(--mist)}
+  .row .val{color:var(--fg);font-weight:600}
+  .barx{height:6px;border-radius:99px;background:rgba(255,255,255,.07);width:120px;overflow:hidden}
+  .barx i{display:block;height:100%;background:linear-gradient(90deg,var(--brand-mid),var(--brand-hi))}
+  .ring{display:inline-flex;align-items:center;gap:8px}
+  .ring svg{transform:rotate(-90deg)}
+  @media(max-width:900px){.panels{grid-template-columns:1fr}.panelx.main{grid-row:span 1}}
+
+  /* ════════ BILINGUAL · statement band ════════ */
+  .bilingual{text-align:left}
+  .bilingual h2{font-size:clamp(36px,5vw,64px);max-width:13em}
+  .bilingual .lede{max-width:33em}
+  .stats{margin-top:64px;display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-top:1px solid var(--line)}
+  .stat{padding:30px 24px 6px;border-left:1px solid var(--line)}
+  .stat:first-child{border-left:none;padding-left:0}
+  .stat .n{font-family:var(--tc);font-weight:900;font-size:34px;color:var(--brand-hi);letter-spacing:-.02em}
+  .stat .l{margin-top:8px;font-family:var(--tc);font-size:13px;color:var(--dim)}
+  @media(max-width:768px){.stats{grid-template-columns:1fr 1fr}.stat:nth-child(3){border-left:none;padding-left:0}}
+
+  /* ════════ ADULT · quiet card ════════ */
+  .adult .card{max-width:880px;margin:0 auto;background:var(--bg2);border:1px solid var(--line);border-radius:var(--radius);
+               padding:52px 56px;text-align:center}
+  .adult h2{font-size:clamp(26px,3vw,40px)}
+  .adult p{margin:20px auto 0;font-family:var(--tc);font-size:15.5px;line-height:1.9;color:var(--mist);max-width:34em}
+  .pills{margin-top:30px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+  .pill{padding:9px 18px;border-radius:999px;border:1px solid var(--line);font-family:var(--tc);font-size:13px;color:var(--mist)}
+  @media(max-width:640px){.adult .card{padding:40px 24px}}
+
+  /* ════════ CTA ════════ */
+  .ctaX{padding:160px 0 140px;text-align:center;position:relative;
+        background:radial-gradient(800px 420px at 50% 20%, rgba(85,37,131,.22), transparent 65%),var(--bg)}
+  .ctaX h2{font-size:clamp(38px,5.4vw,68px)}
+  .ctaX .lede{margin:22px auto 0;text-align:center}
+  .ctaX .cta-row{justify-content:center}
+
+  /* ════════ FOOTER ════════ */
+  footer{border-top:1px solid var(--line);padding:44px 0;font-family:var(--tc)}
+  .foot{display:flex;align-items:center;gap:28px;flex-wrap:wrap}
+  .foot .logo{font-size:16px}
+  .foot-links{display:flex;gap:24px;font-size:13.5px;color:var(--dim);margin-left:auto}
+  .foot-links a:hover{color:var(--fg)}
+</style>
+</head>
+<body>
+
+<!-- ════════ NAV ════════ -->
+<nav id="nav">
+  <div class="nav-in">
+    <a class="logo" href="#"><span class="mark">(o)</span> KIEIO</a>
+    <div class="nav-links">
+      <a href="#how">點玩</a>
+      <a href="#memory">記憶</a>
+      <a href="#pricing">訂價</a>
+      <a href="#login" style="color:var(--mist)">登入</a>
+    </div>
+    <a class="nav-cta" href="#begin">免費開始第一段人生</a>
+  </div>
+</nav>
+
+<!-- ════════ HERO ════════ -->
+<header class="hero" id="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <h1>寫一句說話。<br>活出一段<span class="hi">人生</span>。</h1>
+      <p class="sub">一句說話，變成一個世界、一班有自己諗法嘅角色。你做過嘅每件事，個故事都會記得。</p>
+      <div class="cta-row">
+        <a class="btn-p" href="#begin">免費開始第一段人生</a>
+        <a class="btn-s" href="#how">睇下點玩</a>
+      </div>
+    </div>
+    <div class="chat" aria-label="產品畫面預覽">
+      <div class="chat-bar">
+        <span class="t">深夜客棧</span>
+        <span class="live">LIVE</span>
+      </div>
+      <div class="chat-body">
+        <div class="msg">
+          <div class="who">阿美 · 掌櫃</div>
+          <div class="bub">客棧聞到冷茶同濕羊毛嘅味。阿美放低本帳簿，望住你。「你<b style="color:var(--brand-hi)">遲咗</b>。」</div>
+        </div>
+        <div class="msg you">
+          <div class="who">你</div>
+          <div class="bub">「對唔住，條河比預期高。」</div>
+        </div>
+        <div class="msg">
+          <div class="who">阿美 · 掌櫃</div>
+          <div class="bub">佢嘅眉皺咗一陣，然後鬆開。「上次你都係咁講。」佢遞返一碗熱茶過嚟。</div>
+          <div class="mem">阿美記得你第 87 回合講過嘅嘢</div>
+        </div>
+        <div class="msg">
+          <div class="who">敘事者</div>
+          <div class="bub">佢一直喺度等緊你。原來你冇你想像中咁被人忘記。</div>
+        </div>
+      </div>
+      <div class="chat-input">你會點答阿美？<span class="typing"><i></i><i></i><i></i></span></div>
+    </div>
+  </div>
+</header>
+
+<!-- ════════ STORIES · scroll-pinned folder → poster burst ════════ -->
+<section class="stories" id="stories">
+  <div class="stage" id="streamStage">
+    <div class="wrap" style="width:100%">
+      <div class="head rv">
+        <h2>一個資料夾，<span class="hi">百萬個人生</span>。</h2>
+        <p class="lede">社群每日都喺度開新故事。武俠、戀愛、末世、懸疑，總有一段人生等緊你行入去。</p>
+      </div>
+      <!-- tiles stand in for real AI-generated covers -->
+      <div class="pgrid" id="posterGrid">
+        <div class="poster a1"><span class="glyph">俠</span><div class="meta"><div class="zh">長安十二時辰</div><div class="en">WUXIA</div></div></div>
+        <div class="poster a2"><span class="glyph">夜</span><div class="meta"><div class="zh">深夜咖啡店</div><div class="en">SLICE OF LIFE</div></div></div>
+        <div class="poster a3"><span class="glyph">謎</span><div class="meta"><div class="zh">京都最後一盞燈</div><div class="en">MYSTERY</div></div></div>
+        <div class="poster a4"><span class="glyph">末</span><div class="meta"><div class="zh">末世香港</div><div class="en">POST-APOC</div></div></div>
+        <div class="poster a5"><span class="glyph">月</span><div class="meta"><div class="zh">月球殖民 2089</div><div class="en">SCI-FI</div></div></div>
+        <div class="poster a6"><span class="glyph">戀</span><div class="meta"><div class="zh">校園戀曲</div><div class="en">ROMANCE</div></div></div>
+        <div class="poster a7"><span class="glyph">滬</span><div class="meta"><div class="zh">1925 上海</div><div class="en">PERIOD</div></div></div>
+        <div class="poster a8"><span class="glyph">龍</span><div class="meta"><div class="zh">Cyberpunk 九龍</div><div class="en">CYBERPUNK</div></div></div>
+        <div class="poster a9"><span class="glyph">鬼</span><div class="meta"><div class="zh">七月半</div><div class="en">HORROR</div></div></div>
+        <div class="poster a10"><span class="glyph">光</span><div class="meta"><div class="zh">極光下嘅信</div><div class="en">ADVENTURE</div></div></div>
+      </div>
+    </div>
+    <div class="folder" id="folder">
+      <div class="ring" id="folderRing"></div>
+      <div class="body"><div class="lab">故事</div></div>
+    </div>
+    <svg class="cursorx" id="cursorx" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M5 3l14 8.5-6.2 1.6L9.5 19 5 3z" fill="#fff" stroke="rgba(0,0,0,.45)" stroke-width="1.2"/>
+    </svg>
+  </div>
+</section>
+
+<!-- ════════ HOW ════════ -->
+<section class="how" id="how">
+  <div class="wrap">
+    <div class="head rv">
+      <div class="eyebrow">點玩</div>
+      <h2>三步，一段人生。</h2>
+      <p class="lede">你寫一句說話，KIEIO 由嗰句說話起一個世界。角色會出現，有記憶、有立場、有自己嘅打算。</p>
+    </div>
+    <div class="acts">
+      <div class="act rv">
+        <div class="num">1</div>
+        <div>
+          <h3>寫一粒種子</h3>
+          <p>一句、一段、一個前提。寫幾多都得，AI 會由呢度開始起世界。</p>
+        </div>
+        <div class="panel">
+          <div class="tag">你嘅輸入</div>
+          客棧。半夜。掌櫃望住一個遲到嘅陌生人。
+        </div>
+      </div>
+      <div class="act rv">
+        <div class="num">2</div>
+        <div>
+          <h3>行入個世界</h3>
+          <p>KIEIO 起好場景、放入角色，將主角交俾你。敘事者會聽你講先，先答。</p>
+        </div>
+        <div class="panel">
+          <div class="tag">世界生成</div>
+          客棧聞到冷茶同濕羊毛嘅味。阿美放低本帳簿。雨已經落咗三日。「你遲咗。」佢冇問你個名。
+        </div>
+      </div>
+      <div class="act rv">
+        <div class="num">3</div>
+        <div>
+          <h3>活一段人生</h3>
+          <p>講嘢、行動、揀。每個後果都有重量，個世界會跟你做過嘅嘢變化。</p>
+        </div>
+        <div class="panel">
+          <div class="tag">到你揀</div>
+          <div class="choice">「對唔住。條河比預期高。」</div>
+          <div class="choice">唔出聲，坐低先。等沉默講嘢。</div>
+          <div class="choice">「阿美，你仲記唔記得我？」</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ MEMORY ════════ -->
+<section class="memory" id="memory">
+  <div class="wrap">
+    <div class="head rv">
+      <div class="eyebrow">記憶系統</div>
+      <h2>NPC <span class="hi">會記得</span>。</h2>
+      <p class="lede">唔係淨係記得最近三句。四層記憶記住你做過咩、傷害過邊個、愛過邊個。二百個回合之後都記得。</p>
+    </div>
+    <div class="bento">
+      <div class="cell big rv">
+        <span class="k">情感記憶</span>
+        <h3>佢哋點 feel</h3>
+        <p>信任、懷疑、好感、仇恨。NPC 會帶住情緒繼續行，可以記恨足二百個回合。原諒同記仇，都係佢哋自己決定。</p>
+        <div class="frag">
+          「上次你都係咁講。」佢遞返一碗熱茶過嚟，但冇望你。
+          <span class="m">第 247 回合 · 阿美對你嘅信任：低</span>
+        </div>
+      </div>
+      <div class="cell rv">
+        <span class="k">即時記憶</span>
+        <h3>啱啱發生過</h3>
+        <p>最近嘅對話、語氣、氣氛。「阿美望住你」唔使再解釋阿美係邊個。</p>
+      </div>
+      <div class="cell rv">
+        <span class="k">世界知識</span>
+        <h3>邊個係邊個</h3>
+        <p>名、關係、世界嘅形狀。阿美係掌櫃，條河每年春天會浸，你係個失咗嘢嘅信差。</p>
+      </div>
+      <div class="cell rv">
+        <span class="k">世界設定集</span>
+        <h3>個世界知道嘅嘢</h3>
+        <p>每個角色、地方、承諾，AI 自動整理成活嘅設定集。就算你冇講過個名，佢都搵得返「上年春天你欠落嗰個人」。</p>
+      </div>
+      <div class="cell rv" style="display:flex;align-items:center;justify-content:center;background:radial-gradient(300px 200px at 50% 50%, rgba(85,37,131,.25), transparent 70%),var(--bg2)">
+        <div style="text-align:center">
+          <div style="font-family:var(--tc);font-weight:900;font-size:44px;color:var(--brand-hi);letter-spacing:-.02em">200+</div>
+          <div style="margin-top:6px;font-family:var(--tc);font-size:13.5px;color:var(--dim)">回合之後仍然記得</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ AGENTS ════════ -->
+<section class="agents" id="agents">
+  <div class="wrap">
+    <div class="head rv">
+      <h2>每個 NPC 都有<span class="hi">收埋嘅心事</span>。</h2>
+      <p class="lede">一般嘅 NPC 答你。KIEIO 嘅 NPC 識諗：每個回合，每個出場角色都有自己嘅內心戲。佢收緊咩、打緊咩主意、真係點 feel，敘事會跟住佢哋嘅秘密走。</p>
+      <span class="pro-pill">付費方案功能：Standard 每回合 1 個角色思考，Pro 最多 3 個</span>
+    </div>
+    <div class="thoughts">
+      <div class="thought rv">
+        <div class="who">阿美 · 掌櫃</div>
+        <p><b>表面：</b>倒茶俾你。<br><b>內心：</b>數住呢個陌生人遲到幾多次。第三次喇。份人情，變緊一筆債。</p>
+      </div>
+      <div class="thought rv">
+        <div class="who">老韋 · 山賊</div>
+        <p><b>表面：</b>聽你個笑話笑。<br><b>內心：</b>諗緊你有冇留意到佢隻手向住把刀飄。決定：未到時候，大佬叫等。</p>
+      </div>
+      <div class="thought rv">
+        <div class="who">小林 · 縣令女兒</div>
+        <p><b>表面：</b>糾正你嘅口音。<br><b>內心：</b>希望你繼續講落去。爸爸唔會俾佢嫁一個信差。佢知，但佢仲係講慢咗。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ ADAPTIVE ════════ -->
+<section class="adaptive" id="adaptive">
+  <div class="wrap">
+    <div class="head rv">
+      <h2>每個故事，<span class="hi">自己嘅介面</span>。</h2>
+      <p class="lede">戀愛故事有心情同關係。冒險故事有血量、屬性同背包。運動故事有體力同數據。AI 喺你創作嗰刻，幫個故事設計佢自己嘅一套。</p>
+    </div>
+    <div class="panels">
+      <div class="panelx main rv">
+        <div class="tag">冒險 · 龍與地下城</div>
+        <div class="row"><span class="lab">生命值</span><span class="ring"><span class="barx"><i style="width:80%"></i></span><span class="val">24 / 30</span></span></div>
+        <div class="row"><span class="lab">法力</span><span class="ring"><span class="barx"><i style="width:66%"></i></span><span class="val">8 / 12</span></span></div>
+        <div class="row"><span class="lab">力量</span><span class="val">14</span></div>
+        <div class="row"><span class="lab">敏捷</span><span class="val">12</span></div>
+        <div class="row"><span class="lab">智力</span><span class="val">16</span></div>
+        <div class="row"><span class="lab">金幣</span><span class="val">142</span></div>
+        <div class="row"><span class="lab">背包</span><span class="val">鐵劍 · 治療藥水 ×3</span></div>
+      </div>
+      <div class="panelx rv">
+        <div class="tag">戀愛 · 校園</div>
+        <div class="row"><span class="lab">同林思雅嘅關係</span><span class="val">親近</span></div>
+        <div class="row"><span class="lab">心情</span><span class="val">緊張</span></div>
+        <div class="row"><span class="lab">禮物</span><span class="val">玫瑰 ×2 · 朱古力</span></div>
+      </div>
+      <div class="panelx rv">
+        <div class="tag">運動 · 籃球新秀</div>
+        <div class="row"><span class="lab">體力</span><span class="ring"><span class="barx"><i style="width:72%"></i></span><span class="val">72%</span></span></div>
+        <div class="row"><span class="lab">今場數據</span><span class="val">18 分 · 5 籃板 · 7 助攻</span></div>
+        <div class="row"><span class="lab">教練信任</span><span class="val">高</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ BILINGUAL ════════ -->
+<section class="bilingual" id="bilingual">
+  <div class="wrap rv">
+    <h2>用<span class="hi">廣東話</span>講你嘅故事。</h2>
+    <p class="lede">KIEIO 嘅角色識講廣東話、繁中、普通話，同你講人話。佢哋有自己嘅情緒同性格，會反駁你、會原諒你、會記住你。每一個故事都係屬於你一個人。</p>
+    <div class="stats">
+      <div class="stat rv"><div class="n">繁中</div><div class="l">預設語言</div></div>
+      <div class="stat rv"><div class="n">廣東話</div><div class="l">母語級數</div></div>
+      <div class="stat rv"><div class="n">200+</div><div class="l">回合記憶</div></div>
+      <div class="stat rv"><div class="n">∞</div><div class="l">一粒種子，無限故事</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ ADULT ════════ -->
+<section class="adult" id="adult">
+  <div class="wrap">
+    <div class="card rv">
+      <div class="eyebrow" style="margin-bottom:14px">成人內容 · 自主開啟</div>
+      <h2>成人故事，認真處理。</h2>
+      <p>KIEIO 支援成人題材，但一切由你話事：聲明自己年滿 18 歲先開到，預設關閉，永遠唔會出現喺首頁，唔會突襲你。</p>
+      <div class="pills">
+        <span class="pill">自主選擇</span>
+        <span class="pill">18+ 自我聲明</span>
+        <span class="pill">預設關閉</span>
+        <span class="pill">同主頁完全分隔</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ CTA ════════ -->
+<section class="ctaX" id="begin">
+  <div class="wrap rv">
+    <h2>開始你嘅<span class="hi">第一段人生</span>。</h2>
+    <p class="lede">第一個故事永遠免費。寫低一句說話，就可以行入去。</p>
+    <div class="cta-row" style="margin-top:38px">
+      <a class="btn-p" href="#">免費開始第一段人生</a>
+      <a class="btn-s" href="#stories">睇下故事庫</a>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ FOOTER ════════ -->
+<footer>
+  <div class="wrap foot">
+    <span class="logo"><span class="mark" style="color:var(--brand-hi)">(o)</span> KIEIO</span>
+    <div class="foot-links">
+      <a href="#pricing">訂價</a>
+      <a href="#">服務條款</a>
+      <a href="#">私隱政策</a>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script>
+  // nav blur on scroll + section reveals · IntersectionObserver only (no scroll listeners)
+  const nav = document.getElementById('nav');
+  const sentinel = document.createElement('div');
+  sentinel.style.cssText = 'position:absolute;top:60px;height:1px;width:1px';
+  document.body.prepend(sentinel);
+  new IntersectionObserver(([e]) => nav.classList.toggle('scrolled', !e.isIntersecting)).observe(sentinel);
+
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, { threshold: 0.18 });
+  document.querySelectorAll('.rv').forEach(el => io.observe(el));
+
+  // ── STORIES scroll choreography · folder → cursor click → poster burst ──
+  // Pinned + scrubbed (canonical: start "top top" · pin · scrub). Desktop +
+  // motion-OK only; mobile / reduced-motion get the static grid (folder hidden).
+  // SAFETY NET: if the animation lib fails to load (offline / blocked CDN),
+  // bail out BEFORE touching anything → posters stay statically visible.
+  if (typeof gsap !== "undefined" && typeof ScrollTrigger !== "undefined") {
+  gsap.registerPlugin(ScrollTrigger);
+  const mmG = gsap.matchMedia();
+  mmG.add(
+    { desk: "(min-width: 860px)", motionOK: "(prefers-reduced-motion: no-preference)" },
+    (ctx) => {
+      if (!(ctx.conditions.desk && ctx.conditions.motionOK)) return;
+
+      const stage = document.getElementById("streamStage");
+      const folder = document.getElementById("folder");
+      const ring = document.getElementById("folderRing");
+      const cur = document.getElementById("cursorx");
+      const posters = gsap.utils.toArray("#posterGrid .poster");
+
+      // LAYOUT-based geometry (offsetLeft/Top ignore CSS transforms) — safe to
+      // re-measure mid-animation on invalidateOnRefresh. The earlier rev used
+      // getBoundingClientRect deltas: on a refresh (font load / resize) the
+      // posters were re-measured while ALREADY collapsed into the folder, so
+      // their "destination" became the folder itself → cards never spread out.
+      // .poster and #folder both resolve offsets against .stage (position:relative).
+      // Folder visual center = (offsetLeft, offsetTop): left:50%/top:56% place the
+      // layout box edge there and translate(-50%,-50%) centers it on that point.
+      const folderC = () => ({ x: folder.offsetLeft, y: folder.offsetTop });
+      const posterC = (p) => ({ x: p.offsetLeft + p.offsetWidth / 2, y: p.offsetTop + p.offsetHeight / 2 });
+      const rng = (s) => { const x = Math.sin(s * 999) * 10000; return x - Math.floor(x); };
+
+      // Folder is the anchor of the scene: visible from the very first pinned frame.
+      gsap.set(folder, { opacity: 1, scale: 1 });
+
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: stage,
+          start: "top top",
+          end: "+=1800",
+          pin: true,
+          scrub: 1,
+          invalidateOnRefresh: true,
+        },
+      });
+
+      // cursor flies in immediately, clicks early, cards burst by ~1/4 scroll
+      tl.fromTo(cur,
+          { x: () => folderC().x + 320, y: () => folderC().y + 210, opacity: 0 },
+          { x: () => folderC().x - 4, y: () => folderC().y - 4, opacity: 1, duration: 0.16, ease: "power2.inOut" }, 0)
+        // click: cursor dip + folder press + ring pulse
+        .to(cur, { scale: 0.82, duration: 0.02, yoyo: true, repeat: 1, transformOrigin: "top left" }, 0.17)
+        .to(folder, { scale: 0.94, duration: 0.02 }, 0.17)
+        .to(folder, { scale: 1.06, duration: 0.03 }, 0.19)
+        .fromTo(ring, { opacity: 0.9, scale: 0.4 }, { opacity: 0, scale: 1.7, duration: 0.1, ease: "power1.out" }, 0.18)
+        .to(cur, { opacity: 0, duration: 0.05 }, 0.22)
+        // posters burst out of the folder into their grid spots.
+        // fromTo with an EXPLICIT destination (x:0 y:0 = natural grid position)
+        // so no refresh can ever corrupt where the cards land.
+        .fromTo(posters,
+          {
+            x: (i) => folderC().x - posterC(posters[i]).x,
+            y: (i) => folderC().y - posterC(posters[i]).y,
+            scale: 0.12,
+            opacity: 0,
+            rotation: (i) => (rng(i * 7) - 0.5) * 50,
+          },
+          {
+            x: 0, y: 0, scale: 1, opacity: 1, rotation: 0,
+            duration: 0.46,
+            ease: "power3.out",
+            stagger: 0.025,
+          }, 0.22)
+        .to(folder, { opacity: 0, scale: 0.7, duration: 0.1 }, 0.3)
+        // hold so the grid sits a beat before unpin
+        .to({}, { duration: 0.22 });
+    },
+  );
+  }
+</script>
+</body>
+</html>
