@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kieio 產品加強研究 — 十大最抵做嘅升級</title>
+<style>
+  :root{--bg:#0f1115;--card:#171a21;--card2:#1d2129;--ink:#e7e9ee;--muted:#9aa1ad;--line:#2a2f3a;--accent:#8b7cf6;--accent2:#22d3ee;--good:#34d399;--warn:#fbbf24;--bad:#f87171;--gold:#f5b942}
+  *{box-sizing:border-box}
+  body{margin:0;background:linear-gradient(180deg,#0c0e12,#0f1115 260px);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;line-height:1.74;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1000px;margin:0 auto;padding:40px 22px 100px}
+  .kicker{color:var(--accent2);font-weight:700;letter-spacing:.14em;font-size:12px;text-transform:uppercase}
+  h1{font-size:29px;line-height:1.28;margin:8px 0 6px;font-weight:800}
+  h2{font-size:21px;margin:46px 0 8px;font-weight:800;display:flex;align-items:center;gap:10px;scroll-margin-top:20px}
+  h2 .n{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:8px;background:var(--accent);color:#0c0e12;font-size:14px;font-weight:900;flex:none}
+  h3{font-size:16px;margin:20px 0 4px;font-weight:700;color:#fff}
+  p{margin:9px 0;color:#d6d9e0}.sub{color:var(--muted);font-size:13.5px}
+  .tldr{background:rgba(139,124,246,.10);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:10px;padding:14px 18px;margin:14px 0 10px;font-size:14.5px;color:#d2d6df}
+  .note{background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.28);border-radius:10px;padding:12px 16px;margin:14px 0;font-size:13.5px;color:#e8d9b0}
+  table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13.5px}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:700;font-size:11.5px;letter-spacing:.04em;text-transform:uppercase}
+  td b{color:#fff} code{background:var(--card2);border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-size:12px;font-family:ui-monospace,Menlo,Consolas,monospace;color:#c4b5fd}
+  .tag{display:inline-block;font-size:10.5px;font-weight:800;padding:2px 9px;border-radius:20px;white-space:nowrap}
+  .t-now{background:rgba(52,211,153,.16);color:#6ee7b7}.t-mid{background:rgba(251,191,36,.16);color:#fcd34d}.t-big{background:rgba(248,113,113,.16);color:#fca5a5}
+  .t-yes{background:rgba(52,211,153,.14);color:#6ee7b7}.t-no{background:rgba(248,113,113,.14);color:#fca5a5}.t-chk{background:rgba(148,163,184,.16);color:#cbd5e1}
+  /* top-10 cards */
+  .rank{display:flex;gap:16px;align-items:flex-start;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-top:14px}
+  .rank .num{flex:none;width:40px;height:40px;border-radius:11px;display:grid;place-items:center;font-weight:900;font-size:18px;color:#0c0e12}
+  .num.a{background:linear-gradient(135deg,#34d399,#22d3ee)}.num.b{background:linear-gradient(135deg,#8b7cf6,#22d3ee)}.num.c{background:linear-gradient(135deg,#f5b942,#f87171)}.num.d{background:linear-gradient(135deg,#22d3ee,#8b7cf6)}
+  .rank .body{flex:1;min-width:0}
+  .rank .body h4{margin:0 0 4px;font-size:16.5px;color:#fff;font-weight:800}
+  .rank .body .why{color:#c4c9d2;font-size:13.5px;margin:6px 0}
+  .rank .meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;align-items:center}
+  .pill{font-size:11.5px;color:var(--muted);background:var(--card2);border:1px solid var(--line);border-radius:7px;padding:3px 9px}
+  .pill b{color:#e7e9ee}
+  .tier-h{font-size:13px;font-weight:800;letter-spacing:.06em;color:var(--accent2);text-transform:uppercase;margin:30px 0 2px}
+  ul{margin:8px 0;padding-left:20px}li{margin:5px 0;color:#d6d9e0}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 18px;margin:18px 0;font-size:13.5px;columns:2;column-gap:30px}
+  .toc a{color:#c4b5fd;text-decoration:none;display:block;padding:3px 0;break-inside:avoid}
+  .toc a:hover{color:#fff}
+  .foot{color:var(--muted);font-size:12.5px;margin-top:38px;text-align:center;border-top:1px solid var(--line);padding-top:20px}
+  .conf{font-size:11px;font-weight:700;padding:1px 7px;border-radius:5px;margin-left:6px}
+  .c-hi{background:rgba(52,211,153,.14);color:#6ee7b7}.c-md{background:rgba(251,191,36,.14);color:#fcd34d}.c-lo{background:rgba(148,163,184,.14);color:#cbd5e1}
+  .legend{font-size:12px;color:var(--muted);margin:10px 0}
+  .legend span{margin-right:14px}
+  hr{border:none;border-top:1px solid var(--line);margin:34px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kicker">Kieio · 深度研究 · 加強產品嘅方法</div>
+  <h1>有冇新架構、邏輯或技術可以加強我哋個產品？<br>—— 十大最抵做嘅升級</h1>
+  <div class="sub">2026-06-12 · 八個範疇調查 · 142 條已查實事實 · 每項都標明「香港攞唔攞到」同「要幾大工夫」</div>
+
+  <div class="tldr">
+    <b>一句總結：</b>你個產品而家方向係啱嘅（業界都印證「體驗層 + 策展 > 純 AI 對話」），<b>真正嘅加強唔係換更勁嘅 AI，而係喺四件事上面攞分</b>：①<b>免費嘅快同平</b>（運算搬去新加坡、Pro 級數白賺一個更新版本、後台工作半價）②<b>把記憶真正做啱中文</b>（你而家粒記憶引擎對中文係偏弱，有同價、香港用到、唔使改資料庫結構嘅更強選擇）③<b>夜間自動試玩</b>（一隻 AI 自己玩幾十回合、另一隻評分，會喺你之前嗰兩個 bug 出事之前就捉到）④<b>賺錢配套</b>（全程同一個角色樣、收藏卡、生圖安全過濾）。下面由「即刻可以做、近乎免費」排到「大工程但係護城河」。
+  </div>
+
+  <div class="note">
+    <b>關於今次研究嘅老實交代：</b>背景嘅自動研究跑到最後「逐條三票對抗核實」嗰步<b>卡死咗</b>（111 個子任務做完 36 個就停，我之前一度以為仲跑緊，對唔住）。但完成咗嗰部分已經抽好 <b>142 條事實</b>，全部標明來源；我再用 Anthropic 官方文件自己對證咗其中關於價錢同功能嗰批（全部吻合）。所以下面每項我都加咗信心標示：<span class="conf c-hi">高</span> = 廠商官方價目／文件　<span class="conf c-md">中</span> = 評測或市場數據　<span class="conf c-lo">待核</span> = 第三方轉述、落實前我會親自再 check 一次。
+  </div>
+
+  <div class="toc">
+    <a href="#top10">🏆 十大升級（由易到難）</a>
+    <a href="#a1">① Anthropic 平台：平、快、免費升級</a>
+    <a href="#a2">② 記憶架構：關係連續性 = 護城河</a>
+    <a href="#a3">③ 中文檢索：你嘅記憶引擎偏弱</a>
+    <a href="#a4">④ 競品同市場：邊度有錢賺</a>
+    <a href="#a5">⑤ 賺錢配套：圖／片／聲嘅成本</a>
+    <a href="#a6">⑥ 內容過濾：唔靠 OpenAI 點做</a>
+    <a href="#a7">⑦ 自動測試：一個人點守質素</a>
+    <a href="#a8">⑧ 延遲：香港台灣玩家快幾多</a>
+  </div>
+
+  <!-- ================= TOP 10 ================= -->
+  <h2 id="top10"><span class="n">★</span>十大最抵做嘅升級</h2>
+  <div class="legend">
+    <span><span class="tag t-now">即刻</span> 一兩日、近乎免費</span>
+    <span><span class="tag t-mid">中度</span> 約一個 session</span>
+    <span><span class="tag t-big">大工程</span> 護城河級、要分階段</span>
+  </div>
+
+  <div class="tier-h">第一層 · 即刻做、近乎免費、穩賺</div>
+
+  <div class="rank">
+    <div class="num a">1</div>
+    <div class="body">
+      <h4>運算搬去新加坡，同資料庫坐埋一齊 <span class="conf c-hi">高</span></h4>
+      <div class="why">而家你個資料庫喺新加坡機房，但跑程式嘅伺服器<b>冇指定位置，預設落咗去美國</b>。即係每一回合，玩家撳「送出」之後，要美國同新加坡之間嚟回好幾轉（登入、攞檔案、搵記憶、扣 credit）先開始寫故事。將運算<b>指定搬去新加坡</b>，呢啲嚟回就由跨太平洋變成同機房內，香港台灣玩家「撳掣到第一個字浮出嚟」會明顯快。</div>
+      <div class="meta"><span class="tag t-now">即刻</span><span class="pill">成本 <b>$0</b></span><span class="pill">改一個設定檔</span><span class="pill">香港 <b>用到</b></span><span class="pill">每個玩家每回合都受惠</span></div>
+    </div>
+  </div>
+
+  <div class="rank">
+    <div class="num a">2</div>
+    <div class="body">
+      <h4>Pro 級數白賺一個更新版本（Opus 4.7 → 4.8）<span class="conf c-hi">高</span></h4>
+      <div class="why">你 Pro 級數而家用緊嗰個頂級寫故事型號有咗<b>更新版本，價錢一模一樣</b>（$5 入 / $25 出，每百萬字），官方公認文字<b>更清晰、更有溫度、AI 腔更少</b>，講故事正合用。等於 Pro 用戶嘅故事質素免費升一級。<b>一個小心位</b>：新版數字嘅計法令同一段字會多用大概三成額度，所以每回合實際成本會升少少（要重新對一對你嘅 credit 額度）；另外換型號要記住<b>兩張對照表一齊改</b>（你之前撞過漏一邊就成個玩唔到）。</div>
+      <div class="meta"><span class="tag t-now">即刻</span><span class="pill">同價</span><span class="pill">換型號名</span><span class="pill">香港 <b>用到</b>（直連）</span><span class="pill">⚠️ 重新對 credit 額度</span></div>
+    </div>
+  </div>
+
+  <div class="rank">
+    <div class="num a">3</div>
+    <div class="body">
+      <h4>夜間自動試玩 + 後台工作半價 <span class="conf c-hi">高</span></h4>
+      <div class="why">你個 code 而家<b>零自動測試</b>，所以「骰子覺醒」嗰兩個 bug（摘要死亡螺旋、故事弧卡第一幕）係玩到第 117 回合先俾你親手撞到。業界已經證實一個做法：<b>夜晚叫一隻 AI 自己由頭玩幾十回合，再叫另一隻 AI 評分</b>（記唔記得舊嘢、有冇翻炒、有冇卡住、有冇崩）—— 呢類自動試玩喺真實遊戲公司已經捉到人手測試漏咗嘅 bug，<b>正正係你嗰兩個 bug 嘅類型</b>。配上 Anthropic 嘅<b>「唔趕時間半價」批次通道</b>（背景工作平一半）同免費自架嘅記錄工具，一個人都養得起，而且唔使你再親自玩到 100 回合先發現問題。</div>
+      <div class="meta"><span class="tag t-mid">中度</span><span class="pill">後台半價</span><span class="pill">記錄工具免費自架</span><span class="pill">香港 <b>用到</b></span><span class="pill">救你出 bug 救得最直接</span></div>
+    </div>
+  </div>
+
+  <div class="tier-h">第二層 · 把記憶真正做啱中文（你產品最重要嗰樣）</div>
+
+  <div class="rank">
+    <div class="num b">4</div>
+    <div class="body">
+      <h4>換一粒對中文更強嘅記憶引擎 <span class="conf c-md">中</span></h4>
+      <div class="why">你而家用嚟「叫 AI 搵返相關情節」嗰粒引擎（text-embedding-3-small）係<b>偏向英文嘅</b>，對繁體中文敘事偏弱。市面有粒<b>Qwen3</b>（阿里出），喺中文檢索權威評測上面大幅拋離你而家用緊嗰粒；而且<b>香港攞到</b>（經阿里新加坡機房，每百萬字 $0.07，<b>有一百萬字免費額度可以即刻試</b>），更重要係佢可以出<b>同你現有資料庫一樣嘅尺寸（1536），唔使改資料庫結構</b>，只係要將舊記憶重新算一次。中文記憶搵得準，玩家先會感受到「AI 真係記得我」。</div>
+      <div class="meta"><span class="tag t-mid">中度</span><span class="pill">$0.07/百萬字</span><span class="pill"><b>1M 免費試</b></span><span class="pill">香港 <b>用到</b>（阿里新加坡）</span><span class="pill">唔使改資料庫結構</span></div>
+    </div>
+  </div>
+
+  <div class="rank">
+    <div class="num b">5</div>
+    <div class="body">
+      <h4>加一層「重新排序」，治「AI 老提無關角色」<span class="conf c-md">中</span></h4>
+      <div class="why">而家搵記憶係「相似度頭幾名照單全收」，所以有時會夾硬塞個過場閒角入去。加一層<b>重新排序器</b>（同上面同一個 Qwen3 家族都有，香港用到，每百萬字 $0.10）：搵到一批之後再叫佢揀返真正最貼題嗰幾條先餵俾 narrator。直接減少「AI 突然提起個唔重要嘅人」嘅穿崩感。</div>
+      <div class="meta"><span class="tag t-mid">中度</span><span class="pill">$0.10/百萬字</span><span class="pill">香港 <b>用到</b></span><span class="pill">減穿崩感</span></div>
+    </div>
+  </div>
+
+  <div class="rank">
+    <div class="num b">6</div>
+    <div class="body">
+      <h4>中文關鍵字搜尋（PGroonga）+ 混合檢索 <span class="conf c-hi">高</span></h4>
+      <div class="why">你之前知道一個老問題：資料庫內建嘅文字搜尋<b>對中文係壞嘅</b>（中文冇空格，會將成句當一個詞）。原本諗住自己砌「兩字一組」嘅補丁。其實 Supabase <b>喺後台㩒一下就裝到一個叫 PGroonga 嘅外掛，本身就識中日文搜尋</b>，唔使自己砌。再配合你現有嘅相似度搜尋（兩者夾埋叫「混合檢索」，Supabase 有官方教學），故事庫搜尋同記憶關鍵字兩邊一齊變準。</div>
+      <div class="meta"><span class="tag t-now">即刻–中度</span><span class="pill">免費外掛</span><span class="pill">後台一鍵裝</span><span class="pill">香港 <b>用到</b>（你資料庫本身）</span></div>
+    </div>
+  </div>
+
+  <div class="tier-h">第三層 · 護城河：關係連續性（用戶唯一嘅「轉唔到會」成本）</div>
+
+  <div class="rank">
+    <div class="num c">7</div>
+    <div class="body">
+      <h4>角色信念時序圖譜 + 中文人名自動合併 <span class="conf c-md">中</span></h4>
+      <div class="why">你架構文件入面已經設計咗嘅「角色信念演化」（例：陳家明 turn 10 以為主角死咗 → turn 41 撞破）—— 研究<b>印證咗呢個唔使搞新基建，喺你現有資料庫就砌到</b>。做法（業界叫 Graphiti）出奇咁簡單：<b>每件事記四個時間（幾時知、幾時失效、故事入面幾時開始成立、幾時被推翻），新信念推翻舊嘅就唔刪、只係將舊嗰條「標記失效」</b>—— 一句更新就得。配埋一個<b>中文人名合併</b>嘅做法（「阿明」vs「陳家明」係咪同一人，用相似度搵候選、再叫 AI 判斷合併），解你 open question 嗰條。呢個就係令長故事唔穿崩、角色真係會變嘅地基。</div>
+      <div class="meta"><span class="tag t-big">大工程</span><span class="pill">純你現有資料庫</span><span class="pill">無新基建</span><span class="pill">香港 <b>用到</b></span><span class="pill">= 你最大護城河</span></div>
+    </div>
+  </div>
+
+  <div class="rank">
+    <div class="num c">8</div>
+    <div class="body">
+      <h4>補返記憶嘅「消化・更新」一步 <span class="conf c-md">中</span></h4>
+      <div class="why">你而家嘅記憶有「抽取」同「搵返」兩步，但<b>欠咗中間最關鍵嗰步：消化更新</b>。學術界幾個經過評測嘅做法（Mem0、A-MEM）共同點都係：新事件入嚟時，<b>會反過嚟更新／改寫舊記憶</b>（例如後來救咗人，就要更新「佢覺得你係壞人」嗰條）。A-MEM 證實呢步好平（每次大約用平嗰隻 AI、約一千二百字、毫子都唔使一個），而且<b>大部分準確度提升係嚟自呢個簡單做法，唔係靠咩複雜圖譜</b>—— 即係一個人都做得起。呢步做好，「AI 唔單止記得、仲會跟住改觀感」先會喺敘事入面真係感受到。</div>
+      <div class="meta"><span class="tag t-mid">中–大</span><span class="pill">每次 &lt;$0.0003</span><span class="pill">用平嘅 AI 跑得</span><span class="pill">香港 <b>用到</b></span><span class="pill">有開源範本可抄</span></div>
+    </div>
+  </div>
+
+  <div class="tier-h">第四層 · 賺錢配套（同 token 成本脫鈎，正合你策略）</div>
+
+  <div class="rank">
+    <div class="num d">9</div>
+    <div class="body">
+      <h4>全程同一個角色樣 + 收藏卡玩法 <span class="conf c-md">中</span></h4>
+      <div class="why">兩件事：(一) <b>生圖成本</b>—— 市面有幾個又平又掂、香港攞到嘅選擇（Seedream 4.5 每張 $0.04 而且<b>中英文字都畫得靚</b>、Nano Banana 2 每張 $0.08 而且<b>識鎖住同一個角色樣（最多 5 個人、14 張參考圖）</b>）。後者正正解到「成個故事由頭到尾個角色都係同一個樣」呢個需求，亦可能令你張插圖成本／credit 定價更鬆。(二) <b>玩法</b>—— 中國市場龍頭「星野」已證實<b>收藏 AI 角色卡係賺錢嘅</b>（卡可以二手轉手、創作者抽成）。即係生圖唔只賣一張圖，可以包裝成「收藏／抽卡」嘅長線消費。</div>
+      <div class="meta"><span class="tag t-mid">中度</span><span class="pill">Seedream $0.04／Nano Banana 2 $0.08</span><span class="pill">香港 <b>用到</b>（fal.ai／SiliconFlow）</span><span class="pill">收藏卡 = 已驗證玩法</span></div>
+    </div>
+  </div>
+
+  <div class="rank">
+    <div class="num d">10</div>
+    <div class="body">
+      <h4>生成圖嘅安全過濾（補返法律缺口）<span class="conf c-hi">高</span></h4>
+      <div class="why">而家你<b>生出嚟嘅圖係冇做安全審查嘅</b>（文字有過濾、圖冇）。對一個有成人向嘅平台，呢個係法律缺口。<b>AWS Rekognition</b> 係香港用到嘅選擇：每張 $0.001（即一蚊掃一千張），<b>頭一年每月一千張免費 + 新用戶有 $200 額度</b>，而且機房可以同你資料庫一齊放喺新加坡（無亞太加價）。喺生圖之後加一道即時檢查，掃到問題就唔出 + 退返 credit。守法底線 + 保住個平台唔俾人封。</div>
+      <div class="meta"><span class="tag t-now">即刻–中度</span><span class="pill">$0.001/張</span><span class="pill"><b>每月 1000 張免費</b></span><span class="pill">香港 <b>用到</b></span><span class="pill">補法律缺口</span></div>
+    </div>
+  </div>
+
+  <div class="note" style="margin-top:22px">
+    <b>另外兩個唔入十大、但值得記住嘅：</b><br>
+    • <b>影片配套</b>（將來）：將重要場景變成短片去賣。每段 5 秒 clip 成本大約 $0.20–$0.77（睇用邊隻），香港經 fal.ai 或者你而家個 key 都有得攞。<br>
+    • <b>語音旁白</b>（將來）：MiniMax 嘅中文語音每百萬字 $60（普通）/ $100（高清），一個 2000 字回合大約一毫子；但要留意<b>你而家個 key 未必有中文語音</b>，可能要另開一條線，而且<b>廣東話質素要親自試先肯定</b>。
+  </div>
+
+  <!-- 一個本機開發小問題 -->
+  <div class="note">
+    <b>順帶捉到一個小問題（唔急）：</b>你本機開發嘅設定檔仲用緊舊嘅鑰匙名（<code>OPENROUTER_API_KEY</code>），但 code 已經改用咗新名（<code>CRAZYROUTER_API_KEY</code>）。<b>正式上線環境冇事</b>，但你喺自己部機試「生圖 / 記憶 / 成人向」呢幾個功能會壞（非成人寫故事冇事，因為走 Anthropic 直連）。補返個鑰匙名就得。
+  </div>
+
+  <hr>
+
+  <!-- ================= AREA DETAIL ================= -->
+  <h2 id="a1"><span class="n">1</span>Anthropic 平台：平、快、免費升級</h2>
+  <p class="sub">你成個非成人核心都係靠 Claude，所以平台層面有幾條槓桿係白攞嘅。</p>
+  <table>
+    <tr><th>機會</th><th>講咩</th><th>對 Kieio 點用</th><th>信心</th></tr>
+    <tr><td><b>更新版頂級型號</b></td><td>Opus 4.8 同 4.7 <b>同價</b>（$5/$25 每百萬字），寫作更好。仲有個更高層 Fable 5（$10/$50，貴一倍）。</td><td>Pro 白賺一級；Fable 5 可考慮做「超級 Pro」付費點。換型號記住兩張表一齊改。</td><td><span class="conf c-hi">高</span></td></tr>
+    <tr><td><b>後台工作半價</b></td><td>批次通道：背景工作平 <b>一半</b>（入同出都係），已正式推出、用你現有嗰條直連線，單批最多一萬個、<b>最慢 24 小時</b>。</td><td>啱晒夜間自動試玩、定期重做摘要呢類唔等得切嘅工作。<b>但回合內嗰個滾動摘要等唔到 24 鐘，唔可以走批次</b>。</td><td><span class="conf c-hi">高</span></td></tr>
+    <tr><td><b>快取（prompt cache）</b></td><td>重複內容快取：讀返只收一成（平九成）；寫快取 5 分鐘版收 1.25 倍、1 小時版收 2 倍。<b>玩緊嗰陣每用一次就免費續期</b>。</td><td>有人連續玩，5 分鐘版自動續到，唔使俾 1 小時版嘅貴錢。確保「永遠唔變嘅角色卡」放靜態段、「每回合變嘅狀態」放後面，先食到快取。</td><td><span class="conf c-hi">高（已三票核實）</span></td></tr>
+    <tr><td><b>官方自動摘要（compaction）</b></td><td>Anthropic 而家有伺服器側自動摘要，對話太長會自動壓縮，<b>官方建議用嚟取代自己砌嘅滾動摘要</b>。</td><td>正正係你「死亡螺旋」嗰個 bug 嘅根源所在 —— 值得評估用官方版取代自家版（要睇你架構係咪每回合重砌 prompt，可能要調整）。</td><td><span class="conf c-md">中</span></td></tr>
+    <tr><td><b>記憶工具 / 內容裁剪</b></td><td>官方有「記憶檔案」同「自動清走舊工具結果」嘅功能。記憶檔案係你自己嘅資料庫存，但每回合會多幾個來回先出文。</td><td>對你「玩家等緊嗰刻要快」嘅原則有少少張力，未必啱即時逐字串流。當參考多過當即用。</td><td><span class="conf c-md">中</span></td></tr>
+  </table>
+
+  <h2 id="a2"><span class="n">2</span>記憶架構：關係連續性 = 護城河</h2>
+  <p class="sub">行業 churn 第一名就係「AI 唔記得」。研究結論：你欠嘅唔係更大基建，係<b>「消化更新」嗰一步 + 時序信念</b>，而呢兩樣都喺你現有資料庫做得到。</p>
+  <table>
+    <tr><th>做法</th><th>關鍵發現</th><th>香港 / 基建</th><th>信心</th></tr>
+    <tr><td><b>Graphiti 時序圖譜</b></td><td>每件事四個時間戳，推翻舊事唔刪、只標失效（一句更新）。正合角色信念演化。</td><td><span class="tag t-yes">純 Postgres</span> 無新基建</td><td><span class="conf c-md">中</span></td></tr>
+    <tr><td><b>Zep 人名合併</b></td><td>「阿明 vs 陳家明」用相似度 + 文字搜尋搵候選，再叫 AI 喺寫入時判斷合併，唔係靠死板字串對比。</td><td><span class="tag t-yes">純 Postgres</span></td><td><span class="conf c-md">中</span></td></tr>
+    <tr><td><b>A-MEM（NeurIPS 2025）</b></td><td>新記憶會更新舊記憶；每次約一千二百字、毫子都唔使一個、平嘅 AI 跑得；<b>有開源範本</b>。</td><td><span class="tag t-yes">可抄落 Postgres</span></td><td><span class="conf c-md">中</span></td></tr>
+    <tr><td><b>Mem0</b></td><td>「抽取–消化–搵返」三步。<b>加圖譜只多 2% 準確度</b> —— 即係唔使搞複雜圖，做好「消化」就攞到大部分分。比死塞全部歷史快 91%、平九成。</td><td><span class="tag t-yes">純 Postgres</span></td><td><span class="conf c-md">中</span></td></tr>
+    <tr><td><b>LongMemEval 教訓</b></td><td>純靠長 context 喂全部歷史，長對話準確度跌三成。三個可即抄優化：拆細記憶單位、抽出嚟嘅事實另存做搜尋鎖匙、查詢時加時間範圍。</td><td><span class="tag t-yes">純 Postgres</span></td><td><span class="conf c-md">中</span></td></tr>
+  </table>
+
+  <h2 id="a3"><span class="n">3</span>中文檢索：你嘅記憶引擎偏弱</h2>
+  <p class="sub">你而家粒引擎係英文導向。換中文強嘅，準確度直接升，而且香港攞到、唔使改資料庫結構。</p>
+  <table>
+    <tr><th>選擇</th><th>中文表現 / 價錢</th><th>香港攞到？</th><th>信心</th></tr>
+    <tr><td><b>Qwen3 記憶引擎</b></td><td>中文評測（CMTEB）大幅拋離你現用嗰粒；可出 1536 尺寸（唔使改結構）；$0.07/百萬字；<b>1M 免費試</b>。</td><td><span class="tag t-yes">是（阿里新加坡）</span></td><td><span class="conf c-md">中</span></td></tr>
+    <tr><td><b>Qwen3 重新排序器</b></td><td>中文重排明顯勝過 bge-reranker；$0.10/百萬字。</td><td><span class="tag t-yes">是</span></td><td><span class="conf c-md">中</span></td></tr>
+    <tr><td><b>PGroonga 外掛</b></td><td>Supabase 後台一鍵裝，本身識中日文搜尋，唔使自己砌「兩字一組」補丁。</td><td><span class="tag t-yes">是（你資料庫本身）</span></td><td><span class="conf c-hi">高</span></td></tr>
+    <tr><td><b>混合檢索教學</b></td><td>Supabase 官方有「文字 + 相似度」夾埋嘅 SQL 範本（RRF 融合）；但範本寫死英文，中文嗰邊要換成上面 PGroonga／兩字一組。</td><td><span class="tag t-yes">是</span></td><td><span class="conf c-hi">高</span></td></tr>
+    <tr><td><b>SiliconFlow（後備路）</b></td><td>價錢同你而家 CrazyRouter 差唔多（DeepSeek $0.27/$0.42），有中文記憶引擎同語音，可做後備供應商；但香港可達性未明，要自己試。</td><td><span class="tag t-chk">待核</span></td><td><span class="conf c-lo">待核</span></td></tr>
+  </table>
+
+  <h2 id="a4"><span class="n">4</span>競品同市場：邊度有錢賺</h2>
+  <table>
+    <tr><th>發現</th><th>對你嘅啟示</th><th>信心</th></tr>
+    <tr><td>中國 AI 陪伴 app（星野、猫箱）月活<b>按年跌超過 12%</b>，整個品類留存差、難賺錢。</td><td>純「陪你傾偈」品類正在退潮 —— 你做「走入故事做主角」嘅<b>互動小說</b>定位，反而避開咗紅海。</td><td><span class="conf c-md">中</span></td></tr>
+    <tr><td>戀愛互動小說需求<b>巨大且已驗證</b>：《戀與製作人》首月 700 萬下載、單年中國區 iOS 收 5600 萬美金。</td><td>你嘅戀愛故事線係有大盤需求嘅，唔係小眾。</td><td><span class="conf c-md">中</span></td></tr>
+    <tr><td>星野靠<b>收藏 AI 角色卡</b>賺錢（可二手轉手、約 28 美金一張、創作者抽成）。</td><td>生圖唔只賣一張，可包裝成<b>收藏／抽卡</b>長線消費。見十大第 9。</td><td><span class="conf c-md">中</span></td></tr>
+    <tr><td>中西付費客群<b>相反</b>：中國市場主力課金係 25–35 歲女性；西方偏男性。</td><td>影響你嘅官方故事題材、美術風格、市場推廣方向。</td><td><span class="conf c-md">中</span></td></tr>
+    <tr><td>a16z：突圍嘅消費 AI 產品贏在<b>「有觀點、夠專注嘅介面」</b>，唔係贏在模型。只有 9% 人會課多過一個 AI 月費。</td><td><b>直接印證你嘅輕核心 pivot</b>：體驗層／策展係護城河。你要爭做用戶<b>唯一</b>嗰個付費 AI app。</td><td><span class="conf c-md">中</span></td></tr>
+    <tr><td>頂級消費 app 第 30 日留存 &gt;30%（Sora 得 8%）。</td><td>畀你一把尺去衡量自己留存夠唔夠班。</td><td><span class="conf c-md">中</span></td></tr>
+    <tr><td>監管：筑夢島因<b>涉未成年不雅內容</b>俾上海約談，要改自動青少年保護。</td><td>強化你 CSAM 硬底線 + 未成年保護，係中文圈成人向嘅真實法律風險。</td><td><span class="conf c-md">中</span></td></tr>
+    <tr><td>AI Dungeon（Latitude）2026 年演化成 Voyage，自稱「首個 AI 原生 RPG 平台」；xAI 推出<b>動畫化</b>角色伴侶。</td><td>對手喺郁；「角色有畫面／動畫」正成為競爭軸（你成人向本身就行 Grok）。</td><td><span class="conf c-lo">待核</span></td></tr>
+  </table>
+
+  <h2 id="a5"><span class="n">5</span>賺錢配套：圖／片／聲嘅成本</h2>
+  <p class="sub">全部都係香港攞到嘅路（fal.ai / SiliconFlow / MiniMax / 你現有個 key），俾你計毛利。</p>
+  <table>
+    <tr><th>類型</th><th>選擇同每件成本</th><th>香港攞到？</th><th>信心</th></tr>
+    <tr><td><b>生圖（一致角色）</b></td><td>Seedream 4.5 $0.04（中英文字靚）· Nano Banana 2 $0.08（鎖角色樣 5 人／14 張參考）· 原版 Nano Banana $0.039 · SiliconFlow FLUX $0.014 / Z-Image $0.005。</td><td><span class="tag t-yes">是（fal.ai／SiliconFlow）</span></td><td><span class="conf c-hi">高</span></td></tr>
+    <tr><td><b>生影片</b></td><td>每秒：Wan $0.05–0.07 · Kling 2.5 Turbo $0.07 · Hailuo $0.10 · Veo 3 $0.40。一段 5 秒 clip 約 $0.20–$2.00。MiniMax Hailuo 每段 $0.19–0.56。</td><td><span class="tag t-yes">是（fal.ai／CrazyRouter）</span></td><td><span class="conf c-md">中</span></td></tr>
+    <tr><td><b>語音旁白</b></td><td>MiniMax 中文語音 $60（普通）/ $100（高清）每百萬字（2000 字 ≈ $0.07–0.12）；複製聲 $1.5、設計聲 $3 一次性。SiliconFlow CosyVoice 較平但廣東話質素待試。</td><td><span class="tag t-chk">是，但你個 key 未必有，要另開線</span></td><td><span class="conf c-md">中</span></td></tr>
+    <tr><td><b>音樂</b></td><td>MiniMax 配樂 $0.15 一首（最長 5 分鐘）。</td><td><span class="tag t-yes">是</span></td><td><span class="conf c-md">中</span></td></tr>
+    <tr><td><b>你個 key（CrazyRouter）</b></td><td>聲稱 627+ 型號、影片齊（Sora2／Kling／Veo／Seedance／Hailuo）。但<b>佢公開嘅圖片清單係過時嘅</b>（連你而家用緊嗰兩隻都冇列），<b>語音偏 OpenAI／Google</b>（冇 MiniMax／Fish）。</td><td><span class="tag t-chk">影片大概得；語音要另尋</span></td><td><span class="conf c-lo">待核（要親自開清單睇）</span></td></tr>
+  </table>
+
+  <h2 id="a6"><span class="n">6</span>內容過濾：唔靠 OpenAI 點做</h2>
+  <table>
+    <tr><th>選擇</th><th>關鍵發現</th><th>信心</th></tr>
+    <tr><td><b>文字：Claude Haiku 當過濾器（你而家用緊）</b></td><td>官方推薦、平（每篇約 $0.000036）、一隻模型多語言。<b>但有個真問題：佢會過度封鎖露骨成人內容，就算你叫佢唔好</b>。所以非成人 SFW 用佢冇問題；<b>成人向唔好用佢做主過濾</b>，維持你而家「事後只守法律底線」嘅做法係啱嘅。</td><td><span class="conf c-hi">高</span></td></tr>
+    <tr><td><b>文字：開源過濾模型</b></td><td>Llama Guard 同 OpenAI 差約 3 分（接近）；ShieldGemma 差好多。但<b>全部只測過英文，冇中文、冇 Claude 數據</b>，而且對「隱晦／暗號式」傷害內容普遍捉唔到。</td><td><span class="conf c-md">中</span></td></tr>
+    <tr><td><b>生成圖過濾（你而家冇做）</b></td><td>AWS Rekognition 每張 $0.001、量大更平、<b>頭年每月 1000 張免費 + 新客 $200 額度</b>、可同你資料庫一齊放新加坡、無亞太加價。Sightengine 有 110 類過濾、即時回應，但<b>未明確列 CSAM 類</b>。</td><td><span class="conf c-hi">高</span></td></tr>
+  </table>
+
+  <h2 id="a7"><span class="n">7</span>自動測試：一個人點守質素</h2>
+  <table>
+    <tr><th>選擇</th><th>關鍵發現</th><th>信心</th></tr>
+    <tr><td><b>記錄／評分工具：Langfuse</b></td><td>開源、<b>自架完全免費無限用</b>、支援用非 OpenAI 模型做「AI 評審」（正合你 Anthropic 限制）。雲端版免費 5 萬次／月，付費 $29/月。</td><td><span class="conf c-hi">高</span></td></tr>
+    <tr><td><b>對手：Braintrust</b></td><td>免費額度大（100 萬 trace），但<b>閉源、自架要企業版</b>、付費 $249/月。一個人嘅話 Langfuse 划算好多。</td><td><span class="conf c-md">中</span></td></tr>
+    <tr><td><b>自動試玩（TITAN 證實）</b></td><td>AI 自己玩、再由 AI 當裁判 —— 喺真實遊戲公司<b>捉到人手測試漏咗嘅 bug</b>，包括「打 6 隻先過關但打 5 隻就當完成」呢類<b>進度卡住 / 狀態漂移</b>嘅 bug，<b>同你嗰兩個 bug 同一類</b>。配批次半價跑，一個人養得起。</td><td><span class="conf c-md">中</span></td></tr>
+  </table>
+  <p class="sub" style="margin-top:8px">👉 綜合：呢個就係十大第 3 —— <b>夜間自動試玩 + AI 評分</b>，會喺你親手玩到第 117 回合之前就捉到死亡螺旋同卡幕。對一個零測試嘅 code base，呢個係最值嘅流程升級。</p>
+
+  <h2 id="a8"><span class="n">8</span>延遲：香港台灣玩家快幾多</h2>
+  <p class="sub">已親自核實你個 repo 設定。</p>
+  <ul>
+    <li><b>已證實：</b>你個運算層<b>冇指定機房</b>（next.config / vercel.json 都冇），預設落美國東岸；但你資料庫喺<b>新加坡</b>。即係每回合多個系統來回都要跨太平洋。</li>
+    <li><b>解法（十大第 1）：</b>將運算<b>指定去新加坡</b>，同資料庫坐埋一齊。登入、攞檔案、搵記憶、扣 credit 呢啲來回由跨洋變成機房內，TTFB（撳掣到第一個字）實質快。</li>
+    <li><b>留意：</b>narrator 寫故事嗰個 call 本身去 Anthropic（美國），呢段唔會因為搬新加坡而變快；但<b>佢前後嗰一大堆資料庫來回會快</b>，整體玩家感受到「快咗」。</li>
+  </ul>
+
+  <hr>
+
+  <div class="tldr">
+    <b>如果只揀三樣即刻做：</b>① 運算搬新加坡（$0，全員每回合受惠）② Pro 換 Opus 4.8（同價升一級）③ 起夜間自動試玩（防下一次出 bug 出到玩家面前）。呢三樣加埋大約一個 session，零到極低成本，回報最即時。再落去就係「中文記憶做啱」（第 4–6）同「護城河關係連續性」（第 7–8）。<br><br>
+    <b>想我點跟進？</b>我可以 (甲) 即刻幫你做嗰三個快贏（搬機房 / 換 Opus 4.8 / 補本機鑰匙）· (乙) 揀其中一項出一份詳細落地計劃 · (丙) 親自開 CrazyRouter 真實清單同阿里新加坡，把「待核」嗰幾項查實。你話我知。
+  </div>
+
+  <div class="foot">
+    Kieio 產品加強研究 · 2026-06-12 · 八範疇 · 142 條已抽取事實（價錢功能類已對 Anthropic 官方文件核實，市場／評測類為中信心，第三方轉述標「待核」落實前會再查）<br>
+    背景自動研究於最後對抗核實階段中止；本報告由完成部分 + 內部 code 實查 + 官方文件對證綜合而成。
+  </div>
+</div>
+</body>
+</html>

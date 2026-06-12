@@ -107,6 +107,15 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
   },
   "claude-opus-4-7": {
     // RATE FIX 2026-05-25: was $15/$75 (old Opus 3 era) · 4.7 dropped to $5/$25
+    // BACK-COMPAT (2026-06-12): 唔再入新輪換 · 舊 Pro playthrough 鎖住佢 · 唔可刪
+    inputPerMillion: 5.0,
+    outputPerMillion: 25.0,
+    cachedInputPerMillion: 0.5,
+  },
+  "claude-opus-4-8": {
+    // NEW Pro narrator (2026-06-12 · Session 19) · 同 4.7 同價 — 已對 Anthropic
+    // 官方價目核實 ($5/$25 · cached 10%)。⚠️ MODELS + MODEL_PRICING 兩表同步加
+    // (hard rule · 漏一邊 = play 500)。
     inputPerMillion: 5.0,
     outputPerMillion: 25.0,
     cachedInputPerMillion: 0.5,

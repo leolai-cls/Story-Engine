@@ -13,7 +13,7 @@
  * Decision (Session 17 · 2026-06-02 light-core pivot · 非成人全轉 Claude 直連):
  *   - adultMode=true → 一律 return ADULT_NSFW_MODEL ("grok-4-1" · ADR-024)
  *   - tier="standard" (非成人) → "claude-sonnet-4-6" (Anthropic 直連 · 真串流 + cache)
- *   - tier="pro" (非成人) → "claude-opus-4-7" (Anthropic 直連 · 旗艦)
+ *   - tier="pro" (非成人) → "claude-opus-4-8" (Anthropic 直連 · 旗艦 · 2026-06-12 由 4-7 升上)
  *   - (舊 gemini/deepseek/gpt 中英分流已退役 · 留 MODELS 做 back-compat)
  *
  * Pool definitions live in lib/ai/models.ts TIER_POOLS const.

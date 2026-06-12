@@ -32,7 +32,9 @@ const SUB_ORDER: readonly SubTier[] = SUBSCRIPTION_TIER_ORDER;
 // 成人向 model (grok-4-1) 唔喺度 — 成人故事個 picker 會整個鎖死 (isAdult · 見下)。
 const PICKER_MODEL_IDS = [
   "claude-sonnet-4-6",
-  "claude-opus-4-7",
+  // Session 19 (2026-06-12): Pro 旗艦 4.7 → 4.8（同價）。舊 playthrough 鎖住 4-7
+  // 照玩（MODELS back-compat），用戶喺呢個 picker 切去 4.8 就完成升級。
+  "claude-opus-4-8",
 ] as const;
 
 export function ChatControls({

@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kieio 深度落地計劃 — 記憶宮殿升級 + 四波路線</title>
+<style>
+  :root{--bg:#0f1115;--card:#171a21;--card2:#1d2129;--ink:#e7e9ee;--muted:#9aa1ad;--line:#2a2f3a;--accent:#8b7cf6;--accent2:#22d3ee;--good:#34d399;--warn:#fbbf24;--bad:#f87171}
+  *{box-sizing:border-box}
+  body{margin:0;background:linear-gradient(180deg,#0c0e12,#0f1115 260px);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;line-height:1.74;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1000px;margin:0 auto;padding:40px 22px 100px}
+  .kicker{color:var(--accent2);font-weight:700;letter-spacing:.14em;font-size:12px;text-transform:uppercase}
+  h1{font-size:28px;line-height:1.3;margin:8px 0 6px;font-weight:800}
+  h2{font-size:21px;margin:46px 0 8px;font-weight:800;display:flex;align-items:center;gap:10px;scroll-margin-top:20px}
+  h2 .n{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:8px;background:var(--accent);color:#0c0e12;font-size:14px;font-weight:900;flex:none}
+  h3{font-size:16px;margin:22px 0 4px;font-weight:700;color:#fff}
+  p{margin:9px 0;color:#d6d9e0}.sub{color:var(--muted);font-size:13.5px}
+  .tldr{background:rgba(139,124,246,.10);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:10px;padding:14px 18px;margin:14px 0 10px;font-size:14.5px;color:#d2d6df}
+  .ok{background:rgba(52,211,153,.07);border:1px solid rgba(52,211,153,.3);border-radius:10px;padding:12px 16px;margin:12px 0;font-size:13.5px;color:#c8e6d6}
+  .warn{background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.28);border-radius:10px;padding:12px 16px;margin:12px 0;font-size:13.5px;color:#e8d9b0}
+  .ask{background:rgba(34,211,238,.07);border:1px solid rgba(34,211,238,.28);border-radius:10px;padding:12px 16px;margin:12px 0;font-size:13.5px;color:#bfe9f2}
+  table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13.5px}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:700;font-size:11.5px;letter-spacing:.04em;text-transform:uppercase}
+  td b{color:#fff} code{background:var(--card2);border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-size:12px;font-family:ui-monospace,Menlo,Consolas,monospace;color:#c4b5fd}
+  .tag{display:inline-block;font-size:10.5px;font-weight:800;padding:2px 9px;border-radius:20px;white-space:nowrap}
+  .t-keep{background:rgba(52,211,153,.16);color:#6ee7b7}.t-new{background:rgba(139,124,246,.18);color:#c4b5fd}.t-no{background:rgba(248,113,113,.14);color:#fca5a5}.t-chk{background:rgba(148,163,184,.16);color:#cbd5e1}
+  .wave{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-top:16px}
+  .wave .wh{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+  .wave .wn{flex:none;width:42px;height:42px;border-radius:11px;display:grid;place-items:center;font-weight:900;font-size:17px;color:#0c0e12}
+  .wn.w0{background:linear-gradient(135deg,#34d399,#22d3ee)}.wn.w1{background:linear-gradient(135deg,#22d3ee,#8b7cf6)}.wn.w2{background:linear-gradient(135deg,#8b7cf6,#f5b942)}.wn.w3{background:linear-gradient(135deg,#f5b942,#f87171)}
+  .wave .wh h4{margin:0;font-size:17.5px;color:#fff;font-weight:800}
+  .wave .wh .sub{margin:0}
+  .step{display:flex;gap:13px;align-items:flex-start;padding:11px 0;border-bottom:1px solid var(--line)}
+  .step:last-child{border-bottom:none}
+  .step .k{flex:none;width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font-weight:900;color:#0c0e12;font-size:12.5px;background:var(--accent2)}
+  .step .body{flex:1;min-width:0}.step .body b{color:#fff}
+  .step .body .why{color:var(--muted);font-size:12.8px;margin-top:2px}
+  .palace{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-top:12px;font-size:13px;font-family:ui-monospace,Menlo,Consolas,monospace;color:#cdd1d9;overflow-x:auto;white-space:pre;line-height:1.8}
+  .palace .hl{color:#6ee7b7}.palace .nu{color:#c4b5fd}.palace .dim{color:#6b7280}
+  ul{margin:8px 0;padding-left:20px}li{margin:5px 0;color:#d6d9e0}
+  .pill{font-size:11.5px;color:var(--muted);background:var(--card2);border:1px solid var(--line);border-radius:7px;padding:3px 9px;display:inline-block;margin:2px 4px 2px 0}
+  .pill b{color:#e7e9ee}
+  .foot{color:var(--muted);font-size:12.5px;margin-top:38px;text-align:center;border-top:1px solid var(--line);padding-top:20px}
+  hr{border:none;border-top:1px solid var(--line);margin:34px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kicker">Kieio · 深度落地計劃 · 基於 2026-06-12 研究</div>
+  <h1>記憶宮殿升級 + 四波執行路線</h1>
+  <div class="sub">2026-06-12 · 已對照 <code>pm/architecture/</code> 全套鎖定設計（01 哲學 / 03 角色靈魂 / 04 記憶 / 07 背景管家）+ 真實 code 現狀</div>
+
+  <div class="tldr">
+    <b>兩句總結：</b>① 你問「研究引用嗰啲記憶做法啱唔啱我哋嘅記憶宮殿」—— <b>啱，而且啱得出奇</b>：佢哋唔係另一座宮殿，而係你座宮殿一直欠住嘅<b>四件工具</b>（一對中文眼、一個門口判官、一個執房管家、一條時間軸）；其中「時間軸」嗰套做法同你哋去年鎖定嘅信念圖譜設計<b>根本係同一樣嘢</b>，即係業界印證咗你嘅設計係啱方向。② 執行分四波：<b>快贏 → 裝把尺 → 記憶手術 → 賺錢配套</b>，我建議頭兩波即做、出 launch、手術留返 launch 後第一波用真實玩家數據揀次序。
+  </div>
+
+  <!-- ================= PART 1: FIT ANALYSIS ================= -->
+  <h2><span class="n">1</span>正面答你：研究嗰啲做法，fit 唔 fit 記憶宮殿？</h2>
+
+  <p>先講清楚一個分工：你哋嘅<b>記憶宮殿係「結構」</b>—— 一個 playthrough 一座宮殿，入面分翼（角色翼／地點翼／事件翼），每個角色一間房，唔使每個角色起一座宮殿。呢個結構喺資料庫入面<b>已經起咗</b>（去年嘅遷移已起好翼／房欄位）。而我引用嘅研究全部係講<b>「喺呢個結構入面，點寫入、點搵、點執房」</b>—— 即係工具層，唔係結構層。冇任何一樣嘢要拆你座宮殿。</p>
+
+  <div class="palace"><span class="dim">你座宮殿（結構 · 已鎖定 · 唔郁）          研究帶嚟嘅四件工具（今次加嘅嘢）</span>
+
+一個 playthrough = 一座宮殿
+├── 角色翼
+│   ├── 林思雅房  ──────────────  <span class="nu">④ 時間軸</span>：佢嘅信念幾時成立、幾時被推翻
+│   ├── 陳家明房  ──────────────  <span class="hl">② 門口判官</span>：「阿明」嚟料 — 開新房定入陳家明房？
+│   └── …
+├── 地點翼 / 事件翼 / 設定翼  ────  <span class="hl">③ 執房管家</span>：新事入嚟，反手更新或標示失效嘅舊嘢
+└── 成座宮殿嘅搵嘢方式  ──────────  <span class="hl">① 中文眼</span>：換對中文先睇得準嘅眼 + 中文名都搵到嘅索引</div>
+
+  <h3>四件工具逐件對返你哋嘅設計文件</h3>
+  <table>
+    <tr><th>工具</th><th>研究來源</th><th>對應你哋邊份設計 / 邊條未解問題</th><th>結論</th></tr>
+    <tr>
+      <td><b>① 中文眼</b><br><span class="sub">Qwen3 記憶引擎 + 重新排序器 + PGroonga 中文索引</span></td>
+      <td>中文檢索評測（CMTEB）+ Supabase 官方外掛</td>
+      <td>04 記憶文件嘅 4 層之中，「相關情節搜尋」同「自動設定集」兩層都靠對眼。你而家對眼係英文導向 —— <b>宮殿起得啱，但管理員近視</b>。另外 Wave 2 嘅「角色檔案提到先注入」要靠關鍵字索引，中文索引正係 PGroonga 提供嘅嘢。</td>
+      <td><span class="tag t-keep">直接補強</span></td>
+    </tr>
+    <tr>
+      <td><b>② 門口判官</b><br><span class="sub">Zep 嘅人名合併做法</span></td>
+      <td>Zep / Graphiti 工程實錄</td>
+      <td>你哋 open question 原文：「阿明 vs 陳家明 用 naive exact match 先」（ADR-012 係臨時方案）。研究答案：寫入嗰刻用相似度搵候選房 + 叫平價 AI 判斷係咪同一人，唔係靠死板字串對比。<b>判官決定「開新房定入舊房」—— 正正係宮殿模型嘅門口位。</b></td>
+      <td><span class="tag t-keep">解你未解問題</span></td>
+    </tr>
+    <tr>
+      <td><b>③ 執房管家</b><br><span class="sub">A-MEM / Mem0 嘅「消化更新」</span></td>
+      <td>NeurIPS 2025 + 評測數據</td>
+      <td>你哋 07 文件<b>本身已經設計咗「背景管家」</b>（壓縮＋消化＋清潔，唔阻塞玩家）！研究補嘅係管家手上嗰本工作手冊：新記憶入嚟，要反手檢查同佢矛盾嘅舊記憶，更新或者標失效。仲證實咗呢步好平（每次唔使一毫子、平價 AI 跑得）、而且<b>大部分準確度提升嚟自呢步，唔係嚟自複雜圖譜</b> —— 即係一個人都養得起。</td>
+      <td><span class="tag t-keep">填補你設計嘅空格</span></td>
+    </tr>
+    <tr>
+      <td><b>④ 時間軸</b><br><span class="sub">Graphiti 嘅「失效唔刪除」時序記錄</span></td>
+      <td>Graphiti 公開架構</td>
+      <td><b>呢個係最重要嘅發現：佢同你哋 04 文件鎖定咗嘅信念圖譜設計係同一樣嘢。</b>你哋寫低嘅 schema（幾時開始信／幾時唔再信／邊回合推翻、推翻唔刪只標失效）—— Graphiti 喺業界用嘅就係呢套，一模一樣嘅機制。仲有：你哋參考嘅 MemPalace 原裝 code 入面嗰個時序圖譜都係同一理念。<b>即係話三個獨立來源（你哋自己、MemPalace、Graphiti）殊途同歸 —— 你嘅設計唔使改，可以放心起。</b></td>
+      <td><span class="tag t-keep">印證你鎖定嘅設計</span></td>
+    </tr>
+  </table>
+
+  <h3>同樣重要：研究入面有三樣嘢我「唔」建議採用</h3>
+  <table>
+    <tr><th>唔採用</th><th>點解</th></tr>
+    <tr><td><b>Anthropic 官方「記憶工具」做核心</b></td><td>佢要 AI 每回合先去翻幾轉記憶檔先開始寫故事 —— 直接違反你輕核心嘅「玩家等緊嗰刻係神聖時間，只准做兩件事」。佢嘅理念（角色檔案＝一份份文件）同你 Wave 2 一致，攞理念，唔攞佢個每回合翻檔嘅流程。<span class="tag t-no">理念吸收 · 流程唔要</span></td></tr>
+    <tr><td><b>起一套完整知識圖譜基建</b></td><td>研究數據自己講：加完整圖譜只比「簡單抽取＋消化」多 2% 準確度。你哋資料庫入面已有嘅輕量關係表夠用。Solo dev 唔值得為 2% 養多一套嘢 —— 同你 ADR-004「藍本重建唔內嵌」嘅判斷一致。<span class="tag t-no">唔值</span></td></tr>
+    <tr><td><b>官方自動摘要取代你嘅滾動摘要（而家）</b></td><td>官方嗰套係為「一條長對話越滾越長」設計；你哋每回合係由資料庫重新砌一次故事上文，唔係同一條長對話。而且你嘅摘要死亡螺旋上個月已治本（換型號＋脫困機制）。留意佢發展就夠，唔急住換。<span class="tag t-chk">觀察</span></td></tr>
+  </table>
+
+  <div class="ok"><b>底線：</b>呢次升級<b>零拆遷</b> —— 宮殿結構、四層記憶、輕核心「直出」原則、角色三層靈魂全部原封不動。加嘅係四件工具，每件都對應返你哋自己文件入面寫低咗但未起、或者標咗「待解決」嘅位。</div>
+
+  <!-- ================= PART 2: WAVES ================= -->
+  <h2><span class="n">2</span>四波執行路線</h2>
+  <p class="sub">大原則：① 先裝「把尺」再做手術 —— 唔量度就唔知升級有冇真係升到（你親手玩先發現 bug 嗰課唔可以再嚟一次）② launch 唔好俾呢個計劃擋住 —— 頭兩波又快又護身，手術留 launch 後用真實數據做。</p>
+
+  <div class="wave">
+    <div class="wh"><div class="wn w0">0</div><div><h4>第 0 波 · 快贏（約 1 個 session · 近乎零成本）</h4><div class="sub">全部係「改設定」級數嘅嘢，但每個玩家每回合都受惠</div></div></div>
+    <div class="step"><div class="k">1</div><div class="body"><b>運算搬新加坡</b>，同資料庫坐埋一齊<div class="why">改一個設定檔。每回合慳走幾轉跨太平洋來回。改完落 preview 量一次「撳掣到第一個字」嘅前後對比，有數先上正式。</div></div></div>
+    <div class="step"><div class="k">2</div><div class="body"><b>Pro 換 Opus 4.8</b>（同價更靚文筆）<div class="why">兩張對照表（型號表＋價目表）一齊改 —— 你之前漏一邊嗰個 500 教訓。好消息：你而家已經喺 4.7，4.7→4.8 嘅計法一樣，<b>成本基本上唔變</b>，唔使重計 credit。落 preview 你親手玩兩局確認文筆，先上正式。</div></div></div>
+    <div class="step"><div class="k">3</div><div class="body"><b>補本機開發鑰匙名</b><div class="why">本機設定檔仲用舊名，新 code 讀新名 —— 補返，你部機先試到生圖／記憶／成人向功能。</div></div></div>
+    <div class="step"><div class="k">4</div><div class="body"><b>資料庫開 PGroonga 外掛</b>（一鍵）<div class="why">先開咗佢，第 2 波接線。順手等故事庫搜尋都食到中文索引。</div></div></div>
+  </div>
+
+  <div class="wave">
+    <div class="wh"><div class="wn w1">1</div><div><h4>第 1 波 · 裝把尺：夜間自動試玩（約 1.5 個 session）</h4><div class="sub">手術之前一定要有得量度 —— 呢把尺同時係你以後每次改嘢嘅保險</div></div></div>
+    <div class="step"><div class="k">1</div><div class="body"><b>試玩員</b>：一個自動程序每晚扮玩家，喺幾條唔同類型嘅測試故事度各玩 20–30 回合<div class="why">行真嘅回合流程（同玩家行嘅一樣），用平價型號做試玩輸入，故事輸出照常。</div></div></div>
+    <div class="step"><div class="k">2</div><div class="body"><b>評分員</b>：另一隻 AI 用「唔趕時間半價通道」逐局評分<div class="why">評四樣：①記憶（第 3 回合種一粒事實，第 25 回合問返，answer 得唔得）②翻炒重複率 ③故事弧有冇推進（防再卡第一幕）④摘要長度健康（防死亡螺旋復發）。</div></div></div>
+    <div class="step"><div class="k">3</div><div class="body"><b>晨報</b>：每朝一頁報告，紅黃綠燈<div class="why">任何一晚轉紅 = 有嘢退化咗，喺玩家見到之前你已經知。</div></div></div>
+    <div class="step"><div class="k">4</div><div class="body"><b>底線基準</b>：手術前用呢把尺量低而家嘅記憶分數<div class="why">之後每做一步手術都有前後對比 —— 升級係有數講，唔係靠感覺。</div></div></div>
+    <p class="sub" style="margin-top:10px"><span class="pill">預算：每晚試玩 + 評分約 <b>US$1–2</b>（半價通道）→ 每月約 US$30–60，可調細</span><span class="pill">唔使新供應商，全行你而家兩條線</span></p>
+  </div>
+
+  <div class="wave">
+    <div class="wh"><div class="wn w2">2</div><div><h4>第 2 波 · 記憶手術：四件工具逐件裝（約 3–4 個 session · 建議 launch 後做）</h4><div class="sub">次序有邏輯：先醫眼（搵唔準一切免談）→ 再請判官同管家 → 最後鋪時間軸</div></div></div>
+
+    <div class="step"><div class="k">①</div><div class="body"><b>換中文眼（M1）</b> — 先試後換，唔使改資料庫結構<div class="why"><b>第一步係查貨</b>：用正式鑰匙開你而家供應商嘅完整型號清單，睇有冇 Qwen3 記憶引擎 —— 有就零新供應商；冇先問你開唔開阿里（見下面決定 ②）。<b>第二步用一百萬字免費額度做盲測</b>：攞真實 playthrough 嘅舊情節做題目，新舊兩對眼各搵一次，邊個搵得啱多就用邊個 —— 唔贏就唔換，零成本知答案。<b>第三步先遷移</b>：新眼出同一個尺寸（1536）所以資料庫唔使動刀，但全部舊記憶要重新「睇」一次（成本極平，幾蚊美金內），同埋三條「相似度及格線」要重新校（新眼嘅準繩標準唔同，唔校會搵多咗噪音或者搵漏嘢 —— 用第 1 波把尺校）。</div></div></div>
+
+    <div class="step"><div class="k">②</div><div class="body"><b>中文關鍵字 + 混合搜尋（M2）</b> — PGroonga 接線<div class="why">記憶搜尋由「淨係靠相似度」變「相似度 + 中文關鍵字兩路夾埋」（Supabase 有官方夾法）。一次過治埋故事庫嘅中文搜尋老毛病（「校園戀愛」搵唔到「大學校園戀愛故事」嗰個）。呢條索引同時係 Wave 2「角色檔案提到先注入」嘅地基。</div></div></div>
+
+    <div class="step"><div class="k">③</div><div class="body"><b>門口判官 + 執房管家（M3）</b> — 寫入去重 + 消化更新<div class="why"><b>判官</b>：新名入宮殿時，搵相似舊房做候選，叫平價 AI 判斷「阿明係咪陳家明」—— 取代而家嘅死板字串對比。<b>管家</b>：掛喺你現有嘅摘要觸發點（咪就係 07 文件設計咗嘅背景管家位），每次順手做：免費嘅機械清潔（去重複、刪失敗回合）先行，然後 AI 消化 —— 新事同舊記憶矛盾就更新或標失效。全部喺背景做，玩家嗰刻零感知，每次成本唔使一毫子。</div></div></div>
+
+    <div class="step"><div class="k">④</div><div class="body"><b>時間軸（M4）</b> — 角色信念時序表（照你哋 04 鎖定嘅 schema 起）<div class="why">起嗰張「邊個角色信咩、幾時開始、幾時被推翻」嘅表 —— 只記<b>事實性、會穿崩嘅嘢</b>（「陳家明以為主角死咗」），唔記性格（你哋 04 嘅收窄原則照守，性格留喺出身故事俾 AI 自己領會）。<b>寫入</b>：唔加重每回合嗰個抽取器（佢已經孭住防爆上限），改為喺背景管家嗰度每隔幾回合抽一次 —— 答埋你哋「用 AI 抽定死規則抽」嗰條未解問題：用平價 AI 抽，背景做，唔阻玩家。<b>讀取</b>：每回合純資料庫一查（極快），將「呢幾個出場角色而家仲信緊嘅嘢」幾行字放入動態提示。效果：玩到第 80 回合，陳家明先撞破主角未死嗰下，AI 唔會穿崩。</div></div></div>
+
+    <div class="step"><div class="k">⑤</div><div class="body"><b>（同場）Wave 2 角色檔案</b> — 每角色一份檔，提到先注入<div class="why">你哋本身排咗嘅 Wave 2 唔使另開戰線：角色房（②嘅關鍵字索引搵到佢）+ 三層靈魂內容 + ④嘅有效信念 = 嗰份角色檔。大堆角色嘅故事慳大量字數、提示唔被無關角色溝淡。</div></div></div>
+
+    <p class="sub" style="margin-top:10px"><span class="pill">每步之後用第 1 波把尺跑一晚 → <b>記憶分數冇升就停低諗</b>，唔好盲衝</span><span class="pill">全部喺現有資料庫起，零新基建</span><span class="pill">輕核心原則不變：玩家等緊嗰刻只做「寫故事＋攞記憶」</span></p>
+  </div>
+
+  <div class="wave">
+    <div class="wh"><div class="wn w3">3</div><div><h4>第 3 波 · 賺錢配套（約 2–3 個 session · launch 後按數據排）</h4><div class="sub">同 token 成本脫鈎嘅收入，正合你「核心做平、錢喺配套」嘅策略</div></div></div>
+    <div class="step"><div class="k">1</div><div class="body"><b>生成圖安全過濾</b>（法律缺口，宜早唔宜遲）<div class="why">而家文字有過濾、生出嚟嘅圖係冇掃嘅。每張 $0.001、頭年每月一千張免費，生圖後即掃，有問題唔出圖＋退 credit。</div></div></div>
+    <div class="step"><div class="k">2</div><div class="body"><b>全程同一個角色樣</b><div class="why">用識「鎖角色樣」嘅生圖（食角色參考圖，最多 5 人）。故事開頭生一張角色定妝照存起，之後每張插圖都帶住佢 —— 主角由第 1 回合靚到第 100 回合都係同一張臉。沉浸感直接升一級,亦係收藏卡嘅前提。</div></div></div>
+    <div class="step"><div class="k">3</div><div class="body"><b>收藏角色卡</b><div class="why">星野已證實呢套喺中文圈收到錢（卡可收藏、創作者抽成）。將「靚 moment + 角色定妝」包裝成可儲可晒嘅卡 —— 由「買一張圖」變「儲一套卡」，仲係現成嘅社交分享物（卡帶住故事連結 = 自然拉新）。</div></div></div>
+    <div class="step"><div class="k">4</div><div class="body"><b>語音旁白（再後啲）</b><div class="why">中文語音每個回合成本約一毫子，可做 Pro 加購。卡關位：你而家條線未必有中文語音，而且廣東話質素要親耳試 —— 留到有數據先諗。</div></div></div>
+  </div>
+
+  <!-- ================= PART 3: DECISIONS ================= -->
+  <h2><span class="n">3</span>要你拍板嘅四個位</h2>
+  <div class="ask"><b>決定 ①｜時機：</b>我建議「第 0+1 波即做 → 照原計劃出 launch（5 條官方故事＋全面試玩）→ 第 2+3 波 launch 後做」。記憶手術好有價值但唔係 launch blocker（你哋 pivot 嗰陣已經定性記憶係衞生唔係招徠），而把尺裝咗之後，launch 後邊樣先做可以由真實玩家數據話事。<b>同唔同意呢個次序？</b></div>
+  <div class="ask"><b>決定 ②｜新供應商（阿里）：</b>換中文眼最理想經你而家條線（第一步會查）。如果條線冇，就要開一個阿里雲帳號（香港用到、新加坡機房、得記憶引擎呢一項用佢、有免費額度試）。你規矩係「只用而家兩條線」—— <b>如果查完冇貨，准唔准加呢個供應商？</b></div>
+  <div class="ask"><b>決定 ③｜新供應商（生圖過濾）：</b>生成圖安全過濾要開一個 AWS 帳號（每張 $0.001、頭年有免費額度）。係法律保障性質。<b>准唔准？</b>（有個代替品 Sightengine 但佢冇明寫最關鍵嗰類過濾，我傾向 AWS。）</div>
+  <div class="ask"><b>決定 ④｜自動試玩預算：</b>建議每月上限 <b>US$50</b>（每晚一兩美金，可隨時較細）。呢筆係保險費 —— 對比你親手玩 117 回合先發現 bug 嘅代價。<b>OK 嗎？</b></div>
+
+  <h2><span class="n">4</span>一眼睇晒</h2>
+  <table>
+    <tr><th>波</th><th>內容</th><th>工夫</th><th>新增成本</th><th>建議時機</th></tr>
+    <tr><td><b>0 快贏</b></td><td>搬機房 · Opus 4.8 · 本機鑰匙 · 開中文索引外掛</td><td>~1 session</td><td>$0</td><td><b>即刻</b></td></tr>
+    <tr><td><b>1 裝把尺</b></td><td>夜間自動試玩 + AI 評分 + 晨報 + 記憶底線基準</td><td>~1.5 session</td><td>~US$30–60/月</td><td><b>即刻（launch 前）</b></td></tr>
+    <tr><td><b>2 記憶手術</b></td><td>中文眼 → 關鍵字混合搜尋 → 判官+管家 → 信念時間軸 → 角色檔案（Wave 2）</td><td>~3–4 session</td><td>每月幾蚊美金級</td><td>launch 後第一波</td></tr>
+    <tr><td><b>3 賺錢配套</b></td><td>生圖安全過濾 → 角色定妝一致 → 收藏卡 → （後）語音</td><td>~2–3 session</td><td>按用量、有毛利</td><td>launch 後按數據</td></tr>
+  </table>
+  <p class="sub">Launch 嘅最後兩步（5 條官方故事 + 全面親手試玩）維持原計劃,唔受呢個計劃影響。</p>
+
+  <div class="foot">
+    Kieio 深度落地計劃 · 2026-06-12 · 基於同日《產品加強研究》(product-upgrade-research.html) + pm/architecture 鎖定設計 + 真實 code 現狀<br>
+    計劃獲批後我會照規矩補返：決定記錄（ADR）+ BACKLOG + STATUS 更新
+  </div>
+</div>
+</body>
+</html>
