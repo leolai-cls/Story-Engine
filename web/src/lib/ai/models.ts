@@ -78,10 +78,27 @@ export const MODELS: Record<string, ModelEntry> = {
     description: "Standard tier · 非成人敘事（Claude 直連 · 真串流）。",
     tier_pool: "standard",
   },
-  // ─── Anthropic direct · 非成人 Pro narrator (Session 17 light-core) ──────
-  // Opus 4.7（$5/$25 · cached $0.5 · pricing 已喺 credits.ts MODEL_PRICING）。
-  // ⚠️ model_id "claude-opus-4-7" — staging 要驗證佢喺 Anthropic 直連 resolve 到；
-  //   若要 bump 去 4-8 必須同步 re-verify pricing（hard rule #4 · credits 要絕對啱）。
+  // ─── Anthropic direct · 非成人 Pro narrator (Session 19 · 2026-06-12) ─────
+  // Opus 4.8 — 同 4.7 同價（$5/$25 · cached $0.5 · 已對 Anthropic 官方價目核實
+  // 2026-06-12），官方定位寫作更清晰有溫度。4.7→4.8 tokenizer 不變（35% 加幅係
+  // 4.6→4.7 嗰下，我哋已食咗）→ 成本中性。pricing 喺 credits.ts MODEL_PRICING。
+  "claude-opus-4-8": {
+    id: "claude-opus-4-8",
+    provider: "anthropic",
+    model_id: "claude-opus-4-8",
+    display_name: "Claude Opus 4.8",
+    role: "narrator",
+    credit_multiplier: 5.0, // legacy/unused · 實際扣費經 MODEL_PRICING
+    allows_nsfw: false,
+    min_tier: "adventurer",
+    description: "Pro tier · 非成人敘事旗艦（Claude 直連 · 真串流）。",
+    tier_pool: "pro",
+  },
+  // ─── Anthropic direct · Opus 4.7 (BACK-COMPAT · 2026-06-12 起唔再入新輪換) ─
+  // 現有 Pro playthrough 個 llm_model 鎖咗 "claude-opus-4-7" · computeCredits /
+  // userTierAllowsModel 仲要揾到佢（同 glm-5-1 同一個 back-compat pattern ·
+  // 漏咗 = 下一回合 500）。tier_pool 保持 "pro" 令舊 playthrough 嘅記憶窗 /
+  // tier 行為完全不變。用戶可經 ChatControls picker 自行切去 4.8。
   "claude-opus-4-7": {
     id: "claude-opus-4-7",
     provider: "anthropic",
@@ -91,7 +108,7 @@ export const MODELS: Record<string, ModelEntry> = {
     credit_multiplier: 5.0, // legacy/unused · 實際扣費經 MODEL_PRICING
     allows_nsfw: false,
     min_tier: "adventurer",
-    description: "Pro tier · 非成人敘事旗艦（Claude 直連 · 真串流）。",
+    description: "(back-compat) 舊 Pro playthrough 鎖定 model · 新故事用 4.8。",
     tier_pool: "pro",
   },
 
@@ -215,7 +232,9 @@ export const MODELS: Record<string, ModelEntry> = {
 // （現有 playthrough + MODEL_PRICING lookup）· 但唔再入新輪換。
 export const TIER_POOLS: Record<ModelTier, string[]> = {
   standard: ["claude-sonnet-4-6"],
-  pro: ["claude-opus-4-7"],
+  // Session 19 (2026-06-12): Pro 升 Opus 4.8（同價 · 文筆更好 · 成本中性）。
+  // 舊 playthrough 鎖住 4-7 照行（MODELS back-compat entry）。
+  pro: ["claude-opus-4-8"],
 };
 
 /**
