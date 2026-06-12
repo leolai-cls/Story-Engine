@@ -45,6 +45,8 @@ export type TurnMatch = {
   role: string;
   text: string;
   similarity: number;
+  /** M2 (0066) — PGroonga keyword channel score (keyword-found turns only). */
+  kw_score?: number;
 };
 
 export type LorebookEntry = {
@@ -63,6 +65,9 @@ export type LorebookEntry = {
   updated_at?: string;
   /** Phase 1 — hybrid score (semantic + keyword + temporal) when applicable */
   hybrid_score?: number;
+  /** M2 (0066) — true when the PGroonga keyword channel independently found
+   *  this entry (name/description matched the action's CJK bigram tokens). */
+  kw_channel?: boolean;
 };
 
 export type MemoryRetrievalResult = {
@@ -147,6 +152,48 @@ const HYBRID_WEIGHTS = {
   keyword: 0.3,
   temporal: 0.1,
 } as const;
+
+/**
+ * M2 (0066) — keyword-channel hits get at least this keyword-dimension score.
+ * Why: a PGroonga hit matched on name/DESCRIPTION text, but keywordMatchScore()
+ * only looks at name + keywords[] — a description-matched entry would otherwise
+ * score keyword=0, total ≈ temporal-only (~0.1) and never survive the top-K cut,
+ * making the whole channel useless. 0.6 → contributes 0.18 to hybrid: keyword-only
+ * finds land BELOW solid semantic matches (0.6×0.5=0.30+) but ABOVE the noise floor.
+ * Candidates only reach this floor after the gradeKeywordCandidates precision
+ * gate below (M2 audit F-2) — never on a single common-bigram hit.
+ */
+const KW_CHANNEL_KEYWORD_FLOOR = 0.6;
+
+/**
+ * M2 audit fix (F-2/F-3/F-4/F-5) — TS-side precision gate + re-rank for keyword
+ * channel candidates. PGroonga is the RECALL machine (find rows containing any
+ * query token); this is the PRECISION ranker:
+ *   - count DISTINCT query tokens present in the candidate's text
+ *   - require ≥2 matches when the action yielded many tokens (≥8) — a single
+ *     common bigram (我哋/今日…) is noise, not signal. Short focused actions
+ *     (few tokens) keep the 1-match bar — their tokens are already specific.
+ *   - rank by match count desc (NOT by pgroonga_score, which silently returns 0
+ *     whenever the planner doesn't drive the scan through the PGroonga index)
+ */
+function gradeKeywordCandidates<T>(
+  items: T[],
+  getText: (item: T) => string,
+  userTokens: Set<string>,
+): T[] {
+  if (items.length === 0 || userTokens.size === 0) return [];
+  const required = userTokens.size >= 8 ? 2 : 1;
+  return items
+    .map((item) => {
+      const itemTokens = new Set(extractTokens(getText(item)));
+      let matches = 0;
+      for (const tok of userTokens) if (itemTokens.has(tok)) matches++;
+      return { item, matches };
+    })
+    .filter((x) => x.matches >= required)
+    .sort((a, b) => b.matches - a.matches)
+    .map((x) => x.item);
+}
 
 /** Temporal half-life · how fast recency boost decays (days). 7 = week-scale. */
 const TEMPORAL_HALF_LIFE_DAYS = 7;
@@ -255,7 +302,12 @@ function applyHybridScoring(
       // AUDIT FIX F-14 (Wave 2): defensive NaN/Infinity guard on similarity ·
       // protects sort determinism if upstream emits non-finite cosine
       const sem = Number.isFinite(e.similarity) ? (e.similarity as number) : 0;
-      const kw = keywordMatchScore(e, userTokens);
+      // M2 (0066): keyword-channel hits get a floor on the keyword dimension —
+      // see KW_CHANNEL_KEYWORD_FLOOR rationale above.
+      const kw = Math.max(
+        keywordMatchScore(e, userTokens),
+        e.kw_channel ? KW_CHANNEL_KEYWORD_FLOOR : 0,
+      );
       const tmp = temporalScore(e);
       const hybrid =
         HYBRID_WEIGHTS.semantic * sem +
@@ -332,11 +384,22 @@ export async function retrieveMemory(params: {
     p_min_similarity: cfg.lorebookMinSimilarity,
   });
 
+  // M2 (0066) — independent PGroonga keyword channel. Fixes the「篩漏」blind
+  // spot (04-memory.md): vector-only candidate retrieval means anything the
+  // embedding misses is invisible to keyword RE-scoring. Query = the action's
+  // CJK bigrams / latin tokens OR-ed (PGroonga &@~ query syntax · tokens come
+  // from extractTokens so the charset is safe — no quotes/parens/operators).
+  // Audit fix F-6: keep the LAST 24 tokens — in Cantonese actions the salient
+  // object usually sits at the end (「…幫我搵返嗰把青銅鑰匙」); first-24 dropped it.
+  const kwQuery = Array.from(userTokenSet).slice(-24).join(" OR ");
+
   const [
     summariesResult,
     ragTurnsResult,
     matchedLorebookResult,
     alwaysOnLorebookResult,
+    kwLorebookResult,
+    kwTurnsResult,
   ] = await Promise.allSettled([
     // Per-block summaries retired (Consistency v3) — skip the RPC when K=0.
     cfg.summariesK > 0
@@ -362,6 +425,22 @@ export async function retrieveMemory(params: {
       .eq("always_on", true)
       .order("updated_at", { ascending: false })
       .limit(8),
+    // M2 keyword channels (skip when the action produced no tokens)
+    kwQuery
+      ? supabase.rpc("match_lorebook_keyword", {
+          p_playthrough_id: playthroughId,
+          p_query: kwQuery,
+          p_match_count: lorebookCandidateCount,
+        })
+      : Promise.resolve({ data: [], error: null }),
+    kwQuery
+      ? supabase.rpc("match_turns_keyword", {
+          p_playthrough_id: playthroughId,
+          p_query: kwQuery,
+          p_match_count: cfg.ragTurnsK,
+          p_exclude_turn_indexes: recentIndexes,
+        })
+      : Promise.resolve({ data: [], error: null }),
   ]);
 
   // Helper: check if any of these results indicate "tables/RPCs don't exist"
@@ -371,7 +450,9 @@ export async function retrieveMemory(params: {
     const v = r.value as { error?: { message?: string } } | null;
     if (!v?.error) return false;
     const msg = String(v.error.message ?? "");
-    return /does not exist|function .* does not exist|relation .* does not exist/i.test(msg);
+    // Audit fix F-6(A): PostgREST's missing-RPC message is "Could not find the
+    // function ... in the schema cache" — the old regex never matched it.
+    return /does not exist|function .* does not exist|relation .* does not exist|could not find the function/i.test(msg);
   };
 
   const anyMissing =
@@ -386,14 +467,80 @@ export async function retrieveMemory(params: {
     );
   }
 
+  // M2 keyword channels — missing RPCs (migration 0066 not applied yet) are a
+  // SOFT condition: warn once, run vector-only. Deliberately NOT folded into
+  // pgvectorAvailable (resilient deploy · hard rule #12).
+  if (rpcMissing(kwLorebookResult) || rpcMissing(kwTurnsResult)) {
+    console.warn(
+      "[retriever] keyword-channel RPCs not available — apply migration 0066 to enable CJK keyword retrieval",
+    );
+  }
+
   // Unwrap results — silently dropping any that failed
   const summaries = unwrapRpc<SummaryMatch>(summariesResult);
-  const ragTurnsRaw = unwrapRpc<TurnMatch>(ragTurnsResult);
-  const matchedLorebookRaw = unwrapRpc<LorebookEntry>(matchedLorebookResult);
+  const ragTurnsVector = unwrapRpc<TurnMatch>(ragTurnsResult);
+  const matchedLorebookVector = unwrapRpc<LorebookEntry>(matchedLorebookResult);
   const alwaysOnLorebook = unwrapSelect<LorebookEntry>(alwaysOnLorebookResult);
+  const kwLorebookRaw = unwrapRpc<LorebookEntry>(kwLorebookResult);
+  const kwTurnsRaw = unwrapRpc<TurnMatch>(kwTurnsResult);
+
+  // ── M2: keyword turns FILL ONLY the slots vector left empty ──────────────
+  // Audit fix F-4 (HIGH · hard rule #18): the keyword channel has no relevance
+  // floor, so equal-weight fusion would let "best of noise" evict solid
+  // above-floor vector matches on nearly every turn. Fill-only-empty is
+  // faithful to the channel's purpose (rescue the 篩漏 blind spot — things the
+  // embedding MISSED) with zero displacement risk: vector picks are untouched;
+  // keyword candidates (precision-gated + re-ranked in TS, see
+  // gradeKeywordCandidates) only occupy remaining slots.
+  let ragTurnsRaw: TurnMatch[] = ragTurnsVector.slice(0, cfg.ragTurnsK);
+  if (kwTurnsRaw.length > 0 && ragTurnsRaw.length < cfg.ragTurnsK) {
+    const have = new Set(ragTurnsRaw.map((t) => t.turn_id));
+    const fillers = gradeKeywordCandidates(kwTurnsRaw, (t) => t.text, userTokenSet)
+      .filter((t) => !have.has(t.turn_id))
+      .slice(0, cfg.ragTurnsK - ragTurnsRaw.length)
+      .map((t) => ({ ...t, similarity: Number.isFinite(t.similarity) ? t.similarity : 0 }));
+    ragTurnsRaw = [...ragTurnsRaw, ...fillers];
+  }
+
+  // ── M2: merge lorebook candidates (vector ∪ keyword) before hybrid rank ──
+  // Keyword candidates pass the TS precision gate first (audit F-2): a single
+  // common-bigram hit on a long action does NOT qualify. Gated entries join the
+  // candidate pool and compete in hybrid scoring (bounded blast radius: K=3,
+  // short entries; a 2+-token name/description match deserves to beat a
+  // barely-above-floor stale vector match).
+  const kwLorebookGated = gradeKeywordCandidates(
+    kwLorebookRaw,
+    (e) => `${e.name} ${e.description}`,
+    userTokenSet,
+  );
+  const vectorLoreIds = new Set(matchedLorebookVector.map((e) => e.id));
+  const kwLoreIds = new Set(kwLorebookGated.map((e) => e.id));
+  const loreById = new Map<string, LorebookEntry>();
+  for (const e of matchedLorebookVector) {
+    loreById.set(e.id, { ...e, kw_channel: kwLoreIds.has(e.id) });
+  }
+  for (const e of kwLorebookGated) {
+    if (!loreById.has(e.id)) {
+      loreById.set(e.id, { ...e, similarity: 0, kw_channel: true });
+    }
+  }
+  const matchedLorebookRaw = Array.from(loreById.values());
+  const kwOnlyLoreCount = matchedLorebookRaw.filter(
+    (e) => e.kw_channel && !vectorLoreIds.has(e.id),
+  ).length;
+  const kwOnlyTurnCount = ragTurnsRaw.filter((t) =>
+    !ragTurnsVector.some((v) => v.turn_id === t.turn_id),
+  ).length;
+  if (kwOnlyLoreCount > 0 || kwOnlyTurnCount > 0) {
+    // Telemetry: how often the keyword channel rescues things vector missed
+    console.log(
+      `[retriever] keyword channel rescued ${kwOnlyLoreCount} lorebook + ${kwOnlyTurnCount} turns missed by vector search`,
+    );
+  }
 
   // PHASE 1: enrich matched lorebook with keywords + updated_at for hybrid
-  // scoring · candidates returned 2x · re-rank by hybrid score · trim to K.
+  // scoring · candidates returned 2x (per channel) · re-rank by hybrid score ·
+  // trim to K.
   let matchedLorebook: LorebookEntry[] = matchedLorebookRaw;
   if (matchedLorebookRaw.length > 0) {
     const ids = matchedLorebookRaw.map((e) => e.id);
