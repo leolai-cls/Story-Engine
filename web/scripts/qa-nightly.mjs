@@ -46,7 +46,9 @@ const dotenv = loadDotEnvLocal();
 const env = (...names) => {
   for (const n of names) {
     const v = process.env[n] ?? dotenv[n];
-    if (v) return v;
+    // 清洗 BOM (U+FEFF) + 前後空白 — Windows 工具寫 secret 時可能黏入隱形字元,
+    // 落到 fetch header 會炸 "ByteString ... 65279" (CI run #2 真實事故)。
+    if (v) return v.replace(/﻿/g, "").trim();
   }
   return undefined;
 };
@@ -96,6 +98,7 @@ async function anthropic(body) {
     method: "POST",
     headers: { "content-type": "application/json", "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01" },
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(120_000), // 防 hang:卡 2 分鐘就放棄 (上層自有 retry/降級)
   });
   if (!res.ok) throw new Error(`anthropic ${res.status}: ${(await res.text()).slice(0, 300)}`);
   const json = await res.json();
@@ -137,11 +140,19 @@ const PROBES = PROBES_ENABLED
 async function playTurn(playthroughId, action, cookieHeader) {
   const t0 = Date.now();
   let ttfb = null;
-  const res = await fetch(`${APP_ORIGIN}/api/playthroughs/${playthroughId}/turn`, {
-    method: "POST",
-    headers: { "content-type": "application/json", cookie: cookieHeader },
-    body: JSON.stringify({ action }),
-  });
+  let res;
+  try {
+    res = await fetch(`${APP_ORIGIN}/api/playthroughs/${playthroughId}/turn`, {
+      method: "POST",
+      headers: { "content-type": "application/json", cookie: cookieHeader },
+      body: JSON.stringify({ action }),
+      // 防 hang (首個 30-turn run 真實事故:第 27 回合 fetch 永久卡死,成個 run 收唔到尾):
+      // turn route maxDuration=300s · 我哋俾 320s 就放棄當失敗 · 上層有 retry。
+      signal: AbortSignal.timeout(320_000),
+    });
+  } catch (e) {
+    return { ok: false, status: 0, error: `fetch failed/timeout: ${String(e).slice(0, 200)}`, ms: Date.now() - t0 };
+  }
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     return { ok: false, status: res.status, error: body.slice(0, 400), ms: Date.now() - t0 };
@@ -149,27 +160,32 @@ async function playTurn(playthroughId, action, cookieHeader) {
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "", narration = "", streamError = null;
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    let i;
-    while ((i = buffer.indexOf("\n")) !== -1) {
-      const line = buffer.slice(0, i).trim();
-      buffer = buffer.slice(i + 1);
-      if (!line.startsWith("data:")) continue;
-      const data = line.slice(5).trim();
-      if (data === "[DONE]") continue;
-      try {
-        const ev = JSON.parse(data);
-        if (ev.type === "text-delta" && typeof ev.delta === "string") {
-          if (ttfb === null) ttfb = Date.now() - t0;
-          narration += ev.delta;
-        } else if (ev.type === "error") {
-          streamError = ev.errorText ?? "stream error";
-        }
-      } catch { /* 非 JSON frame 忽略 */ }
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let i;
+      while ((i = buffer.indexOf("\n")) !== -1) {
+        const line = buffer.slice(0, i).trim();
+        buffer = buffer.slice(i + 1);
+        if (!line.startsWith("data:")) continue;
+        const data = line.slice(5).trim();
+        if (data === "[DONE]") continue;
+        try {
+          const ev = JSON.parse(data);
+          if (ev.type === "text-delta" && typeof ev.delta === "string") {
+            if (ttfb === null) ttfb = Date.now() - t0;
+            narration += ev.delta;
+          } else if (ev.type === "error") {
+            streamError = ev.errorText ?? "stream error";
+          }
+        } catch { /* 非 JSON frame 忽略 */ }
+      }
     }
+  } catch (e) {
+    // 串流中途斷線 / 超時 abort — 當失敗回合處理 (上層 retry)
+    return { ok: false, status: res.status, error: `stream aborted: ${String(e).slice(0, 200)}`, ms: Date.now() - t0, ttfb };
   }
   const ms = Date.now() - t0;
   if (streamError) return { ok: false, status: 200, error: streamError, ms, ttfb };
@@ -347,12 +363,14 @@ async function main() {
   for (const x of judge.notable_issues ?? []) issues.push(`評審: ${x}`);
 
   let verdict = "green";
+  // 劇情推進/連貫 紅燈只適用於正式長度 run (>=12 回合) — 3 回合 smoke 推進低係正常
+  const fullRun = okTurns.length >= 12;
   const redConds = [
     failures >= 3,
-    okTurns.length >= 12 && !metrics.digest_present,
-    judge.memory_probe_key === 0 && judge.memory_probe_birthday === 0,
-    (judge.progression ?? 10) <= 3,
-    (judge.coherence ?? 10) <= 4,
+    fullRun && !metrics.digest_present,
+    fullRun && judge.memory_probe_key === 0 && judge.memory_probe_birthday === 0,
+    fullRun && (judge.progression ?? 10) <= 3,
+    fullRun && (judge.coherence ?? 10) <= 4,
   ];
   const amberConds = [
     failures > 0,
