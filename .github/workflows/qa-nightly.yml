@@ -26,7 +26,10 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: web/package-lock.json
-      - run: npm ci --no-audit --no-fund
+      # npm install (唔用 npm ci):repo 個 package-lock 同 package.json 有預存
+      # 唔同步問題 (Vercel build 用 install 所以一直冇事) · harness 跟返同一行為。
+      # lockfile 對數係另一單 backlog 衞生事 · 唔喺 QA 工作流度解。
+      - run: npm install --no-audit --no-fund
       - name: Run nightly playtest
         run: node scripts/qa-nightly.mjs
         env:
