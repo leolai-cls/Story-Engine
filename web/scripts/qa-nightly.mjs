@@ -248,7 +248,22 @@ async function main() {
   let consecutiveFailures = 0;
 
   for (let i = 1; i <= TURNS; i++) {
-    const action = PROBES[i] ?? (await playerAction(lastNarration, myActions));
+    // 扮玩家失敗 (e.g. 由 HK 直叫 Anthropic 間中俾地區 403) → 用後備行動,
+    // 唔好成個 run 冧 (run #2 真實事故:第 26 回合 playerAction 403 → fatal)。
+    let action = PROBES[i];
+    if (!action) {
+      try {
+        action = await playerAction(lastNarration, myActions);
+      } catch (e) {
+        console.warn(`[qa] playerAction failed (using fallback): ${String(e).slice(0, 160)}`);
+        const fallbacks = [
+          "我繼續向前,小心觀察周圍環境有冇值得留意嘅嘢。",
+          "我同身邊嘅人傾多兩句,想知多啲關於而家情況嘅細節。",
+          "我檢查一下自己嘅裝備,諗定下一步點行。",
+        ];
+        action = fallbacks[i % fallbacks.length];
+      }
+    }
     myActions.push(action);
     let r = await playTurn(playthroughId, action, cookieHeader);
     if (!r.ok) {
