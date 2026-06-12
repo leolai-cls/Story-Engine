@@ -1,0 +1,39 @@
+# QA 夜間自動試玩 (deep-plan 第 1 波 · Session 19)
+# 每晚 02:00 HKT (18:00 UTC) 自動玩 30 回合 + AI 評分 → qa_reports 表
+# 紅燈 = job fail → GitHub 自動 email 通知 founder
+name: qa-nightly
+on:
+  schedule:
+    - cron: "0 18 * * *" # 02:00 HKT
+  workflow_dispatch:
+    inputs:
+      turns:
+        description: "回合數 (default 30)"
+        required: false
+        default: "30"
+
+jobs:
+  playtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - name: Run nightly playtest
+        run: node scripts/qa-nightly.mjs
+        env:
+          QA_SUPABASE_URL: ${{ secrets.QA_SUPABASE_URL }}
+          QA_SUPABASE_ANON_KEY: ${{ secrets.QA_SUPABASE_ANON_KEY }}
+          QA_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.QA_SUPABASE_SERVICE_ROLE_KEY }}
+          QA_ANTHROPIC_API_KEY: ${{ secrets.QA_ANTHROPIC_API_KEY }}
+          QA_TEST_EMAIL: ${{ secrets.QA_TEST_EMAIL }}
+          QA_TEST_PASSWORD: ${{ secrets.QA_TEST_PASSWORD }}
+          QA_TURNS: ${{ github.event.inputs.turns || '30' }}
