@@ -315,6 +315,9 @@ export type TurnUsage = {
   contentRating?: "sfw" | "soft" | "adult";
   lorebook?: { inputTokens?: number; outputTokens?: number };
   summarizer?: { inputTokens?: number; outputTokens?: number };
+  /** M4 信念抽取 (記憶手術) — 同 lorebook 一樣每回合背景跑 · 經 pickUtilityModel
+   *  (SFW Haiku · adult Grok) · 計費同 runtime 路由同一來源 (防 drift)。 */
+  beliefs?: { inputTokens?: number; outputTokens?: number };
   embedTokens?: number;
   /**
    * Deep Mode · NPC 內心戲 — charged by ACTUAL token usage (founder 2026-06-04:
@@ -372,6 +375,17 @@ export function computeTurnCredits(usage: TurnUsage): number {
       })
     : 0;
 
+  const beliefCredits = usage.beliefs
+    ? computeCredits({
+        // M4 belief extractor runs on the same structured-utility model as
+        // lorebook (SFW Haiku · adult Grok via pickUtilityModel) → bill via the
+        // SAME source so charged-model == run-model (hard rule #4 · no drift).
+        modelId: pickUtilityModel(cr, "structured"),
+        inputTokens: usage.beliefs.inputTokens ?? 0,
+        outputTokens: usage.beliefs.outputTokens ?? 0,
+      })
+    : 0;
+
   const embedCredits = usage.embedTokens
     ? computeCredits({
         modelId: "text-embedding-3-small",
@@ -403,6 +417,7 @@ export function computeTurnCredits(usage: TurnUsage): number {
     directorCredits +
     lorebookCredits +
     summarizerCredits +
+    beliefCredits +
     embedCredits +
     npcAgentCredits
   );
@@ -436,8 +451,16 @@ export function computeTurnCredits(usage: TurnUsage): number {
  * prompts), revisit instead of silently widening the margin leak.
  */
 export const BACKGROUND_RESERVE_TOKENS = {
-  lorebook: { inputTokens: 2000, outputTokens: 500 },
+  // lorebook: the per-turn extractor + (M3 · 2026-06-13) the entity-dedup JUDGE.
+  // The judge is a 2nd structured call that fires only on alias/rename turns
+  // (no exact-name match WITH ≥1 candidate · capped 2/turn). Its amortized cost
+  // is folded into this reserve (input +300 / output +100) rather than a
+  // separate slot — gate==charge stays symmetric via this single constant.
+  lorebook: { inputTokens: 2300, outputTokens: 600 },
   summarizer: { inputTokens: 700, outputTokens: 140 },
+  // M4 belief extractor — every turn (like lorebook), small output (≤4 triples).
+  // Full per-run reserve (NOT amortized — runs every turn). Over-reserve safe.
+  beliefs: { inputTokens: 2000, outputTokens: 120 },
   embedTokens: 400,
 } as const;
 
@@ -481,6 +504,7 @@ export function estimateTurnCredits(
     // single source with the turn route's actual-charge call · hard rule #4).
     lorebook: BACKGROUND_RESERVE_TOKENS.lorebook,
     summarizer: BACKGROUND_RESERVE_TOKENS.summarizer,
+    beliefs: BACKGROUND_RESERVE_TOKENS.beliefs,
     embedTokens: BACKGROUND_RESERVE_TOKENS.embedTokens,
     // (C2 cleanup 2026-06-08: experience reserve removed — the dead soul-write
     // chain was deleted · actual charge never included it · exactness > padding.)

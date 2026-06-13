@@ -270,6 +270,13 @@ export type TurnContext = {
    * 空 string 當冇 walk-on 名。注入 Narrator dynamic system prompt 防 retcon (改名/否認)。
    */
   mentionRosterBlock?: string;
+  /**
+   * M4 記憶手術 — 角色信念 block (formatted by formatBeliefsBlock)。角色目前相信
+   * 嘅事實 (as-of-now · 可能係錯/過時) · wrapped in [INTERNAL CONTEXT — DO NOT QUOTE]。
+   * 空 string 當冇 active 信念。注入防穿崩 (例:陳家明以為主角死咗 · AI 唔好寫佢見到
+   * 主角好平靜)。felt-through-narrative (hard rule #19) · 唔係 dashboard。
+   */
+  beliefsBlock?: string;
 };
 
 /**
@@ -378,6 +385,11 @@ export function buildDynamicSystemPrompt(ctx: TurnContext): string {
   const roster = ctx.mentionRosterBlock?.trim();
   const rosterBlock = roster ? roster + "\n\n" : "";
 
+  // M4 角色信念 block (信念圖譜 · 防事實穿崩)。Already wrapped 由 formatBeliefsBlock
+  // ([INTERNAL CONTEXT — DO NOT QUOTE])。空 when 冇 active 信念。
+  const beliefs = ctx.beliefsBlock?.trim();
+  const beliefsBlock = beliefs ? beliefs + "\n\n" : "";
+
   // 2026-05-31 (founder · "narrator leaks JSON into the story"): show state as
   // plain "- key: value" lines, NOT a ```json fenced block. Root cause of the
   // leak — Gemini few-shot-MIMICKED the JSON block in the prompt and echoed a
@@ -389,7 +401,7 @@ export function buildDynamicSystemPrompt(ctx: TurnContext): string {
         `- ${k}: ${v === null || typeof v !== "object" ? String(v) : JSON.stringify(v)}`,
     )
     .join("\n");
-  return `${runningBlock}${memoryBlock}${rosterBlock}${innerStreamsBlock}## Current Game State (READ-ONLY reference — do NOT repeat or output this; write story prose only)
+  return `${runningBlock}${memoryBlock}${rosterBlock}${beliefsBlock}${innerStreamsBlock}## Current Game State (READ-ONLY reference — do NOT repeat or output this; write story prose only)
 ${stateLines}
 
 ${charsDynamic}`;

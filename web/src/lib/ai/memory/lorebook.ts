@@ -234,6 +234,9 @@ export async function runLorebookExtraction(params: {
     }
 
     // 3. Upsert each (skip ones whose embed failed)
+    // audit COST-02: cap M3 judge LLM calls per turn (defense vs a 5-new-similar-
+    // entity burst). Shared budget across the loop; exhausted → insert-as-new.
+    const judgeBudget = { remaining: 2 };
     let upserted = 0;
     for (let i = 0; i < dedupedEntities.length; i++) {
       const entity = dedupedEntities[i];
@@ -245,6 +248,9 @@ export async function runLorebookExtraction(params: {
         playthroughId,
         entity,
         embedding: embed.vector,
+        contentRating,
+        language,
+        judgeBudget,
       });
       if (ok) upserted++;
     }
@@ -269,6 +275,180 @@ export async function runLorebookExtraction(params: {
   }
 }
 
+type LorebookRow = {
+  id: string;
+  description: string | null;
+  keywords: string[] | null;
+  always_on: boolean | null;
+};
+
+/**
+ * Merge a fresh extraction INTO an existing row (recency-wins description +
+ * keyword-union + always_on promote + embedding sync). `extraAliases` lets the
+ * M3 judge fold the rejected alias name (e.g. "阿明" when canonical is "陳家明")
+ * into keywords so future keyword retrieval still hits.
+ *
+ * Returns "merged" on success, "stale" if 0 rows affected (the candidate was
+ * concurrently renamed/deleted → caller should fall through to insert).
+ */
+async function applyMergeIntoExisting(
+  supabase: SupabaseClient,
+  playthroughId: string,
+  existing: LorebookRow,
+  entity: ExtractedEntity,
+  embedding: number[],
+  extraAliases: string[] = [],
+): Promise<"merged" | "stale" | "error"> {
+  // AUDIT FIX (P2-LOGIC-C-01 / P2-UX-M-11): RECENCY WINS for description; the
+  // embedding (computed from the new description) stays in sync with it.
+  const mergedKeywords = Array.from(
+    new Set([
+      ...(existing.keywords ?? []),
+      ...entity.keywords,
+      ...extraAliases,
+    ].map((k) => k.trim()).filter(Boolean)),
+  ).slice(0, 8);
+
+  const { data, error: updErr } = await supabase
+    .from("lorebook_entries")
+    .update({
+      description: entity.description,
+      keywords: mergedKeywords,
+      always_on: (existing.always_on ?? false) || entity.always_on,
+      embedding,
+    })
+    .eq("id", existing.id)
+    // audit SEC-02: service-role bypasses RLS · belt-and-suspenders tenant guard
+    // (0-rows on mismatch → "stale" → safe insert-as-new, never cross-tenant write).
+    .eq("playthrough_id", playthroughId)
+    .select("id");
+
+  if (updErr) {
+    console.warn(`[lorebook] merge update failed for ${entity.name}:`, updErr.message);
+    return "error";
+  }
+  // 0 rows affected = candidate row vanished/renamed between read and write →
+  // tell the caller to insert-as-new instead (the one race the M3 audit flags).
+  return data && data.length > 0 ? "merged" : "stale";
+}
+
+const JudgeSchema = z.object({
+  is_same: z.boolean(),
+  canonical_id: z.string().nullable(),
+  canonical_name: z.string().min(1).max(60),
+});
+
+/**
+ * M3 判官 (記憶手術 · entity dedup) — when no EXACT-name match exists, ask a cheap
+ * LLM whether the new entity is the SAME real entity as one already stored under
+ * a different name (阿明 vs 陳家明). Candidates come from the existing vector +
+ * PGroonga keyword channels (no extra embed — reuses the entity's embedding).
+ *
+ * Returns the canonical row to merge into (+ the rejected alias to fold into its
+ * keywords), or null to insert-as-new. Fully resilient: any failure → null.
+ */
+async function findCanonicalDuplicate(params: {
+  supabase: SupabaseClient;
+  playthroughId: string;
+  entity: ExtractedEntity;
+  embedding: number[];
+  contentRating: "sfw" | "soft" | "adult";
+  language: StoryLanguage;
+  /** audit COST-02: shared per-turn judge-call budget (mutated). */
+  judgeBudget: { remaining: number };
+}): Promise<{ row: LorebookRow; alias: string } | null> {
+  const { supabase, playthroughId, entity, embedding, contentRating, language, judgeBudget } = params;
+  try {
+    // Gather candidates from BOTH channels (parallel · resilient).
+    const [kwRes, vecRes] = await Promise.allSettled([
+      supabase.rpc("match_lorebook_keyword", {
+        p_playthrough_id: playthroughId,
+        p_query: entity.name,
+        p_match_count: 6,
+      }),
+      supabase.rpc("match_lorebook_entries", {
+        p_playthrough_id: playthroughId,
+        p_query_embedding: embedding,
+        p_match_count: 6,
+        p_min_similarity: 0.45,
+      }),
+    ]);
+    const rows: Array<{ id: string; entity_type: string; name: string; description: string }> = [];
+    const seen = new Set<string>();
+    for (const r of [kwRes, vecRes]) {
+      if (r.status !== "fulfilled") continue;
+      const data = (r.value as { data?: unknown[] } | null)?.data;
+      if (!Array.isArray(data)) continue;
+      for (const c of data as Array<{ id: string; entity_type: string; name: string; description: string }>) {
+        // Same TYPE only (never wing — all new rows default wing='lore').
+        // Exclude exact-name (that path is handled by the caller already).
+        if (c.entity_type !== entity.entity_type) continue;
+        if (c.name.trim().toLowerCase() === entity.name.trim().toLowerCase()) continue;
+        if (seen.has(c.id)) continue;
+        seen.add(c.id);
+        rows.push(c);
+        if (rows.length >= 4) break;
+      }
+      if (rows.length >= 4) break;
+    }
+    if (rows.length === 0) return null;
+    // audit COST-02: per-turn judge budget exhausted → skip (insert-as-new).
+    if (judgeBudget.remaining <= 0) return null;
+    judgeBudget.remaining--;
+
+    // Judge — cheap structured call (SFW Haiku · adult Grok · hard rule #5).
+    const candidateList = rows
+      .map((c, i) => `[${i}] id=${c.id} · ${c.name} — ${c.description}`)
+      .join("\n");
+    const judgeSystem =
+      language === "en"
+        ? `You decide if a NEW story entity is the SAME real entity as one already recorded under a different name (e.g. a nickname vs full name, or the same place described differently). Be conservative: only mark is_same=true when you are confident they are literally the same person/place/thing. When unsure, is_same=false. If same, pick the candidate's id as canonical_id and give the most complete/formal name as canonical_name.`
+        : language === "zh-Hans"
+          ? `你判断一个新故事实体，是不是和已记录的某个（不同名字的）实体其实是同一个（例如小名 vs 全名，或同一地点的不同描述）。保守：只有你确信是同一个人/地方/物件时才 is_same=true，不确定就 false。是的话，canonical_id 选那个候选的 id，canonical_name 给最完整正式的名。`
+          : `你判斷一個新故事實體，係咪同已記錄嘅某個（唔同名嘅）實體其實係同一個（例如花名 vs 全名，或同一地點嘅唔同描述）。保守：只有你肯定係同一個人/地方/物件先 is_same=true，唔肯定就 false。係嘅話，canonical_id 揀嗰個候選嘅 id，canonical_name 俾最完整正式嗰個名。`;
+    const judgePrompt =
+      language === "en"
+        ? `NEW entity (${entity.entity_type}): ${entity.name} — ${entity.description}\n\nExisting candidates:\n${candidateList}\n\nIs the new entity the same as any candidate?`
+        : language === "zh-Hans"
+          ? `新实体（${entity.entity_type}）：${entity.name} — ${entity.description}\n\n已存在候选：\n${candidateList}\n\n新实体跟哪个候选是同一个？`
+          : `新實體（${entity.entity_type}）：${entity.name} — ${entity.description}\n\n已存在候選：\n${candidateList}\n\n新實體同邊個候選係同一個？`;
+
+    const judged = await generateObject({
+      model: getProviderModel(pickUtilityModel(contentRating, "structured")),
+      schema: JudgeSchema,
+      system: judgeSystem,
+      prompt: judgePrompt,
+      temperature: 0.1,
+      maxOutputTokens: 120,
+    });
+
+    const { is_same, canonical_id } = judged.object;
+    if (!is_same || !canonical_id) return null;
+    const match = rows.find((c) => c.id === canonical_id);
+    if (!match) return null; // judge hallucinated an id → safe fallthrough
+
+    // Fetch the canonical row's current mutable fields for the merge.
+    const { data: canonRow, error: canonErr } = await supabase
+      .from("lorebook_entries")
+      .select("id, description, keywords, always_on")
+      .eq("id", canonical_id)
+      .eq("playthrough_id", playthroughId) // audit SEC-02: tenant guard
+      .maybeSingle();
+    if (canonErr || !canonRow) return null;
+
+    console.log(
+      `[lorebook] M3 judge merged "${entity.name}" → canonical "${match.name}" (${entity.entity_type})`,
+    );
+    return { row: canonRow as LorebookRow, alias: entity.name };
+  } catch (e) {
+    // Any failure (RPC missing / LLM error / schema) → insert-as-new (safe).
+    console.warn(
+      `[lorebook] M3 judge skipped for ${entity.name}: ${e instanceof Error ? e.message : e}`,
+    );
+    return null;
+  }
+}
+
 /**
  * Upsert a single entity. If lorebook_entries table doesn't exist
  * (migration 0004 not applied), logs and returns false silently.
@@ -278,11 +458,14 @@ async function upsertLorebookEntry(params: {
   playthroughId: string;
   entity: ExtractedEntity;
   embedding: number[];
+  contentRating: "sfw" | "soft" | "adult";
+  language: StoryLanguage;
+  judgeBudget: { remaining: number };
 }): Promise<boolean> {
-  const { supabase, playthroughId, entity, embedding } = params;
+  const { supabase, playthroughId, entity, embedding, contentRating, language, judgeBudget } = params;
 
-  // First check if entity exists (so we can MERGE description rather than
-  // overwriting — accumulating detail across turns is the whole point).
+  // First check if entity exists by EXACT name (case-insensitive) — the cheap
+  // common path. Accumulate detail across turns rather than duplicating.
   const { data: existing, error: selErr } = await supabase
     .from("lorebook_entries")
     .select("id, description, keywords, always_on")
@@ -301,37 +484,33 @@ async function upsertLorebookEntry(params: {
   }
 
   if (existing) {
-    // AUDIT FIX (P2-LOGIC-C-01 / P2-UX-M-11): RECENCY WINS for description.
-    // Previously "longer wins" — but a late-game shorter+more-accurate
-    // description ("林思雅 — 主角伴侶") would lose to an earlier verbose stale
-    // one ("林思雅 — 一個內向嘅港大學生"). Worse: the embedding was always
-    // updated to the NEW vector while keeping the OLD description text → the
-    // index pointed at a vector computed from text that wasn't stored
-    // anywhere. Stored text and vector permanently drifted.
-    //
-    // New behavior: description ALWAYS becomes the latest extraction, and the
-    // embedding (already computed from the new description) stays in sync.
-    const mergedKeywords = Array.from(
-      new Set([...(existing.keywords ?? []), ...entity.keywords]),
-    ).slice(0, 8);
+    const r = await applyMergeIntoExisting(supabase, playthroughId, existing as LorebookRow, entity, embedding);
+    return r === "merged";
+  }
 
-    const { error: updErr } = await supabase
-      .from("lorebook_entries")
-      .update({
-        description: entity.description,
-        keywords: mergedKeywords,
-        // Only PROMOTE always_on (false → true allowed); never demote.
-        // Demotion path is the periodic idle-decay job (Wave 3).
-        always_on: existing.always_on || entity.always_on,
-        embedding,
-      })
-      .eq("id", existing.id);
-
-    if (updErr) {
-      console.warn(`[lorebook] update failed for ${entity.name}:`, updErr.message);
-      return false;
-    }
-    return true;
+  // M3 判官 — no exact-name match. Before inserting as NEW, check whether this
+  // is the SAME entity under a different name (阿明 vs 陳家明). Only fires when
+  // candidates exist → zero LLM cost on genuinely-new or no-similar-entity turns.
+  const canonical = await findCanonicalDuplicate({
+    supabase,
+    playthroughId,
+    entity,
+    embedding,
+    contentRating,
+    language,
+    judgeBudget,
+  });
+  if (canonical) {
+    const r = await applyMergeIntoExisting(
+      supabase,
+      playthroughId,
+      canonical.row,
+      entity,
+      embedding,
+      [canonical.alias], // fold the rejected alias into keywords
+    );
+    if (r === "merged") return true;
+    // "stale" (canonical vanished mid-write) → fall through to insert-as-new.
   }
 
   // New entity — insert
