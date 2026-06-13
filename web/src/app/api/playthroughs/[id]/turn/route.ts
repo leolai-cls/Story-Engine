@@ -37,6 +37,7 @@ import { StoryBibleSchema } from "@/schemas/bible";
 import { retrieveMemory } from "@/lib/ai/memory/retriever";
 import { maybeRunSummarization } from "@/lib/ai/memory/summarizer";
 import { runLorebookExtraction } from "@/lib/ai/memory/lorebook";
+import { runBeliefExtraction, formatBeliefsBlock } from "@/lib/ai/memory/belief-extractor";
 import {
   parseMentionRoster,
   mergeMentionRoster,
@@ -515,6 +516,33 @@ export async function POST(
             : `[INTERNAL CONTEXT · 故事前情 · 供你連戲 · DO NOT QUOTE · 唔好逐字照抄入正文，自然融入]\n## 故事前情（到目前為止）\n${runningSummary}`;
       ctx.runningSummaryBlock = fence;
     }
+  }
+
+  // 角色信念注入 — M4 記憶手術 (信念圖譜讀取)。as-of-now 全 playthrough active 信念
+  // 一次過讀 (query_playthrough_active_beliefs · RLS-scoped user client · cheap ·
+  // 唔加 LLM call)。格式化成 [INTERNAL CONTEXT] block 餵 Narrator (felt-through-
+  // narrative · hard rule #19 · 唔係 dashboard)。Resilient:0068 缺席 / 冇信念 → 空。
+  try {
+    const { data: beliefRows, error: beliefErr } = await supabase.rpc(
+      "query_playthrough_active_beliefs",
+      { p_playthrough_id: playthroughId, p_limit: 16 },
+    );
+    if (beliefErr) {
+      if (!/function .* does not exist|could not find the function/i.test(String(beliefErr.message ?? ""))) {
+        console.warn("[turn] belief read failed:", beliefErr.message);
+      }
+    } else if (beliefRows && beliefRows.length > 0) {
+      const castNameById = new Map<string, string>(
+        ctx.characters.map((c) => [c.character_id ?? "", c.card.name]),
+      );
+      ctx.beliefsBlock = formatBeliefsBlock(
+        beliefRows as Array<{ character_id: string; subject: string; object: string }>,
+        castNameById,
+        storyLanguage,
+      );
+    }
+  } catch (e) {
+    console.warn("[turn] belief read exception:", e instanceof Error ? e.message : e);
   }
 
   if (memory.contextString) {
@@ -1406,6 +1434,7 @@ export async function POST(
               // 2026-06-08 · gate and charge can never desync · hard rule #4).
               lorebook: BACKGROUND_RESERVE_TOKENS.lorebook,
               summarizer: BACKGROUND_RESERVE_TOKENS.summarizer,
+              beliefs: BACKGROUND_RESERVE_TOKENS.beliefs,
               embedTokens: BACKGROUND_RESERVE_TOKENS.embedTokens,
               // Deep Mode · NPC 內心戲 — billed by ACTUAL tokens per successful
               // agent (founder 2026-06-04 · same path as narrator · never lossy).
@@ -1588,6 +1617,35 @@ export async function POST(
             } catch (e) {
               console.warn(
                 "[turn] lorebook exception:",
+                e instanceof Error ? e.message : e,
+              );
+            }
+          });
+
+          // 角色信念抽取 — M4 記憶手術 (記憶宮殿信念圖譜復活 · Session 19)。
+          // 每回合背景抽「事實性信念三元組」寫入 character_beliefs (apply_belief ·
+          // invalidate-then-insert)。只記事實 · 唔記性格 (04-memory.md)。同 lorebook
+          // 一樣 after() 背景 · resilient (0068 缺席 → soft skip · hard rule #12)。
+          // ⚠️ cadence = 每回合;若 founder 要慳 · 喺呢度加 turn-modulo gate。
+          after(async () => {
+            try {
+              const serviceClient = createServiceRoleClient();
+              await runBeliefExtraction({
+                supabase: serviceClient,
+                playthroughId,
+                cast: ctx.characters.map((c) => ({
+                  id: c.character_id ?? "",
+                  name: c.card.name,
+                })),
+                protagonistName: pt.character_name,
+                aiNarrative: finalText,
+                currentTurn: aiTurnIndex,
+                language: storyBible.hard_locked.language,
+                contentRating: (story.content_rating as "sfw" | "soft" | "adult") ?? "sfw",
+              });
+            } catch (e) {
+              console.warn(
+                "[turn] belief extraction exception:",
                 e instanceof Error ? e.message : e,
               );
             }

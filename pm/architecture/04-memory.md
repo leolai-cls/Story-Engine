@@ -107,6 +107,12 @@ character_beliefs (
 
 ⚠️ 實作時 · 寫入嘅 AI prompt 要明確界定「只抽事實性信念 · 唔抽性格判斷」 · 否則 AI 會亂塞「林思雅信任主角」呢類軟嘢入去 · 慢慢變返硬性性格清單。
 
+> **實作備註 (Session 19 · M4 復活 · migration 0068 + belief-extractor.ts)**：上面 `(陳家明, 以為, 主角死咗)` 係概念寫法。**實際實作收緊咗三元組嘅角色**以結構上消除「謂詞語意漂移」(0052 自己 flag 過嘅殘留 bug)：
+> - `subject` = 信念**關於邊個/咩** (主角 · 陳家明…) · 寫入前對齊角色名單 + 主角別名正規化 (「你」/真名 → 統一「主角」)。
+> - `predicate` = **短維度 dedup key 嘅 controlled enum**（`life_death`/`identity`/`allegiance`/`location`/`possession`/`status`/`other`）· **唔顯示** · 純為令 `(playthrough, character, subject, predicate)` 唯一索引 collapse 同一件事 (生死變咗就推翻舊嗰個 · 唔會兩個矛盾 active row 並存)。
+> - `object` = 帶語意嘅所信值 (「以為已死」)。注入 narrator 時格式 = 「{角色} 對「{subject}」：{object}」(felt-through-narrative · `[INTERNAL CONTEXT]` fence · hard rule #19)。
+> 信念圖譜 = 一致性工具,**同 ADR-006 推遲嘅角色靈魂沉澱寫入 (experience-writer/sediment) 解耦**,後者維持關閉。
+
 ---
 
 ## 同 Turn Pipeline 嘅關係
