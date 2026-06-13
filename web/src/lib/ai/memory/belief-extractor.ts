@@ -159,14 +159,16 @@ export async function runBeliefExtraction(params: {
   const idByName = new Map<string, string>();
   // subject 正規化表:cast 真名 → cast 真名 (統一大小寫/全形) · 主角別名 → 「主角」。
   const canonicalSubject = new Map<string, string>();
+  // audit INFO-2: 先設主角別名,後設 cast → 撞名時 cast 贏 (具體角色身份優先於
+  // 通用主角 token · 避免「protagonist 同 NPC 同名」時 NPC 嘅 subject 被標做主角)。
+  if (protagonistName) canonicalSubject.set(protagonistName.trim().toLowerCase(), "主角");
+  for (const a of PROTAGONIST_ALIASES) canonicalSubject.set(a, "主角");
   for (const c of cast) {
     if (c.name && c.id) {
       idByName.set(c.name.trim().toLowerCase(), c.id);
       canonicalSubject.set(c.name.trim().toLowerCase(), c.name.trim());
     }
   }
-  if (protagonistName) canonicalSubject.set(protagonistName.trim().toLowerCase(), "主角");
-  for (const a of PROTAGONIST_ALIASES) canonicalSubject.set(a, "主角");
 
   const normSubject = (s: string): string => {
     const key = s.trim().toLowerCase();
