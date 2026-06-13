@@ -54,6 +54,7 @@ const ANTHROPIC_KEY = env("QA_ANTHROPIC_API_KEY", "ANTHROPIC_API_KEY");
 const CRKEY = env("CRAZYROUTER_API_KEY");
 const MODEL_A = env("EMBED_MODEL_A") ?? "text-embedding-3-small";
 const MODEL_B = env("EMBED_CANDIDATE_MODEL"); // 候選 · 冇就只 run A baseline
+const CAND_DIMS = Number(env("EMBED_CANDIDATE_DIMENSIONS") ?? 0) || undefined; // 候選輸出維度 (e.g. 3-large 用 1536)
 const PROBES = Number(env("EMBED_BENCH_PROBES") ?? 15);
 const PT_OVERRIDE = env("EMBED_BENCH_PLAYTHROUGH");
 
@@ -64,11 +65,13 @@ for (const [k, v] of Object.entries({ SUPABASE_URL, SERVICE_KEY, ANTHROPIC_KEY, 
 const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
 
 // ─── embedding (CrazyRouter · OpenAI-compatible · same as prod embed.ts) ───
-async function embedBatch(model, texts) {
+async function embedBatch(model, texts, dims) {
+  const body = { model, input: texts.map((t) => t.slice(-8000)) };
+  if (dims) body.dimensions = dims; // OpenAI text-embedding-3-* MRL truncation
   const res = await fetch("https://crazyrouter.com/v1/embeddings", {
     method: "POST",
     headers: { "content-type": "application/json", authorization: `Bearer ${CRKEY}`, "X-Title": "Kieio" },
-    body: JSON.stringify({ model, input: texts.map((t) => t.slice(-8000)) }),
+    body: JSON.stringify(body),
     signal: AbortSignal.timeout(120_000),
   });
   if (!res.ok) throw new Error(`embed ${model} ${res.status}: ${(await res.text()).slice(0, 200)}`);
@@ -186,8 +189,8 @@ async function main() {
   if (MODEL_B) {
     console.log(`[bench] 嵌入 corpus + 探題 with B=${MODEL_B} ...`);
     try {
-      const bCorpus = await embedBatch(MODEL_B, corpusTexts);
-      const bQueries = await embedBatch(MODEL_B, queries);
+      const bCorpus = await embedBatch(MODEL_B, corpusTexts, CAND_DIMS);
+      const bQueries = await embedBatch(MODEL_B, queries, CAND_DIMS);
       const bDim = bCorpus[0].length;
       const bScore = scoreModel(bQueries, bCorpus, corpusIdx, gold);
       console.log(`B: ${MODEL_B.padEnd(30)} ${String(bDim).padStart(4)}   ${(bScore.recallAt5 * 100).toFixed(1).padStart(6)}%  ${bScore.mrr.toFixed(3)}`);
