@@ -556,7 +556,9 @@ export type ChargeReason =
   | "sub_canceled"
   // Phase 8 scene visualization (Migration 0041)
   | "scene_image_charge"
-  | "portrait_charge";
+  | "portrait_charge"
+  // Wave 3 character design sheet (Migration 0069 · keep DB CHECK in sync)
+  | "character_sheet_charge";
 
 export type ChargeRefType =
   | "turn"
@@ -565,7 +567,8 @@ export type ChargeRefType =
   | "topup"
   | "admin"
   | "scene_image"           // Phase 8 · ref_id = scene_images.id
-  | "character_portrait";   // Phase 8 · ref_id = story_characters.id
+  | "character_portrait"    // Phase 8 · ref_id = story_characters.id
+  | "character_sheet";      // Wave 3 · ref_id = character_sheets.id (Migration 0069)
 
 export type ChargeResult =
   | { ok: true; newBalance: number; ledgerId: string }
