@@ -44,6 +44,7 @@ import {
   matchStylesForSeed,
   type StyleKey,
 } from "@/lib/ai/image-styles";
+import { ensureCharacterVisualDescription } from "@/lib/ai/character-appearance";
 import { chargeCredits, getActiveTier } from "@/lib/billing/credits";
 import { generateText } from "ai";
 import { getProviderModel } from "@/lib/ai/providers";
@@ -256,53 +257,11 @@ export async function generateScene(
     styleMode = "ai_suggested";
   }
 
-  // ─── Detect characters in scene (Q2) ──────────────────────────────────
-  // Wave 3 audit fix SEC-HIGH-06 + AI-HIGH-07: minimum 2-char name requirement
-  // to prevent 1-char ("a", " ") name exploits + word-boundary check for
-  // English names (CJK boundary matching is impractical · accept naive
-  // substring for CJK · short CJK names like single-char surnames lose
-  // detection, acceptable trade-off · prevents pure substring exploits).
-  const { data: characters } = await supabase
-    .from("story_characters")
-    .select("id, name, role, visual_description, portrait_url")
-    .eq("story_id", story.id);
-  const turnText = turnRow.text as string;
-  const detectedChars = (characters ?? []).filter((c) => {
-    if (typeof c.name !== "string" || c.name.trim().length < 2) return false;
-    const name = c.name.trim();
-    // Pure CJK names → naive substring (boundary check impossible for CJK)
-    const isCJK = /[一-鿿㐀-䶿]/.test(name);
-    if (isCJK) return turnText.includes(name);
-    // Latin/mixed names → word boundary
-    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    return new RegExp(`\\b${escaped}\\b`, "i").test(turnText);
-  });
-
-  // Lazy portrait gen · for each character missing portrait_url · skip MVP
-  // wave 1 — character_reference_urls will be empty on first ship · we
-  // pass visual_description text into prompt only. Wave 2 adds the lazy
-  // portrait gen flow (separate server action · charges 40 credits each).
-  const characterReferenceUrls = detectedChars
-    .map((c) => c.portrait_url as string | null)
-    .filter((u): u is string => !!u);
-  const characterDescriptions = detectedChars
-    .map((c) => (c.visual_description as string | null) ?? `${c.name}`)
-    .filter((d): d is string => !!d);
-
-  // ─── Compose final prompt ──────────────────────────────────────────────
-  const { positive, negative } = composeStyledPrompt({
-    styleKey: resolvedStyleKey,
-    customPrompt: styleMode === "custom" ? scenePrompt : null,
-    scenePrompt: styleMode === "custom" ? "" : scenePrompt,
-    characterDescriptions,
-    // 2026-05-29: comic needs explicit multi-panel framing (founder: comic was
-    // coming out as a single illustration, not a real comic).
-    imageType: input.imageType,
-  });
-
-  // ─── Pre-flight cost estimate · check user has enough credits ──────────
-  // Wave 3 fix CR-CRIT-01: thread proQuality through · only honor flag for
-  // Storyteller-tier + comic combination (server validates · don't trust client).
+  // ─── Pre-flight cost estimate + balance check (hoisted · Wave 3 B1 audit) ──
+  // Estimate the charge and reject zero-balance users BEFORE any paid work —
+  // including the absorbed appearance-gen LLM calls below — so a user who can't
+  // pay never triggers spend. creditsToCharge depends only on rating/type/tier
+  // (not on character descriptions), so it hoists cleanly. (Extends CR-CRIT-02.)
   const proQualityHonored =
     input.proQuality === true &&
     input.imageType === "comic" &&
@@ -314,9 +273,6 @@ export async function generateScene(
   );
   const aspect = aspectForImageType(input.imageType);
 
-  // ─── Wave 3 fix CR-CRIT-02 · balance pre-check BEFORE provider call ───
-  // OpenRouter charges $0.005-0.05 per image whether or not user has
-  // credits. Burning $ to learn user can't pay = pure loss. Pre-check.
   const { data: balanceRow } = await supabase
     .from("profiles")
     .select("credit_balance")
@@ -332,7 +288,82 @@ export async function generateScene(
     };
   }
 
+  // ─── Detect characters in scene (Q2) ──────────────────────────────────
+  // Wave 3 audit fix SEC-HIGH-06 + AI-HIGH-07: minimum 2-char name requirement
+  // to prevent 1-char ("a", " ") name exploits + word-boundary check for
+  // English names (CJK boundary matching is impractical · accept naive
+  // substring for CJK · short CJK names like single-char surnames lose
+  // detection, acceptable trade-off · prevents pure substring exploits).
+  const { data: characters } = await supabase
+    .from("story_characters")
+    .select(
+      "id, name, role, visual_description, portrait_url, backstory, personality_traits, core_motivation",
+    )
+    .eq("story_id", story.id);
+  const turnText = turnRow.text as string;
+  const detectedChars = (characters ?? []).filter((c) => {
+    if (typeof c.name !== "string" || c.name.trim().length < 2) return false;
+    const name = c.name.trim();
+    // Pure CJK names → naive substring (boundary check impossible for CJK)
+    const isCJK = /[一-鿿㐀-䶿]/.test(name);
+    if (isCJK) return turnText.includes(name);
+    // Latin/mixed names → word boundary
+    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return new RegExp(`\\b${escaped}\\b`, "i").test(turnText);
+  });
+
+  // Wave 3 · B1 (2026-06-14): lock a CONSISTENT visual appearance per character.
+  // Root cause of「角色每次樣都唔同」= visual_description was never populated, so
+  // the prompt only ever got the NAME. ensureCharacterVisualDescription generates
+  // a stable appearance sheet ONCE (cached on the row) → reused every gen → same
+  // look across the whole story. Pure text anchor → works on ANY image model
+  // (independent of reference-image support). Cheap + one-time per character.
+  // Cache write uses the USER-scoped client (NOT service role · audit #1): RLS is
+  // the tenant guard — the story owner persists the appearance, while a non-owner
+  // playing a PUBLIC story no-ops the write (RLS blocks it · the description is
+  // still used for this gen). Prevents a player mutating another author's rows.
+  const characterDescriptions = (
+    await Promise.all(
+      detectedChars.map((c) =>
+        ensureCharacterVisualDescription({
+          serviceClient: supabase,
+          character: {
+            id: c.id as string,
+            name: c.name as string,
+            role: c.role as string | null,
+            visual_description: c.visual_description as string | null,
+            backstory: c.backstory as string | null,
+            personality_traits: c.personality_traits as string[] | null,
+            core_motivation: c.core_motivation as string | null,
+          },
+          storyTitle: (story.title as string) ?? "",
+          storyDescription: (story.description as string | null) ?? null,
+          contentRating,
+        }),
+      ),
+    )
+  ).filter((d): d is string => !!d && d.trim().length > 0);
+
+  // Character reference images (B2 · lazy portrait gen not yet built · empty
+  // until portrait_url is populated). The appearance text anchor above is the
+  // consistency floor that works regardless of model reference-image support.
+  const characterReferenceUrls = detectedChars
+    .map((c) => c.portrait_url as string | null)
+    .filter((u): u is string => !!u);
+
+  // ─── Compose final prompt ──────────────────────────────────────────────
+  const { positive, negative } = composeStyledPrompt({
+    styleKey: resolvedStyleKey,
+    customPrompt: styleMode === "custom" ? scenePrompt : null,
+    scenePrompt: styleMode === "custom" ? "" : scenePrompt,
+    characterDescriptions,
+    // 2026-05-29: comic needs explicit multi-panel framing (founder: comic was
+    // coming out as a single illustration, not a real comic).
+    imageType: input.imageType,
+  });
+
   // ─── Generate image (the actual provider call) ─────────────────────────
+  // (cost estimate + balance pre-check already done above · Wave 3 B1 audit)
   const genResult = await callProvider({
     contentRating,
     imageType: input.imageType,
