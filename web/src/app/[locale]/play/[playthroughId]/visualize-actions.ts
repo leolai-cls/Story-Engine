@@ -426,6 +426,11 @@ export async function generateScene(
         ? characterReferenceUrls
         : undefined,
       outputFormat: "png",
+      // Scene path: cap fal at 90s so a STUCK fal job still leaves budget for the
+      // CrazyRouter fallback below (~180s) inside the 300s play-route lambda
+      // (audit HIGH). Medium quality finishes well under 90s on the common path;
+      // the character-sheet path keeps the long default (single attempt · no fallback).
+      timeoutMs: 90_000,
     });
     if (fal.ok) {
       genResult = {

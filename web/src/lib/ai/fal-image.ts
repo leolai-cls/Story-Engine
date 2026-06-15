@@ -20,8 +20,9 @@
 
 const FAL_QUEUE_BASE = "https://queue.fal.run";
 const TEXT_TO_IMAGE_MODEL = "openai/gpt-image-2";
-/** Image-to-image (reference / consistency) · takes image_urls. Verify before
- *  first production use — the text-to-image path above is the verified one. */
+/** Image-to-image (reference / consistency) · takes image_urls. Verified
+ *  2026-06-14: feeding a character reference → a new scene kept the same
+ *  character (i2i-reference → i2i-scene). Used by scene gen for sheet refs. */
 const EDIT_MODEL = "openai/gpt-image-2/edit";
 
 export type FalImageQuality = "low" | "medium" | "high" | "auto";
