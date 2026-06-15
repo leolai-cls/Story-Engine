@@ -97,7 +97,7 @@ export default async function PlayPage({
     supabase
       .from("story_characters")
       .select("id, name, role")
-      .eq("story_id", pt.story_id),
+      .eq("story_id", pt.story_id), // id needed for Wave 3 character-sheet gen
     supabase
       .from("playthrough_character_states")
       .select("character_id, disposition")
@@ -133,6 +133,7 @@ export default async function PlayPage({
   const npcs = (characters ?? []).map((c) => {
     const d = stateMap.get(c.id as string) ?? {};
     return {
+      id: c.id as string, // Wave 3: story_characters.id for character-sheet gen
       name: c.name as string,
       role: (c.role as string | null) ?? null,
       axes: {

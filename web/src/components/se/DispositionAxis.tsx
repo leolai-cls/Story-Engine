@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { Sparkles, Loader2 } from "lucide-react";
 import { AXIS_TOKEN, type DispositionAxisKey } from "./genre";
 
 /**
@@ -97,6 +98,13 @@ export function DispositionAxis({
 
 /**
  * NPC card — shows name + role + all 4 axes (Hard rule #6).
+ *
+ * Wave 3 (2026-06-15): optional「生成設定圖」(character design sheet) button in
+ * the header. Only rendered when both characterId + onGenerateSheet are passed
+ * (so the rail in play-client can wire it; other call-sites stay unaffected).
+ * Free tier still SEES the button (canGenerate=false) — the click routes to the
+ * handler which surfaces the tier gate (matches VisualizeSceneModal: free users
+ * see the entry point so it can convert, never silently hidden).
  */
 export function NpcCard({
   name,
@@ -104,13 +112,27 @@ export function NpcCard({
   axes,
   lastDelta,
   hue = 220,
+  characterId,
+  onGenerateSheet,
+  sheetBusy = false,
+  canGenerate = true,
 }: {
   name: string;
   role?: string | null;
   axes: { trust: number; romance: number; respect: number; fear: number };
   lastDelta?: { axis: DispositionAxisKey; val: number } | null;
   hue?: number;
+  /** story_characters.id · required to enable the sheet button. */
+  characterId?: string;
+  /** Fired when the user taps「生成設定圖」· parent runs the background gen. */
+  onGenerateSheet?: (id: string, name: string) => void;
+  /** A sheet is currently generating for THIS character (spinner + disabled). */
+  sheetBusy?: boolean;
+  /** false for free tier · still shows the button (handler surfaces the gate). */
+  canGenerate?: boolean;
 }) {
+  const tSheet = useTranslations("play.characterSheet");
+  const showSheetButton = !!characterId && !!onGenerateSheet;
   return (
     <div
       className="p-3.5 rounded-lg flex flex-col gap-2.5"
@@ -142,6 +164,30 @@ export function NpcCard({
             </div>
           )}
         </div>
+        {showSheetButton && (
+          <button
+            type="button"
+            onClick={() => {
+              if (!sheetBusy) onGenerateSheet!(characterId!, name);
+            }}
+            disabled={sheetBusy}
+            aria-label={tSheet("button")}
+            title={canGenerate ? tSheet("button") : tSheet("errors.tier_required")}
+            className="inline-flex flex-none items-center gap-1 rounded-md px-1.5 py-1 text-[11px] se-cjk transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            style={{
+              color: "var(--se-fg-dim)",
+              border: "1px solid var(--se-border)",
+              background: "var(--se-surface)",
+            }}
+          >
+            {sheetBusy ? (
+              <Loader2 className="h-3 w-3 animate-spin flex-none" />
+            ) : (
+              <Sparkles className="h-3 w-3 flex-none" />
+            )}
+            <span className="hidden sm:inline">{tSheet("buttonShort")}</span>
+          </button>
+        )}
       </div>
       <div className="flex flex-col gap-1.5">
         {(["trust", "romance", "respect", "fear"] as const).map((a) => (

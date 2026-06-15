@@ -27,6 +27,7 @@ const PRODUCT_ROUTE_PREFIXES = [
   "/my",
   "/play/",
   "/play", // catches /play exactly
+  "/memory", // Wave 3 · generated-image gallery (product subdomain)
   "/stories/",
   "/stories", // catches /stories exactly
   "/settings",
