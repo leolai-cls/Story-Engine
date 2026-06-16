@@ -99,7 +99,7 @@ function SkillCheckInline({
         : null;
   return (
     <div
-      className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 p-2.5 rounded-md max-w-full"
+      className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 p-2.5 rounded-md max-w-full animate-in fade-in duration-300"
       style={{
         background: cfg.bg,
         border: `1px solid ${cfg.line}`,
@@ -188,13 +188,20 @@ function PendingSceneImage({
   dims,
   imageType,
   loadingLabel,
+  stillWorkingLabel,
 }: {
   dims: { width: number; height: number };
   imageType: string;
   loadingLabel: string;
+  stillWorkingLabel: string;
 }) {
   const expectedMs = imageType === "comic" ? 50_000 : 8_000;
   const [progressPct, setProgressPct] = useState(0);
+  // Batch 3 (loading feedback): once the real gen runs past the expected
+  // duration the bar would freeze near the top and read as crashed. Track an
+  // "overtime" flag so we can (a) keep the trailing edge pulsing and (b) show a
+  // small reassurance line instead of sitting dead at ~95%.
+  const [overtime, setOvertime] = useState(false);
 
   useEffect(() => {
     const start = Date.now();
@@ -207,6 +214,7 @@ function PendingSceneImage({
           ? (ratio / 0.6) * 0.9
           : 0.9 + ((ratio - 0.6) / 0.4) * 0.09;
       setProgressPct(Math.floor(p * 100));
+      if (elapsed >= expectedMs) setOvertime(true);
     }, 120);
     return () => clearInterval(id);
   }, [expectedMs]);
@@ -220,10 +228,23 @@ function PendingSceneImage({
       <span className="text-[11px] se-cjk text-muted-foreground px-1 text-center leading-tight">
         {loadingLabel}
       </span>
+      {/* Reassurance line once we pass the expected time so a slow provider
+          call doesn't read as a frozen / crashed bar. */}
+      {overtime && (
+        <span className="text-[10px] se-cjk text-muted-foreground/70 px-1 text-center leading-tight animate-pulse">
+          {stillWorkingLabel}
+        </span>
+      )}
       <div
         className="absolute bottom-0 left-0 h-[2px] bg-primary"
         style={{ width: `${progressPct}%`, transition: "width 120ms linear" }}
-      />
+      >
+        {/* Keep a subtle ongoing motion on the bar's trailing edge past 85% so
+            the (intentionally) near-stalled bar never looks dead. */}
+        {progressPct >= 85 && (
+          <span className="absolute right-0 top-0 h-full w-3 bg-primary animate-pulse" />
+        )}
+      </div>
     </div>
   );
 }
@@ -1025,7 +1046,7 @@ export function PlayClient({
           <button
             type="button"
             onClick={() => setSidebarOpen(true)}
-            className="lg:hidden inline-flex items-center justify-center w-8 h-8 rounded-md flex-none"
+            className="lg:hidden inline-flex items-center justify-center w-8 h-8 rounded-md flex-none transition-transform active:scale-95"
             style={{
               color: "var(--se-fg-2)",
               background: "var(--se-surface)",
@@ -1038,7 +1059,7 @@ export function PlayClient({
           {/* Back: icon-only on mobile, icon+label on sm+ */}
           <Link
             href="/library"
-            className="inline-flex items-center gap-1 px-1.5 sm:px-2.5 py-1.5 rounded-md text-xs flex-none"
+            className="inline-flex items-center gap-1 px-1.5 sm:px-2.5 py-1.5 rounded-md text-xs flex-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             style={{ color: "var(--se-fg-muted)" }}
             aria-label={tPlay("header.ariaBack")}
           >
@@ -1082,7 +1103,7 @@ export function PlayClient({
             <button
               key={t.id}
               onClick={() => setMobileTab(t.id as typeof mobileTab)}
-              className="flex-1 py-2.5 text-xs se-cjk"
+              className="flex-1 py-2.5 text-xs se-cjk transition-transform active:scale-95"
               style={{
                 color: a ? "var(--se-fg)" : "var(--se-fg-muted)",
                 borderBottom: `2px solid ${a ? "var(--se-accent)" : "transparent"}`,
@@ -1132,9 +1153,10 @@ export function PlayClient({
                 <div
                   key={turn.index}
                   className={
-                    turn.role === "user"
+                    "animate-in fade-in slide-in-from-bottom-2 duration-300 " +
+                    (turn.role === "user"
                       ? "rounded-lg bg-primary/8 border border-primary/20 p-3"
-                      : "rounded-lg bg-card border border-border/40 p-4 leading-relaxed"
+                      : "rounded-lg bg-card border border-border/40 p-4 leading-relaxed")
                   }
                 >
                   <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
@@ -1180,7 +1202,7 @@ export function PlayClient({
                           onClick={redoLastTurn}
                           disabled={redoing}
                           title={tPlay("redo.hint")}
-                          className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] se-cjk transition-colors hover:text-foreground"
+                          className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] se-cjk transition-all hover:text-foreground active:scale-95"
                           style={{
                             color: "var(--se-fg-dim)",
                             border: "1px solid var(--se-border)",
@@ -1226,6 +1248,7 @@ export function PlayClient({
                                   ? tPlay("visualize.loadingComic")
                                   : tPlay("visualize.loading")
                               }
+                              stillWorkingLabel={tPlay("visualize.stillWorking")}
                             />
                           );
                         }
@@ -1271,7 +1294,7 @@ export function PlayClient({
                               alt={tPlay("visualize.fullSizeAlt", {
                                 imageType: tPlay(`visualize.imageType.${img.imageType}`),
                               })}
-                              className="h-full w-full object-cover"
+                              className="h-full w-full object-cover animate-in fade-in duration-500"
                               loading="lazy"
                             />
                           </a>
@@ -1289,7 +1312,7 @@ export function PlayClient({
                     <button
                       type="button"
                       onClick={() => setVisualizeTurnIndex(turn.index)}
-                      className="mt-3 inline-flex items-center gap-1.5 rounded-md border border-border/60 px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground hover:border-foreground/40 transition-colors"
+                      className="mt-3 inline-flex items-center gap-1.5 rounded-md border border-border/60 px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground hover:border-foreground/40 transition-all active:scale-95"
                       title={tPlay("visualize.button")}
                     >
                       <ImageIcon className="h-3 w-3" />
@@ -1425,7 +1448,10 @@ export function PlayClient({
             />
             <Button type="submit" className="flex-none transition-transform active:scale-95" disabled={streaming || !input.trim()}>
               {streaming ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {tPlay("input.sending")}
+                </>
               ) : (
                 <>
                   <Send className="h-3.5 w-3.5" />

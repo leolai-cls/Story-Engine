@@ -1,6 +1,6 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
-import { Button } from "@/components/ui/button";
+import { LoginSubmitButton } from "./submit-buttons";
 import {
   Card,
   CardContent,
@@ -102,9 +102,12 @@ export default async function LoginPage({
               {safeNext && (
                 <input type="hidden" name="next" value={safeNext} />
               )}
-              <Button type="submit" className="w-full">
+              <LoginSubmitButton
+                className="w-full"
+                pendingLabel={t("signingIn")}
+              >
                 {t("submit")}
-              </Button>
+              </LoginSubmitButton>
               {errorText && (
                 <div className="rounded-md border border-red-200 bg-red-50 p-3 text-xs text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
                   <AlertCircle className="h-3.5 w-3.5 inline mr-1" />
@@ -127,40 +130,42 @@ export default async function LoginPage({
             {safeNext && (
               <input type="hidden" name="next" value={safeNext} />
             )}
-            <Button
-              type="submit"
+            <LoginSubmitButton
               variant="outline"
               className="w-full gap-2"
+              pendingLabel={t("signingIn")}
+              icon={
+                /* Inline Google brand mark — lucide-react doesn't ship one and
+                   Google's brand guidelines require the full multi-color "G"
+                   for OAuth buttons. */
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  width="16"
+                  height="16"
+                  aria-hidden="true"
+                >
+                  <path
+                    fill="#4285F4"
+                    d="M21.35 11.1H12v3.2h5.35c-.24 1.27-.96 2.34-2.04 3.06v2.55h3.3c1.93-1.78 3.04-4.4 3.04-7.51 0-.66-.07-1.32-.2-1.97z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 22c2.76 0 5.07-.91 6.76-2.46l-3.3-2.55c-.92.61-2.09.98-3.46.98-2.66 0-4.92-1.79-5.72-4.2H2.86v2.63A9.99 9.99 0 0012 22z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M6.28 13.77a5.99 5.99 0 010-3.79V7.35H2.86a10 10 0 000 9.05l3.42-2.63z"
+                  />
+                  <path
+                    fill="#EA4335"
+                    d="M12 5.96c1.5 0 2.85.52 3.91 1.53l2.93-2.93C17.06 2.96 14.76 2 12 2 7.7 2 3.99 4.47 2.86 7.94l3.42 2.63C7.08 7.75 9.34 5.96 12 5.96z"
+                  />
+                </svg>
+              }
             >
-              {/* Inline Google brand mark — lucide-react doesn't ship one and
-                  Google's brand guidelines require the full multi-color "G"
-                  for OAuth buttons. */}
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                width="16"
-                height="16"
-                aria-hidden="true"
-              >
-                <path
-                  fill="#4285F4"
-                  d="M21.35 11.1H12v3.2h5.35c-.24 1.27-.96 2.34-2.04 3.06v2.55h3.3c1.93-1.78 3.04-4.4 3.04-7.51 0-.66-.07-1.32-.2-1.97z"
-                />
-                <path
-                  fill="#34A853"
-                  d="M12 22c2.76 0 5.07-.91 6.76-2.46l-3.3-2.55c-.92.61-2.09.98-3.46.98-2.66 0-4.92-1.79-5.72-4.2H2.86v2.63A9.99 9.99 0 0012 22z"
-                />
-                <path
-                  fill="#FBBC05"
-                  d="M6.28 13.77a5.99 5.99 0 010-3.79V7.35H2.86a10 10 0 000 9.05l3.42-2.63z"
-                />
-                <path
-                  fill="#EA4335"
-                  d="M12 5.96c1.5 0 2.85.52 3.91 1.53l2.93-2.93C17.06 2.96 14.76 2 12 2 7.7 2 3.99 4.47 2.86 7.94l3.42 2.63C7.08 7.75 9.34 5.96 12 5.96z"
-                />
-              </svg>
               {t("googleButton")}
-            </Button>
+            </LoginSubmitButton>
           </form>
 
           <div className="pt-2">
@@ -168,14 +173,14 @@ export default async function LoginPage({
               {safeNext && (
                 <input type="hidden" name="next" value={safeNext} />
               )}
-              <Button
-                type="submit"
+              <LoginSubmitButton
                 variant="outline"
                 className="w-full"
+                pendingLabel={t("signingIn")}
+                icon={<Zap className="h-4 w-4" />}
               >
-                <Zap className="h-4 w-4" />
                 {t("guestButton")}
-              </Button>
+              </LoginSubmitButton>
             </form>
             {/* Honest copy (UI tier audit fix · designer 2.3):
                 anonymous-to-permanent upgrade flow not yet wired (Supabase

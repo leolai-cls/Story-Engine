@@ -62,50 +62,7 @@
       "usdNotice": "订价以 USD 计算 · HK / TW 用户按当下汇率自动换算",
       "perMonth": "/ 月",
       "ctaFree": "免费开始",
-      "ctaPaid": "升级",
-      "tiers": {
-        "free": {
-          "name": "Free",
-          "price": "$0",
-          "credits": "每日 50 credits",
-          "features": [
-            "入门 AI Model",
-            "创作 + 玩故事",
-            "基本社群权限"
-          ]
-        },
-        "adventurer": {
-          "name": "Adventurer",
-          "price": "$9.99",
-          "credits": "每月 5,000 credits",
-          "features": [
-            "所有 SFW Model",
-            "完整社群权限",
-            "Email 支援"
-          ]
-        },
-        "storyteller": {
-          "name": "Storyteller",
-          "price": "$19.99",
-          "credits": "每月 15,000 credits",
-          "popular": "最热门",
-          "features": [
-            "所有 AI Model",
-            "成人模式（需验证）",
-            "优先支援"
-          ]
-        },
-        "legend": {
-          "name": "Legend",
-          "price": "$49.99",
-          "credits": "每月 50,000 credits",
-          "features": [
-            "全部 + 早期试用 features",
-            "Beta features access",
-            "1-on-1 onboarding"
-          ]
-        }
-      }
+      "ctaPaid": "升级"
     },
     "cta": {
       "title": "准备进入故事世界？",
@@ -120,6 +77,7 @@
       "emailLabel": "Email",
       "emailPlaceholder": "you@example.com",
       "submit": "发送登录连结",
+      "signingIn": "登录中…",
       "googleButton": "用 Google 继续",
       "or": "或者",
       "noAccount": "未有帐户？",
@@ -138,10 +96,6 @@
     "library": {
       "title": "故事库",
       "body": "Phase 5 会起这里的完整 library。现在是 placeholder。"
-    },
-    "profile": {
-      "title": "个人",
-      "body": "Phase 0.6 完成 auth 之后这里会有 user info、character list、stats。"
     },
     "settings": {
       "title": "设置",
@@ -193,7 +147,7 @@
     }
   },
   "visitorLanding": {
-    "eyebrow": "STORY ENGINE · BETA",
+    "eyebrow": "KIEIO · BETA",
     "headlineLine1": "每一个故事",
     "headlineLine2": "都记住你做过的每一个决定",
     "subtitle": "中文圈的互动式 RPG 平台 · AI 即时生成剧情 · 角色有自己的红线和好感度 · 你做的每个选择永久记入长期记忆。",
@@ -275,7 +229,7 @@
       "cta": "前往设置 →",
       "back": "返回故事库",
       "whyTitle": "为什么需要身份验证？",
-      "whyBody": "平台必须确认用户为成年人，方可解锁 18+ 内容。身份验证由 Stripe Identity 处理 · 一次性 · 不会储存身份证件影像。",
+      "whyBody": "平台会要求你确认自己已成年，才可以解锁 18+ 内容。这只是设置内一次性的自我声明（一个勾选）· 不需要任何证件。",
       "phaseNote": "（此功能 Phase 6 money tier 上线）"
     }
   },
@@ -498,6 +452,7 @@
     "input": {
       "placeholder": "你想做什么？（描述行动、对白、决定…）",
       "submit": "行动",
+      "sending": "发送中…",
       "costEstimate": "≈ {credits} credits / turn",
       "l3Note": "+ NPC 内心戏"
     },
@@ -539,8 +494,8 @@
       "rateLimitedTitle": "请稍等 — 上一个 turn 仍在处理",
       "rateLimitedBody": "等几秒再试。",
       "adultModeRequiredTitle": "需要开启成人模式",
-      "adultModeRequiredBodyModel": "{model} 是 NSFW model · 需要先在 Settings 开启「成人模式」(KYC 后)。或者选其他 model 继续。",
-      "adultModeRequiredBodyStory": "这个故事是 adult-rated · 需要先在 Settings 开启「成人模式」(KYC 后) 才能继续玩。",
+      "adultModeRequiredBodyModel": "{model} 是 NSFW model · 需要先在 Settings 开启「成人模式」。或者选其他 model 继续。",
+      "adultModeRequiredBodyStory": "这个故事是 adult-rated · 需要先在 Settings 开启「成人模式」才能继续玩。",
       "adultModeRequiredCta": "去 Settings",
       "httpError": "请求失败（HTTP {status}）",
       "redoFailedBody": "重做失败 · 请重试"
@@ -582,6 +537,7 @@
       "ctaNeedsCustom": "请先写下你的风格描述",
       "loading": "绘制场景中…",
       "loadingComic": "绘制漫画中…",
+      "stillWorking": "还在生成中…",
       "bgFailed": "生成失败 · 再试一次",
       "successTitle": "场景生成完成",
       "download": "下载",
@@ -593,7 +549,7 @@
       },
       "errors": {
         "tier_required": "需要 Standard 或 Pro tier",
-        "adult_mode_required": "需要先在设置开启成人模式 · 成人故事可能需要身份验证",
+        "adult_mode_required": "需要先在设置开启成人模式才可以玩成人故事",
         "insufficient_credits": "Credits 不足 · 这张图需要 {needed}，你有 {balance}",
         "content_filter": "Provider 拒绝了此场景 · 试下换风格或者改写上一回合",
         "rate_limited": "图片 provider 繁忙 · 稍等再试",
@@ -738,9 +694,9 @@
       "ledgerEmpty": "暂无 credit 变动。",
       "ledgerBalance": "余 {balance}",
       "tierDescriptions": {
-        "free": "50 credits 每日 · 仅限 Standard model",
-        "adventurer": "2,000 credits 每月 · 无 turn 上限 · Standard + Pro AI model · 成人模式 (KYC 后)",
-        "storyteller": "4,000 credits 每月 · 全部功能 · NPC 内心戏无限 · 成人模式",
+        "free": "注册送 1,000 · 每日 +100（上限 1,000）· Standard AI",
+        "adventurer": "每月 8,000 credits · 无 turn 上限 · Standard + Pro AI · 可开成人模式",
+        "storyteller": "每月 18,000 credits · 全部功能 · NPC 内心戏无限 · 可开成人模式",
         "legend": "已下架 · 与 Pro 相同"
       }
     },
@@ -793,7 +749,6 @@
       "saveFailedWithError": "保存失败 · {error}",
       "perTurnEstimate": "每 turn 估",
       "requiresSubTier": "需要 {tier}",
-      "andKyc": " + 身份验证",
       "tiers": {
         "standard": "Standard",
         "pro": "Pro"
@@ -815,24 +770,15 @@
       "enabledBadge": "已开启",
       "stateOn": "成人模式已开启",
       "stateOff": "成人模式关闭",
-      "enabledExplainer": "你可以选 OpenRouter NSFW model · 创作 adult-rated 故事 · Library 显示成人内容。",
+      "enabledExplainer": "你可以选 NSFW model · 创作 adult-rated 故事 · Library 显示成人内容。",
       "disabledExplainer": "限定 SFW + Soft 内容。NSFW model + adult-rated 故事不可见。",
-      "ageVerifiedYes": "你已经完成年龄验证 — 可以随时开关成人模式。",
-      "ageVerifiedNo": "需要先做身份验证才能开启成人模式。",
-      "requiresVerificationTitle": "需要年龄验证 (18+)",
-      "verificationBody": "根据平台政策 · 成人模式需要 Stripe Identity 完成身份验证 · 确保只有 18+ 用户 access。点下面 button 跳转到 Stripe 安全页面 · 完成后自动 unlock toggle。",
-      "stripePrivacyNote": "Stripe Identity 只取身份证 + selfie 验证年龄 · Kieio 不会存储图片。",
-      "verifyCta": "开始年龄验证",
-      "verifyPending": "正在前往 Stripe…",
-      "alreadyVerified": "你已经验证过 · 重 reload 页面应该见到 toggle 解锁",
       "authRequired": "请先登入",
-      "verifyInitError": "验证初始化失败，请稍后再试。",
       "csamReminder": "注意：所有模式都禁止 CSAM、未成年人性描写、违法内容 · 无论 adult mode 开关都会被 moderation 拦截 (hard rule)。",
       "consentDialog": {
         "eyebrow": "确认开启成人模式",
         "title": "你准备好打开 18+ 内容？",
         "intro": "打开之后：",
-        "bullet1": "Model picker 多了 OpenRouter NSFW model（露骨内容）",
+        "bullet1": "Model picker 多了 NSFW model（露骨内容）",
         "bullet2": "Creation 可以选「成人」content_rating",
         "bullet3": "Library 多了「18+ 成人」filter",
         "bullet4": "Story detail 不再 hide 成人故事",
@@ -871,8 +817,6 @@
       "topupCanceledBody": "你没 charge 到。随时可以再试。",
       "checkoutCanceledTitle": "订阅取消",
       "checkoutCanceledBody": "你没 charge 到。随时可以再试。",
-      "verifyingTitle": "验证进行中…",
-      "verifyingBody": "Stripe Identity 正在处理 · 通常 5-15 秒。Page 会自动 refresh 显示结果。",
       "secondsLeft": " ({count}s)",
       "ariaClose": "关闭"
     }
@@ -886,9 +830,18 @@
       "button": "删除",
       "confirm": "确定永久删除？",
       "yes": "删除",
+      "deleting": "删除中…",
       "cancel": "取消",
       "failed": "删除失败 · 请重试",
       "aria": "删除 {title}"
+    },
+    "lobby": {
+      "welcomeNamed": "你好，{name}",
+      "welcomeAnon": "欢迎来到 Kieio",
+      "subtitle": "告诉我你想进哪个世界 — 我帮你建好角色、规则、开场。然后故事就你说了算。",
+      "primaryCta": "开始第一个故事",
+      "examplesHeader": "或者试试这些 · 一点即开始",
+      "browseLibraryLink": "或者去 Library 看社群故事"
     },
     "subtitleCount": "共 {total} 个 playthrough · {active} 个进行中",
     "tabs": {
@@ -1019,6 +972,7 @@
       "submitBusy": "AI 正在设计你的故事…（约 15–30 秒）",
       "submit": "生成 + 即时开始",
       "estimatedCost": "预计成本 ~{count} credits",
+      "estimatedCostPending": "正在扣除约 {count} credits…",
       "generatingHeader": "GENERATING · 4 PARALLEL TASKS · ~35–50s",
       "generatingHint": "你可以打开新 tab · 完成会自动跳转",
       "generatingModelLine": "sonnet-4.6 · 生成中…",
@@ -1064,7 +1018,6 @@
       "saveFailed": "保存失败，请稍后再试。"
     },
     "settings": {
-      "adultRequiresKyc": "需要先完成身份验证 — Phase 6 money tier 即将上线。",
       "adultTierRequiresMode": "Adult tier 需要先开启成人模式 + 完成身份验证。",
       "tierSubscriptionGate": "{tier} tier 需要 {required} 订阅 — 你现在是 {current}"
     },
@@ -1099,9 +1052,9 @@
       "subtitle": "使用 Kieio 的规则与预期。",
       "placeholderNotice": "⚠️ 暂定版本 · 最终条款等律师 review (HK + TW 司法管辖)。",
       "section1Title": "1. 服务描述",
-      "section1Body": "Kieio (kieio.com) 提供 AI 驱动的互动式故事。我们使用第三方 LLM (Anthropic · OpenAI · Google · Meta via OpenRouter) 根据你的 prompt 生成叙事。输出为虚构内容，不构成建议。",
+      "section1Body": "Kieio（于 kieio.com 运营）提供 AI 驱动的互动式故事。我们会根据你提交的 prompt，使用第三方 AI 语言模型生成叙事。输出为虚构内容，不构成建议。",
       "section2Title": "2. 账户 + 年龄要求",
-      "section2Body": "你需要 13 岁或以上才能开账户。成人模式 (NSFW) 需要 Stripe Identity 验证 18 岁或以上。违反社群规范或法律我们可以暂停账户。",
+      "section2Body": "你需要 13 岁或以上才可以开账户。成人模式（NSFW）需要你自我声明已年满 18 岁。违反社群规范或法律我们可以暂停账户。",
       "section3Title": "3. 可接受用法",
       "section3Body": "你同意不会：(a) 生成或分享涉及未成年人的性内容 (CSAM · 已 pre-filter + 上报执法机构)，(b) 生成未经同意的真人内容，(c) 大规模 scrape 或 reverse-engineer LLM 输出，(d) 用平台做骚扰、起底或非法活动。",
       "section4Title": "4. 付款 + Credits",
@@ -1118,9 +1071,9 @@
       "section1Title": "1. 我们收什么",
       "section1Body": "账户：email、display name (OAuth provider 或你自己改)、语言偏好。游玩：故事、playthrough、角色、记忆、credit ledger。Operational：IP、user agent、error report (Sentry)、product analytics (PostHog) — 全部 link 你的 user ID。",
       "section2Title": "2. 第三方 processor",
-      "section2Body": "我们透过：Supabase (DB + auth · US-East)、Vercel (hosting · global edge)、Anthropic / OpenAI / Google / OpenRouter (LLM inference)、Stripe (payments)、Sentry (errors)、PostHog (analytics) 处理资料。LLM prompt 只 send 去 model provider · 我们不会用你的内容 train model。",
+      "section2Body": "我们使用第三方服务供应商处理：数据库及认证、寄存、AI 模型推理、付款、错误监测、分析。你的 prompt 只会送去 AI 模型供应商作生成之用；我们不会用你的内容训练模型。",
       "section3Title": "3. 成人模式 + 身份验证",
-      "section3Body": "成人模式需要 Stripe Identity 年龄验证 (selfie + ID)。验证 metadata (yes/no · timestamp) 我们保留；selfie + ID 图像由 Stripe 处理 · 我们不 store。成人模式内容由 NSFW-friendly provider (OpenRouter) 生成 · 同 default LLM 隔离。",
+      "section3Body": "成人模式要求你自我声明已年满 18 岁（设置内一个一次性的勾选）。我们不会为年龄验证收集、处理或储存任何身份证件、自拍或政府证件。成人模式的叙事会使用一个容许成人内容的 AI 模型生成，与默认模型隔离。",
       "section4Title": "4. 你的权利",
       "section4Body": "你可以：导出资料 (email privacy@kieio.com)、删除账户 (settings → delete · cascades playthrough + 记忆)、退出 analytics (PostHog honors DNT header)。Data retention：账户资料保留到 deletion；error log 90 天；analytics 12 个月。",
       "section5Title": "5. 联络 + 司法管辖",
@@ -1148,6 +1101,7 @@
     "title": "选择方案",
     "subtitle": "所有方案都包含完整功能。随时可以升级或取消。",
     "popular": "最热门",
+    "recommended": "推荐",
     "perMonth": " / 月",
     "freeDefault": "你现在用紧这个",
     "ctaSubscribe": "升级",

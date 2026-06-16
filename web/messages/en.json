@@ -62,50 +62,7 @@
       "usdNotice": "Pricing in USD · HK / TW currency auto-converted at checkout",
       "perMonth": "/ mo",
       "ctaFree": "Get started free",
-      "ctaPaid": "Upgrade",
-      "tiers": {
-        "free": {
-          "name": "Free",
-          "price": "$0",
-          "credits": "50 credits / day",
-          "features": [
-            "Entry-level AI models",
-            "Create + play stories",
-            "Basic community access"
-          ]
-        },
-        "adventurer": {
-          "name": "Adventurer",
-          "price": "$9.99",
-          "credits": "5,000 credits / month",
-          "features": [
-            "All SFW models",
-            "Full community",
-            "Email support"
-          ]
-        },
-        "storyteller": {
-          "name": "Storyteller",
-          "price": "$19.99",
-          "credits": "15,000 credits / month",
-          "popular": "Most popular",
-          "features": [
-            "All AI models",
-            "Adult mode (KYC required)",
-            "Priority support"
-          ]
-        },
-        "legend": {
-          "name": "Legend",
-          "price": "$49.99",
-          "credits": "50,000 credits / month",
-          "features": [
-            "Everything + early access",
-            "Beta features",
-            "1-on-1 onboarding"
-          ]
-        }
-      }
+      "ctaPaid": "Upgrade"
     },
     "cta": {
       "title": "Ready to step into the story?",
@@ -120,6 +77,7 @@
       "emailLabel": "Email",
       "emailPlaceholder": "you@example.com",
       "submit": "Send login link",
+      "signingIn": "Signing in…",
       "googleButton": "Continue with Google",
       "or": "or",
       "noAccount": "No account yet?",
@@ -138,10 +96,6 @@
     "library": {
       "title": "Library",
       "body": "Phase 5 will build the full library here. This is a placeholder for now."
-    },
-    "profile": {
-      "title": "Profile",
-      "body": "User info, character list and stats will live here after Phase 0.6 auth wiring."
     },
     "settings": {
       "title": "Settings",
@@ -193,7 +147,7 @@
     }
   },
   "visitorLanding": {
-    "eyebrow": "STORY ENGINE · BETA",
+    "eyebrow": "KIEIO · BETA",
     "headlineLine1": "Every story",
     "headlineLine2": "remembers every choice you made",
     "subtitle": "The Chinese-language interactive RPG platform · AI generates the plot in real time · characters have their own red lines and disposition · every choice you make is permanently written to long-term memory.",
@@ -275,7 +229,7 @@
       "cta": "Go to Settings →",
       "back": "Back to Library",
       "whyTitle": "Why identity verification?",
-      "whyBody": "The platform must confirm users are adults before unlocking 18+ content. Verification is handled by Stripe Identity · one-time · ID images are not stored.",
+      "whyBody": "The platform asks you to confirm you are an adult before unlocking 18+ content. This is a one-time self-declaration (a checkbox in Settings) · no ID or document is required.",
       "phaseNote": " (Phase 6 money tier · live)"
     }
   },
@@ -498,6 +452,7 @@
     "input": {
       "placeholder": "What do you want to do? (describe action, dialogue, decision…)",
       "submit": "Act",
+      "sending": "Sending…",
       "costEstimate": "≈ {credits} credits / turn",
       "l3Note": "+ NPC Inner Voices"
     },
@@ -539,8 +494,8 @@
       "rateLimitedTitle": "Hold on — last turn is still processing",
       "rateLimitedBody": "Wait a few seconds and try again.",
       "adultModeRequiredTitle": "Adult mode required",
-      "adultModeRequiredBodyModel": "{model} is an NSFW model · enable Adult Mode in Settings first (KYC required). Or pick a different model to continue.",
-      "adultModeRequiredBodyStory": "This story is adult-rated · enable Adult Mode in Settings first (KYC required) to keep playing.",
+      "adultModeRequiredBodyModel": "{model} is an NSFW model · enable Adult Mode in Settings first. Or pick a different model to continue.",
+      "adultModeRequiredBodyStory": "This story is adult-rated · enable Adult Mode in Settings first to keep playing.",
       "adultModeRequiredCta": "Go to Settings",
       "httpError": "Request failed (HTTP {status})",
       "redoFailedBody": "Couldn't redo this turn · please try again"
@@ -582,6 +537,7 @@
       "ctaNeedsCustom": "Write a custom style prompt first",
       "loading": "Drawing scene…",
       "loadingComic": "Drawing comic…",
+      "stillWorking": "Still working…",
       "bgFailed": "Failed · try again",
       "successTitle": "Scene generated",
       "download": "Download",
@@ -593,7 +549,7 @@
       },
       "errors": {
         "tier_required": "Standard or Pro tier required",
-        "adult_mode_required": "Enable Adult Mode in Settings first · adult-rated stories may require age verification",
+        "adult_mode_required": "Enable Adult Mode in Settings first to play adult-rated stories",
         "insufficient_credits": "Not enough credits · this image needs {needed}, you have {balance}",
         "content_filter": "Provider rejected this scene · try a different style or rephrase your last turn",
         "rate_limited": "Image provider is busy · wait a moment and try again",
@@ -793,7 +749,6 @@
       "saveFailedWithError": "Save failed · {error}",
       "perTurnEstimate": "PER-TURN EST",
       "requiresSubTier": "Requires {tier}",
-      "andKyc": " + verification",
       "tiers": {
         "standard": "Standard",
         "pro": "Pro"
@@ -817,16 +772,7 @@
       "stateOff": "Adult mode: off",
       "enabledExplainer": "You can create 18+ stories · the Library shows adult content · narration uses an AI model that supports explicit content.",
       "disabledExplainer": "Standard and soft content only; 18+ stories stay hidden.",
-      "ageVerifiedYes": "You're age-verified — you can toggle adult mode on/off freely.",
-      "ageVerifiedNo": "Identity verification required to enable adult mode.",
-      "requiresVerificationTitle": "Age verification required (18+)",
-      "verificationBody": "Per platform policy · adult mode requires Stripe Identity to confirm age · ensuring only 18+ users can access. Tap the button to go to Stripe's secure page · the toggle unlocks automatically after.",
-      "stripePrivacyNote": "Stripe Identity only takes an ID + selfie to verify age · Kieio does NOT store the images.",
-      "verifyCta": "Start age verification",
-      "verifyPending": "Redirecting to Stripe…",
-      "alreadyVerified": "You're already verified · reload the page to see the toggle unlocked",
       "authRequired": "Please log in first",
-      "verifyInitError": "Verification initialization failed. Please try again later.",
       "csamReminder": "Note: all modes ban CSAM, sexualization of minors, and illegal content · whether adult mode is on or off, the moderation pipeline will block these (hard rule).",
       "consentDialog": {
         "eyebrow": "Confirm enable adult mode",
@@ -871,8 +817,6 @@
       "topupCanceledBody": "You were not charged. Try again anytime.",
       "checkoutCanceledTitle": "Subscription canceled",
       "checkoutCanceledBody": "You were not charged. Try again anytime.",
-      "verifyingTitle": "Verifying age…",
-      "verifyingBody": "Stripe Identity is processing (5-15 sec). Page will auto-refresh.",
       "secondsLeft": " ({count}s)",
       "ariaClose": "Close"
     }
@@ -886,6 +830,7 @@
       "button": "Delete",
       "confirm": "Delete permanently?",
       "yes": "Delete",
+      "deleting": "Deleting…",
       "cancel": "Cancel",
       "failed": "Delete failed · try again",
       "aria": "Delete {title}"
@@ -1027,6 +972,7 @@
       "submitBusy": "AI is designing your story… (~15–30s)",
       "submit": "Generate + start immediately",
       "estimatedCost": "Estimated cost ~{count} credits",
+      "estimatedCostPending": "Charging ~{count} credits…",
       "generatingHeader": "GENERATING · 4 PARALLEL TASKS · ~35–50s",
       "generatingHint": "You can open a new tab · we'll redirect when done",
       "generatingModelLine": "sonnet-4.6 · generating…",
@@ -1072,7 +1018,6 @@
       "saveFailed": "Save failed. Please try again later."
     },
     "settings": {
-      "adultRequiresKyc": "Identity verification required first — coming in the Phase 6 money tier.",
       "adultTierRequiresMode": "Adult tier requires Adult Mode enabled + identity verification.",
       "tierSubscriptionGate": "{tier} tier requires {required} subscription — you're on {current}"
     },
@@ -1107,9 +1052,9 @@
       "subtitle": "The rules and expectations for using Kieio.",
       "placeholderNotice": "⚠️ Placeholder · final terms pending lawyer review for HK + TW jurisdictions.",
       "section1Title": "1. Service description",
-      "section1Body": "Kieio (operated at kieio.com) provides AI-driven interactive fiction. We generate narratives using third-party language models (Anthropic · OpenAI · Google · Meta via OpenRouter) based on prompts you submit. Output is fictional and not advice.",
+      "section1Body": "Kieio (operated at kieio.com) provides AI-driven interactive fiction. We generate narratives using third-party AI language models based on the prompts you submit. Output is fictional and not advice.",
       "section2Title": "2. Account + age requirements",
-      "section2Body": "You must be 13 or older to create an account. Adult mode (NSFW content) requires identity verification confirming you are 18 or older via Stripe Identity. We may suspend accounts for violations of community standards or applicable law.",
+      "section2Body": "You must be 13 or older to create an account. Adult mode (NSFW content) requires you to confirm you are 18 or older by self-declaration. We may suspend accounts for violations of community standards or applicable law.",
       "section3Title": "3. Acceptable use",
       "section3Body": "You agree not to: (a) generate or share content involving minors in sexual situations (CSAM · pre-filtered + reported to authorities), (b) generate content depicting real persons without consent, (c) reverse-engineer or scrape our LLM outputs at scale, (d) use the platform for harassment, doxxing, or illegal activity.",
       "section4Title": "4. Payments + credits",
@@ -1126,9 +1071,9 @@
       "section1Title": "1. What we collect",
       "section1Body": "Account: email, display name (from OAuth provider or you), language preference. Gameplay: stories, playthroughs, characters, memory, credit ledger. Operational: IP, user agent, error reports (Sentry), product analytics (PostHog) — all linked to your user ID.",
       "section2Title": "2. Third-party processors",
-      "section2Body": "We process data through: Supabase (database + auth · US-East), Vercel (hosting · global edge), Anthropic / OpenAI / Google / OpenRouter (LLM inference), Stripe (payments · global), Sentry (errors), PostHog (analytics). LLM prompts are sent to the model provider only · we do not train models on your content.",
+      "section2Body": "We use third-party service providers for database & authentication, hosting, AI model inference, payments, error monitoring, and analytics. Your prompts are sent only to the AI model provider for generation; we do not train models on your content.",
       "section3Title": "3. Adult mode + identity verification",
-      "section3Body": "Adult mode requires age verification via Stripe Identity (selfie + ID). Verification metadata (verified yes/no · timestamp) is retained; the selfie + ID images are processed by Stripe and not stored by us. Adult mode content is generated using NSFW-friendly providers (OpenRouter) isolated from default LLMs.",
+      "section3Body": "Adult mode requires you to self-attest that you are 18 or older (a one-time checkbox in Settings). We do not collect, process, or store any identity document, selfie, or government ID for age verification. Adult-mode narration is generated using an AI model that permits mature content, isolated from the default models.",
       "section4Title": "4. Your rights",
       "section4Body": "You can: export your data (contact privacy@kieio.com), delete your account (settings → delete · cascades to playthroughs + memory), opt out of analytics (PostHog respects DNT header). Data retention: account data kept until deletion; error logs 90 days; analytics 12 months.",
       "section5Title": "5. Contact + jurisdiction",
@@ -1156,6 +1101,7 @@
     "title": "Choose a plan",
     "subtitle": "Every plan includes the full feature set. Upgrade or cancel anytime.",
     "popular": "Popular",
+    "recommended": "Recommended",
     "perMonth": " / mo",
     "freeDefault": "Your current plan",
     "ctaSubscribe": "Upgrade",

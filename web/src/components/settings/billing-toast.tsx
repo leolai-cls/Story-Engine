@@ -4,7 +4,7 @@
  * Billing-flow status banners · surfaces Stripe redirect query params.
  *
  * Audit Wave 2 B2: the success_url / cancel_url query params (?subscribed=1,
- * ?canceled=1, ?topup=1, ?topup_canceled=1, ?verified=pending) were
+ * ?canceled=1, ?topup=1, ?topup_canceled=1) were
  * documented in the redirect strings but never read by the destination
  * pages — users hit Stripe, returned to /settings, saw the same page with
  * no indication anything happened. Toast component surfaces a one-line
@@ -16,21 +16,19 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { CheckCircle2, AlertCircle, ShieldCheck, X } from "lucide-react";
+import { CheckCircle2, AlertCircle, X } from "lucide-react";
 
 type Variant =
   | "subscribed"           // /settings?subscribed=1 · subscription Checkout succeeded
   | "topup"                // /settings?topup=1 · top-up Checkout succeeded
   | "topup_canceled"       // /settings?topup_canceled=1 · user closed top-up Checkout
-  | "checkout_canceled"    // /pricing?canceled=1
-  | "verifying";           // /settings?verified=pending · Identity submitted, awaiting webhook
+  | "checkout_canceled";   // /pricing?canceled=1
 
 const VARIANT_TO_KEY: Record<Variant, { title: string; body: string }> = {
   subscribed: { title: "subscribedTitle", body: "subscribedBody" },
   topup: { title: "topupTitle", body: "topupBody" },
   topup_canceled: { title: "topupCanceledTitle", body: "topupCanceledBody" },
   checkout_canceled: { title: "checkoutCanceledTitle", body: "checkoutCanceledBody" },
-  verifying: { title: "verifyingTitle", body: "verifyingBody" },
 };
 
 const VARIANT_ICONS: Record<Variant, React.ReactNode> = {
@@ -38,7 +36,6 @@ const VARIANT_ICONS: Record<Variant, React.ReactNode> = {
   topup: <CheckCircle2 size={16} />,
   topup_canceled: <AlertCircle size={16} />,
   checkout_canceled: <AlertCircle size={16} />,
-  verifying: <ShieldCheck size={16} />,
 };
 
 export function BillingToast({
@@ -79,7 +76,6 @@ export function BillingToast({
   if (dismissed) return null;
 
   const isSuccess = variant === "subscribed" || variant === "topup";
-  const isVerifying = variant === "verifying";
 
   return (
     <div
@@ -88,15 +84,11 @@ export function BillingToast({
       style={{
         background: isSuccess
           ? "rgba(34, 197, 94, 0.08)"
-          : isVerifying
-            ? "rgba(85, 37, 131, 0.08)"
-            : "rgba(245, 158, 11, 0.08)",
+          : "rgba(245, 158, 11, 0.08)",
         border: `1px solid ${
           isSuccess
             ? "rgba(34, 197, 94, 0.35)"
-            : isVerifying
-              ? "rgba(85, 37, 131, 0.35)"
-              : "rgba(245, 158, 11, 0.35)"
+            : "rgba(245, 158, 11, 0.35)"
         }`,
       }}
     >
@@ -104,9 +96,7 @@ export function BillingToast({
         style={{
           color: isSuccess
             ? "rgb(22, 163, 74)"
-            : isVerifying
-              ? "var(--k-purple, #552583)"
-              : "rgb(217, 119, 6)",
+            : "rgb(217, 119, 6)",
           marginTop: 1,
         }}
       >

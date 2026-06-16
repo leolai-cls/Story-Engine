@@ -206,7 +206,7 @@ export function ChatControls({
           onClick={() => setMenuOpen((o) => !o)}
           aria-haspopup="listbox"
           aria-expanded={menuOpen}
-          className="inline-flex items-center gap-1 rounded-md border border-border/70 bg-card px-2 py-1.5 text-xs hover:border-foreground/40 transition-colors"
+          className="inline-flex items-center gap-1 rounded-md border border-border/70 bg-card px-2 py-1.5 text-xs hover:border-foreground/40 transition-all active:scale-95"
         >
           <Bot className="h-3.5 w-3.5 text-muted-foreground flex-none" />
           <span className="se-cjk font-medium max-w-[84px] sm:max-w-[150px] truncate">
@@ -273,7 +273,7 @@ export function ChatControls({
         onClick={toggleNpcL3}
         aria-pressed={npcL3}
         title={t("agentTooltip")}
-        className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1.5 text-xs transition-colors ${
+        className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1.5 text-xs transition-all active:scale-95 ${
           npcL3
             ? "border-primary bg-primary/10 text-foreground"
             : "border-border/70 bg-card text-muted-foreground hover:border-foreground/40"
@@ -297,7 +297,7 @@ export function ChatControls({
         onClick={toggleThinking}
         aria-pressed={thinking}
         title={t("thinkingTooltip")}
-        className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1.5 text-xs transition-colors ${
+        className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1.5 text-xs transition-all active:scale-95 ${
           thinking
             ? "border-primary bg-primary/10 text-foreground"
             : "border-border/70 bg-card text-muted-foreground hover:border-foreground/40"

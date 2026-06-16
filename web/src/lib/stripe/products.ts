@@ -86,7 +86,7 @@ export const TIER_DISPLAY: Record<
       { en: "1,000 credits on signup", zh: "註冊送 1,000 credits" },
       { en: "100 credits daily refresh", zh: "每日補返 100 credits" },
       { en: "Standard AI tier · CJK-tuned", zh: "Standard 模型 · 中文優化" },
-      { en: "Memory + NPC + Skill Check", zh: "記憶 + NPC + 擲骰系統" },
+      { en: "Memory + NPC + optional dice (deep mode)", zh: "記憶 + NPC + 可選擲骰（深模式）" },
     ],
   },
   adventurer: {
@@ -99,9 +99,9 @@ export const TIER_DISPLAY: Record<
       // 都可以開成人模式 (self-attest 18+). 2026-05-29: 2,000→8,000 credits.
       { en: "8,000 credits / month (~150 turns)", zh: "每月 8,000 credits (~150 回合)" },
       { en: "No turn cap · play as long as you want", zh: "無回合上限 · 玩到夠" },
-      { en: "Standard + Pro AI models (Gemini Flash + Claude Sonnet)", zh: "Standard + Pro AI 模型 (Gemini Flash + Claude Sonnet)" },
-      { en: "Adult mode (after age verification)", zh: "成人模式 (KYC 後解鎖)" },
-      { en: "Memory Palace + full Skill Check system", zh: "記憶宮殿 + 完整擲骰系統" },
+      { en: "Standard + Pro AI models (Claude Sonnet 4.6 · Claude Opus 4.8)", zh: "Standard + Pro AI 模型（Claude Sonnet 4.6 · Claude Opus 4.8）" },
+      { en: "Adult mode (self-attest 18+)", zh: "成人模式（自行確認 18+）" },
+      { en: "Memory system + optional deep dice mode", zh: "記憶系統 + 可選擲骰深模式" },
     ],
   },
   storyteller: {
@@ -113,10 +113,57 @@ export const TIER_DISPLAY: Record<
       { en: "18,000 credits / month (~235 turns)", zh: "每月 18,000 credits (~235 回合)" },
       { en: "Same AI models as Standard · 2.25× the credits", zh: "同 Standard 一樣 AI 模型 · credits 多 2.25 倍" },
       { en: "Unlimited NPC Inner Voices", zh: "NPC 內心戲無限" },
-      { en: "Adult mode (after age verification)", zh: "成人模式 (KYC 後解鎖)" },
+      { en: "Adult mode (self-attest 18+)", zh: "成人模式（自行確認 18+）" },
     ],
   },
 };
+
+/**
+ * Public plans-page rows (single source of truth for the /plans grid).
+ *
+ * Maps each DB-legacy tier id (free / adventurer / storyteller) to the
+ * display nameKey used for i18n lookups (`plans.tiers.${nameKey}.*`) plus
+ * the static price string and presentation flags. Previously this array was
+ * inlined in app/[locale]/plans/page.tsx — colocated here next to the other
+ * tier display constants so the tier↔name mapping lives in one place.
+ */
+export type PlanTierRow = {
+  /** DB-legacy tier id (also used to compare against profiles.subscription_tier). */
+  tier: PublicTier;
+  /** i18n nameKey → plans.tiers.${nameKey}.{name,credits,features}. */
+  nameKey: "free" | "standard" | "pro";
+  /** Static display price (e.g. "$9.99"). */
+  price: string;
+  /** Paid tier id for the SubscribeButton, or null for Free. */
+  paid: PaidTier | null;
+  /** Subtle "recommended" treatment (middle tier). */
+  recommended?: boolean;
+  /** Strong "highlight" treatment (top tier). */
+  highlight?: boolean;
+};
+
+export const PLAN_TIERS: readonly PlanTierRow[] = [
+  {
+    tier: "free",
+    nameKey: "free",
+    price: "$0",
+    paid: null,
+  },
+  {
+    tier: "adventurer", // DB legacy name · 顯示 Standard
+    nameKey: "standard",
+    price: "$9.99",
+    paid: "adventurer",
+    recommended: true, // Batch 4: middle tier was invisible · subtle 推薦 treatment
+  },
+  {
+    tier: "storyteller", // DB legacy name · 顯示 Pro
+    nameKey: "pro",
+    price: "$19.99",
+    paid: "storyteller",
+    highlight: true,
+  },
+];
 
 /**
  * Monthly credit grant per tier · used by webhook handlers when subscription

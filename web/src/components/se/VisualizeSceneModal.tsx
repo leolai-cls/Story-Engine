@@ -234,7 +234,7 @@ export function VisualizeSceneModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 pb-[max(1rem,env(safe-area-inset-bottom))] animate-in fade-in duration-200"
       style={{
         background: "var(--se-overlay, rgba(0,0,0,0.55))",
         backdropFilter: "blur(8px)",
@@ -247,7 +247,7 @@ export function VisualizeSceneModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl"
+        className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl animate-in zoom-in-95 fade-in duration-200"
         style={{
           background: "var(--se-surface)",
           border: "1px solid var(--se-border-strong)",
@@ -307,7 +307,7 @@ export function VisualizeSceneModal({
                       aria-checked={active}
                       aria-label={t(`imageType.${key}`)}
                       onClick={() => setImageType(key as ImageType)}
-                      className={`flex flex-col items-center gap-1 rounded-lg border p-3 transition-colors ${
+                      className={`flex flex-col items-center gap-1 rounded-lg border p-3 transition-all active:scale-95 ${
                         active
                           ? "border-primary bg-primary/5"
                           : "border-border hover:border-foreground/30"
@@ -393,7 +393,7 @@ export function VisualizeSceneModal({
                           key={key}
                           type="button"
                           onClick={() => setSelectedStyleKey(key)}
-                          className={`text-left rounded-md border p-2 transition-colors ${
+                          className={`text-left rounded-md border p-2 transition-all active:scale-95 ${
                             active
                               ? "border-primary bg-primary/5"
                               : suggested
