@@ -375,3 +375,12 @@ export function estimateImageCredits(
 
 /** Cost to generate one character portrait. Same for all providers. */
 export const CHARACTER_PORTRAIT_CREDITS = 40;
+
+/**
+ * Cost to generate one character DESIGN SHEET (Wave 3 · fal gpt-image-2, high
+ * quality 1536x1024). Real fal cost ≈ $0.15-0.18/image + the compose LLM call;
+ * priced at 400 credits ($0.40) ≈ the platform's ~2× markup so it covers cost
+ * even with an occasional transient retry (founder: "make sure cover the cost").
+ * Charged ONLY on success. Re-baseline against real fal invoices (hard rule #20).
+ */
+export const CHARACTER_SHEET_CREDITS = 400;

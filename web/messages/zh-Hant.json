@@ -454,6 +454,19 @@
       "noThoughtsForNpc": "未有 inner thought 記錄。"
     }
   },
+  "memoryGallery": {
+    "pageTitle": "我嘅圖庫",
+    "subtitle": "你喺故事入面生成過嘅場景圖同角色設定圖",
+    "tabs": {
+      "scenes": "場景圖",
+      "sheets": "角色設定圖"
+    },
+    "empty": "你仲未生成過任何圖 · 喺扮演故事時可以生成場景圖同角色設定圖",
+    "emptyScenes": "你仲未生成過場景圖 · 扮演時揿「生成場景」就可以整一張",
+    "emptySheets": "你仲未生成過角色設定圖 · 扮演時喺角色卡揿「生成設定圖」就可以整一張",
+    "back": "返回",
+    "openFull": "查看大圖"
+  },
   "play": {
     "header": {
       "ariaOpenList": "開啟遊戲清單",
@@ -600,6 +613,24 @@
       "fullSizeAlt": "生成場景 · {imageType}",
       "tosShort": "點擊生成即表示你確認上傳嘅參考圖屬於你，並同意我哋嘅",
       "tosLink": "服務條款"
+    },
+    "characterSheet": {
+      "button": "✨ 生成設定圖",
+      "buttonShort": "設定圖",
+      "generating": "生成設定圖中…",
+      "modalTitle": "{name} 角色設定圖",
+      "loading": "生成設定圖中…（約一兩分鐘）",
+      "download": "下載設定圖",
+      "close": "關閉",
+      "done": "完成",
+      "errors": {
+        "tier_required": "角色設定圖需要 Standard 或 Pro 會員 · 升級後即可生成",
+        "insufficient_credits": "Credits 不足 · 呢張設定圖需要 400",
+        "adult_not_supported": "成人故事暫時未支援角色設定圖",
+        "content_filter": "角色設定未能通過安全檢查 · 試下調整角色描述再生成",
+        "provider_unavailable": "生圖服務暫時無法使用 · 請稍後再試",
+        "unknown": "生成設定圖時出咗啲問題 · 請再試"
+      }
     }
   },
   "skillCheck": {
