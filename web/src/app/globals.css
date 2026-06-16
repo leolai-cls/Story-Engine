@@ -49,38 +49,61 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
+  /* ============================================================
+   * UNIFIED LIGHT PALETTE (Batch 6 · 2026-06-16)
+   * Single source of truth = the play-screen warm-paper tokens
+   * (--se-* below). The shadcn neutral tokens now reference those
+   * --se-* values so settings / creation / marketing / ui-primitives
+   * render on the SAME warm-paper surfaces as the most-polished
+   * play screen. The play screen is UNCHANGED (it already used --se-*).
+   *
+   * Mapping (was → now):
+   *   --background  oklch(1 0 0)       → --se-bg          (#fbfaf6 warm off-white)
+   *   --card/popover oklch(1 0 0)      → --se-surface     (#ffffff · was already equal)
+   *   --secondary/muted/accent 0.97    → --se-surface-2   (#f5f4f0)
+   *   --border/input oklch(0.922 0 0)  → --se-border      (#e8e6e0)
+   *   --foreground  oklch(0.145 0 0)   → --se-fg          (#1a1814 warm near-black)
+   *   --*-foreground 0.205             → --se-fg          (warm near-black)
+   *   --muted-foreground 0.556         → --se-fg-muted    (#6b6862)
+   *   --ring oklch(0.708 0 0)          → --se-fg-dim      (#9a958d · same lightness, warm)
+   * Left distinct (different ROLE, not just shade):
+   *   --primary (near-black CTA fill), --destructive, charts, axis.
+   *   --se-accent (violet product accent) + --k-purple (brand) stay separate.
+   * The .dark block is intentionally NOT reconciled — --se-* has no dark
+   * variant, so se-surfaces stay warm-paper in dark mode by design.
+   * ============================================================ */
+  --background: var(--se-bg);
+  --foreground: var(--se-fg);
+  --card: var(--se-surface);
+  --card-foreground: var(--se-fg);
+  --popover: var(--se-surface);
+  --popover-foreground: var(--se-fg);
   --primary: oklch(0.205 0 0);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --secondary: var(--se-surface-2);
+  --secondary-foreground: var(--se-fg);
+  --muted: var(--se-surface-2);
+  --muted-foreground: var(--se-fg-muted);
+  --accent: var(--se-surface-2);
+  --accent-foreground: var(--se-fg);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --border: var(--se-border);
+  --input: var(--se-border);
+  --ring: var(--se-fg-dim);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar: var(--se-bg-elev);
+  --sidebar-foreground: var(--se-fg);
   --sidebar-primary: oklch(0.205 0 0);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar-accent: var(--se-surface-2);
+  --sidebar-accent-foreground: var(--se-fg);
+  --sidebar-border: var(--se-border);
+  --sidebar-ring: var(--se-fg-dim);
 }
 
 .dark {
