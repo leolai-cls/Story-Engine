@@ -162,7 +162,7 @@ export function CreationForm({
                     onClick={() => !adultDisabled && setRating(r)}
                     disabled={isPending || adultDisabled}
                     title={adultDisabled ? tForm("ratingAdultTooltip") : undefined}
-                    className={`px-3 py-2.5 rounded-md text-xs font-medium border transition ${
+                    className={`px-3 py-2.5 rounded-md text-xs font-medium border transition active:scale-95 ${
                       rating === r
                         ? "bg-primary text-primary-foreground border-primary"
                         : "bg-card text-muted-foreground border-border hover:border-primary/40"
@@ -193,7 +193,7 @@ export function CreationForm({
                   type="button"
                   onClick={() => setMode(m)}
                   disabled={isPending}
-                  className={`px-3 py-2.5 rounded-md text-xs font-medium border transition ${
+                  className={`px-3 py-2.5 rounded-md text-xs font-medium border transition active:scale-95 ${
                     mode === m
                       ? "bg-primary text-primary-foreground border-primary"
                       : "bg-card text-muted-foreground border-border hover:border-primary/40"
@@ -367,7 +367,7 @@ export function CreationForm({
                   key={k}
                   type="button"
                   onClick={() => setPrompt(tExamples(k))}
-                  className="text-left text-xs text-ink-soft hover:text-foreground transition rounded p-2 -mx-2 hover:bg-secondary/50"
+                  className="text-left text-xs text-ink-soft hover:text-foreground transition rounded p-2 -mx-2 hover:bg-secondary/50 active:scale-[0.98]"
                 >
                   <Badge variant="outline" className="mr-2 text-[10px]">
                     {i + 1}

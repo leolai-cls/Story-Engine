@@ -62,50 +62,7 @@
       "usdNotice": "訂價以 USD 計算 · HK / TW 用戶按當下匯率自動換算",
       "perMonth": "/ 月",
       "ctaFree": "免費開始",
-      "ctaPaid": "升級",
-      "tiers": {
-        "free": {
-          "name": "Free",
-          "price": "$0",
-          "credits": "每日 50 credits",
-          "features": [
-            "入門 AI Model",
-            "創作 + 玩故事",
-            "基本社群權限"
-          ]
-        },
-        "adventurer": {
-          "name": "Adventurer",
-          "price": "$9.99",
-          "credits": "每月 5,000 credits",
-          "features": [
-            "所有 SFW Model",
-            "完整社群權限",
-            "Email 支援"
-          ]
-        },
-        "storyteller": {
-          "name": "Storyteller",
-          "price": "$19.99",
-          "credits": "每月 15,000 credits",
-          "popular": "最熱門",
-          "features": [
-            "所有 AI Model",
-            "成人模式（需驗證）",
-            "優先支援"
-          ]
-        },
-        "legend": {
-          "name": "Legend",
-          "price": "$49.99",
-          "credits": "每月 50,000 credits",
-          "features": [
-            "全部 + 早期試用 features",
-            "Beta features access",
-            "1-on-1 onboarding"
-          ]
-        }
-      }
+      "ctaPaid": "升級"
     },
     "cta": {
       "title": "Ready 入去故事世界？",
@@ -193,7 +150,7 @@
     }
   },
   "visitorLanding": {
-    "eyebrow": "STORY ENGINE · BETA",
+    "eyebrow": "KIEIO · BETA",
     "headlineLine1": "每一個故事",
     "headlineLine2": "都記住你做過嘅每一個決定",
     "subtitle": "中文圈嘅互動式 RPG 平台 · AI 即時生成劇情 · 角色有自己嘅紅線同好感度 · 你做嘅每個選擇永久記入長期記憶。",
@@ -485,6 +442,7 @@
     "input": {
       "placeholder": "你想做咩？（描述行動、對白、決定…）",
       "submit": "行動",
+      "sending": "傳送中…",
       "costEstimate": "≈ {credits} credits / turn",
       "l3Note": "+ NPC 內心戲"
     },
@@ -526,8 +484,8 @@
       "rateLimitedTitle": "請稍等 — 上一個 turn 仲處理緊",
       "rateLimitedBody": "等幾秒再試。",
       "adultModeRequiredTitle": "需要開啟成人模式",
-      "adultModeRequiredBodyModel": "{model} 係 NSFW model · 需要先喺 Settings 開啟「成人模式」(KYC 後)。或者揀其他 model 繼續。",
-      "adultModeRequiredBodyStory": "呢個故事係 adult-rated · 需要先喺 Settings 開啟「成人模式」(KYC 後) 至可以繼續玩。",
+      "adultModeRequiredBodyModel": "{model} 係 NSFW model · 需要先喺 Settings 開啟「成人模式」。或者揀其他 model 繼續。",
+      "adultModeRequiredBodyStory": "呢個故事係 adult-rated · 需要先喺 Settings 開啟「成人模式」至可以繼續玩。",
       "adultModeRequiredCta": "去 Settings",
       "httpError": "請求失敗（HTTP {status}）",
       "redoFailedBody": "重做唔到 · 請再試"
@@ -707,9 +665,9 @@
       "ledgerEmpty": "未有任何 credit 變動。",
       "ledgerBalance": "餘 {balance}",
       "tierDescriptions": {
-        "free": "50 credits 每日 · 只限 Standard model",
-        "adventurer": "2,000 credits 每月 · 無 turn 上限 · Standard + Pro AI model · 成人模式 (KYC 後)",
-        "storyteller": "4,000 credits 每月 · 全部功能 · NPC 內心戲無限 · 成人模式",
+        "free": "註冊送 1,000 · 每日 +100（上限 1,000）· Standard AI",
+        "adventurer": "每月 8,000 credits · 無 turn 上限 · Standard + Pro AI · 可開成人模式",
+        "storyteller": "每月 18,000 credits · 全部功能 · NPC 內心戲無限 · 可開成人模式",
         "legend": "已下架 · 同 Pro 一樣"
       }
     },

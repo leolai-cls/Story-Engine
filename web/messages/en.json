@@ -62,50 +62,7 @@
       "usdNotice": "Pricing in USD · HK / TW currency auto-converted at checkout",
       "perMonth": "/ mo",
       "ctaFree": "Get started free",
-      "ctaPaid": "Upgrade",
-      "tiers": {
-        "free": {
-          "name": "Free",
-          "price": "$0",
-          "credits": "50 credits / day",
-          "features": [
-            "Entry-level AI models",
-            "Create + play stories",
-            "Basic community access"
-          ]
-        },
-        "adventurer": {
-          "name": "Adventurer",
-          "price": "$9.99",
-          "credits": "5,000 credits / month",
-          "features": [
-            "All SFW models",
-            "Full community",
-            "Email support"
-          ]
-        },
-        "storyteller": {
-          "name": "Storyteller",
-          "price": "$19.99",
-          "credits": "15,000 credits / month",
-          "popular": "Most popular",
-          "features": [
-            "All AI models",
-            "Adult mode (KYC required)",
-            "Priority support"
-          ]
-        },
-        "legend": {
-          "name": "Legend",
-          "price": "$49.99",
-          "credits": "50,000 credits / month",
-          "features": [
-            "Everything + early access",
-            "Beta features",
-            "1-on-1 onboarding"
-          ]
-        }
-      }
+      "ctaPaid": "Upgrade"
     },
     "cta": {
       "title": "Ready to step into the story?",
@@ -193,7 +150,7 @@
     }
   },
   "visitorLanding": {
-    "eyebrow": "STORY ENGINE · BETA",
+    "eyebrow": "KIEIO · BETA",
     "headlineLine1": "Every story",
     "headlineLine2": "remembers every choice you made",
     "subtitle": "The Chinese-language interactive RPG platform · AI generates the plot in real time · characters have their own red lines and disposition · every choice you make is permanently written to long-term memory.",
@@ -485,6 +442,7 @@
     "input": {
       "placeholder": "What do you want to do? (describe action, dialogue, decision…)",
       "submit": "Act",
+      "sending": "Sending…",
       "costEstimate": "≈ {credits} credits / turn",
       "l3Note": "+ NPC Inner Voices"
     },
@@ -526,8 +484,8 @@
       "rateLimitedTitle": "Hold on — last turn is still processing",
       "rateLimitedBody": "Wait a few seconds and try again.",
       "adultModeRequiredTitle": "Adult mode required",
-      "adultModeRequiredBodyModel": "{model} is an NSFW model · enable Adult Mode in Settings first (KYC required). Or pick a different model to continue.",
-      "adultModeRequiredBodyStory": "This story is adult-rated · enable Adult Mode in Settings first (KYC required) to keep playing.",
+      "adultModeRequiredBodyModel": "{model} is an NSFW model · enable Adult Mode in Settings first. Or pick a different model to continue.",
+      "adultModeRequiredBodyStory": "This story is adult-rated · enable Adult Mode in Settings first to keep playing.",
       "adultModeRequiredCta": "Go to Settings",
       "httpError": "Request failed (HTTP {status})",
       "redoFailedBody": "Couldn't redo this turn · please try again"

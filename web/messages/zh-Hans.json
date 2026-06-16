@@ -62,50 +62,7 @@
       "usdNotice": "订价以 USD 计算 · HK / TW 用户按当下汇率自动换算",
       "perMonth": "/ 月",
       "ctaFree": "免费开始",
-      "ctaPaid": "升级",
-      "tiers": {
-        "free": {
-          "name": "Free",
-          "price": "$0",
-          "credits": "每日 50 credits",
-          "features": [
-            "入门 AI Model",
-            "创作 + 玩故事",
-            "基本社群权限"
-          ]
-        },
-        "adventurer": {
-          "name": "Adventurer",
-          "price": "$9.99",
-          "credits": "每月 5,000 credits",
-          "features": [
-            "所有 SFW Model",
-            "完整社群权限",
-            "Email 支援"
-          ]
-        },
-        "storyteller": {
-          "name": "Storyteller",
-          "price": "$19.99",
-          "credits": "每月 15,000 credits",
-          "popular": "最热门",
-          "features": [
-            "所有 AI Model",
-            "成人模式（需验证）",
-            "优先支援"
-          ]
-        },
-        "legend": {
-          "name": "Legend",
-          "price": "$49.99",
-          "credits": "每月 50,000 credits",
-          "features": [
-            "全部 + 早期试用 features",
-            "Beta features access",
-            "1-on-1 onboarding"
-          ]
-        }
-      }
+      "ctaPaid": "升级"
     },
     "cta": {
       "title": "准备进入故事世界？",
@@ -193,7 +150,7 @@
     }
   },
   "visitorLanding": {
-    "eyebrow": "STORY ENGINE · BETA",
+    "eyebrow": "KIEIO · BETA",
     "headlineLine1": "每一个故事",
     "headlineLine2": "都记住你做过的每一个决定",
     "subtitle": "中文圈的互动式 RPG 平台 · AI 即时生成剧情 · 角色有自己的红线和好感度 · 你做的每个选择永久记入长期记忆。",
@@ -485,6 +442,7 @@
     "input": {
       "placeholder": "你想做什么？（描述行动、对白、决定…）",
       "submit": "行动",
+      "sending": "发送中…",
       "costEstimate": "≈ {credits} credits / turn",
       "l3Note": "+ NPC 内心戏"
     },
@@ -526,8 +484,8 @@
       "rateLimitedTitle": "请稍等 — 上一个 turn 仍在处理",
       "rateLimitedBody": "等几秒再试。",
       "adultModeRequiredTitle": "需要开启成人模式",
-      "adultModeRequiredBodyModel": "{model} 是 NSFW model · 需要先在 Settings 开启「成人模式」(KYC 后)。或者选其他 model 继续。",
-      "adultModeRequiredBodyStory": "这个故事是 adult-rated · 需要先在 Settings 开启「成人模式」(KYC 后) 才能继续玩。",
+      "adultModeRequiredBodyModel": "{model} 是 NSFW model · 需要先在 Settings 开启「成人模式」。或者选其他 model 继续。",
+      "adultModeRequiredBodyStory": "这个故事是 adult-rated · 需要先在 Settings 开启「成人模式」才能继续玩。",
       "adultModeRequiredCta": "去 Settings",
       "httpError": "请求失败（HTTP {status}）",
       "redoFailedBody": "重做失败 · 请重试"
@@ -707,9 +665,9 @@
       "ledgerEmpty": "暂无 credit 变动。",
       "ledgerBalance": "余 {balance}",
       "tierDescriptions": {
-        "free": "50 credits 每日 · 仅限 Standard model",
-        "adventurer": "2,000 credits 每月 · 无 turn 上限 · Standard + Pro AI model · 成人模式 (KYC 后)",
-        "storyteller": "4,000 credits 每月 · 全部功能 · NPC 内心戏无限 · 成人模式",
+        "free": "注册送 1,000 · 每日 +100（上限 1,000）· Standard AI",
+        "adventurer": "每月 8,000 credits · 无 turn 上限 · Standard + Pro AI · 可开成人模式",
+        "storyteller": "每月 18,000 credits · 全部功能 · NPC 内心戏无限 · 可开成人模式",
         "legend": "已下架 · 与 Pro 相同"
       }
     },
@@ -858,6 +816,14 @@
       "cancel": "取消",
       "failed": "删除失败 · 请重试",
       "aria": "删除 {title}"
+    },
+    "lobby": {
+      "welcomeNamed": "你好，{name}",
+      "welcomeAnon": "欢迎来到 Kieio",
+      "subtitle": "告诉我你想进哪个世界 — 我帮你建好角色、规则、开场。然后故事就你说了算。",
+      "primaryCta": "开始第一个故事",
+      "examplesHeader": "或者试试这些 · 一点即开始",
+      "browseLibraryLink": "或者去 Library 看社群故事"
     },
     "subtitleCount": "共 {total} 个 playthrough · {active} 个进行中",
     "tabs": {

@@ -307,7 +307,7 @@ export function VisualizeSceneModal({
                       aria-checked={active}
                       aria-label={t(`imageType.${key}`)}
                       onClick={() => setImageType(key as ImageType)}
-                      className={`flex flex-col items-center gap-1 rounded-lg border p-3 transition-colors ${
+                      className={`flex flex-col items-center gap-1 rounded-lg border p-3 transition-all active:scale-95 ${
                         active
                           ? "border-primary bg-primary/5"
                           : "border-border hover:border-foreground/30"
@@ -393,7 +393,7 @@ export function VisualizeSceneModal({
                           key={key}
                           type="button"
                           onClick={() => setSelectedStyleKey(key)}
-                          className={`text-left rounded-md border p-2 transition-colors ${
+                          className={`text-left rounded-md border p-2 transition-all active:scale-95 ${
                             active
                               ? "border-primary bg-primary/5"
                               : suggested

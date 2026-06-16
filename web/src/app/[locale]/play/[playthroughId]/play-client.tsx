@@ -945,7 +945,7 @@ export function PlayClient({
           <button
             type="button"
             onClick={() => setSidebarOpen(true)}
-            className="lg:hidden inline-flex items-center justify-center w-8 h-8 rounded-md flex-none"
+            className="lg:hidden inline-flex items-center justify-center w-8 h-8 rounded-md flex-none transition-transform active:scale-95"
             style={{
               color: "var(--se-fg-2)",
               background: "var(--se-surface)",
@@ -1002,7 +1002,7 @@ export function PlayClient({
             <button
               key={t.id}
               onClick={() => setMobileTab(t.id as typeof mobileTab)}
-              className="flex-1 py-2.5 text-xs se-cjk"
+              className="flex-1 py-2.5 text-xs se-cjk transition-transform active:scale-95"
               style={{
                 color: a ? "var(--se-fg)" : "var(--se-fg-muted)",
                 borderBottom: `2px solid ${a ? "var(--se-accent)" : "transparent"}`,
@@ -1100,7 +1100,7 @@ export function PlayClient({
                           onClick={redoLastTurn}
                           disabled={redoing}
                           title={tPlay("redo.hint")}
-                          className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] se-cjk transition-colors hover:text-foreground"
+                          className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] se-cjk transition-all hover:text-foreground active:scale-95"
                           style={{
                             color: "var(--se-fg-dim)",
                             border: "1px solid var(--se-border)",
@@ -1209,7 +1209,7 @@ export function PlayClient({
                     <button
                       type="button"
                       onClick={() => setVisualizeTurnIndex(turn.index)}
-                      className="mt-3 inline-flex items-center gap-1.5 rounded-md border border-border/60 px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground hover:border-foreground/40 transition-colors"
+                      className="mt-3 inline-flex items-center gap-1.5 rounded-md border border-border/60 px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground hover:border-foreground/40 transition-all active:scale-95"
                       title={tPlay("visualize.button")}
                     >
                       <ImageIcon className="h-3 w-3" />
@@ -1345,7 +1345,10 @@ export function PlayClient({
             />
             <Button type="submit" className="flex-none transition-transform active:scale-95" disabled={streaming || !input.trim()}>
               {streaming ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {tPlay("input.sending")}
+                </>
               ) : (
                 <>
                   <Send className="h-3.5 w-3.5" />

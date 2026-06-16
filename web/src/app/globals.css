@@ -281,4 +281,11 @@ summary {
     opacity: 0.55;
     transition: opacity 0.05s ease;
   }
+  /* Card / nav links (story cards, nav rows) get a gentle press dim too, so a
+     tap registers visibly before navigation lands. :not([class*="text-"])
+     excludes plain inline text links (which keep no press state). */
+  a[href]:not([class*="text-"]):active {
+    opacity: 0.7;
+    transition: opacity 0.05s ease;
+  }
 }
