@@ -95,7 +95,12 @@ export async function generateFalImage(
   if (hasRef) input.image_urls = req.referenceImageUrls!.slice(0, 4);
 
   const provider = `fal:${model}`;
-  const deadline = Date.now() + (req.timeoutMs ?? 280_000);
+  // Default 270s caps the WHOLE function (poll + bounded fetch/download below) so
+  // the character-sheet path — which passes no timeoutMs — fits the 300s play
+  // lambda with room for the surrounding compose/moderation/upload/charge steps
+  // (audit fix). The scene path passes a shorter 90s to leave room for its grok
+  // fallback.
+  const deadline = Date.now() + (req.timeoutMs ?? 270_000);
 
   // ─── Submit ────────────────────────────────────────────────────────────
   let submit: { request_id?: string; status_url?: string; response_url?: string };
@@ -169,10 +174,16 @@ export async function generateFalImage(
   }
 
   // ─── Fetch result + download image ───────────────────────────────────────
+  // Audit fix: bound the result-fetch + download by the REMAINING deadline so the
+  // whole function is capped at ~timeoutMs (+ a few s floor). Without this, the
+  // 30s fetch + 60s download ran UNBUDGETED after the poll deadline → worst case
+  // could exceed the 300s play-route lambda and get killed mid-download.
+  const budget = (cap: number) =>
+    AbortSignal.timeout(Math.max(3_000, Math.min(cap, deadline - Date.now())));
   try {
     const rr = await fetch(responseUrl, {
       headers,
-      signal: AbortSignal.timeout(30_000),
+      signal: budget(30_000),
     });
     const out = (await rr.json()) as {
       images?: Array<{ url?: string; width?: number; height?: number }>;
@@ -181,7 +192,7 @@ export async function generateFalImage(
     if (!img?.url) {
       return { ok: false, reason: "unknown", message: "fal completed but no image url" };
     }
-    const ir = await fetch(img.url, { signal: AbortSignal.timeout(60_000) });
+    const ir = await fetch(img.url, { signal: budget(60_000) });
     if (!ir.ok) {
       return { ok: false, reason: "unknown", message: `image download ${ir.status}` };
     }

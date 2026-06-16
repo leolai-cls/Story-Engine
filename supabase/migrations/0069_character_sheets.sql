@@ -39,6 +39,9 @@ create index if not exists character_sheets_pt_char_idx
   on public.character_sheets (playthrough_id, story_character_id, created_at desc);
 create index if not exists character_sheets_user_recent_idx
   on public.character_sheets (user_id, created_at desc);
+-- FK index (audit · avoids a full-table scan if admin/audit code joins ledger ← sheets)
+create index if not exists character_sheets_ledger_id_idx
+  on public.character_sheets (ledger_id);
 
 alter table public.character_sheets enable row level security;
 
@@ -92,7 +95,7 @@ begin
       or ref_type in (
         'turn', 'story', 'subscription', 'topup', 'admin',
         'scene_image', 'character_portrait',
-        'character_sheet'   -- Wave 3 · ref_id = character_sheets.id
+        'character_sheet'   -- Wave 3 · ref_id = story_character_id (charge time · sheet row not yet created)
       )
     );
 end $$;
