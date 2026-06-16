@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Link } from "@/i18n/navigation";
+import { CrossSubdomainLink } from "@/components/CrossSubdomainLink";
 import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Send, Loader2, RefreshCw, ArrowLeft, Coins, Lock, Shield, Menu, Image as ImageIcon, Brain } from "lucide-react";
@@ -275,13 +276,14 @@ function PlayErrorCard({ error }: { error: string }) {
             {/* Session 16 PM Review #2 (P-13): subscribe-first CTA · higher LTV
                 than one-time top-up. Secondary text-link for top-up users. */}
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              <Link
-                href={"/pricing" as never}
+              <CrossSubdomainLink
+                to="marketing"
+                path="/pricing"
                 className="inline-flex items-center gap-1.5 rounded-md bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700"
               >
                 <Coins className="h-3.5 w-3.5" />
                 {t("insufficientCreditsSubscribeCta")}
-              </Link>
+              </CrossSubdomainLink>
               <Link
                 href={"/settings" as never}
                 className="text-[11px] underline text-amber-700 dark:text-amber-300 hover:text-amber-900"

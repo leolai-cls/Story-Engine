@@ -1,6 +1,7 @@
 import { Link } from "@/i18n/navigation";
 import { getTranslations } from "next-intl/server";
 import { KieioLogo } from "@/components/brand/KieioLogo";
+import { CrossSubdomainLink } from "@/components/CrossSubdomainLink";
 
 export async function SiteFooter() {
   const tFooter = await getTranslations("footer");
@@ -22,23 +23,28 @@ export async function SiteFooter() {
           </span>
         </div>
         <nav className="flex items-center gap-4 flex-wrap justify-center">
-          <Link href="/pricing" className="hover:text-foreground transition">
+          {/* Pricing is a MARKETING route — CrossSubdomainLink renders a
+              non-prefetching <a> in the split world so the product-host footer
+              never RSC-prefetches kieio.com (the CORS noise founder caught). */}
+          <CrossSubdomainLink to="marketing" path="/pricing" className="hover:text-foreground transition">
             {tNav("pricing")}
-          </Link>
+          </CrossSubdomainLink>
+          {/* Library is a PRODUCT route and this footer only renders on the
+              product host → keep the smooth same-origin i18n <Link>. */}
           <Link href="/library" className="hover:text-foreground transition">
             {tNav("library")}
           </Link>
           {/* Session 16 P-01: legal links · Stripe + Apple/Google Ads required */}
           <span className="opacity-30">·</span>
-          <Link href="/terms" className="hover:text-foreground transition">
+          <CrossSubdomainLink to="marketing" path="/terms" className="hover:text-foreground transition">
             {(await getTranslations("legal"))("footerTerms")}
-          </Link>
-          <Link href="/privacy" className="hover:text-foreground transition">
+          </CrossSubdomainLink>
+          <CrossSubdomainLink to="marketing" path="/privacy" className="hover:text-foreground transition">
             {(await getTranslations("legal"))("footerPrivacy")}
-          </Link>
-          <Link href="/cookies" className="hover:text-foreground transition">
+          </CrossSubdomainLink>
+          <CrossSubdomainLink to="marketing" path="/cookies" className="hover:text-foreground transition">
             {(await getTranslations("legal"))("footerCookies")}
-          </Link>
+          </CrossSubdomainLink>
         </nav>
       </div>
     </footer>

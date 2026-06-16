@@ -952,6 +952,7 @@
       "promptPlaceholder": "e.g. A 1980s Hong Kong gang story, I play a new recruit doing jobs for my big brother, navigating brotherhood and the dangers of the underworld…",
       "promptHint": "The more specific the better — include era, location, protagonist setup, and what you want to experience.",
       "promptCounter": "{count} / {max}",
+      "minLengthHint": "At least 20 characters to generate ({remaining} more to go).",
       "protagonistLabel": "Protagonist hint",
       "protagonistOptional": "(optional)",
       "protagonistPlaceholder": "e.g. \"I'm an 18-year-old new recruit, slim but skilled in martial arts\"",

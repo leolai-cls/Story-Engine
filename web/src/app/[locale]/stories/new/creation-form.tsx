@@ -279,6 +279,15 @@ export function CreationForm({
             )}
           </Button>
 
+          {/* Min-length hint (2026-06-17 · founder hit this himself): the submit
+              button stays disabled under 20 chars with no on-screen reason — say
+              why it's disabled + how many more characters to go. */}
+          {!isPending && prompt.length < 20 && (
+            <p className="text-center text-xs text-muted-foreground">
+              {tForm("minLengthHint", { remaining: 20 - prompt.length })}
+            </p>
+          )}
+
           {/* AUDIT FIX (P3-UX-L-16): pre-display cost.
               Batch 3 (loading feedback): keep the credit number visible
               REGARDLESS of isPending — previously it vanished for the 30-70s

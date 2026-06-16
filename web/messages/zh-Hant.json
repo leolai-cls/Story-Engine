@@ -952,6 +952,7 @@
       "promptPlaceholder": "例：1980 年代香港古惑仔故事，我做新仔幫師兄做嘢，要 navigate 兄弟情同江湖險惡…",
       "promptHint": "越具體越好 — 包括時代、地點、主角設定、想體驗咩。",
       "promptCounter": "{count} / {max}",
+      "minLengthHint": "最少 20 字先生成到（仲差 {remaining} 字）。",
       "protagonistLabel": "主角設定提示",
       "protagonistOptional": "（可選）",
       "protagonistPlaceholder": "例：「我做 18 歲新仔，瘦但拳腳功夫好」",
