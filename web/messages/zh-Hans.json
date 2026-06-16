@@ -97,10 +97,6 @@
       "title": "故事库",
       "body": "Phase 5 会起这里的完整 library。现在是 placeholder。"
     },
-    "profile": {
-      "title": "个人",
-      "body": "Phase 0.6 完成 auth 之后这里会有 user info、character list、stats。"
-    },
     "settings": {
       "title": "设置",
       "subtitle": "管理你的帐户同订阅",
@@ -722,7 +718,6 @@
       "saveFailedWithError": "保存失败 · {error}",
       "perTurnEstimate": "每 turn 估",
       "requiresSubTier": "需要 {tier}",
-      "andKyc": " + 身份验证",
       "tiers": {
         "standard": "Standard",
         "pro": "Pro"
@@ -746,16 +741,7 @@
       "stateOff": "成人模式关闭",
       "enabledExplainer": "你可以选 NSFW model · 创作 adult-rated 故事 · Library 显示成人内容。",
       "disabledExplainer": "限定 SFW + Soft 内容。NSFW model + adult-rated 故事不可见。",
-      "ageVerifiedYes": "你已经完成年龄验证 — 可以随时开关成人模式。",
-      "ageVerifiedNo": "需要先做身份验证才能开启成人模式。",
-      "requiresVerificationTitle": "需要年龄验证 (18+)",
-      "verificationBody": "根据平台政策 · 成人模式需要 Stripe Identity 完成身份验证 · 确保只有 18+ 用户 access。点下面 button 跳转到 Stripe 安全页面 · 完成后自动 unlock toggle。",
-      "stripePrivacyNote": "Stripe Identity 只取身份证 + selfie 验证年龄 · Kieio 不会存储图片。",
-      "verifyCta": "开始年龄验证",
-      "verifyPending": "正在前往 Stripe…",
-      "alreadyVerified": "你已经验证过 · 重 reload 页面应该见到 toggle 解锁",
       "authRequired": "请先登入",
-      "verifyInitError": "验证初始化失败，请稍后再试。",
       "csamReminder": "注意：所有模式都禁止 CSAM、未成年人性描写、违法内容 · 无论 adult mode 开关都会被 moderation 拦截 (hard rule)。",
       "consentDialog": {
         "eyebrow": "确认开启成人模式",
@@ -800,8 +786,6 @@
       "topupCanceledBody": "你没 charge 到。随时可以再试。",
       "checkoutCanceledTitle": "订阅取消",
       "checkoutCanceledBody": "你没 charge 到。随时可以再试。",
-      "verifyingTitle": "验证进行中…",
-      "verifyingBody": "Stripe Identity 正在处理 · 通常 5-15 秒。Page 会自动 refresh 显示结果。",
       "secondsLeft": " ({count}s)",
       "ariaClose": "关闭"
     }
@@ -1003,7 +987,6 @@
       "saveFailed": "保存失败，请稍后再试。"
     },
     "settings": {
-      "adultRequiresKyc": "需要先完成身份验证 — Phase 6 money tier 即将上线。",
       "adultTierRequiresMode": "Adult tier 需要先开启成人模式 + 完成身份验证。",
       "tierSubscriptionGate": "{tier} tier 需要 {required} 订阅 — 你现在是 {current}"
     },

@@ -20,8 +20,6 @@ import { createClient } from "@/lib/supabase/server";
 import { getCachedUser } from "@/lib/supabase/cached-user";
 import { createCheckoutSession, createTopUpCheckoutSession } from "@/lib/stripe/checkout";
 import { createBillingPortalSession } from "@/lib/stripe/portal";
-import { createIdentityVerificationSession } from "@/lib/stripe/identity";
-import { getStripe } from "@/lib/stripe/client";
 import type { PaidTier, TopUpPack } from "@/lib/stripe/products";
 import { getAppOrigin } from "@/lib/urls";
 
@@ -193,75 +191,6 @@ export async function startTopUpCheckout(pack: TopUpPack): Promise<
     });
     if (!session.url) {
       return { ok: false, error: "stripe_error", message: "no session URL returned" };
-    }
-    return { ok: true, url: session.url };
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    return { ok: false, error: "stripe_error", message: msg };
-  }
-}
-
-/**
- * Phase 6 KYC · Stripe Identity age verification.
- *
- * Returns the hosted verification URL. Client redirects to it; user
- * completes the selfie + ID flow; Stripe webhook
- * (identity.verification_session.verified) sets profiles.is_age_verified.
- *
- * Test mode: use Stripe test ID images at https://docs.stripe.com/identity/verification-sessions
- */
-export async function startAgeVerification(): Promise<
-  | { ok: true; url: string }
-  | { ok: false; error: "auth_required" | "already_verified" | "stripe_error"; message?: string }
-> {
-  const user = await getCachedUser();
-  if (!user) return { ok: false, error: "auth_required" };
-
-  const supabase = await createClient();
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("is_age_verified")
-    .eq("id", user.id)
-    .single();
-
-  if (profile?.is_age_verified) {
-    return { ok: false, error: "already_verified" };
-  }
-
-  const origin = getAppOrigin();
-  const locale = await getLocale();
-
-  try {
-    // Audit Wave 2 B3/A6 fix: reuse a recent unfinished verification
-    // session if one exists (last 1 hour, this user, not terminal status).
-    // Without this, a user re-clicking 「開始年齡驗證」after returning to
-    // /settings would spawn a fresh session — in live mode each session
-    // costs $1.50. List endpoint can't filter by metadata server-side, so
-    // we filter client-side over the most recent batch.
-    const stripe = getStripe();
-    const cutoff = Math.floor(Date.now() / 1000) - 3600;
-    const recent = await stripe.identity.verificationSessions.list({
-      created: { gte: cutoff },
-      limit: 20,
-    });
-    const reusable = recent.data.find(
-      (s) =>
-        s.metadata?.user_id === user.id &&
-        s.status !== "verified" &&
-        s.status !== "canceled" &&
-        typeof s.url === "string",
-    );
-    if (reusable?.url) {
-      return { ok: true, url: reusable.url };
-    }
-
-    const session = await createIdentityVerificationSession({
-      userId: user.id,
-      email: user.email ?? undefined,
-      returnUrl: `${origin}/${locale}/settings?verified=pending`,
-    });
-    if (!session.url) {
-      return { ok: false, error: "stripe_error", message: "no url returned" };
     }
     return { ok: true, url: session.url };
   } catch (e) {

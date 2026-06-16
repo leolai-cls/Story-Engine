@@ -54,7 +54,6 @@ export default async function SettingsPage({
     subscribed?: string;
     topup?: string;
     topup_canceled?: string;
-    verified?: string;
   }>;
 }) {
   const { locale } = await params;
@@ -137,9 +136,6 @@ export default async function SettingsPage({
           )}
           {sp.topup_canceled === "1" && (
             <BillingToast variant="topup_canceled" />
-          )}
-          {sp.verified === "pending" && (
-            <BillingToast variant="verifying" autoRefreshSeconds={12} />
           )}
           <div className="flex items-baseline gap-3 mb-8">
             <h1

@@ -1,24 +1,15 @@
-import { getTranslations, setRequestLocale } from "next-intl/server";
-import { SiteHeader } from "@/components/site-header";
-import { SiteFooter } from "@/components/site-footer";
+import { redirect } from "@/i18n/navigation";
 
+/**
+ * /profile is a legacy dead-end (was a "Phase 0.6" placeholder). All profile
+ * functionality now lives on /settings. Permanently redirect there so the
+ * route 404s nothing and the auth/landing logic never needs to special-case it.
+ */
 export default async function ProfilePage({
   params,
 }: {
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  setRequestLocale(locale);
-  const t = await getTranslations("pages.profile");
-
-  return (
-    <>
-      <SiteHeader />
-      <main className="flex-1 container mx-auto max-w-3xl px-4 sm:px-6 py-16">
-        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-3">{t("title")}</h1>
-        <p className="text-muted-foreground">{t("body")}</p>
-      </main>
-      <SiteFooter />
-    </>
-  );
+  redirect({ href: "/settings", locale });
 }

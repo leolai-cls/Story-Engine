@@ -5,6 +5,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { createClient } from "@/lib/supabase/server";
 import { getCachedUser } from "@/lib/supabase/cached-user";
 import { SubscribeButton } from "@/app/[locale]/pricing/subscribe-button";
+import { PLAN_TIERS } from "@/lib/stripe/products";
 import { ArrowLeft, Check } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -18,30 +19,10 @@ export const dynamic = "force-dynamic";
  * 用 product 嘅 warm-paper 主題 (SiteHeader/Footer · 同 settings 一致) · 唔係
  * marketing dark cinematic。重用 pricing 嘅 SubscribeButton (自己處理 checkout /
  * billing portal / switch flow)。2 tier (Standard / Pro) + Free。
+ *
+ * PLAN_TIERS (tier↔name mapping) lives in lib/stripe/products.ts so it's
+ * colocated with the other tier display constants.
  */
-
-const PLAN_TIERS = [
-  {
-    tier: "free" as const,
-    nameKey: "free",
-    price: "$0",
-    paid: null,
-  },
-  {
-    tier: "adventurer" as const, // DB legacy name · 顯示 Standard
-    nameKey: "standard",
-    price: "$9.99",
-    paid: "adventurer" as const,
-    recommended: true, // Batch 4: middle tier was invisible · subtle 推薦 treatment
-  },
-  {
-    tier: "storyteller" as const, // DB legacy name · 顯示 Pro
-    nameKey: "pro",
-    price: "$19.99",
-    paid: "storyteller" as const,
-    highlight: true,
-  },
-];
 
 export default async function PlansPage({
   params,

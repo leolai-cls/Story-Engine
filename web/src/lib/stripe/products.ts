@@ -119,6 +119,53 @@ export const TIER_DISPLAY: Record<
 };
 
 /**
+ * Public plans-page rows (single source of truth for the /plans grid).
+ *
+ * Maps each DB-legacy tier id (free / adventurer / storyteller) to the
+ * display nameKey used for i18n lookups (`plans.tiers.${nameKey}.*`) plus
+ * the static price string and presentation flags. Previously this array was
+ * inlined in app/[locale]/plans/page.tsx — colocated here next to the other
+ * tier display constants so the tier↔name mapping lives in one place.
+ */
+export type PlanTierRow = {
+  /** DB-legacy tier id (also used to compare against profiles.subscription_tier). */
+  tier: PublicTier;
+  /** i18n nameKey → plans.tiers.${nameKey}.{name,credits,features}. */
+  nameKey: "free" | "standard" | "pro";
+  /** Static display price (e.g. "$9.99"). */
+  price: string;
+  /** Paid tier id for the SubscribeButton, or null for Free. */
+  paid: PaidTier | null;
+  /** Subtle "recommended" treatment (middle tier). */
+  recommended?: boolean;
+  /** Strong "highlight" treatment (top tier). */
+  highlight?: boolean;
+};
+
+export const PLAN_TIERS: readonly PlanTierRow[] = [
+  {
+    tier: "free",
+    nameKey: "free",
+    price: "$0",
+    paid: null,
+  },
+  {
+    tier: "adventurer", // DB legacy name · 顯示 Standard
+    nameKey: "standard",
+    price: "$9.99",
+    paid: "adventurer",
+    recommended: true, // Batch 4: middle tier was invisible · subtle 推薦 treatment
+  },
+  {
+    tier: "storyteller", // DB legacy name · 顯示 Pro
+    nameKey: "pro",
+    price: "$19.99",
+    paid: "storyteller",
+    highlight: true,
+  },
+];
+
+/**
  * Monthly credit grant per tier · used by webhook handlers when subscription
  * renews. Matches TIER_DISPLAY but extracted for type-safe lookups in code.
  */

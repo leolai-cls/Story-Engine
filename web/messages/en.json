@@ -97,10 +97,6 @@
       "title": "Library",
       "body": "Phase 5 will build the full library here. This is a placeholder for now."
     },
-    "profile": {
-      "title": "Profile",
-      "body": "User info, character list and stats will live here after Phase 0.6 auth wiring."
-    },
     "settings": {
       "title": "Settings",
       "subtitle": "Manage your account and subscription",
@@ -722,7 +718,6 @@
       "saveFailedWithError": "Save failed · {error}",
       "perTurnEstimate": "PER-TURN EST",
       "requiresSubTier": "Requires {tier}",
-      "andKyc": " + verification",
       "tiers": {
         "standard": "Standard",
         "pro": "Pro"
@@ -746,16 +741,7 @@
       "stateOff": "Adult mode: off",
       "enabledExplainer": "You can create 18+ stories · the Library shows adult content · narration uses an AI model that supports explicit content.",
       "disabledExplainer": "Standard and soft content only; 18+ stories stay hidden.",
-      "ageVerifiedYes": "You're age-verified — you can toggle adult mode on/off freely.",
-      "ageVerifiedNo": "Identity verification required to enable adult mode.",
-      "requiresVerificationTitle": "Age verification required (18+)",
-      "verificationBody": "Per platform policy · adult mode requires Stripe Identity to confirm age · ensuring only 18+ users can access. Tap the button to go to Stripe's secure page · the toggle unlocks automatically after.",
-      "stripePrivacyNote": "Stripe Identity only takes an ID + selfie to verify age · Kieio does NOT store the images.",
-      "verifyCta": "Start age verification",
-      "verifyPending": "Redirecting to Stripe…",
-      "alreadyVerified": "You're already verified · reload the page to see the toggle unlocked",
       "authRequired": "Please log in first",
-      "verifyInitError": "Verification initialization failed. Please try again later.",
       "csamReminder": "Note: all modes ban CSAM, sexualization of minors, and illegal content · whether adult mode is on or off, the moderation pipeline will block these (hard rule).",
       "consentDialog": {
         "eyebrow": "Confirm enable adult mode",
@@ -800,8 +786,6 @@
       "topupCanceledBody": "You were not charged. Try again anytime.",
       "checkoutCanceledTitle": "Subscription canceled",
       "checkoutCanceledBody": "You were not charged. Try again anytime.",
-      "verifyingTitle": "Verifying age…",
-      "verifyingBody": "Stripe Identity is processing (5-15 sec). Page will auto-refresh.",
       "secondsLeft": " ({count}s)",
       "ariaClose": "Close"
     }
@@ -1003,7 +987,6 @@
       "saveFailed": "Save failed. Please try again later."
     },
     "settings": {
-      "adultRequiresKyc": "Identity verification required first — coming in the Phase 6 money tier.",
       "adultTierRequiresMode": "Adult tier requires Adult Mode enabled + identity verification.",
       "tierSubscriptionGate": "{tier} tier requires {required} subscription — you're on {current}"
     },
