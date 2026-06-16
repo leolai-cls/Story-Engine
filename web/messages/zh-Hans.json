@@ -408,6 +408,19 @@
       "noThoughtsForNpc": "尚无 inner thought 记录。"
     }
   },
+  "memoryGallery": {
+    "pageTitle": "我的图库",
+    "subtitle": "你在故事里生成过的场景图和角色设定图",
+    "tabs": {
+      "scenes": "场景图",
+      "sheets": "角色设定图"
+    },
+    "empty": "你还没有生成过任何图 · 在扮演故事时可以生成场景图和角色设定图",
+    "emptyScenes": "你还没有生成过场景图 · 扮演时点「生成场景」就可以做一张",
+    "emptySheets": "你还没有生成过角色设定图 · 扮演时在角色卡点「生成设定图」就可以做一张",
+    "back": "返回",
+    "openFull": "查看大图"
+  },
   "play": {
     "header": {
       "ariaOpenList": "开启游戏清单",
@@ -556,6 +569,24 @@
       "fullSizeAlt": "生成场景 · {imageType}",
       "tosShort": "点击生成即表示你确认上传的参考图属于你，并同意我们的",
       "tosLink": "服务条款"
+    },
+    "characterSheet": {
+      "button": "✨ 生成设定图",
+      "buttonShort": "设定图",
+      "generating": "生成设定图中…",
+      "modalTitle": "{name} 角色设定图",
+      "loading": "生成设定图中…（约一两分钟）",
+      "download": "下载设定图",
+      "close": "关闭",
+      "done": "完成",
+      "errors": {
+        "tier_required": "角色设定图需要 Standard 或 Pro 会员 · 升级后即可生成",
+        "insufficient_credits": "Credits 不足 · 这张设定图需要 400",
+        "adult_not_supported": "成人故事暂时未支持角色设定图",
+        "content_filter": "角色设定未能通过安全检查 · 试试调整角色描述再生成",
+        "provider_unavailable": "生图服务暂时无法使用 · 请稍后再试",
+        "unknown": "生成设定图时出了点问题 · 请再试"
+      }
     }
   },
   "skillCheck": {

@@ -408,6 +408,19 @@
       "noThoughtsForNpc": "No inner thoughts recorded yet."
     }
   },
+  "memoryGallery": {
+    "pageTitle": "My gallery",
+    "subtitle": "Scene images and character design sheets you've generated in your stories",
+    "tabs": {
+      "scenes": "Scenes",
+      "sheets": "Character sheets"
+    },
+    "empty": "You haven't generated any images yet · you can create scene images and character design sheets while playing a story",
+    "emptyScenes": "No scene images yet · tap “Generate scene” while playing to make one",
+    "emptySheets": "No character design sheets yet · tap “Generate design sheet” on a character card while playing",
+    "back": "Back",
+    "openFull": "View full size"
+  },
   "play": {
     "header": {
       "ariaOpenList": "Open game list",
@@ -556,6 +569,24 @@
       "fullSizeAlt": "Generated scene · {imageType}",
       "tosShort": "By generating, you confirm uploaded references are yours and you accept our",
       "tosLink": "Terms of Service"
+    },
+    "characterSheet": {
+      "button": "✨ Generate design sheet",
+      "buttonShort": "Design sheet",
+      "generating": "Generating design sheet…",
+      "modalTitle": "{name} · Character design sheet",
+      "loading": "Generating design sheet… (about a minute or two)",
+      "download": "Download sheet",
+      "close": "Close",
+      "done": "Done",
+      "errors": {
+        "tier_required": "Character design sheets need a Standard or Pro plan · upgrade to generate one",
+        "insufficient_credits": "Not enough credits · this sheet costs 400",
+        "adult_not_supported": "Design sheets aren't available for adult-rated stories yet",
+        "content_filter": "The character couldn't pass the safety check · try adjusting the description and generate again",
+        "provider_unavailable": "Image service is temporarily unavailable · please try again shortly",
+        "unknown": "Something went wrong generating the design sheet · please try again"
+      }
     }
   },
   "skillCheck": {

@@ -16,10 +16,12 @@ import {
   type SidebarPlaythrough,
 } from "@/components/se/PlaythroughSidebar";
 import { VisualizeSceneModal, type VisualizeRequest } from "@/components/se/VisualizeSceneModal";
+import { CharacterSheetModal } from "@/components/se/CharacterSheetModal";
 import { ChatControls } from "@/components/se/ChatControls";
 import type { StyleKey } from "@/lib/ai/image-styles";
-import { estimateImageCredits } from "@/lib/ai/image-gen";
+import { estimateImageCredits, CHARACTER_SHEET_CREDITS } from "@/lib/ai/image-gen";
 import { generateScene } from "./visualize-actions";
+import { generateCharacterSheet } from "./character-sheet-actions";
 import { undoLastTurn } from "./actions";
 
 /**
@@ -27,6 +29,8 @@ import { undoLastTurn } from "./actions";
  * 4-axis disposition (Hard rule #6) sourced from playthrough_character_states.disposition jsonb.
  */
 export type NpcData = {
+  /** story_characters.id · Wave 3: needed to generate this character's design sheet. */
+  id: string;
   name: string;
   role: string | null;
   axes: { trust: number; romance: number; respect: number; fear: number };
@@ -448,6 +452,8 @@ export function PlayClient({
   const tPlay = useTranslations("play");
   const tPlayErr = useTranslations("play.errors");
   const tModeration = useTranslations("errors.moderation");
+  // Wave 3 · character-sheet error codes → localized message.
+  const tSheetErr = useTranslations("play.characterSheet.errors");
   const [turns, setTurns] = useState<Turn[]>(initialTurns);
   const [state, setState] = useState<Record<string, unknown>>(initialState);
   const [input, setInput] = useState("");
@@ -507,6 +513,17 @@ export function PlayClient({
   // Credit balance shown in the visualize modal · seeded from server, decremented
   // optimistically when a background gen fires (refunded if it fails).
   const [balance, setBalance] = useState(currentBalance);
+
+  // Wave 3 (2026-06-15) · Character design-sheet state.
+  // sheetModal = the viewer modal (loading placeholder → finished sheet).
+  // sheetBusyId = which NPC card currently has a sheet generating (spinner).
+  const [sheetModal, setSheetModal] = useState<{
+    open: boolean;
+    characterName: string;
+    storageUrl: string;
+    isLoading: boolean;
+  }>({ open: false, characterName: "", storageUrl: "", isLoading: false });
+  const [sheetBusyId, setSheetBusyId] = useState<string | null>(null);
 
   // 2026-05-30 (founder): background, non-blocking scene-image generation
   // (ChatGPT-style). The modal hands us the request + closes immediately; we
@@ -584,6 +601,69 @@ export function PlayClient({
         });
     },
     [visualizeTurnIndex, playthroughId, storyContentRating],
+  );
+
+  // Wave 3 (2026-06-15) · Character design-sheet generation. Mirrors the
+  // background-gen pattern of handleGenerateScene: open the viewer in a loading
+  // state, optimistically decrement the displayed balance, run the action in the
+  // BACKGROUND (NOT awaited blocking the UI · this component stays mounted so the
+  // promise survives). On success swap the loading placeholder for the sheet; on
+  // failure refund the displayed balance (server already refunds its own work)
+  // + surface the error via the existing PlayErrorCard mechanism + close the
+  // viewer. The button is shown to free tier too — the server returns
+  // tier_required and we surface it gracefully (same for adult_not_supported).
+  const handleGenerateCharacterSheet = useCallback(
+    (storyCharacterId: string, name: string) => {
+      if (sheetBusyId) return; // one sheet at a time
+      setSheetBusyId(storyCharacterId);
+      setSheetModal({
+        open: true,
+        characterName: name,
+        storageUrl: "",
+        isLoading: true,
+      });
+      setBalance((b) => b - CHARACTER_SHEET_CREDITS);
+      generateCharacterSheet({ playthroughId, storyCharacterId })
+        .then((res) => {
+          if (res.ok) {
+            setSheetModal({
+              open: true,
+              characterName: name,
+              storageUrl: res.storageUrl,
+              isLoading: false,
+            });
+          } else {
+            setBalance((b) => b + CHARACTER_SHEET_CREDITS); // keep display honest
+            setSheetModal((m) => ({ ...m, open: false, isLoading: false }));
+            setError(
+              `${tSheetErr(
+                ([
+                  "tier_required",
+                  "insufficient_credits",
+                  "adult_not_supported",
+                  "content_filter",
+                  "provider_unavailable",
+                ].includes(res.error)
+                  ? res.error
+                  : "unknown") as never,
+              )}`,
+            );
+          }
+        })
+        .catch((err) => {
+          setBalance((b) => b + CHARACTER_SHEET_CREDITS);
+          setSheetModal((m) => ({ ...m, open: false, isLoading: false }));
+          setError(
+            `${tSheetErr("unknown")}${
+              err instanceof Error ? " · " + err.message : ""
+            }`,
+          );
+        })
+        .finally(() => {
+          setSheetBusyId(null);
+        });
+    },
+    [sheetBusyId, playthroughId, tSheetErr],
   );
 
   // (2026-05-29) Removed the 600ms "內容審核" safety-hint timer — the loading
@@ -1426,11 +1506,15 @@ export function PlayClient({
                   shows just the NPC disposition cards. */}
               {appearedNpcs.map((npc) => (
                 <NpcCard
-                  key={npc.name}
+                  key={npc.id}
                   name={npc.name}
                   role={npc.role}
                   axes={npc.axes}
                   hue={(npc.name.charCodeAt(0) * 13) % 360}
+                  characterId={npc.id}
+                  onGenerateSheet={handleGenerateCharacterSheet}
+                  sheetBusy={sheetBusyId === npc.id}
+                  canGenerate={subscriptionTier !== "free"}
                 />
               ))}
             </div>
@@ -1464,6 +1548,15 @@ export function PlayClient({
           onGenerate={handleGenerateScene}
         />
       )}
+
+      {/* Wave 3 · Character design-sheet viewer (loading placeholder → sheet) */}
+      <CharacterSheetModal
+        open={sheetModal.open}
+        onClose={() => setSheetModal((m) => ({ ...m, open: false }))}
+        characterName={sheetModal.characterName}
+        storageUrl={sheetModal.storageUrl}
+        isLoading={sheetModal.isLoading}
+      />
     </div>
   );
 }
