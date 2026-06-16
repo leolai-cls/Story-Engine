@@ -27,6 +27,7 @@ import {
 } from "@/lib/ai/image-styles";
 import { estimateImageCredits, type ImageType } from "@/lib/ai/image-gen";
 import { Link } from "@/i18n/navigation";
+import { CrossSubdomainLink } from "@/components/CrossSubdomainLink";
 
 /**
  * Phase 8 · Visualize Scene Modal.
@@ -516,9 +517,9 @@ export function VisualizeSceneModal({
             {/* ─── TOS short ─── */}
             <p className="text-[11px] text-muted-foreground se-cjk leading-snug">
               {t("tosShort")}{" "}
-              <Link href="/terms" className="underline hover:text-foreground">
+              <CrossSubdomainLink to="marketing" path="/terms" className="underline hover:text-foreground">
                 {t("tosLink")}
-              </Link>
+              </CrossSubdomainLink>
               .
             </p>
 

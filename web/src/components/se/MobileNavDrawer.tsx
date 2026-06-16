@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { signOut } from "@/app/[locale]/login/actions";
 import { KieioLogo } from "@/components/brand/KieioLogo";
+import { marketingUrl } from "@/lib/urls";
 import type { GenreKey } from "./genre";
 
 /**
@@ -319,7 +320,7 @@ function AuthedBody({
           onClick={onItemClick}
         />
         <DrawerNavLink
-          href={`/${locale}/pricing`}
+          href={marketingUrl(`/${locale}/pricing`)}
           icon={<Sparkles size={14} />}
           label={labels.pricing}
           onClick={onItemClick}
@@ -367,7 +368,7 @@ function AnonBody({
           onClick={onItemClick}
         />
         <DrawerNavLink
-          href={`/${locale}/pricing`}
+          href={marketingUrl(`/${locale}/pricing`)}
           icon={<Sparkles size={14} />}
           label={labels.pricing}
           onClick={onItemClick}

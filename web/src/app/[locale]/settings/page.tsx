@@ -1,5 +1,6 @@
 import { setRequestLocale, getLocale, getTranslations } from "next-intl/server";
 import { redirect, Link } from "@/i18n/navigation";
+import { CrossSubdomainLink } from "@/components/CrossSubdomainLink";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Badge } from "@/components/ui/badge";
@@ -511,8 +512,9 @@ export default async function SettingsPage({
                         </div>
                       </div>
                     </a>
-                    <Link
-                      href="/terms"
+                    <CrossSubdomainLink
+                      to="marketing"
+                      path="/terms"
                       className="px-5 py-3.5 flex items-center gap-3 transition-colors hover:bg-[color:var(--se-surface-2)]"
                       style={{ borderBottom: "1px solid var(--se-border)" }}
                     >
@@ -520,16 +522,17 @@ export default async function SettingsPage({
                       <span className="text-sm font-medium se-cjk" style={{ color: "var(--se-fg)" }}>
                         {t("account.termsLabel")}
                       </span>
-                    </Link>
-                    <Link
-                      href="/privacy"
+                    </CrossSubdomainLink>
+                    <CrossSubdomainLink
+                      to="marketing"
+                      path="/privacy"
                       className="px-5 py-3.5 flex items-center gap-3 transition-colors hover:bg-[color:var(--se-surface-2)]"
                     >
                       <LockIcon size={15} style={{ color: "var(--se-fg-muted)" }} />
                       <span className="text-sm font-medium se-cjk" style={{ color: "var(--se-fg)" }}>
                         {t("account.privacyLabel")}
                       </span>
-                    </Link>
+                    </CrossSubdomainLink>
                   </SettingsCard>
                 </div>
               </SettingsSection>
