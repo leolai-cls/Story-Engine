@@ -97,7 +97,7 @@ export function ContinueCard({
           style={{ borderTop: "1px solid var(--se-border)" }}
         >
           <button
-            className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium"
+            className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             style={{
               background: "var(--se-fg)",
               color: "var(--se-bg)",

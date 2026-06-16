@@ -32,6 +32,7 @@ const PLAN_TIERS = [
     nameKey: "standard",
     price: "$9.99",
     paid: "adventurer" as const,
+    recommended: true, // Batch 4: middle tier was invisible · subtle 推薦 treatment
   },
   {
     tier: "storyteller" as const, // DB legacy name · 顯示 Pro
@@ -89,7 +90,7 @@ export default async function PlansPage({
           {t("back")}
         </Link>
 
-        <h1 className="text-2xl font-bold mb-1">{t("title")}</h1>
+        <h1 className="text-3xl sm:text-4xl font-bold mb-1">{t("title")}</h1>
         <p className="text-sm text-muted-foreground mb-8">{t("subtitle")}</p>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -102,16 +103,22 @@ export default async function PlansPage({
                 className={`rounded-xl border p-5 flex flex-col ${
                   p.highlight
                     ? "border-primary/50 bg-primary/5"
-                    : "border-border/60 bg-card/40"
+                    : p.recommended
+                      ? "border-primary/30 bg-primary/[0.03]"
+                      : "border-border/60 bg-card/40"
                 }`}
               >
                 <div className="flex items-center justify-between mb-1">
                   <h2 className="text-lg font-semibold">{t(`tiers.${p.nameKey}.name`)}</h2>
-                  {p.highlight && (
+                  {p.highlight ? (
                     <span className="text-[10px] font-bold uppercase tracking-wider rounded-full bg-primary/15 text-primary px-2 py-0.5">
                       {t("popular")}
                     </span>
-                  )}
+                  ) : p.recommended ? (
+                    <span className="text-[10px] font-bold uppercase tracking-wider rounded-full bg-primary/10 text-primary px-2 py-0.5">
+                      {t("recommended")}
+                    </span>
+                  ) : null}
                 </div>
                 <div className="mb-1">
                   <span className="text-2xl font-bold">{p.price}</span>

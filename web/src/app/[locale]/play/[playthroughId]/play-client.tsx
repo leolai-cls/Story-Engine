@@ -95,7 +95,7 @@ function SkillCheckInline({
         : null;
   return (
     <div
-      className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 p-2.5 rounded-md max-w-full"
+      className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 p-2.5 rounded-md max-w-full animate-in fade-in duration-300"
       style={{
         background: cfg.bg,
         border: `1px solid ${cfg.line}`,
@@ -979,7 +979,7 @@ export function PlayClient({
           {/* Back: icon-only on mobile, icon+label on sm+ */}
           <Link
             href="/library"
-            className="inline-flex items-center gap-1 px-1.5 sm:px-2.5 py-1.5 rounded-md text-xs flex-none"
+            className="inline-flex items-center gap-1 px-1.5 sm:px-2.5 py-1.5 rounded-md text-xs flex-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             style={{ color: "var(--se-fg-muted)" }}
             aria-label={tPlay("header.ariaBack")}
           >
@@ -1073,9 +1073,10 @@ export function PlayClient({
                 <div
                   key={turn.index}
                   className={
-                    turn.role === "user"
+                    "animate-in fade-in slide-in-from-bottom-2 duration-300 " +
+                    (turn.role === "user"
                       ? "rounded-lg bg-primary/8 border border-primary/20 p-3"
-                      : "rounded-lg bg-card border border-border/40 p-4 leading-relaxed"
+                      : "rounded-lg bg-card border border-border/40 p-4 leading-relaxed")
                   }
                 >
                   <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
@@ -1213,7 +1214,7 @@ export function PlayClient({
                               alt={tPlay("visualize.fullSizeAlt", {
                                 imageType: tPlay(`visualize.imageType.${img.imageType}`),
                               })}
-                              className="h-full w-full object-cover"
+                              className="h-full w-full object-cover animate-in fade-in duration-500"
                               loading="lazy"
                             />
                           </a>

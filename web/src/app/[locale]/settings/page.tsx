@@ -143,7 +143,7 @@ export default async function SettingsPage({
           )}
           <div className="flex items-baseline gap-3 mb-8">
             <h1
-              className="text-3xl font-bold m-0 se-cjk"
+              className="text-3xl sm:text-4xl font-bold m-0 se-cjk"
               style={{
                 letterSpacing: "-0.02em",
                 color: "var(--se-fg)",
@@ -203,10 +203,12 @@ export default async function SettingsPage({
             </div>
           )}
 
-          <div className="grid gap-9 md:grid-cols-[180px_1fr]">
-            {/* Sticky left nav — F1-F5 audit fix · designer sidebar pattern */}
+          <div className="grid gap-9 lg:grid-cols-[180px_1fr]">
+            {/* Sticky left nav — F1-F5 audit fix · designer sidebar pattern.
+                Batch 4: deferred to lg so the 180px rail never compresses
+                content at 768-820px tablet widths. */}
             <nav
-              className="hidden md:flex flex-col gap-0.5 sticky"
+              className="hidden lg:flex flex-col gap-0.5 sticky"
               style={{ top: 88, alignSelf: "start" }}
             >
               {NAV.map((n) => {
@@ -215,7 +217,7 @@ export default async function SettingsPage({
                   <a
                     key={n.id}
                     href={`#${n.id}`}
-                    className="inline-flex items-center gap-2.5 px-3 py-2 rounded-md text-sm se-cjk transition-colors hover:bg-[color:var(--se-surface-2)]"
+                    className="inline-flex items-center gap-2.5 px-3 py-2 rounded-md text-sm se-cjk transition-colors hover:bg-[color:var(--se-surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     style={{
                       color: "var(--se-fg-2)",
                     }}
@@ -562,7 +564,7 @@ function SettingsSection({
     <section id={id} className="scroll-mt-20">
       <header className="mb-3.5">
         <h2
-          className="text-lg font-semibold m-0 se-cjk"
+          className="text-lg sm:text-xl font-semibold m-0 se-cjk"
           style={{
             letterSpacing: "-0.015em",
             color: "var(--se-fg)",

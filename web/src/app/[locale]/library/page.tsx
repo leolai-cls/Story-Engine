@@ -710,7 +710,7 @@ async function LibraryHero({
           <Link
             href={`/library/${story.id}` as never}
             locale={locale}
-            className="inline-flex items-center gap-2 px-5 py-3 rounded-md font-semibold"
+            className="inline-flex items-center gap-2 px-5 py-3 rounded-md font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             style={{ background: "#fff", color: "#0a0a0b" }}
           >
             {tLib("hero.playNow")}
@@ -718,7 +718,7 @@ async function LibraryHero({
           <Link
             href={`/library/${story.id}` as never}
             locale={locale}
-            className="inline-flex items-center gap-2 px-5 py-3 rounded-md"
+            className="inline-flex items-center gap-2 px-5 py-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             style={{
               background: "rgba(20,18,14,0.32)",
               color: "#fff",

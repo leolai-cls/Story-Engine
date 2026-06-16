@@ -66,7 +66,7 @@ export function Carousel({
         {moreHref && (
           <Link
             href={moreHref}
-            className="inline-flex items-center gap-1 text-xs"
+            className="inline-flex items-center gap-1 text-xs rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             style={{ color: "var(--se-fg-muted)" }}
           >
             {tLib("all")} <ChevronRight size={11} />

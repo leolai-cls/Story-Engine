@@ -1087,6 +1087,7 @@
     "title": "Choose a plan",
     "subtitle": "Every plan includes the full feature set. Upgrade or cancel anytime.",
     "popular": "Popular",
+    "recommended": "Recommended",
     "perMonth": " / mo",
     "freeDefault": "Your current plan",
     "ctaSubscribe": "Upgrade",
