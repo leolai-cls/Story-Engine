@@ -538,7 +538,7 @@
       },
       "errors": {
         "tier_required": "Standard or Pro tier required",
-        "adult_mode_required": "Enable Adult Mode in Settings first · adult-rated stories may require age verification",
+        "adult_mode_required": "Enable Adult Mode in Settings first to play adult-rated stories",
         "insufficient_credits": "Not enough credits · this image needs {needed}, you have {balance}",
         "content_filter": "Provider rejected this scene · try a different style or rephrase your last turn",
         "rate_limited": "Image provider is busy · wait a moment and try again",
