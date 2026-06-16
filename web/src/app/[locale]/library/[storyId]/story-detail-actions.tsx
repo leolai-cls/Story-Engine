@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Play, Star, Flag, Globe, Lock, MessageSquare, Shield, Coins } from "lucide-react";
+import { Play, Star, Flag, Globe, Lock, MessageSquare, Shield, Coins, Loader2 } from "lucide-react";
 import {
   forkStoryToPlaythrough,
   publishStory,
@@ -338,9 +338,16 @@ export function StoryDetailActions({
             <button
               onClick={handleRate}
               disabled={pending}
-              className="rounded-md bg-amber-600 text-white px-3 py-1.5 text-sm font-semibold hover:bg-amber-700 inline-flex items-center gap-1.5"
+              className="rounded-md bg-amber-600 text-white px-3 py-1.5 text-sm font-semibold hover:bg-amber-700 disabled:opacity-70 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
             >
-              {pending ? (showModerationHint ? (<><Shield className="h-3.5 w-3.5" />{t("myReviewModerating")}</>) : t("myReviewSaving")) : (myRating ? t("myReviewUpdate") : t("myReviewSubmit"))}
+              {pending ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  {t("myReviewSaving")}
+                </>
+              ) : (
+                myRating ? t("myReviewUpdate") : t("myReviewSubmit")
+              )}
             </button>
             <button
               onClick={() => setOpenPanel(null)}
@@ -349,6 +356,12 @@ export function StoryDetailActions({
               {t("myReviewCancel")}
             </button>
           </div>
+          {pending && showModerationHint && (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Shield className="h-3.5 w-3.5" />
+              {t("myReviewModerating")}
+            </div>
+          )}
         </div>
       )}
 
@@ -368,9 +381,16 @@ export function StoryDetailActions({
             <button
               onClick={handleComment}
               disabled={pending || !commentBody.trim()}
-              className="rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-sm font-semibold hover:opacity-90 disabled:opacity-50 inline-flex items-center gap-1.5"
+              className="rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-sm font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
             >
-              {pending ? (showModerationHint ? (<><Shield className="h-3.5 w-3.5" />{t("commentModerating")}</>) : t("commentSaving")) : t("commentSubmit")}
+              {pending ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  {t("commentSaving")}
+                </>
+              ) : (
+                t("commentSubmit")
+              )}
             </button>
             <button
               onClick={() => setOpenPanel(null)}
@@ -379,6 +399,12 @@ export function StoryDetailActions({
               {t("myReviewCancel")}
             </button>
           </div>
+          {pending && showModerationHint && (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Shield className="h-3.5 w-3.5" />
+              {t("commentModerating")}
+            </div>
+          )}
         </div>
       )}
 
@@ -411,9 +437,16 @@ export function StoryDetailActions({
             <button
               onClick={handleReport}
               disabled={pending}
-              className="rounded-md bg-rose-600 text-white px-3 py-1.5 text-sm font-semibold hover:bg-rose-700 inline-flex items-center gap-1.5"
+              className="rounded-md bg-rose-600 text-white px-3 py-1.5 text-sm font-semibold hover:bg-rose-700 disabled:opacity-70 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
             >
-              {pending ? (showModerationHint ? (<><Shield className="h-3.5 w-3.5" />{t("myReviewModerating")}</>) : t("reportSubmitting")) : t("reportSubmit")}
+              {pending ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  {t("reportSubmitting")}
+                </>
+              ) : (
+                t("reportSubmit")
+              )}
             </button>
             <button
               onClick={() => setOpenPanel(null)}
@@ -422,6 +455,12 @@ export function StoryDetailActions({
               {t("myReviewCancel")}
             </button>
           </div>
+          {pending && showModerationHint && (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Shield className="h-3.5 w-3.5" />
+              {t("myReviewModerating")}
+            </div>
+          )}
         </div>
       )}
 

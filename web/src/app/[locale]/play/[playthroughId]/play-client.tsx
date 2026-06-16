@@ -184,13 +184,20 @@ function PendingSceneImage({
   dims,
   imageType,
   loadingLabel,
+  stillWorkingLabel,
 }: {
   dims: { width: number; height: number };
   imageType: string;
   loadingLabel: string;
+  stillWorkingLabel: string;
 }) {
   const expectedMs = imageType === "comic" ? 50_000 : 8_000;
   const [progressPct, setProgressPct] = useState(0);
+  // Batch 3 (loading feedback): once the real gen runs past the expected
+  // duration the bar would freeze near the top and read as crashed. Track an
+  // "overtime" flag so we can (a) keep the trailing edge pulsing and (b) show a
+  // small reassurance line instead of sitting dead at ~95%.
+  const [overtime, setOvertime] = useState(false);
 
   useEffect(() => {
     const start = Date.now();
@@ -203,6 +210,7 @@ function PendingSceneImage({
           ? (ratio / 0.6) * 0.9
           : 0.9 + ((ratio - 0.6) / 0.4) * 0.09;
       setProgressPct(Math.floor(p * 100));
+      if (elapsed >= expectedMs) setOvertime(true);
     }, 120);
     return () => clearInterval(id);
   }, [expectedMs]);
@@ -216,10 +224,23 @@ function PendingSceneImage({
       <span className="text-[11px] se-cjk text-muted-foreground px-1 text-center leading-tight">
         {loadingLabel}
       </span>
+      {/* Reassurance line once we pass the expected time so a slow provider
+          call doesn't read as a frozen / crashed bar. */}
+      {overtime && (
+        <span className="text-[10px] se-cjk text-muted-foreground/70 px-1 text-center leading-tight animate-pulse">
+          {stillWorkingLabel}
+        </span>
+      )}
       <div
         className="absolute bottom-0 left-0 h-[2px] bg-primary"
         style={{ width: `${progressPct}%`, transition: "width 120ms linear" }}
-      />
+      >
+        {/* Keep a subtle ongoing motion on the bar's trailing edge past 85% so
+            the (intentionally) near-stalled bar never looks dead. */}
+        {progressPct >= 85 && (
+          <span className="absolute right-0 top-0 h-full w-3 bg-primary animate-pulse" />
+        )}
+      </div>
     </div>
   );
 }
@@ -1146,6 +1167,7 @@ export function PlayClient({
                                   ? tPlay("visualize.loadingComic")
                                   : tPlay("visualize.loading")
                               }
+                              stillWorkingLabel={tPlay("visualize.stillWorking")}
                             />
                           );
                         }

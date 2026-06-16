@@ -64,7 +64,7 @@ export function DeletePlaythroughButton({
           type="button"
           onClick={onConfirm}
           disabled={pending}
-          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold se-cjk"
+          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold se-cjk disabled:cursor-not-allowed"
           style={{
             background: "var(--se-rose, #b91c1c)",
             color: "#fff",
@@ -72,7 +72,7 @@ export function DeletePlaythroughButton({
           }}
         >
           {pending ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />}
-          {t("yes")}
+          {pending ? t("deleting") : t("yes")}
         </button>
         <button
           type="button"

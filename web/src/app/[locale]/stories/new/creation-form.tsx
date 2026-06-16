@@ -279,13 +279,17 @@ export function CreationForm({
             )}
           </Button>
 
-          {/* AUDIT FIX (P3-UX-L-16): pre-display cost */}
-          {!isPending && (
-            <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
-              <Coins className="h-3 w-3" />
-              {tForm("estimatedCost", { count: ESTIMATED_STORY_COST })}
-            </div>
-          )}
+          {/* AUDIT FIX (P3-UX-L-16): pre-display cost.
+              Batch 3 (loading feedback): keep the credit number visible
+              REGARDLESS of isPending — previously it vanished for the 30-70s
+              generation and felt like lost data. While pending, swap to the
+              "charging" copy so the number stays anchored. */}
+          <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+            <Coins className="h-3 w-3" />
+            {isPending
+              ? tForm("estimatedCostPending", { count: ESTIMATED_STORY_COST })
+              : tForm("estimatedCost", { count: ESTIMATED_STORY_COST })}
+          </div>
 
           {isPending && (
             <div className="space-y-2.5">
