@@ -111,7 +111,7 @@ character_beliefs (
 > - `subject` = 信念**關於邊個/咩** (主角 · 陳家明…) · 寫入前對齊角色名單 + 主角別名正規化 (「你」/真名 → 統一「主角」)。
 > - `predicate` = **短維度 dedup key 嘅 controlled enum**（`life_death`/`identity`/`allegiance`/`location`/`possession`/`status`/`other`）· **唔顯示** · 純為令 `(playthrough, character, subject, predicate)` 唯一索引 collapse 同一件事 (生死變咗就推翻舊嗰個 · 唔會兩個矛盾 active row 並存)。
 > - `object` = 帶語意嘅所信值 (「以為已死」)。注入 narrator 時格式 = 「{角色} 對「{subject}」：{object}」(felt-through-narrative · `[INTERNAL CONTEXT]` fence · hard rule #19)。
-> 信念圖譜 = 一致性工具,**同 ADR-006 推遲嘅角色靈魂沉澱寫入 (experience-writer/sediment) 解耦**,後者維持關閉。
+> 信念圖譜 = 一致性工具,同經歷日誌寫入解耦。**更新（ADR-007 · 2026-06-18）**：經歷日誌寫入（前 experience-writer）以**漸變式重新啟動**（無 threshold · 搭順風車現有每回合 Haiku extractor · 見 [03] + decisions.md ADR-007）；sediment（沉澱張力 threshold）概念**永久移除**（唔只係推遲）。信念圖譜（事實層）同經歷日誌（性格/關係層）互補。
 
 ---
 

@@ -29,9 +29,9 @@
         ↓ 個名反覆出現 / 玩家同佢互動
 第 1 層 · Lorebook entry                     ← 已有 (04 記憶第 4 層)
    有描述 + embedding + RAG retrieve · entity-level
-        ↓ 互動累積 (interaction_count >= 3)
-第 2 層 · 完整角色靈魂                         ← M1-M5 (本文件下面三層結構)
-   出身 + 經歷日誌 + 沉澱張力 + 信念圖譜
+        ↓ 有意義嘅事發生喺佢身上 → 記一條經歷 (漸變 · 無 count-gate · ADR-007)
+第 2 層 · 完整角色靈魂                         ← 出身 + 經歷日誌 + 信念圖譜
+   (深度跟投入度漸變浮現 · interaction_count≥3 升級閘 + 沉澱張力 threshold 已移除 · 見 ADR-007)
 ```
 
 ### 點解需要第 0 層 (真實 bug 觸發 · 2026-06-01)
@@ -84,7 +84,9 @@
 
 ## 「沉澱消化」點實現 (Pending Tension 機制)
 
-> Founder vision：角色經歷咗嘢要沉澱消化先作決定 · 甚至要多次經歷先改變行為。
+> 🛑 **SUPERSEDED by [decisions.md] ADR-007（2026-06-18）。** 本節描述嘅「weight 累積 → 過 threshold → 觸發進化」機制**已移除**。founder：「夠 N 次就進化/深化 = 假嘅角色塑造」，而個 threshold 本身就係結構化籠、違反原則 1。**新做法**：角色深化由累積經歷自然浮現（敘事者每回合 holistic 讀返出身 + 成段經歷推導），**全系統零數字觸發、零『改寫性格』步驟**。下面保留作歷史。
+>
+> Founder vision（原文）：角色經歷咗嘢要沉澱消化先作決定 · 甚至要多次經歷先改變行為。
 
 呢個唔係即時反應 · 係累積 threshold 機制：
 
@@ -188,10 +190,10 @@ Narrator 每回合收到每個 active 角色嘅三層 + pending tensions (入 Ti
 
 ## 待解決 (Open Questions)
 
-1. Pending tension threshold 調參：易變度 → threshold 嘅 mapping 公式。
+1. ~~Pending tension threshold 調參~~ → **已移除（ADR-007）**：冇 threshold / 易變度公式。
 2. 冷啟動：前 5-10 回合經歷日誌空 · 靠 origin seed 推導 · 性格可能浮動 (可接受)。
-3. 超長故事：200 回合太多 entry · 用 scene-summarization pattern 壓縮舊 entry · 保留 high-weight milestone。
-4. 寫入成本：每個 active 角色一個輕量 LLM call 抽 impact (~$0.0008) · 定用 MemPalace 嘅零-LLM regex 判斷 (慳但要驗證準確度)。
+3. 超長故事：200 回合太多 entry · 用 MemPalace 房內 scene-summarization 壓縮舊 entry · 保留近期 + 重大里程碑（⚠️ 里程碑「重要度」只揀儲存優先級、**不觸發**角色改變 · ADR-007）。
+4. ~~寫入成本 LLM vs regex~~ → **已決定（ADR-007）**：搭順風車現有每回合 Haiku extractor 多抽「邊個角色經歷咗咩」· 無新 LLM call。
 
 ---
 
