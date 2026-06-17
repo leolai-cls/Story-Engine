@@ -325,7 +325,24 @@ async function main() {
   };
 
   // ─── AI 評審 (Sonnet · 結構輸出) ───
-  const transcript = aiTurns.map((t) => `【第${t.turn_index}回合】${(t.text ?? "").slice(0, 700)}`).join("\n\n");
+  // Clamp WITHOUT cutting mid-sentence. The old per-turn .slice(0, 700) chopped any
+  // turn >700 chars mid-word, so the judge read a deliberate excerpt as a "truncated
+  // narrative" → false A2 truncation signal (2026-06-17 root-cause: e.g. a 733-char
+  // turn was cut at 700 on '聲音恢', but the stored/player-facing text was complete).
+  // Cut back to the last sentence-final punctuation before the cap + mark the elision.
+  const clampSentence = (s, max) => {
+    const str = s ?? "";
+    if (str.length <= max) return str;
+    const cut = str.slice(0, max);
+    const lastEnd = Math.max(
+      cut.lastIndexOf("。"), cut.lastIndexOf("」"),
+      cut.lastIndexOf("！"), cut.lastIndexOf("？"),
+    );
+    return (lastEnd > max * 0.5 ? cut.slice(0, lastEnd + 1) : cut) + "…（後略）";
+  };
+  // 2000 is well above the observed max turn length (~850 chars) so realistic turns
+  // are never clamped; it only guards against a pathological runaway turn.
+  const transcript = aiTurns.map((t) => `【第${t.turn_index}回合】${clampSentence(t.text ?? "", 2000)}`).join("\n\n");
   const playerLines = turnLog.map((t) => `【第${t.i}回合·玩家】${t.action}`).join("\n");
   let judge = {};
   try {
@@ -356,7 +373,7 @@ async function main() {
           (PROBES_ENABLED
             ? `你係互動小說品質評審。下面係一個自動測試局:玩家喺第${PROBE_AT.plant1}回合收起一條刻住「北斗七星」嘅黃銅鑰匙、第${PROBE_AT.plant2}回合講咗生日係十月初七;第${PROBE_AT.ask1}回合問返鑰匙刻字、第${PROBE_AT.ask2}回合問返生日。請按 schema 評分。\n\n`
             : `你係互動小說品質評審。下面係一個短測試局(冇記憶探針):memory_probe 兩項一律填 1 (不適用),其餘照評。\n\n`) +
-          `=== 玩家行動 ===\n${playerLines}\n\n=== AI 敘事 ===\n${transcript.slice(0, 60000)}`,
+          `=== 玩家行動 ===\n${playerLines}\n\n=== AI 敘事 ===\n${clampSentence(transcript, 60000)}`,
       }],
     });
     judge = JSON.parse(judgeText);
