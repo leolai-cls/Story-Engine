@@ -734,23 +734,24 @@
       <p class="section-sub">每次新 session 開始，由呢度睇起。</p>
 
       <div class="top-meta">
-        <div><strong>更新</strong> 2026-05-26 · Session 14</div>
-        <div><strong>狀態</strong> Brand locked 🆕 Kieio · domain live · UI surface 完 · 落 🟡 Money tier</div>
-        <div><strong>網址</strong> <a href="https://kieio.com" target="_blank" style="color: var(--primary);">kieio.com</a></div>
+        <div><strong>更新</strong> 2026-06-17 · Session 20</div>
+        <div><strong>狀態</strong> Function / UI / Money 全完 · 記憶手術 + Wave 3 角色圖 + UI/UX 大改全上 prod · 落 🏁 final stage</div>
+        <div><strong>網址</strong> <a href="https://kieio.com" target="_blank" style="color: var(--primary);">kieio.com</a> · <a href="https://app.kieio.com" target="_blank" style="color: var(--primary);">app.kieio.com</a></div>
       </div>
+      <div style="margin: 8px 0 0; padding: 8px 12px; border-radius: 8px; background: rgba(0,0,0,0.03); font-size: 13px; color: var(--ink-soft);">⚠️ 呢頁下面嘅 session 卡係 Session 13/14 嘅歷史紀錄（dashboard 自 Session 14 之後冇逐 session 重建）。最新逐 session 詳情以 <code>pm/STATUS.md</code> 為準。</div>
 
       <div class="status-hero">
-        <div class="label">🆕 而家狀態</div>
-        <div class="phase">Brand locked 「Kieio」· kieio.com domain 上線 · Session 14 UI surface 完成 · 全 function tier ship 晒</div>
+        <div class="label">🆕 而家狀態（Session 20 · 2026-06-17）</div>
+        <div class="phase">Function / UI / Money 三層全完 + 上線 · 記憶手術 M2/M3/M4 + Wave 3 角色設計圖 + UI/UX 6 批大改全部 ship 上 prod · 🏁 落 final stage（5 條官方故事 + 全面 E2E）</div>
         <div class="focus">
-          🆕 <strong>產品名 locked</strong>：<strong>Kieio</strong>（讀「KEE-yo」· 5 letters · 2 syllables · 易讀）· founder 自己買咗 kieio.com · Cloudflare registrar + Vercel Domain Connect 自動 DNS · SSL provisioned · 已 redirect Supabase auth callback。Brand 全 source 一致：site-header/footer · MobileNav · login · layout metadata · i18n appName · OpenRouter X-Title 全部 propagate 完。Session 14 UI surface 完成：NPC L3 Settings toggle + per-playthrough button-click opt-in + Memory Journal「NPC Inner Voices」tab + 每 turn L3 cost preview · server action `setNpcL3Enabled` + Wave 1 UI audit clean。下一步：🟡 Money tier (Phase 4 Stripe + Phase 6 KYC)。
+          <strong>Session 20 做咗</strong>（全部 squash 上 main + 部署 prod + 瀏覽器實測）：① <strong>Wave 3 角色設計圖</strong> — fal.ai gpt-image-2 出全程一致角色樣（PR #94 · migration 0069）② <strong>UI/UX 6 批大改</strong> — 互動回饋 / loading / 退役文案清理（含法律頁）/ 視覺打磨 / 死碼清 / design token 統一（PR #95）③ <strong>跨網域連結 CORS 修復</strong> — 產品網 footer/設定/play/生圖視窗嘅行銷 link 會背景預載 kieio.com → console 紅字；新 <code>CrossSubdomainLink</code> 令跨網域 link 改用普通連結唔預載（6 處 · PR #96）④ <strong>建故事最少 20 字提示</strong>（PR #96）⑤ <strong>加返 model 選項</strong> — Gemini 3.5 Flash / GPT-5.4 / DeepSeek V3.2 重返 picker 做 opt-in（Claude 維持每 tier 串流預設 · fal LLM 端點查實唔啱做敘事 · PR #97）。<strong>Session 19</strong> = 記憶手術 M2/M3/M4（PGroonga 中文關鍵字 + 信念時間軸 + 同名判官）+ 夜間自動試玩 harness。<strong>下一步</strong>：🏁 5 條官方故事 + 全面 E2E。
         </div>
         <div class="tier-bar">
-          <div class="tier-step done"><span class="dot">🟢</span><span class="name">P0 Tier</span><span class="state">完成</span></div>
-          <div class="tier-step done"><span class="dot">🧠</span><span class="name">P1 記憶宮殿</span><span class="state">完成</span></div>
-          <div class="tier-step done"><span class="dot">🎭</span><span class="name">P1.5 NPC L3</span><span class="state">完成</span></div>
-          <div class="tier-step done"><span class="dot">🆕</span><span class="name">Brand + Domain</span><span class="state">完成</span></div>
-          <div class="tier-step next"><span class="dot">🟡</span><span class="name">收錢 (Stripe)</span><span class="state">接住做</span></div>
+          <div class="tier-step done"><span class="dot">🟢</span><span class="name">Function</span><span class="state">完成</span></div>
+          <div class="tier-step done"><span class="dot">🟣</span><span class="name">UI</span><span class="state">完成</span></div>
+          <div class="tier-step done"><span class="dot">🟡</span><span class="name">Money</span><span class="state">完成</span></div>
+          <div class="tier-step done"><span class="dot">🧠</span><span class="name">記憶手術 + Wave 3</span><span class="state">完成</span></div>
+          <div class="tier-step next"><span class="dot">🏁</span><span class="name">官方故事 + E2E</span><span class="state">final stage</span></div>
         </div>
       </div>
 
