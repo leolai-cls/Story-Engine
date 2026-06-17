@@ -26,15 +26,24 @@ type SubTier = "free" | "adventurer" | "storyteller" | "legend";
 // Single source of truth (audit dedupe 2026-06-08) — was a hand-copied array.
 const SUB_ORDER: readonly SubTier[] = SUBSCRIPTION_TIER_ORDER;
 
-// Narrator models surfaced in the picker · order matters (cheap → premium).
-// Session 17 (2026-06-02 · light-core): 非成人全 Claude 直連 · Standard=Sonnet ·
-// Pro=Opus。舊 gemini/deepseek/gpt 退役（留 MODELS 做 back-compat · 唔再上 picker）。
+// Narrator models surfaced in the picker · grouped by tier (Standard then Pro).
+// Session 17 (2026-06-02 · light-core) made 非成人 Claude-only (Sonnet/Opus) for
+// TRUE word-by-word streaming (Anthropic direct streams · CrazyRouter buffers all
+// non-Claude). 2026-06-17 (founder): bring Gemini / GPT BACK as opt-in choices —
+// the founder never asked to retire them, and "用戶可揀 model" is a core principle.
+// Claude stays the DEFAULT (TIER_POOLS · streams); Gemini/GPT are alternatives that
+// route via CrazyRouter (buffered → the client types them out · no true streaming).
 // 成人向 model (grok-4-1) 唔喺度 — 成人故事個 picker 會整個鎖死 (isAdult · 見下)。
 const PICKER_MODEL_IDS = [
-  "claude-sonnet-4-6",
+  // ── Standard tier ──
+  "claude-sonnet-4-6", // default · Anthropic direct · true streaming
+  "gemini-3-5-flash", // fast alt · CrazyRouter · buffered (client-types)
+  "deepseek-v3-2", // 中文 roleplay alt · CrazyRouter · buffered (client-types)
+  // ── Pro tier (gate: adventurer sub) ──
   // Session 19 (2026-06-12): Pro 旗艦 4.7 → 4.8（同價）。舊 playthrough 鎖住 4-7
   // 照玩（MODELS back-compat），用戶喺呢個 picker 切去 4.8 就完成升級。
-  "claude-opus-4-8",
+  "claude-opus-4-8", // default · Anthropic direct · true streaming
+  "gpt-5-4-pro", // English-strong alt · CrazyRouter · buffered (client-types)
 ] as const;
 
 export function ChatControls({
