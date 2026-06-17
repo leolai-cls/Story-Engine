@@ -784,11 +784,16 @@
           <div class="sub">全部 playthrough 一覽 · 進行中 / 已封存 / 棄置</div>
           <span class="tag">SESSION 10 NEW</span>
         </div>
-        <div class="player-cell new">
+        <div class="player-cell">
           <div class="ico">🤖</div>
           <div class="head">揀 AI Model</div>
-          <div class="sub">10 個揀: Claude · GPT · Gemini · Grok · 開源 (成人)</div>
-          <span class="tag">SESSION 10 NEW</span>
+          <div class="sub">Claude 預設（真逐字串流）· Gemini / GPT / DeepSeek opt-in · 成人 = Grok</div>
+        </div>
+        <div class="player-cell new">
+          <div class="ico">🖼️</div>
+          <div class="head">生圖 + 角色設計圖</div>
+          <div class="sub">場景插圖 / 壁紙 · Wave 3 全程一致角色樣（fal.ai）</div>
+          <span class="tag">SESSION 20 NEW</span>
         </div>
         <div class="player-cell">
           <div class="ico">⭐</div>
@@ -807,48 +812,105 @@
         </div>
       </div>
 
-      <h3 style="margin-top: 36px; margin-bottom: 4px;">🎯 Session 13 做咗 4 樣嘢</h3>
-      <p class="meta" style="margin-bottom: 4px;">2 個新 Migration (0027 + 0028) · Phase 1.5 NPC L3 backend · 2-wave audit converged · 5 個 ship blocker 上線前修好</p>
+      <h3 style="margin-top: 36px; margin-bottom: 4px;">🎯 Session 20 做咗咩（2026-06-16/17）</h3>
+      <p class="meta" style="margin-bottom: 4px;">全部 squash 上 main + 部署 prod + 瀏覽器實測 · PR #94-#98</p>
       <div class="shipped-row">
         <div class="shipped-chip">
-          <div class="ico">🎭</div>
-          <div class="head">P1.5 — NPC L3 Agents backend</div>
-          <div class="body">每個 active NPC (max 3) 並行一個 agent · MIRROR 3-step 思考 (recall → predict → motivate) · 出 inner_thought + intent · Storyteller tier 獨享 · 6 credits per NPC flat-rate。</div>
-          <span class="audit-pill">✓ Migration 0027 + 0028</span>
+          <div class="ico">🖼️</div>
+          <div class="head">Wave 3 — 角色設計圖（全程一致角色樣）</div>
+          <div class="body">fal.ai gpt-image-2（queue API · 唔受 CrazyRouter 60s 斬纜）· 第一次生圖時為每個角色做一份穩定外觀描述、之後永遠重用 → 同一角色每次生圖都一個樣。Migration 0069 · 深度審計 ship-after-fixes。</div>
+          <span class="audit-pill">✓ PR #94</span>
         </div>
         <div class="shipped-chip">
-          <div class="ico">🛡️</div>
-          <div class="head">Coherence 3 層保護</div>
-          <div class="body">Director = 唯一 gatekeeper · NPC agents = POV 報告者 (唔可以改 state) · Narrator = 唯一 integrator (ONE narrative + state_delta · 跟 Director)。殺人 vs 救人 場景變 dramatic tension · 唔會 contradictory。</div>
-          <span class="audit-pill">✓ 架構鎖死</span>
+          <div class="ico">🎨</div>
+          <div class="head">UI/UX 6 批大改</div>
+          <div class="body">互動回饋（撳掣動畫）· loading 狀態 · 退役文案清理（含法律頁 KYC→自行確認 18+ · 退役 model 名）· 視覺打磨 · 死碼清 · design token 統一。</div>
+          <span class="audit-pill">✓ PR #95</span>
         </div>
         <div class="shipped-chip">
-          <div class="ico">🔬</div>
-          <div class="head">2-wave audit 收斂</div>
-          <div class="body">Wave 1 揾到 5 ship blocker (3 CRIT + 2 dedup'd HIGH升CRIT) 包括「npc_l3_enabled 漏咗喺 SELECT 入面 → 整個 feature dead」嘅 catastrophic bug · 全部上線前修好。Wave 2 audit 0 NEW issue · CONVERGED。</div>
-          <span class="audit-pill">✓ CRIT 全修</span>
+          <div class="ico">🔗</div>
+          <div class="head">跨網域連結 CORS 修復 + 建故事字數提示</div>
+          <div class="body">產品網 footer/設定/play/生圖視窗嘅行銷 link 會背景預載 kieio.com → console 紅字。新 CrossSubdomainLink：跨網域→普通連結唔預載（6 處）。順手補建故事「最少 20 字」提示。實測 0 跨域預載。</div>
+          <span class="audit-pill">✓ PR #96</span>
         </div>
         <div class="shipped-chip">
-          <div class="ico">📚</div>
-          <div class="head">Research-driven design</div>
-          <div class="body">22-page deep research (Stanford Generative Agents · MIRROR · Drama Machine · Character.AI · CrewAI 等 · 21 inline citation)。Founder Q1-Q5 sign-off 嘅 architecture pattern · 並行 + isolated POV + 冇 synthesizer + Director canonical。</div>
-          <span class="audit-pill">✓ ADR-style</span>
+          <div class="ico">🤖</div>
+          <div class="head">加返 model 選項（opt-in）</div>
+          <div class="body">Gemini 3.5 Flash / GPT-5.4 / DeepSeek V3.2 重返 picker 做 opt-in · Claude 維持每 tier 串流預設。fal LLM 端點查實唔啱做敘事（單 prompt / 型號唔啱 / 駁 OpenRouter）。實測 5 隻齊。</div>
+          <span class="audit-pill">✓ PR #97</span>
         </div>
       </div>
 
       <div class="next-block">
         <div>
-          <div class="label">🟣 接住做</div>
-          <div class="name">Session 14 — UI surface (Settings toggle + Memory Journal NPC tab)</div>
-          <div class="detail">Backend ship-ready · 但 button-click opt-in 嘅 button 仲未起。Settings 加 toggle 「NPC Inner Voices · Storyteller 獨享 · +6 credits/NPC」· Memory Journal 加新 tab「NPC 內心戲」showcase 用戶買 Storyteller tier 嘅 value · server action setNpcL3Enabled。然後落 Money tier (Phase 4 Stripe + Phase 6 KYC)。</div>
+          <div class="label">🏁 接住做（final stage）</div>
+          <div class="name">5 條官方故事 + 全面 E2E → public launch</div>
+          <div class="detail">Function / UI / Money 三層 + 記憶手術 + Wave 3 + UI/UX 全部上 prod。launch 前最後兩步：① founder + Claude 合寫 5 條官方故事（涵蓋 cultural diversity：TW 校園戀愛 / HK 古惑仔 / 玄幻 / 末日 / 商戰 等）② 一次過全面手動 E2E（marketing + login + library + creation + play + memory + community + adult + subscription + top-up）。夜間自動試玩 harness 繼續每晚守。</div>
         </div>
-        <div class="eta">~2 hours</div>
+        <div class="eta">launch eve</div>
       </div>
 
       <h3 style="margin-top: 44px;">📜 較早之前嘅 session log</h3>
       <p class="meta">舊 session 紀錄落面，新 session 留喺上面。</p>
 
       <div class="status-grid">
+        <div class="status-card good">
+          <div class="status-card-title">🧠 Session 19 (2026-06-11~14) — 記憶手術 M2/M3/M4 + 夜間自動試玩 harness + 深度研究</div>
+          <ul>
+            <li><strong>M2 中文關鍵字檢索通道 (PGroonga)</strong> — 治「篩漏」盲點（候選階段純向量 · embedding 睇漏 = 永遠盲）· lorebook + turns 原生中文分詞索引 + 2 RPC（migration 0066/0067 · PR #90）· prod 實測搵「北斗/鑰匙」正中</li>
+            <li><strong>M4 信念時間軸復活 + M3 同名合併判官</strong> — 角色信念隨經歷被推翻更新（invalidate-not-delete · migration 0068）· lorebook 撞同名 → 向量+關鍵字搵候選 → 平 model 判合併。實機 character_beliefs 真寫 29 條（17 active / 12 已推翻 = 機制 firing）· PR #92</li>
+            <li><strong>夜間自動試玩 harness</strong> — qa-nightly.mjs：Haiku 扮玩家行 prod 真實 30 回合 + 4 個記憶探針 + Sonnet 結構化評審 → 紅黃綠 verdict（migration 0065 · GitHub Actions 02:00 HKT · PR #86-89）· 首日已捉 3 個韌性問題 · 首個正式 run 🟢 GREEN</li>
+            <li><strong>Wave-0 快贏</strong> — Vercel region pin sin1（之前預設美東 · DB 喺新加坡 → 每回合跨太平洋）· Pro narrator Opus 4.7→4.8（同價 · 文筆更好）· PGroonga enable（migration 0064）· PR #85</li>
+            <li><strong>marketing landing redesign</strong>（PR #84）· <strong>M1 中文 embedding 擱低</strong>（CrazyRouter 中文向量單路由/實測更差 · 現用 small 反而好 · PR #93）</li>
+          </ul>
+        </div>
+        <div class="status-card good">
+          <div class="status-card-title">🔧 Session 18 (2026-06-04~10) — 記憶死亡螺旋 + 藍圖修復 + 深模式 + 審計 batch</div>
+          <ul>
+            <li><strong>記憶死亡螺旋修復</strong> — 滾動摘要長過上限就永久卡死「倒帶」重講舊場景（真兇 = Haiku 無視長度指令）· 改 Sonnet + 脫困重壓縮 + 硬性字數預算 · PR #81 · 新增 hard rule #39</li>
+            <li><strong>藍圖一致性修復</strong> — 擲骰故事冇可擲屬性 + 故事弧卡第 1 幕（同根：4 個獨立並行生成兜唔埋）· game_mode 傳入強制能力值 + extractor 定性判幕（刪 arc-dsl.ts）· PR #82 · 新增 hard rule #40</li>
+            <li><strong>深模式①②③</strong> — NPC 內心戲（GM-free trigger · tiered Pro voices · token billing · PR #75）+ AI 為每個故事自選 state panel（質性 · PR #77）+ 擲骰 / RPG 判定模式（PR #78）</li>
+            <li><strong>審計 batch 上 prod</strong>（PR #83 · 淨 -840 行）— 3+3 agent（安全/成本/正確性 + drift/結構/擴展性）· 計費修正（建故事 3× 多收 / 免費回合堵塞 / 生圖按真實成本重訂）· 安全 service-role 寫 + migration 0062 · C2 死碼大清 -1455 行 · DB perf migration 0063（40 條 RLS 重寫 + 刪未用索引）</li>
+          </ul>
+        </div>
+        <div class="status-card good">
+          <div class="status-card-title">🆕 Session 17 (2026-06-01~05) — LIGHT-CORE PIVOT（取代 Session 16 四層架構）</div>
+          <ul>
+            <li><strong>方向修正</strong> — founder 親手玩發現比 raw LLM 更慢 + 回合間更唔一致 + 感受唔到差異 → 拎走 GM / 四層仲裁 · 每回合近乎直出（ADR-006 supersedes ADR-001）· 市場研究 + 7 人策略委員會驗證</li>
+            <li><strong>非成人轉 Claude 直連</strong>（Standard=Sonnet · Pro=Opus · 真逐字串流 + prompt cache）· 成人維持 Grok · 記憶由護城河 #1 降做衞生 · 擲骰移出核心</li>
+            <li><strong>成人向 narrator GLM-5.1 → Grok 4.1</strong>（ADR-024 · 修 retcon · 最 permissive · PR #56）· Standard 中文 GLM → DeepSeek V3.2（PR #59）</li>
+            <li><strong>修一連串敘事 bug</strong> — 重複開場白（結構修正 · 對話 user-first · PR #60）· 行動變對白（Tier 4 framing · PR #66）· tool-call JSON 洩漏（PR #69）· 內部內容洩漏加固（PR #70）</li>
+            <li><strong>護城河重定義</strong> — 中文圈 + 唔審查 + 體驗層（策展靚故事 / 圖 / 手機 / 零門檻）+ 用戶累積嘅關係連續性（唯一真 switching cost）</li>
+          </ul>
+        </div>
+        <div class="status-card good">
+          <div class="status-card-title">🧭 Session 16 (2026-06-01) — 核心架構重設計（記憶 + 角色靈魂 + GM）+ 實作</div>
+          <ul>
+            <li><strong>開 pm/architecture/ folder</strong> — 完整概念架構（哲學 / turn pipeline / 角色三層靈魂 / 4 層記憶 / 自適應系統 / 介面 + 6 ADR + 名詞表 + IMPLEMENTATION）· DESIGN LOCKED</li>
+            <li><strong>GM 降做 prep 員 + 四層優先級 + 誠實失敗安全網</strong>（PR #52）· 修好「眉頭微皺 / 你係咪認真」launch blocker（真兇 = turn route maxDuration 60→300s）</li>
+            <li><strong>角色靈魂第二階段 M1-M6 實作+部署</strong>（PR #53）— 經歷日誌 + 沉澱張力 + 信念圖譜 + 移除硬寫死紅線 · migration 0047-0050</li>
+            <li><strong>沉浸感原則 lock</strong>（推翻舊 hard rule #19）— 護城河可見 = 敘事流露，唔係 dashboard / journal / 裸好感度數字（「睇哈利波特唔會列晒所有嘢」）</li>
+            <li><strong>play 兩個 bug 修好</strong>（PR #51）— skill 徽章 live（X-Skill-Check headers）+ 生圖 hybrid routing + fallback</li>
+          </ul>
+        </div>
+        <div class="status-card good">
+          <div class="status-card-title">🟡🌐 Session 15 — Money tier + Marketing + i18n + Brand「Kieio」+ subdomain split</div>
+          <ul>
+            <li><strong>🟡 Money tier 全完</strong> — Phase 4 Stripe 訂閱 + 月度 credits + 一次性 top-up + cron · Phase 6 KYC（Stripe Identity）· 3-wave audit converged · 9 ship blocker 上線前修好</li>
+            <li><strong>🌏 i18n Wave 2</strong> — 622 catalog keys × 3 語言（繁中 / 简中 / EN）· 9-cycle audit converged · zero drift</li>
+            <li><strong>🌐 Marketing</strong> — kieio.com dark cinematic landing + /pricing + 3 selling points</li>
+            <li><strong>🆕 Brand locked「Kieio」</strong>（讀 KEE-yo）· domain kieio.com · <strong>subdomain split</strong>（kieio.com 行銷 / app.kieio.com 產品 · middleware 308 · cookie scope .kieio.com）</li>
+            <li><strong>修 Google login 跨子網域 regression</strong>（getAppOrigin · hard rule #35）· pricing spec-vs-code drift 修正（免費 1000+50/day · migration 0033 · hard rule #36）</li>
+          </ul>
+        </div>
+        <div class="status-card good">
+          <div class="status-card-title">🟣 Session 14 — UI surface（NPC L3 opt-in）+ account / settings 大執</div>
+          <ul>
+            <li><strong>NPC L3 UI surface</strong> — Settings toggle + per-playthrough opt-in 掣 + Memory Journal「NPC 內心戲」tab · server action setNpcL3Enabled · 每 turn cost 預覽</li>
+            <li><strong>account / settings 頁完整重做</strong>（PR #55）— 10-item rework + /plans 頁 + 三語文案齊</li>
+            <li><em>註：之後 Session 17 light-core 把 NPC L3 移出核心 · toggle 同 state 保留做 dormant code（deep mode 重啟即用）</em></li>
+          </ul>
+        </div>
         <div class="status-card good">
           <div class="status-card-title">🎭 Session 13 — Phase 1.5 NPC L3 Agents backend · Storyteller tier exclusive · 2-wave audit converged</div>
           <ul>
@@ -1019,7 +1081,7 @@
         </div>
       </div>
 
-      <h3>What's next（按優先排）</h3>
+      <h3>📂 審計報告存檔（歷史 · 最新進度睇返頂部「而家狀態」）</h3>
       <div class="quick-links">
         <a href="audit-report-phase6-and-1.5polish.html" class="quick-link">
           <div class="quick-link-title">🎯 Phase 6 + 1.5/2 polish Audit (latest · 1st cycle · 1 CRIT + 2 HIGH inline-fixed)</div>
@@ -1255,6 +1317,9 @@
       <span class="eyebrow">🗺️ Roadmap</span>
       <h2><span class="icon">🗺️</span>開發路線圖</h2>
       <p class="section-sub">8 個 phase，按 founder priority 重新分 tier：先完成 function → 再 UI design → 最後 money。Phase number 反映原計劃，<strong>但執行順序按下面 tier badge</strong>。</p>
+      <div style="background: var(--green-soft, rgba(16,185,129,0.08)); padding: 14px 18px; border-radius: 12px; margin-bottom: 22px; font-size: 13.5px; line-height: 1.7; color: var(--ink-soft); border-left: 4px solid var(--green, #10b981);">
+        ✅ <strong>2026-06 現狀：Function / UI / Money 三層全部 ship 上線</strong>（再加核心架構重設計 → light-core pivot → 記憶手術 M2/M3/M4 → Wave 3 角色圖 → UI/UX 大改）。下面個別 phase 卡嘅進度條 / checklist 係<strong>原計劃時嘅狀態</strong>，未逐格更新 —— 最新進度以頂部「而家狀態」+ <code>pm/STATUS.md</code> 為準。淨返 <strong>final stage</strong>：5 條官方故事 + 全面 E2E → public launch。
+      </div>
 
       <!-- Priority tier legend -->
       <div style="background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; margin-bottom: 24px; font-size: 13px;">
@@ -1613,6 +1678,11 @@
         <div class="adr-section"><strong>Consequences:</strong> 唔需要 Phase 7 前準備 writer 合約 template。Author monetization defer 去 v1.5+。將來 author program 嘅版權安排（Q7）仲未 decide，但 launch 之前唔影響。</div>
       </div>
 
+      <div style="background: rgba(0,0,0,0.03); padding: 14px 18px; border-radius: 12px; margin-bottom: 20px; font-size: 13.5px; line-height: 1.7; color: var(--ink-soft); border-left: 4px solid var(--amber);">
+        ⚠️ <strong>下面只收錄到早期 ADR-001~010（2026-05-21 嘅 product 決定）。</strong>之後嘅重大決定未逐個搬上呢頁，真身住喺 <code>pm/DECISIONS.md</code>（產品 ADR）+ <code>pm/architecture/decisions.md</code>（核心架構 6 個 ADR）：
+        <br>• <strong>ADR-011~024</strong>：2-tier 簡化（砍 Pro Max / Adult tier）· KYC 取消（成人 = 自行確認 18+）· Standard 中文 GLM→DeepSeek · 成人向 GLM→Grok 4.1 · CrazyRouter 取代 OpenRouter · 只用 CrazyRouter + Anthropic（HK 限制）等。
+        <br>• <strong>架構 ADR-006 = LIGHT-CORE PIVOT</strong>（取代舊四層 GM 架構 · 非成人轉 Claude 直連）。
+      </div>
       <div class="adr">
         <div class="adr-head">
           <span class="adr-num">ADR-010</span>
