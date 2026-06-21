@@ -56,7 +56,7 @@ Only extract facts this turn's narrative TRULY established or changed. If none, 
 ## experiences[] — what a character LIVED this turn (separate from the facts above)
 Also extract meaningful EXPERIENCES: when something with real impact happens TO a cast character this turn, capture how they lived it. This is the layer that shapes who they gradually become (NOT facts — felt moments + responses).
 Each = (character, what_happened, my_response, emotional_tone, significance):
-- character — must be one of the listed cast
+- character — a cast member, OR a recurring named walk-on listed in the prompt
 - what_happened — what happened to/around them this turn (one short line)
 - my_response — how they reacted / dealt with it (short)
 - emotional_tone — their feeling (e.g. shaken, grateful, guarded, disheartened)
@@ -89,7 +89,7 @@ Most calm turns have 0-1 experiences — only capture genuinely meaningful momen
 ## experiences[] — 角色今回合「经历」咗咩（同上面的事实分开）
 另外抽有意义的经历：今回合有真正影响的事发生在某个角色身上时，记下他怎样经历它。这层会慢慢塑造他变成怎样的人（不是事实——是切身的时刻 + 反应）。
 每条 = (character, what_happened, my_response, emotional_tone, significance)：
-- character — 必须是上面名单之一
+- character — 角色名单中的人，或一个反复出现的有名路人
 - what_happened — 今回合发生在他身上的事（简短一句）
 - my_response — 他怎样反应 / 应对（简短）
 - emotional_tone — 当下情绪（如：震撼、感激、戒备、心淡）
@@ -121,7 +121,7 @@ Most calm turns have 0-1 experiences — only capture genuinely meaningful momen
 ## experiences[] — 角色今回合「經歷」咗咩（同上面嘅事實分開）
 另外抽有意義嘅經歷：今回合有真正影響嘅事發生喺某個角色身上時，記低佢點樣經歷佢。呢層會慢慢塑造佢變成點樣嘅人（唔係事實——係切身嘅時刻 + 反應）。
 每條 = (character, what_happened, my_response, emotional_tone, significance)：
-- character — 必須係上面名單之一
+- character — 角色名單入面嘅人，或者一個反覆出現嘅有名路人
 - what_happened — 今回合發生喺佢身上嘅事（簡短一句）
 - my_response — 佢點反應 / 應對（簡短）
 - emotional_tone — 當下情緒（如：震撼、感激、戒備、心淡）
@@ -195,6 +195,9 @@ export async function runCharacterMemoryExtraction(params: {
   cast: Array<{ id: string; name: string }>;
   /** 主角名 (subject 正規化:主角別名 / 真名 → 統一「主角」· 防 subject 漂移)。 */
   protagonistName?: string | null;
+  /** ADR-007 Stage 1b — 即興名冊嘅路人名。經歷可記喺呢啲名 (name-keyed · 冇
+   *  story_characters row) → 玩家不停互動嘅路人有機深化。信念唔用 (淨係 cast)。 */
+  rosterNames?: string[];
   aiNarrative: string;
   currentTurn: number;
   language?: StoryLanguage;
@@ -205,6 +208,7 @@ export async function runCharacterMemoryExtraction(params: {
     playthroughId,
     cast,
     protagonistName,
+    rosterNames,
     aiNarrative,
     currentTurn,
     language = "zh-Hant",
@@ -236,6 +240,12 @@ export async function runCharacterMemoryExtraction(params: {
     return canonicalSubject.get(key) ?? s.trim();
   };
   const castNames = cast.map((c) => c.name).join(", ");
+  // ADR-007 Stage 1b — 名冊路人 (經歷可記 name-keyed · 信念唔記)。dedup vs cast。
+  const castLower = new Set(cast.map((c) => c.name.trim().toLowerCase()));
+  const walkOns = (rosterNames ?? [])
+    .map((n) => (n ?? "").trim())
+    .filter((n) => n && !castLower.has(n.toLowerCase()));
+  const walkOnList = walkOns.length ? walkOns.join(", ") : "—";
 
   try {
     const result = await generateObject({
@@ -244,10 +254,10 @@ export async function runCharacterMemoryExtraction(params: {
       system: beliefSystemPrompt(language),
       prompt:
         language === "en"
-          ? `Cast (must be one of these): ${castNames}\n\nThis turn's narrative:\n${aiNarrative.slice(0, 4000)}\n\nExtract beliefs (facts) AND experiences (lived moments) per the system rules.`
+          ? `Cast: ${castNames}\nRecurring named walk-ons (experiences only · NOT beliefs): ${walkOnList}\n\nThis turn's narrative:\n${aiNarrative.slice(0, 4000)}\n\nExtract beliefs (facts · cast only) AND experiences (lived moments · cast OR a listed walk-on) per the system rules.`
           : language === "zh-Hans"
-            ? `角色名单（必须是其中之一）：${castNames}\n\n今回合叙事：\n${aiNarrative.slice(0, 4000)}\n\n依系统规则抽 beliefs（事实）和 experiences（经历）。`
-            : `角色名單（必須係其中之一）：${castNames}\n\n今回合敘事：\n${aiNarrative.slice(0, 4000)}\n\n依系統規則抽 beliefs（事實）同 experiences（經歷）。`,
+            ? `角色名单：${castNames}\n反复出现的有名路人（只记 experiences，不记 beliefs）：${walkOnList}\n\n今回合叙事：\n${aiNarrative.slice(0, 4000)}\n\n依系统规则抽 beliefs（事实·只限角色名单）和 experiences（经历·角色或路人）。`
+            : `角色名單：${castNames}\n反覆出現嘅有名路人（只記 experiences，唔記 beliefs）：${walkOnList}\n\n今回合敘事：\n${aiNarrative.slice(0, 4000)}\n\n依系統規則抽 beliefs（事實·只限角色名單）同 experiences（經歷·角色或路人）。`,
       temperature: 0.2,
       maxOutputTokens: 700,
     });
@@ -306,24 +316,31 @@ export async function runCharacterMemoryExtraction(params: {
     // walk-on (唔喺 cast → 冇 story_characters row) 喺度 drop · 佢哋嘅有機升級 = Stage 1b。
     // embedding 階段 1 留 null (先用近期-N 讀 · RAG-by-similarity 係之後嘅 refinement)。
     // weight = significance 映射 · 純儲存優先級 · 永不觸發角色改變 (ADR-007)。
+    // ADR-007 Stage 1b — 名冊路人經歷用 name-key (cast 用 character_id)。唔喺 cast
+    // 又唔喺名冊嘅名 → drop (避免 LLM 亂作個名塞落去)。
+    const rosterSet = new Set(walkOns.map((n) => n.toLowerCase()));
     let expWritten = 0;
     let expDropped = 0;
     for (const x of experiences) {
-      const charId = idByName.get(x.character.trim().toLowerCase());
-      if (!charId) {
-        expDropped++; // walk-on · Stage 1b 先處理有機升級
+      const key = x.character.trim().toLowerCase();
+      const charId = idByName.get(key);
+      const isWalkOn = !charId && rosterSet.has(key);
+      if (!charId && !isWalkOn) {
+        expDropped++; // 唔識嘅名 → drop
         continue;
       }
-      const { error } = await supabase.from("character_experiences").insert({
+      const row: Record<string, unknown> = {
         playthrough_id: playthroughId,
-        character_id: charId,
         turn_index: currentTurn,
         what_happened: x.what_happened.trim().slice(0, 500),
         my_response: x.my_response.trim().slice(0, 500),
         emotional_tone: x.emotional_tone.trim().slice(0, 60),
         weight: SIGNIFICANCE_TO_WEIGHT[x.significance],
         affects: [],
-      });
+      };
+      if (charId) row.character_id = charId;
+      else row.character_name = x.character.trim().slice(0, 40); // walk-on · name-keyed
+      const { error } = await supabase.from("character_experiences").insert(row);
       if (error) {
         const msg = String(error.message ?? "");
         if (/relation .* does not exist/i.test(msg)) {
@@ -401,4 +418,103 @@ export function formatBeliefsBlock(
         ? `[INTERNAL CONTEXT · 角色目前相信的事实（可能是错的/过时的）· DO NOT QUOTE · 让他们的言行跟这些一致]\n## 角色信念`
         : `[INTERNAL CONTEXT · 角色目前相信嘅事實（可能係錯嘅/過時嘅）· DO NOT QUOTE · 令佢哋嘅言行同呢啲保持一致]\n## 角色信念`;
   return `${header}\n${lines.join("\n")}`;
+}
+
+/**
+ * 格式化「角色經歷」block 注入 Narrator dynamic prompt (ADR-007 · Stage 2 讀出)。
+ *
+ * 角色深化嘅 surface 層:敘事者每回合睇返在場角色活過嘅事 + 點反應 → 自然演繹返一個
+ * 被經歷塑造嘅人 (無 threshold · 無進化事件 · 累積本身就係深度)。同 beliefsBlock 一樣
+ * [INTERNAL CONTEXT — DO NOT QUOTE] fence (felt-through-narrative · hard rule #19)。
+ *
+ * digestByCharId = Stage 3 嘅 per-character 壓縮摘要 (舊經歷「變成點」)。空 = 純近期。
+ * 每個角色:digest (if any) + recent N 條 (chrono)。空 → "" (block 自然消失)。
+ */
+export function formatExperiencesBlock(
+  rows: Array<{
+    character_id?: string | null;
+    character_name?: string | null; // ADR-007 Stage 1b · walk-on name-keyed row
+    turn_index: number;
+    what_happened: string;
+    my_response: string | null;
+    emotional_tone: string | null;
+    weight?: number | null;
+  }>,
+  castNameById: Map<string, string>,
+  language: StoryLanguage,
+  opts?: { recentPerChar?: number; milestonePerChar?: number; digestByName?: Map<string, string> },
+): string {
+  // Stage 3 (壓縮 · ADR-007):每角色 surface「近期 N 條 + 重大里程碑」· bound context 之餘
+  // 永遠保留角色定義性時刻 (weight≥floor 嘅救命之恩/背叛等 · 唔會因為耐就消失)。digest
+  // (LLM 長尾摘要) 由 digestByCharId 提供 · 留位未來強化。
+  const recentPerChar = opts?.recentPerChar ?? 6;
+  const milestonePerChar = opts?.milestonePerChar ?? 3;
+  const MILESTONE_FLOOR = 0.9;
+  const digestByName = opts?.digestByName;
+  // SEC: 經歷係 LLM 自由文字 · 注入 narrator system prompt 前消毒 (同 formatBeliefsBlock)。
+  const clean = (s: string, max = 160): string =>
+    String(s ?? "")
+      .replace(/[\r\n]+/g, " ")
+      .replace(/\[INTERNAL|DO NOT QUOTE|<\/?player_action>/gi, "")
+      .trim()
+      .slice(0, max);
+
+  type Row = (typeof rows)[number];
+  const fmtLine = (r: Row, star: boolean): string => {
+    const what = clean(r.what_happened);
+    if (!what) return "";
+    const resp = clean(r.my_response ?? "");
+    const tone = clean(r.emotional_tone ?? "", 40);
+    const mark = star ? "★ " : "";
+    return language === "en"
+      ? `- ${mark}(turn ${r.turn_index}) ${what}${resp ? ` → them: ${resp}` : ""}${tone ? ` [${tone}]` : ""}`
+      : `- ${mark}（第${r.turn_index}回合）${what}${resp ? ` → 佢：${resp}` : ""}${tone ? `（${tone}）` : ""}`;
+  };
+
+  // resolve 每行嘅顯示名 (cast → castNameById · walk-on → character_name) · 按 NAME
+  // group ALL rows (input arrives turn DESC)。
+  const byName = new Map<string, Row[]>();
+  for (const r of rows) {
+    const name = r.character_id ? castNameById.get(r.character_id) : (r.character_name ?? undefined);
+    if (!name) continue;
+    const arr = byName.get(name) ?? [];
+    arr.push(r);
+    byName.set(name, arr);
+  }
+
+  const names = new Set<string>([...byName.keys(), ...(digestByName?.keys() ?? [])]);
+  const sections: string[] = [];
+  for (const name of names) {
+    const all = byName.get(name) ?? []; // turn DESC
+    const recent = all.slice(0, recentPerChar);
+    const recentTurns = new Set(recent.map((r) => r.turn_index));
+    // 里程碑:weight≥floor 且唔喺 recent · 取最重 milestonePerChar 條 (永遠保留)。
+    const milestones = all
+      .filter((r) => (r.weight ?? 0) >= MILESTONE_FLOOR && !recentTurns.has(r.turn_index))
+      .sort((a, b) => (b.weight ?? 0) - (a.weight ?? 0))
+      .slice(0, milestonePerChar);
+
+    const lines: string[] = [];
+    const digest = digestByName?.get(name);
+    const cleanDigest = digest ? clean(digest, 400) : "";
+    if (cleanDigest) lines.push(language === "en" ? `(so far) ${cleanDigest}` : `（至今）${cleanDigest}`);
+    // 里程碑 chrono 先 (★) · 跟住近期 chrono。
+    for (const r of milestones.slice().sort((a, b) => a.turn_index - b.turn_index)) {
+      const l = fmtLine(r, true);
+      if (l) lines.push(l);
+    }
+    for (const r of recent.slice().reverse()) {
+      const l = fmtLine(r, false);
+      if (l) lines.push(l);
+    }
+    if (lines.length > 0) sections.push(`### ${name}\n${lines.join("\n")}`);
+  }
+  if (sections.length === 0) return "";
+  const header =
+    language === "en"
+      ? `[INTERNAL CONTEXT · what these characters have LIVED (shapes who they are now — not a fact list) · DO NOT QUOTE · let their reactions stay consistent with what they've been through; don't regress them]\n## Character experiences`
+      : language === "zh-Hans"
+        ? `[INTERNAL CONTEXT · 这些角色经历过的事（塑造他们现在是谁——不是事实清单）· DO NOT QUOTE · 让他们的反应跟所经历的一致，别让他们倒退]\n## 角色经历`
+        : `[INTERNAL CONTEXT · 呢啲角色經歷過嘅事（塑造緊佢哋而家係邊個——唔係事實清單）· DO NOT QUOTE · 令佢哋嘅反應同經歷一致，唔好令佢哋倒退]\n## 角色經歷`;
+  return `${header}\n${sections.join("\n")}`;
 }
