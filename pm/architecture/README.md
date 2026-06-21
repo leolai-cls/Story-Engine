@@ -16,7 +16,7 @@
 - **GM / 四層仲裁 → 整個拎走**（`01-philosophy.md` 原則 2/3 廢除 · `02-turn-pipeline.md` 失效）。核心 = 單 Narrator 近乎直出（非成人 Claude / 成人 Grok）。
 - **角色靈魂沉澱 / 經歷寫入（`03-character-soul.md`）→ 推遲去 Wave 2**（角色 MD + keyword 調用 · MemPalace 式）。
 - **記憶（`04-memory.md`）→ 照留**，但由「護城河 #1」降做「衞生」。
-- **自適應介面 / panel（`06`）+ 故事自適應 mechanics（`05`）→ 維持**（擲骰等移去將來「深模式」）。
+- **自適應介面 / panel（`06`）+ 故事自適應 mechanics（`05`）→ 移出核心 · 推去將來「深模式」opt-in**（同擲骰一樣 —— AI 為每個故事生成專屬 UI = 重型 machinery，違反「最少干預」）。⚠️ **唔係 light-core 路線嘅下一步**（之前呢行寫「維持」係 Session-16 殘留 drift · 已對齊 ADR-006 · 2026-06-21 修正）。light-core 只保留現有最小 state panel（質性）。05/06 + `IMPLEMENTATION-stage3.md` 保留作將來深模式參考。
 
 **所以**：讀呢 folder 任何文件前，先讀 `decisions.md` ADR-006。凡衝突以 ADR-006 為準。下面文件保留作 Wave 2 參考 + 歷史記錄。
 

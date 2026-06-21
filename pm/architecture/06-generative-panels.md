@@ -3,6 +3,11 @@
 > AI 揀 panel + 配置 · open-ended component kit。
 > Anchor 原則：[01-philosophy] 原則 1 (emergent)。
 
+> 🛑 **已擱埋 / 推去將來「深模式」（2026-06-21 · 對齊 decisions.md ADR-006）。**
+> light-core pivot 後,呢個（AI 生成式 panel）被視為重型 machinery、違反「最少干預」,
+> **同擲骰一齊移出核心。唔係 light-core 路線嘅下一步。** 本份 + `IMPLEMENTATION-stage3.md`
+> 保留作將來深模式參考。
+
 ---
 
 ## 核心理念

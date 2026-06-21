@@ -3,6 +3,12 @@
 > 由 [06-generative-panels] 概念落到可執行 milestone。開工前地圖。
 > Grounded 喺真實 code (2026-06-01 讀過 state-panel + state-schema)。
 
+> 🛑 **已擱埋 / 推去將來「深模式」（2026-06-21 · 對齊 decisions.md ADR-006）。**
+> light-core pivot 後,自適應介面（AI 為每個故事生成專屬 UI panel）被視為重型
+> machinery、違反「最少干預」,**同擲骰一齊移出核心 → 將來深模式 opt-in**。**唔係
+> 而家嘅實作項目。** light-core 只保留現有最小 state panel（質性 · Session 18 PR #77）。
+> 本份保留作將來深模式參考。要做之前先確認 founder 重啟深模式。
+
 ---
 
 ## 由現狀躍進到目標 — 唔係由零起
