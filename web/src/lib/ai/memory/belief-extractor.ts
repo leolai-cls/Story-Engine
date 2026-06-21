@@ -449,7 +449,9 @@ export function formatExperiencesBlock(
   // (LLM 長尾摘要) 由 digestByCharId 提供 · 留位未來強化。
   const recentPerChar = opts?.recentPerChar ?? 6;
   const milestonePerChar = opts?.milestonePerChar ?? 3;
-  const MILESTONE_FLOOR = 0.9;
+  // 0.85 (同 route 嘅 SQL milestone floor 一致 · major=0.9)。⚠️ 唔好寫返 0.9：route SQL
+  // 側 weight 係 float4，0.9 比較會 match 唔到 major 行 (見 route 嘅 MILESTONE_FLOOR 註)。
+  const MILESTONE_FLOOR = 0.85;
   const digestByName = opts?.digestByName;
   // SEC: 經歷係 LLM 自由文字 · 注入 narrator system prompt 前消毒 (同 formatBeliefsBlock)。
   const clean = (s: string, max = 160): string =>
@@ -471,21 +473,33 @@ export function formatExperiencesBlock(
       : `- ${mark}（第${r.turn_index}回合）${what}${resp ? ` → 佢：${resp}` : ""}${tone ? `（${tone}）` : ""}`;
   };
 
-  // resolve 每行嘅顯示名 (cast → castNameById · walk-on → character_name) · 按 NAME
-  // group ALL rows (input arrives turn DESC)。
-  const byName = new Map<string, Row[]>();
+  // group ALL rows by a STABLE key (cast → character_id · walk-on → "wo:"+name) 而唔係
+  // 顯示名 → 兩個同名角色唔會錯誤合併經歷 (audit MED)。display 時先 resolve 名。input
+  // arrives turn DESC。
+  const groups = new Map<string, { name: string; rows: Row[]; latest: number }>();
   for (const r of rows) {
     const name = r.character_id ? castNameById.get(r.character_id) : (r.character_name ?? undefined);
     if (!name) continue;
-    const arr = byName.get(name) ?? [];
-    arr.push(r);
-    byName.set(name, arr);
+    const key = r.character_id ?? `wo:${r.character_name}`;
+    const g = groups.get(key) ?? { name, rows: [], latest: -1 };
+    g.rows.push(r);
+    if (r.turn_index > g.latest) g.latest = r.turn_index;
+    groups.set(key, g);
   }
 
-  const names = new Set<string>([...byName.keys(), ...(digestByName?.keys() ?? [])]);
+  // 全局上限 (audit LOW · 防 context 膨脹喺貴嘅 narrator call)：最多 surface MAX_CHARS
+  // 個角色 · 揀最近活躍嗰啲 (latest turn desc · ≈ 在場/相關)。per-char 已有 recent+milestone cap。
+  const MAX_CHARS = 10;
+  const orderedKeys = [...groups.entries()]
+    .sort((a, b) => b[1].latest - a[1].latest)
+    .slice(0, MAX_CHARS)
+    .map(([k]) => k);
+
   const sections: string[] = [];
-  for (const name of names) {
-    const all = byName.get(name) ?? []; // turn DESC
+  for (const key of orderedKeys) {
+    const g = groups.get(key)!;
+    const name = g.name;
+    const all = g.rows; // turn DESC
     const recent = all.slice(0, recentPerChar);
     const recentTurns = new Set(recent.map((r) => r.turn_index));
     // 里程碑:weight≥floor 且唔喺 recent · 取最重 milestonePerChar 條 (永遠保留)。

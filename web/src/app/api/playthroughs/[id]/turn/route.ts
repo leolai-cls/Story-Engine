@@ -556,9 +556,12 @@ export async function POST(
       .filter((id): id is string => !!id);
     // ADR-007 Stage 1b — 名冊路人名 (排除 cast) → 一齊讀佢哋 name-keyed 嘅經歷。
     const castLower = new Set(ctx.characters.map((c) => c.card.name.trim().toLowerCase()));
+    // slice 對齊 ROSTER_CAP=40 (audit MED · 之前讀側 slice(20) 但寫側無 slice →
+    // 第 21-40 個路人寫咗讀唔返)。
     const rosterWalkOns = parseMentionRoster((pt as { mention_roster?: unknown }).mention_roster)
       .map((r) => ((r as { name?: string }).name ?? "").trim())
-      .filter((n) => n && !castLower.has(n.toLowerCase()));
+      .filter((n) => n && !castLower.has(n.toLowerCase()))
+      .slice(0, 40);
 
     type ExpRow = {
       character_id: string | null;
@@ -571,42 +574,72 @@ export async function POST(
     };
     const expCols =
       "character_id, character_name, turn_index, what_happened, my_response, emotional_tone, weight";
-    const merged: ExpRow[] = [];
-
+    const base = () =>
+      supabase.from("character_experiences").select(expCols).eq("playthrough_id", playthroughId);
+    // ⚠️ 里程碑 floor 用 0.85 · 唔可以用 0.9：weight 係 float4，0.9::float4 = 0.89999997
+    // < 0.9::float8，所以 SQL `weight >= 0.9` 一條都 match 唔到 (audit HIGH 驗證關捉到)。
+    // major=0.9 → 0.85 floor 啱啱好收 major、唔收 notable(0.6)。
+    const MILESTONE_FLOOR = 0.85;
+    const queries: Array<PromiseLike<unknown>> = [];
     if (castIds.length > 0) {
-      const { data, error } = await supabase
-        .from("character_experiences")
-        .select(expCols)
-        .eq("playthrough_id", playthroughId)
-        .in("character_id", castIds)
-        .order("turn_index", { ascending: false })
-        .limit(60);
-      if (error) {
-        if (!/relation .* does not exist/i.test(String(error.message ?? ""))) {
-          console.warn("[turn] experience read (cast) failed:", error.message);
-        }
-      } else if (data) merged.push(...(data as ExpRow[]));
+      // 近期窗 (turn DESC · bound context)
+      queries.push(
+        base().in("character_id", castIds).order("turn_index", { ascending: false }).limit(60),
+      );
+      // 里程碑 — 脫離近期窗 · 定義性時刻永遠保留 (audit HIGH fix · 補返「永遠保留」承諾)
+      queries.push(
+        base()
+          .in("character_id", castIds)
+          .gte("weight", MILESTONE_FLOOR)
+          .order("weight", { ascending: false })
+          .order("turn_index", { ascending: false })
+          .limit(castIds.length * 3),
+      );
     }
     if (rosterWalkOns.length > 0) {
-      const { data, error } = await supabase
-        .from("character_experiences")
-        .select(expCols)
-        .eq("playthrough_id", playthroughId)
-        .in("character_name", rosterWalkOns.slice(0, 20))
-        .order("turn_index", { ascending: false })
-        .limit(30);
-      if (error) {
-        if (!/relation .* does not exist|column .* does not exist/i.test(String(error.message ?? ""))) {
-          console.warn("[turn] experience read (walk-on) failed:", error.message);
-        }
-      } else if (data) merged.push(...(data as ExpRow[]));
+      queries.push(
+        base().in("character_name", rosterWalkOns).order("turn_index", { ascending: false }).limit(30),
+      );
+      queries.push(
+        base()
+          .in("character_name", rosterWalkOns)
+          .gte("weight", MILESTONE_FLOOR)
+          .order("weight", { ascending: false })
+          .order("turn_index", { ascending: false })
+          .limit(rosterWalkOns.length * 3),
+      );
     }
 
-    if (merged.length > 0) {
+    const merged: ExpRow[] = [];
+    if (queries.length > 0) {
+      // 並行 (audit MED · 之前串行 = 每回合多幾個 round-trip 延遲喺關鍵路徑)。
+      const results = await Promise.all(queries);
+      for (const res of results) {
+        const error = (res as { error?: { message?: string } | null }).error;
+        const data = (res as { data?: ExpRow[] | null }).data;
+        if (error) {
+          const msg = String(error.message ?? "");
+          if (!/relation .* does not exist|column .* does not exist/i.test(msg)) {
+            console.warn("[turn] experience read failed:", msg);
+          }
+        } else if (data) merged.push(...data);
+      }
+    }
+    // dedupe (近期窗 + 里程碑 query 可能撈到同一行) · by subject + turn + 內容前綴。
+    const seen = new Set<string>();
+    const deduped = merged.filter((r) => {
+      const subj = r.character_id ?? `wo:${r.character_name}`;
+      const k = `${subj}|${r.turn_index}|${(r.what_happened ?? "").slice(0, 40)}`;
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+
+    if (deduped.length > 0) {
       const castNameById = new Map<string, string>(
         ctx.characters.map((c) => [c.character_id ?? "", c.card.name]),
       );
-      ctx.experiencesBlock = formatExperiencesBlock(merged, castNameById, storyLanguage);
+      ctx.experiencesBlock = formatExperiencesBlock(deduped, castNameById, storyLanguage);
     }
   } catch (e) {
     console.warn("[turn] experience read exception:", e instanceof Error ? e.message : e);

@@ -458,12 +458,18 @@ export const BACKGROUND_RESERVE_TOKENS = {
   // separate slot — gate==charge stays symmetric via this single constant.
   lorebook: { inputTokens: 2300, outputTokens: 600 },
   summarizer: { inputTokens: 700, outputTokens: 140 },
-  // Character-memory extractor — every turn (like lorebook): beliefs (≤4 facts) +
-  // experiences (≤3 lived moments · ADR-007) folded into ONE call (founder「唔加新
-  // call」). Output bumped 120→700 to cover the experience text so the charge (this
-  // reserve · billed at onFinish BEFORE the after() call runs) stays ≥ actual
-  // (extractor maxOutputTokens=700). Over-reserve safe · full per-run · no drift.
-  beliefs: { inputTokens: 2300, outputTokens: 700 },
+  // Character-memory extractor (beliefs + experiences · ADR-007) — every turn, ONE
+  // folded call (founder「唔加新 call」). Charged at this RESERVE at onFinish (before
+  // the after() call runs), so reserve must stay ≥ actual but not bloat the bill.
+  // 2026-06-21 (audit re-baseline): was {2300,700} — output 700 was sized for the
+  // THEORETICAL schema max but real output is ~120-200 tokens (rows avg ~18 chars ·
+  // "most calm turns 0-1 experiences") → it over-charged ~5 credits EVERY turn (ledger
+  // 35→42 on ship day). Output → 300 (covers ≤4 short beliefs + ≤3 short experiences ·
+  // still > the ~150 typical · safe). Input → 3000 (covers the narrative.slice(4000)
+  // + cast/walk-on lists + 3-locale prompt · was 2300 = slight under-bill on long
+  // narratives). maxOutputTokens=700 stays the runaway cap. pickUtilityModel = same
+  // for run + charge → no drift (hard rule #4); adult → Grok (hard rule #5).
+  beliefs: { inputTokens: 3000, outputTokens: 300 },
   embedTokens: 400,
 } as const;
 
