@@ -51,7 +51,19 @@ Each belief = (character, subject, predicate, object):
 - ✗ {character:"killer", ..., object:"won't hurt kids"}  (inner conflict, not a fact)
 - ✗ anything about emotions (trust / like / anger) or "what kind of person X is"
 
-Only extract facts this turn's narrative TRULY established or changed. If none, return an empty array.`;
+Only extract facts this turn's narrative TRULY established or changed. If none, return an empty beliefs array.
+
+## experiences[] — what a character LIVED this turn (separate from the facts above)
+Also extract meaningful EXPERIENCES: when something with real impact happens TO a cast character this turn, capture how they lived it. This is the layer that shapes who they gradually become (NOT facts — felt moments + responses).
+Each = (character, what_happened, my_response, emotional_tone, significance):
+- character — must be one of the listed cast
+- what_happened — what happened to/around them this turn (one short line)
+- my_response — how they reacted / dealt with it (short)
+- emotional_tone — their feeling (e.g. shaken, grateful, guarded, disheartened)
+- significance — minor (everyday) / notable (clear impact) / major (turning point: a rescue, a betrayal, a vow)
+✅ the protagonist took a blade for them → {character:"…", what_happened:"protagonist shielded them, got hurt", my_response:"lowered their guard", emotional_tone:"shaken + grateful", significance:"major"}
+❌ Skip pure walk-through / mundane dialogue where no one is really affected.
+Most calm turns have 0-1 experiences — only capture genuinely meaningful moments. If none, return an empty experiences array.`;
   }
   if (language === "zh-Hans") {
     return `你是互动故事的一致性工具。只抽「事实性、有真假值、会随剧情改变、AI 容易记漏」的信念。
@@ -72,7 +84,19 @@ Only extract facts this turn's narrative TRULY established or changed. If none, 
 - ✗ {object:"不伤害小孩"}（内心矛盾，不是事实）
 - ✗ 任何情绪（信任 / 喜欢 / 愤怒）或「这角色是什么人」的判断
 
-只抽今回合叙事真正确立或改变的事实。没有就返空数组。`;
+只抽今回合叙事真正确立或改变的事实。没有就返空 beliefs 数组。
+
+## experiences[] — 角色今回合「经历」咗咩（同上面的事实分开）
+另外抽有意义的经历：今回合有真正影响的事发生在某个角色身上时，记下他怎样经历它。这层会慢慢塑造他变成怎样的人（不是事实——是切身的时刻 + 反应）。
+每条 = (character, what_happened, my_response, emotional_tone, significance)：
+- character — 必须是上面名单之一
+- what_happened — 今回合发生在他身上的事（简短一句）
+- my_response — 他怎样反应 / 应对（简短）
+- emotional_tone — 当下情绪（如：震撼、感激、戒备、心淡）
+- significance — minor（日常）/ notable（明显影响）/ major（转折：救命之恩、背叛、誓言）
+✅ 主角为他挡了一刀 → {character:"…", what_happened:"主角替他挡刀受了伤", my_response:"收起戒备", emotional_tone:"震撼+感激", significance:"major"}
+❌ 跳过纯过场 / 没人真正受影响的日常对白。
+大部分平淡回合 experiences 是 0-1 条——只记真正有意义的时刻。没有就返空 experiences 数组。`;
   }
   return `你係互動故事嘅一致性工具。只抽「事實性、有真假值、會隨劇情改變、AI 容易記漏」嘅信念。
 
@@ -92,7 +116,19 @@ Only extract facts this turn's narrative TRULY established or changed. If none, 
 - ✗ {object:"唔傷害小朋友"}（內心矛盾，唔係事實）
 - ✗ 任何情緒（信任 / 喜歡 / 憤怒）或「呢個角色係咩人」嘅判斷
 
-只抽今回合敘事真正確立或改變嘅事實。冇就返空數組。`;
+只抽今回合敘事真正確立或改變嘅事實。冇就返空 beliefs 數組。
+
+## experiences[] — 角色今回合「經歷」咗咩（同上面嘅事實分開）
+另外抽有意義嘅經歷：今回合有真正影響嘅事發生喺某個角色身上時，記低佢點樣經歷佢。呢層會慢慢塑造佢變成點樣嘅人（唔係事實——係切身嘅時刻 + 反應）。
+每條 = (character, what_happened, my_response, emotional_tone, significance)：
+- character — 必須係上面名單之一
+- what_happened — 今回合發生喺佢身上嘅事（簡短一句）
+- my_response — 佢點反應 / 應對（簡短）
+- emotional_tone — 當下情緒（如：震撼、感激、戒備、心淡）
+- significance — minor（日常）/ notable（明顯影響）/ major（轉折：救命之恩、背叛、誓言）
+✅ 主角為佢擋咗一刀 → {character:"…", what_happened:"主角替佢擋刀受咗傷", my_response:"收起戒備", emotional_tone:"震撼+感激", significance:"major"}
+❌ 跳過純過場 / 冇人真正受影響嘅日常對白。
+大部分平淡回合 experiences 係 0-1 條——只記真正有意義嘅時刻。冇就返空 experiences 數組。`;
 }
 
 // predicate = dedup 維度 key (audit BELIEF-01 fix · hard rule #28 pattern a):
@@ -117,8 +153,33 @@ const BeliefSchema = z.object({
   object: z.string().min(1).max(80),
 });
 
+// ── 角色經歷 (ADR-007 · 2026-06-18) ──────────────────────────────────────────
+// 折入同一個 call (founder「唔加新 LLM call」)。經歷 = 角色嘅「lived moment + felt
+// response」· 累積落去由敘事者整體讀返自然塑造角色 (無 threshold · 無進化事件)。
+// 同信念互補:信念 = 事實 (生死/身份)；經歷 = 發生咗咩 + 點反應 + 情緒。
+//
+// significance = controlled enum · grammar-cheap (hard rule #10) · 映射去
+// character_experiences.weight。⚠️ weight 喺 ADR-007 只係「儲存優先級」(壓縮時揀
+// 邊條保留清楚) · 永不觸發角色改變。
+const SIGNIFICANCE_TO_WEIGHT: Record<"minor" | "notable" | "major", number> = {
+  minor: 0.3,
+  notable: 0.6,
+  major: 0.9,
+};
+
+const ExperienceSchema = z.object({
+  character: z.string().min(1).max(40),
+  what_happened: z.string().min(1).max(200),
+  my_response: z.string().min(1).max(200),
+  emotional_tone: z.string().min(1).max(40),
+  significance: z.enum(["minor", "notable", "major"]),
+});
+
+// 折疊 schema 細 (hard rule #10):beliefs max 4 + experiences max 3。兩個 bounded
+// 短字串陣列 · 同單獨 belief schema 同一量級。若實機見 grammar 報錯 → 拆做獨立 call。
 const BeliefExtractionSchema = z.object({
   beliefs: z.array(BeliefSchema).max(4),
+  experiences: z.array(ExperienceSchema).max(3),
 });
 
 /** 同 lorebook 一致:短敘事 skip。 */
@@ -127,7 +188,7 @@ const MIN_NARRATIVE_LEN = 80;
 /** 主角別名 → 一律正規化做「主角」(subject 去重穩定 · audit QUAL-03)。 */
 const PROTAGONIST_ALIASES = new Set(["主角", "你", "protagonist", "the protagonist", "player"]);
 
-export async function runBeliefExtraction(params: {
+export async function runCharacterMemoryExtraction(params: {
   supabase: SupabaseClient;
   playthroughId: string;
   /** 主要角色名單 (name → character_id 解析 · 唔做第二個 LLM 估 id · hard rule #40)。 */
@@ -183,26 +244,28 @@ export async function runBeliefExtraction(params: {
       system: beliefSystemPrompt(language),
       prompt:
         language === "en"
-          ? `Cast (belief holders must be one of these): ${castNames}\n\nThis turn's narrative:\n${aiNarrative.slice(0, 4000)}\n\nExtract factual beliefs per the system rules.`
+          ? `Cast (must be one of these): ${castNames}\n\nThis turn's narrative:\n${aiNarrative.slice(0, 4000)}\n\nExtract beliefs (facts) AND experiences (lived moments) per the system rules.`
           : language === "zh-Hans"
-            ? `角色名单（信念持有者必须是其中之一）：${castNames}\n\n今回合叙事：\n${aiNarrative.slice(0, 4000)}\n\n依系统规则抽事实性信念。`
-            : `角色名單（信念持有者必須係其中之一）：${castNames}\n\n今回合敘事：\n${aiNarrative.slice(0, 4000)}\n\n依系統規則抽事實性信念。`,
+            ? `角色名单（必须是其中之一）：${castNames}\n\n今回合叙事：\n${aiNarrative.slice(0, 4000)}\n\n依系统规则抽 beliefs（事实）和 experiences（经历）。`
+            : `角色名單（必須係其中之一）：${castNames}\n\n今回合敘事：\n${aiNarrative.slice(0, 4000)}\n\n依系統規則抽 beliefs（事實）同 experiences（經歷）。`,
       temperature: 0.2,
-      maxOutputTokens: 500,
+      maxOutputTokens: 700,
     });
 
     const beliefs = result.object.beliefs ?? [];
+    const experiences = result.object.experiences ?? [];
     const usage = {
       inputTokens: result.usage?.inputTokens,
       outputTokens: result.usage?.outputTokens,
     };
-    if (beliefs.length === 0) {
+    if (beliefs.length === 0 && experiences.length === 0) {
       if (contentRating === "adult") {
-        console.log(`[belief] adult generateObject OK · 0 beliefs (valid no-op) · pt=${playthroughId}`);
+        console.log(`[char-mem] adult generateObject OK · 0 beliefs / 0 experiences (valid no-op) · pt=${playthroughId}`);
       }
       return { written: 0, usage };
     }
 
+    // ── beliefs (facts · invalidate-then-insert via apply_belief) ──
     let written = 0;
     let unresolved = 0;
     for (const b of beliefs) {
@@ -237,14 +300,52 @@ export async function runBeliefExtraction(params: {
       written++;
     }
 
-    if (written > 0 || unresolved > 0) {
+    // ── experiences (ADR-007 · append-only · Stage 1 = main cast only) ──
+    // 角色深化嘅燃料:每條 = 角色今回合經歷咗咩 + 點反應。Append-only (無 invalidate ·
+    // 累積本身就係深度 · 敘事者整體讀返自然演繹 · 無 threshold / 無進化事件)。
+    // walk-on (唔喺 cast → 冇 story_characters row) 喺度 drop · 佢哋嘅有機升級 = Stage 1b。
+    // embedding 階段 1 留 null (先用近期-N 讀 · RAG-by-similarity 係之後嘅 refinement)。
+    // weight = significance 映射 · 純儲存優先級 · 永不觸發角色改變 (ADR-007)。
+    let expWritten = 0;
+    let expDropped = 0;
+    for (const x of experiences) {
+      const charId = idByName.get(x.character.trim().toLowerCase());
+      if (!charId) {
+        expDropped++; // walk-on · Stage 1b 先處理有機升級
+        continue;
+      }
+      const { error } = await supabase.from("character_experiences").insert({
+        playthrough_id: playthroughId,
+        character_id: charId,
+        turn_index: currentTurn,
+        what_happened: x.what_happened.trim().slice(0, 500),
+        my_response: x.my_response.trim().slice(0, 500),
+        emotional_tone: x.emotional_tone.trim().slice(0, 60),
+        weight: SIGNIFICANCE_TO_WEIGHT[x.significance],
+        affects: [],
+      });
+      if (error) {
+        const msg = String(error.message ?? "");
+        if (/relation .* does not exist/i.test(msg)) {
+          console.warn("[char-mem] character_experiences table missing — skip experiences");
+          break; // 表唔存在 · 整批失敗 · 唔使逐個試
+        }
+        console.warn(`[char-mem] experience insert failed for ${x.character}: ${msg}`);
+        continue;
+      }
+      expWritten++;
+    }
+
+    if (written > 0 || unresolved > 0 || expWritten > 0 || expDropped > 0) {
       console.log(
-        `[belief] turn ${currentTurn}: wrote ${written}/${beliefs.length} beliefs` +
-          (unresolved > 0 ? ` (${unresolved} dropped · holder not in cast)` : "") +
+        `[char-mem] turn ${currentTurn}: ${written}/${beliefs.length} beliefs` +
+          (unresolved > 0 ? ` (${unresolved} holder not in cast)` : "") +
+          ` · ${expWritten}/${experiences.length} experiences` +
+          (expDropped > 0 ? ` (${expDropped} walk-on · Stage 1b)` : "") +
           ` · pt=${playthroughId}`,
       );
     }
-    return { written, usage };
+    return { written: written + expWritten, usage };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     console.warn(
