@@ -18,7 +18,7 @@
 
 **✅ Audit wave 1 完成 (PR #54 · 676179d)**: 3-agent 平行 audit (data/cost/regression) → fix wave → 收斂 audit (live DB 實測) = 0 blocker/HIGH/MEDIUM。修咗 pcs 欄位上鎖 (BLOCKER) + 失敗唔扣credit + 信念去重 + interaction_count atomic + experience credit reserve + M4 並行讀取。migration 0051-0053 已 apply prod。
 
-**🎨 沉浸感原則 lock (2026-06-01 · 推翻舊 hard rule #19)**: 護城河可見 = 敘事流露 · 唔係 dashboard/journal/裸好感度數字 (「睇哈利波特唔會列晒所有嘢」)。Memory Journal UI = 唔做。現有裸數字條 = 唔獨立 fix · 併入 Stage 3 自適應介面。
+**🎨 沉浸感原則 lock (2026-06-01 · 推翻舊 hard rule #19)**: 護城河可見 = 敘事流露 · 唔係 dashboard/journal/裸好感度數字 (「睇哈利波特唔會列晒所有嘢」)。Memory Journal UI = 唔做。現有裸數字條 = 唔獨立 fix · 原計劃併入 Stage 3 自適應介面。⚠️ **更正 2026-06-21**：Stage 3 自適應介面已隨 light-core 擱埋（推去將來深模式 · 見 ADR-006）· 裸數字條改由 Session 18 PR #77「AI 為故事揀質性 state panel」處理。
 
 **✅ 已 ship + 部署 prod（Session 17 · 2026-06-02）— LIGHT-CORE PIVOT**（取代 Session 16 四層架構 · ⚠️ 以下為當時紀錄，所有「未 merge / 未部署 / 待 confirm」字眼早已完成上線；之後 Session 18-20 仲有再修，最新狀態見頂部 Last updated）：founder 親手玩完發現**比 raw LLM 更慢 + 回合間更唔一致 + 感受唔到差異** → 重大方向修正。完整：`CLAUDE.md` 頂部 banner + `pm/architecture/decisions.md` ADR-006 + `rebuild-plan-light-core.html`。驗證：市場研究（`market-positioning-research.html`）+ 7 人策略委員會（`strategy-committee-*.html`）。
 - **輕核心**：拎走 GM / 四層仲裁（玩起似 raw LLM · 最少干預）· 非成人 → **Claude 直連**（Standard=Sonnet · Pro=Opus · 真逐字串流 + cache）· 成人 → **Grok 不變** · 記憶照留（**由護城河 #1 降做衞生**）· 擲骰移出核心。

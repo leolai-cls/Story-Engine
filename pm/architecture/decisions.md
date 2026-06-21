@@ -42,7 +42,8 @@
 **對其他 ADR / 原則嘅影響**：
 - **ADR-001（GM 降做 prep 員）→ SUPERSEDED**：唔再 demote，係**整個拎走**。GM/Director 喺核心路徑 0 live caller（neuter + dead scaffolding · 留 cleanup PR）。
 - **ADR-002（只守法律底線）→ 維持**（成人 post-hoc 法律檢查 + 非成人 CSAM input floor）。
-- **ADR-003（角色三層靈魂 + 沉澱張力）→ 推遲去 Wave 2**（角色 MD + keyword 調用 · MemPalace 式）。經歷「寫入」暫時關咗。
+- **ADR-003（角色三層靈魂 + 沉澱張力）→ 推遲去 Wave 2**（角色 MD + keyword 調用 · MemPalace 式）。經歷「寫入」暫時關咗。（後續：角色靈魂於 Session 20 以 **ADR-007** 漸變式重做完成。）
+- **ADR-005 + 05/06（自適應介面 / 生成式 panel · 故事自適應 mechanics）→ 移出核心 · 推去將來「深模式」opt-in**（同擲骰一樣 —— AI 為每個故事生成專屬 UI panel = 重型 machinery，違反 light-core「最少干預」）。light-core 只保留現有**最小 state panel（質性）**。⚠️ **唔係 light-core 路線嘅實作項目**；`IMPLEMENTATION-stage3.md` + `06-generative-panels.md` 保留作將來深模式參考。（補記 2026-06-21：之前 README/CLAUDE 寫自適應介面「維持/下一步」係 Session-16 殘留 drift，以本行為準。）
 - **原則 1（emergent）+ 原則 4（零自我審查）→ 維持**；**原則 2（GM as prep）+ 原則 3（四層優先）→ 廢除**。
 
 **狀態**：✅ Wave 1 已實作 + build + 兩輪審計修好（branch `feat/light-core-wave1` · 3 commit · **未 merge · 未部署測**）。Wave 2 pending。完整實作計劃 + 交叉檢查見 repo 根 `rebuild-plan-light-core.html`。

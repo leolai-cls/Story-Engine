@@ -102,7 +102,7 @@
 
 **外部參考**：MemPalace（記憶藍本，藍本重建唔內嵌）+ OpenDesign（panel 概念啟發）— research 結論喺 `04-memory.md` / `06-generative-panels.md`。
 
-**Phase placement**：呢個係 launch 前嘅核心重設計，DESIGN LOCKED · IMPLEMENTATION PENDING。實作優先級：角色靈魂 > GM 重構（本質同一件事）> 自適應介面。
+**Phase placement**：⚠️ 呢段係 Session 16（**light-core 之前**）嘅設計,以頂部 light-core banner + `pm/architecture/decisions.md` ADR-006 為準。**light-core 之後實況（2026-06-21 更正）**：角色靈魂 = Session 20 以 **ADR-007** 漸變式做完 · GM = 整個拎走 · 記憶 = Session 19 做完 · **自適應介面 = 移出核心、推去將來「深模式」opt-in（同擲骰一樣 · 唔再係下一步）**。下面舊寫「實作優先級：角色靈魂 > GM 重構 > 自適應介面」係殘留,自適應介面嗰part 已被 light-core 擱埋。
 
 ---
 
