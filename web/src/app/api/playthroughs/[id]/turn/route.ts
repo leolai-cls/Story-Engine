@@ -37,7 +37,7 @@ import { StoryBibleSchema } from "@/schemas/bible";
 import { retrieveMemory } from "@/lib/ai/memory/retriever";
 import { maybeRunSummarization } from "@/lib/ai/memory/summarizer";
 import { runLorebookExtraction } from "@/lib/ai/memory/lorebook";
-import { runCharacterMemoryExtraction, formatBeliefsBlock } from "@/lib/ai/memory/belief-extractor";
+import { runCharacterMemoryExtraction, formatBeliefsBlock, formatExperiencesBlock } from "@/lib/ai/memory/belief-extractor";
 import {
   parseMentionRoster,
   mergeMentionRoster,
@@ -543,6 +543,73 @@ export async function POST(
     }
   } catch (e) {
     console.warn("[turn] belief read exception:", e instanceof Error ? e.message : e);
+  }
+
+  // 角色經歷注入 — ADR-007 Stage 2 (角色深化 surface 層)。讀在場角色嘅近期經歷
+  // (RLS-scoped user client · char_exp_own_select · cheap select · 唔加 LLM call)。
+  // formatExperiencesBlock 砌 [INTERNAL CONTEXT] block 餵 Narrator → 角色自然演繹
+  // 被經歷塑造嘅自己 (累積 = 深度 · 無 threshold)。Stage 3 之後會 union per-char digest。
+  // Resilient:表缺席 / 冇經歷 → 空 block 自然消失 (degrade like beliefsBlock)。
+  try {
+    const castIds = ctx.characters
+      .map((c) => c.character_id)
+      .filter((id): id is string => !!id);
+    // ADR-007 Stage 1b — 名冊路人名 (排除 cast) → 一齊讀佢哋 name-keyed 嘅經歷。
+    const castLower = new Set(ctx.characters.map((c) => c.card.name.trim().toLowerCase()));
+    const rosterWalkOns = parseMentionRoster((pt as { mention_roster?: unknown }).mention_roster)
+      .map((r) => ((r as { name?: string }).name ?? "").trim())
+      .filter((n) => n && !castLower.has(n.toLowerCase()));
+
+    type ExpRow = {
+      character_id: string | null;
+      character_name: string | null;
+      turn_index: number;
+      what_happened: string;
+      my_response: string | null;
+      emotional_tone: string | null;
+      weight: number | null;
+    };
+    const expCols =
+      "character_id, character_name, turn_index, what_happened, my_response, emotional_tone, weight";
+    const merged: ExpRow[] = [];
+
+    if (castIds.length > 0) {
+      const { data, error } = await supabase
+        .from("character_experiences")
+        .select(expCols)
+        .eq("playthrough_id", playthroughId)
+        .in("character_id", castIds)
+        .order("turn_index", { ascending: false })
+        .limit(60);
+      if (error) {
+        if (!/relation .* does not exist/i.test(String(error.message ?? ""))) {
+          console.warn("[turn] experience read (cast) failed:", error.message);
+        }
+      } else if (data) merged.push(...(data as ExpRow[]));
+    }
+    if (rosterWalkOns.length > 0) {
+      const { data, error } = await supabase
+        .from("character_experiences")
+        .select(expCols)
+        .eq("playthrough_id", playthroughId)
+        .in("character_name", rosterWalkOns.slice(0, 20))
+        .order("turn_index", { ascending: false })
+        .limit(30);
+      if (error) {
+        if (!/relation .* does not exist|column .* does not exist/i.test(String(error.message ?? ""))) {
+          console.warn("[turn] experience read (walk-on) failed:", error.message);
+        }
+      } else if (data) merged.push(...(data as ExpRow[]));
+    }
+
+    if (merged.length > 0) {
+      const castNameById = new Map<string, string>(
+        ctx.characters.map((c) => [c.character_id ?? "", c.card.name]),
+      );
+      ctx.experiencesBlock = formatExperiencesBlock(merged, castNameById, storyLanguage);
+    }
+  } catch (e) {
+    console.warn("[turn] experience read exception:", e instanceof Error ? e.message : e);
   }
 
   if (memory.contextString) {
@@ -1640,6 +1707,11 @@ export async function POST(
                   name: c.card.name,
                 })),
                 protagonistName: pt.character_name,
+                // ADR-007 Stage 1b — 名冊路人 (含今回合新名 · nextRoster) → 經歷可
+                // 記喺呢啲名 (name-keyed)。玩家不停互動嘅路人有機深化。
+                rosterNames: nextRoster
+                  .map((r) => (r as { name?: string }).name ?? "")
+                  .filter(Boolean),
                 aiNarrative: finalText,
                 currentTurn: aiTurnIndex,
                 language: storyBible.hard_locked.language,
