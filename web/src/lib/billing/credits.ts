@@ -458,9 +458,12 @@ export const BACKGROUND_RESERVE_TOKENS = {
   // separate slot — gate==charge stays symmetric via this single constant.
   lorebook: { inputTokens: 2300, outputTokens: 600 },
   summarizer: { inputTokens: 700, outputTokens: 140 },
-  // M4 belief extractor — every turn (like lorebook), small output (≤4 triples).
-  // Full per-run reserve (NOT amortized — runs every turn). Over-reserve safe.
-  beliefs: { inputTokens: 2000, outputTokens: 120 },
+  // Character-memory extractor — every turn (like lorebook): beliefs (≤4 facts) +
+  // experiences (≤3 lived moments · ADR-007) folded into ONE call (founder「唔加新
+  // call」). Output bumped 120→700 to cover the experience text so the charge (this
+  // reserve · billed at onFinish BEFORE the after() call runs) stays ≥ actual
+  // (extractor maxOutputTokens=700). Over-reserve safe · full per-run · no drift.
+  beliefs: { inputTokens: 2300, outputTokens: 700 },
   embedTokens: 400,
 } as const;
 

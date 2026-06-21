@@ -37,7 +37,7 @@ import { StoryBibleSchema } from "@/schemas/bible";
 import { retrieveMemory } from "@/lib/ai/memory/retriever";
 import { maybeRunSummarization } from "@/lib/ai/memory/summarizer";
 import { runLorebookExtraction } from "@/lib/ai/memory/lorebook";
-import { runBeliefExtraction, formatBeliefsBlock } from "@/lib/ai/memory/belief-extractor";
+import { runCharacterMemoryExtraction, formatBeliefsBlock } from "@/lib/ai/memory/belief-extractor";
 import {
   parseMentionRoster,
   mergeMentionRoster,
@@ -1622,15 +1622,17 @@ export async function POST(
             }
           });
 
-          // 角色信念抽取 — M4 記憶手術 (記憶宮殿信念圖譜復活 · Session 19)。
-          // 每回合背景抽「事實性信念三元組」寫入 character_beliefs (apply_belief ·
-          // invalidate-then-insert)。只記事實 · 唔記性格 (04-memory.md)。同 lorebook
-          // 一樣 after() 背景 · resilient (0068 缺席 → soft skip · hard rule #12)。
+          // 角色記憶抽取 — 信念 (M4 · 事實層) + 經歷 (ADR-007 · 性格/關係層) 一個 call。
+          // 每回合背景抽:(a)「事實性信念三元組」寫 character_beliefs (apply_belief ·
+          // invalidate-then-insert · 只記事實);(b)「角色經歷」append 落 character_experiences
+          // (累積 = 角色深化燃料 · 無 threshold · ADR-007 · Stage 1 = 主要角色)。同 lorebook
+          // 一樣 after() 背景 · resilient (表/RPC 缺席 → soft skip · hard rule #12)。
+          // 計費:折入同一 call · 用 BACKGROUND_RESERVE_TOKENS.beliefs reserve (已升)。
           // ⚠️ cadence = 每回合;若 founder 要慳 · 喺呢度加 turn-modulo gate。
           after(async () => {
             try {
               const serviceClient = createServiceRoleClient();
-              await runBeliefExtraction({
+              await runCharacterMemoryExtraction({
                 supabase: serviceClient,
                 playthroughId,
                 cast: ctx.characters.map((c) => ({
